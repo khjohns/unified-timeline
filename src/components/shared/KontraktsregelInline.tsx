@@ -5,7 +5,7 @@
  * Progressiv avsløring via accordion.
  *
  * Støtter:
- * - Grunnlagspor: §14.4, §14.6, §23.1, §23.3, §24.1, §24.2.2, §25.1.2, §25.2, §32.1, §32.2, §32.3
+ * - Grunnlagspor: §14.4, §14.6, §22, §23.1, §23.3, §24.1, §24.2.2, §25.1.2, §25.2, §32.1, §32.2, §32.3
  * - Fristspor: §33.1, §33.3, §33.4, §33.5, §33.6.1, §33.6.2, §33.7, §33.8
  * - Custom mode: Dynamisk innhold med samme visuelle stil
  *
@@ -31,6 +31,7 @@ type Hjemmel =
   // Grunnlagspor
   | '§14.4'   // Lovendring
   | '§14.6'   // Valg av løsninger (valgrettsbegrensning)
+  | '§22'     // Byggherrens medvirkningsplikt
   | '§23.1'   // Uforutsette grunnforhold
   | '§23.3'   // Kulturminner
   | '§24.1'   // Byggherrens prosjekteringsrisiko
@@ -159,6 +160,23 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
         { ref: 'Rammer', tekst: 'Begrenset av §14.1-14.5 (funksjonskrav, standarder, offentlige krav, etc.).' },
         { ref: 'Begrensning = endring', tekst: 'Pålegg (jf. §32.1) som begrenser valgretten er en endring.' },
         { ref: 'Varsling', tekst: 'Totalentreprenøren må varsle etter §32.2 for å påberope endringen.' },
+      ],
+    },
+  },
+  '§22': {
+    inline: 'Svikter byggherren i sin medvirkningsplikt etter §22.1-22.4, skal totalentreprenøren varsle uten ugrunnet opphold etter §25.1.2.',
+    konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Kravet tapes ikke.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+    systematikk: {
+      label: 'Byggherrens medvirkningsplikter (§22.1-22.4)',
+      innhold: [
+        { ref: '§22.1', tekst: 'Overholde lover, forskrifter og offentlige vedtak for sine kontraktsforpliktelser.' },
+        { ref: '§22.2', tekst: 'Sørge for nødvendig offentligrettslig og privatrettslig råderett over eiendommen.' },
+        { ref: '§22.3', tekst: 'Stille til rådighet fysisk arbeidsgrunnlag som totalentreprenøren skal bygge på.' },
+        { ref: '§22.4', tekst: 'Levere materialer dersom avtalt; bærer risikoen for at leveransene er i henhold til avtalen.' },
       ],
     },
   },
