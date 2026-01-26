@@ -161,21 +161,16 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§23.1': {
-    inline: 'Avviker forhold ved grunnen fra det totalentreprenøren hadde grunn til å regne med ved tilbudet, har byggherren risikoen for dette.',
-    konsekvens: 'Totalentreprenøren må varsle etter §25.1.2 uten ugrunnet opphold. Byggherren svarer for uriktige eller mangelfulle opplysninger han har gitt.',
+    inline: 'Oppdager totalentreprenøren at grunnforholdene avviker fra det han hadde grunn til å regne med ved tilbudet, skal han varsle byggherren etter §25.1.2 uten ugrunnet opphold.',
+    konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Kravet tapes ikke.',
     paragraf5: {
       paaberoper: 'BH',
       tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
     },
     systematikk: {
-      label: '§23: Risikoen for forhold ved grunnen',
+      label: 'Ved avtalt risikoovergang (§23.2)',
       innhold: [
-        { ref: 'Hovedregel', tekst: 'Byggherren har risikoen for uforutsette grunnforhold (§23.1).' },
-        { ref: 'TEs plikt a)', tekst: 'Aktsom besiktigelse av byggeområdet og dets omgivelser.' },
-        { ref: 'TEs plikt b)', tekst: 'Innhente foreliggende opplysninger om grunnforhold fra offentlige etater.' },
-        { ref: 'TEs plikt c)', tekst: 'Innhente opplysninger om kabler og rør.' },
-        { ref: 'BHs plikt', tekst: 'Opplyse om forhold han kjente eller måtte kjenne til.' },
-        { ref: 'Ved avtalt risikoovergang', tekst: 'Har totalentreprenøren overtatt risikoen (§23.2), kan han likevel påberope seg forhold som avviker vesentlig fra det han hadde grunn til å regne med.' },
+        { ref: 'Terskel', tekst: 'Har totalentreprenøren overtatt risikoen, kan han likevel påberope seg forhold som avviker vesentlig fra det han hadde grunn til å regne med.' },
       ],
     },
   },
