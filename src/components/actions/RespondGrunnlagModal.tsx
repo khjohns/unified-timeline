@@ -36,7 +36,7 @@ import {
   DataList,
   DataListItem,
   FormField,
-  MarkdownEditor,
+  RichTextEditor,
   Modal,
   RadioGroup,
   RadioItem,
@@ -704,19 +704,19 @@ export function RespondGrunnlagModal({
                 name="begrunnelse"
                 control={control}
                 render={({ field }) => (
-                  <MarkdownEditor
+                  <RichTextEditor
                     id="begrunnelse"
                     value={field.value ?? ''}
                     onChange={field.onChange}
-                    rows={18}
+                    minHeight={400}
                     fullWidth
                     error={!!errors.begrunnelse}
                     placeholder={
                       erGrunnlagPrekludert
-                        ? "Begrunn din preklusjonsinnsigelse og ta subsidiært stilling...\n\n## Preklusjonsinnsigelse\n[Din begrunnelse for hvorfor varselet kom for sent]\n\n## Subsidiær vurdering\n[Din vurdering av ansvarsgrunnlaget dersom preklusjonen ikke holder]"
+                        ? "Begrunn din preklusjonsinnsigelse og ta subsidiært stilling..."
                         : selectedResultat === 'avslatt'
-                          ? "Begrunn hvorfor du avslår kravet...\n\n## Vurdering av ansvarsgrunnlag\n[Forklar hvorfor forholdet er en del av kontrakten]\n\n## Kontraktshenvisninger\n[Referer til relevante kontraktsbestemmelser]"
-                          : "Begrunn din vurdering av ansvarsgrunnlaget...\n\n## Vurdering\n[Din vurdering]\n\n## Eventuelle forbehold\n[Hvis relevant]"
+                          ? "Begrunn hvorfor du avslår kravet..."
+                          : "Begrunn din vurdering av ansvarsgrunnlaget..."
                     }
                   />
                 )}
