@@ -110,6 +110,26 @@ export function Modal({
             </Dialog.Title>
           )}
 
+          {/* Framed close button - positioned on border (mobile only) */}
+          {framedTitle && (
+            <Dialog.Close
+              className={clsx(
+                // Mobile: Framed close button breaking the border (mirrors title position)
+                'absolute right-4 top-0 -translate-y-1/2',
+                'text-pkt-text-body-subtle hover:text-pkt-text-body-default',
+                'focus:outline-none focus:ring-2 focus:ring-pkt-brand-purple-1000/30',
+                // Desktop: Hide framed close (normal header close is shown instead)
+                'sm:hidden',
+                // Match the pill variant styling
+                'border border-pkt-border-default rounded p-1.5 bg-pkt-bg-card/80 backdrop-blur-sm',
+                'hover:bg-pkt-surface-light-beige'
+              )}
+              aria-label="Lukk dialog"
+            >
+              <Cross2Icon className="w-5 h-5" />
+            </Dialog.Close>
+          )}
+
           {/* Header - fixed, does not scroll */}
           <div className="shrink-0">
             <div
@@ -132,15 +152,15 @@ export function Modal({
                 )}
               </div>
 
-              {/* Close button */}
+              {/* Close button (desktop, or mobile without framedTitle) */}
               <Dialog.Close
                 className={clsx(
                   'rounded p-2',
                   'text-pkt-text-body-subtle hover:text-pkt-text-body-default',
                   'hover:bg-pkt-surface-light-beige',
                   'focus:outline-none focus:ring-4 focus:ring-pkt-brand-purple-1000/30',
-                  // Push to right when framedTitle hides the title on mobile
-                  framedTitle && 'ml-auto sm:ml-0'
+                  // Hide on mobile when framedTitle is enabled (framed close is shown instead)
+                  framedTitle ? 'hidden sm:block' : ''
                 )}
                 aria-label="Lukk dialog"
               >
