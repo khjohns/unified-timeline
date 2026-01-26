@@ -5,7 +5,7 @@
  * Progressiv avsløring via accordion.
  *
  * Støtter:
- * - Grunnlagspor: §14.4, §14.6, §15.2, §22, §23.1, §23.3, §24.1, §24.2.2, §25.1.2, §25.2, §26.3, §32.1, §32.2, §32.3
+ * - Grunnlagspor: §14.4, §14.6, §15.2, §21.4, §22, §23.1, §23.3, §24.1, §24.2.2, §25.1.2, §25.2, §26.3, §32.1, §32.2, §32.3
  * - Fristspor: §33.1, §33.3, §33.4, §33.5, §33.6.1, §33.6.2, §33.7, §33.8
  * - Custom mode: Dynamisk innhold med samme visuelle stil
  *
@@ -32,6 +32,7 @@ type Hjemmel =
   | '§14.4'   // Lovendring (kontraktsgjenstand)
   | '§14.6'   // Valg av løsninger (valgrettsbegrensning)
   | '§15.2'   // Lovendring (prosess)
+  | '§21.4'   // Samordning utover påregnelig
   | '§22'     // Byggherrens medvirkningsplikt
   | '§26.3'   // Offentlige gebyrer og avgifter
   | '§23.1'   // Uforutsette grunnforhold
@@ -171,6 +172,21 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     paragraf5: {
       paaberoper: 'BH',
       tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+  },
+  '§21.4': {
+    inline: 'Medfører byggherrens koordinering at totalentreprenøren må legge om sin utførelse utover det som er påregnelig etter kontrakten, kan han påberope dette som endring og skal varsle etter §32.2.',
+    konsekvens: 'Preklusjon – manglende varsel etter §32.2 medfører tap av retten til å påberope forholdet som endring.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+    systematikk: {
+      label: 'Hva er «påregnelig» samordning?',
+      innhold: [
+        { ref: 'Rammer', tekst: 'Det som følger av kontraktens angivelse av arbeidets art, omfang og fremdrift.' },
+        { ref: 'Sideentrepriser', tekst: 'Kontraktens opplysninger om sideentreprisenes antall, art og fremdrift.' },
+      ],
     },
   },
   '§22': {
