@@ -146,15 +146,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         kode: 'MEDVIRK',
         label: 'Manglende medvirkning/leveranser',
         hjemmel_basis: '22',
-        beskrivelse: 'Forsinkede tegninger, beslutninger, fysisk arbeidsgrunnlag (§22.3) eller materialer (§22.4).',
-        varselkrav_ref: '25.1.2 / 33.4 / 34.1.2',
-        gruppe: 'Medvirkning',
-      },
-      {
-        kode: 'ADKOMST',
-        label: 'Manglende tilkomst/råderett',
-        hjemmel_basis: '22.2',
-        beskrivelse: 'Byggherren har ikke nødvendig råderett over eiendommen.',
+        beskrivelse: 'Svikt i byggherrens medvirkningsplikter: lover/forskrifter (§22.1), råderett over eiendom (§22.2), fysisk arbeidsgrunnlag (§22.3) eller materialer (§22.4).',
         varselkrav_ref: '25.1.2 / 33.4 / 34.1.2',
         gruppe: 'Medvirkning',
       },
@@ -255,27 +247,12 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
   {
     kode: 'FORCE_MAJEURE',
     label: 'Force Majeure',
-    beskrivelse: 'Ekstraordinære hendelser utenfor partenes kontroll.',
+    beskrivelse: 'Ekstraordinære hendelser utenfor partenes kontroll (værforhold, offentlige påbud, streik, lockout etc.). Gjelder både parten selv og kontraktsmedhjelpere.',
     hjemmel_frist: '33.3',
     hjemmel_vederlag: null,
     standard_vederlagsmetode: 'Ingen (Kun fristforlengelse)',
     type_krav: 'Tid',
-    underkategorier: [
-      {
-        kode: 'FM_EGEN',
-        label: 'Force Majeure (Egen)',
-        hjemmel_basis: '33.3 første ledd',
-        beskrivelse: 'Ekstraordinære værforhold, offentlige påbud/forbud, streik, lockout etc. som rammer entreprenøren direkte.',
-        varselkrav_ref: '33.4',
-      },
-      {
-        kode: 'FM_MH',
-        label: 'Force Majeure (Medhjelper)',
-        hjemmel_basis: '33.3 annet ledd',
-        beskrivelse: 'Hindring hos kontraktsmedhjelper som skyldes forhold utenfor dennes kontroll.',
-        varselkrav_ref: '33.4',
-      },
-    ],
+    underkategorier: [],
   },
 ];
 
