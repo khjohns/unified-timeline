@@ -23,6 +23,8 @@ interface TabsProps {
   className?: string;
   /** Show only icons on mobile (requires tabs to have icons) */
   iconOnlyMobile?: boolean;
+  /** Make tabs fill the full width equally (good for 2-3 tabs in modals) */
+  fullWidth?: boolean;
 }
 
 export function Tabs({
@@ -31,20 +33,22 @@ export function Tabs({
   onTabChange,
   className,
   iconOnlyMobile = false,
+  fullWidth = false,
 }: TabsProps) {
   return (
     <div className={clsx('relative', className)}>
-      {/* Fade indicator for scrollable content on mobile */}
-      <div
-        className="absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white to-transparent pointer-events-none sm:hidden z-10 dark:from-pkt-bg-canvas"
-        aria-hidden="true"
-      />
+      {/* Fade indicator for scrollable content on mobile (hidden when fullWidth) */}
+      {!fullWidth && (
+        <div
+          className="absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white to-transparent pointer-events-none sm:hidden z-10 dark:from-pkt-bg-canvas"
+          aria-hidden="true"
+        />
+      )}
 
       <div
         className={clsx(
           'flex border-b border-pkt-border-subtle',
-          'overflow-x-auto scrollbar-hide',
-          'snap-x snap-mandatory'
+          fullWidth ? '' : 'overflow-x-auto scrollbar-hide snap-x snap-mandatory'
         )}
         role="tablist"
       >
@@ -54,12 +58,13 @@ export function Tabs({
             type="button"
             onClick={() => onTabChange(tab.id)}
             className={clsx(
-              'px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap snap-start',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-pkt-brand-purple-1000/30',
+              'px-4 py-2.5 text-sm font-medium transition-colors whitespace-nowrap',
+              fullWidth ? 'flex-1 justify-center' : 'snap-start',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-pkt-brand-purple-1000/30 focus-visible:ring-inset',
               'flex items-center gap-2',
               activeTab === tab.id
-                ? 'text-pkt-text-body-dark border-b-2 border-pkt-text-body-dark -mb-px'
-                : 'text-pkt-text-body-muted hover:text-pkt-text-body-default'
+                ? 'text-pkt-text-body-dark border-b-2 border-pkt-text-body-dark -mb-px bg-pkt-surface-subtle'
+                : 'text-pkt-text-body-muted hover:text-pkt-text-body-default hover:bg-pkt-surface-light-beige'
             )}
             aria-selected={activeTab === tab.id}
             role="tab"
