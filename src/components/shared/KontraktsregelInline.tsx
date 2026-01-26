@@ -5,7 +5,7 @@
  * Progressiv avsløring via accordion.
  *
  * Støtter:
- * - Grunnlagspor: §14.4, §14.6, §24.2.2, §25.1.2, §25.2, §32.2, §32.3
+ * - Grunnlagspor: §14.4, §14.6, §23.1, §23.3, §24.1, §24.2.2, §25.1.2, §25.2, §32.1, §32.2, §32.3
  * - Fristspor: §33.1, §33.3, §33.4, §33.5, §33.6.1, §33.6.2, §33.7, §33.8
  * - Custom mode: Dynamisk innhold med samme visuelle stil
  *
@@ -33,6 +33,7 @@ type Hjemmel =
   | '§14.6'   // Valg av løsninger (valgrettsbegrensning)
   | '§23.1'   // Uforutsette grunnforhold
   | '§23.3'   // Kulturminner
+  | '§24.1'   // Byggherrens prosjekteringsrisiko
   | '§24.2.2' // Risikoovergang - kontroll av byggherrens materiale
   | '§25.1.2' // Varslingsplikt ved forhold som forstyrrer gjennomføringen
   | '§25.2'   // Varslingsplikt ved uegnet prosjektering (funksjonskrav)
@@ -181,6 +182,21 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     paragraf5: {
       paaberoper: 'BH',
       tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+  },
+  '§24.1': {
+    inline: 'Oppdager totalentreprenøren svikt i løsninger eller prosjektering som byggherren har foreskrevet eller pålagt, skal han varsle uten ugrunnet opphold etter §25.1.2.',
+    konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Merk: Kravet tapes IKKE. Byggherren bærer risikoen for egen prosjektering.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+    systematikk: {
+      label: '§24.1: Byggherrens prosjekteringsrisiko',
+      innhold: [
+        { ref: 'Omfang', tekst: 'Byggherren har risikoen for løsninger og prosjektering i egne kontraktsdokumenter, samt pålegg gitt etter kontraktsinngåelse.' },
+        { ref: 'Aktsomhet', tekst: '«burde» (§25.1.2) – normal aktsomhet ved forhold som kan forstyrre gjennomføringen.' },
+      ],
     },
   },
   '§24.2.2': {
