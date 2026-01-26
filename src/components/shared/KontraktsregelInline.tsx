@@ -32,6 +32,7 @@ type Hjemmel =
   | '§14.4'   // Lovendring
   | '§14.6'   // Valg av løsninger (valgrettsbegrensning)
   | '§23.1'   // Uforutsette grunnforhold
+  | '§23.3'   // Kulturminner
   | '§24.2.2' // Risikoovergang - kontroll av byggherrens materiale
   | '§25.1.2' // Varslingsplikt ved forhold som forstyrrer gjennomføringen
   | '§25.2'   // Varslingsplikt ved uegnet prosjektering (funksjonskrav)
@@ -172,6 +173,14 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
       innhold: [
         { ref: 'Terskel', tekst: 'Har totalentreprenøren overtatt risikoen, kan han likevel påberope seg forhold som avviker vesentlig fra det han hadde grunn til å regne med.' },
       ],
+    },
+  },
+  '§23.3': {
+    inline: 'Oppdager totalentreprenøren kulturminner, skal han straks innstille arbeidet i nærheten, iverksette nødvendig sikring og varsle byggherren uten ugrunnet opphold etter §25.1.2.',
+    konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Totalentreprenøren har ikke risikoen for kulturminner med mindre han hadde kunnskap ved tilbudet.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
     },
   },
   '§24.2.2': {
