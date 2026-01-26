@@ -5,7 +5,7 @@
  * Progressiv avsløring via accordion.
  *
  * Støtter:
- * - Grunnlagspor: §14.4, §14.6, §24.2.2, §25.1.2, §25.2, §32.2, §32.3
+ * - Grunnlagspor: §10.2, §14.4, §14.6, §15.2, §19.1, §21.4, §22, §23.1, §23.3, §24.1, §24.2.2, §25.1.2, §25.2, §26.3, §29.2, §32.1, §32.2, §32.3, §38.1
  * - Fristspor: §33.1, §33.3, §33.4, §33.5, §33.6.1, §33.6.2, §33.7, §33.8
  * - Custom mode: Dynamisk innhold med samme visuelle stil
  *
@@ -29,13 +29,25 @@ import { ChevronRightIcon } from '@radix-ui/react-icons';
 /** Støttede hjemler */
 type Hjemmel =
   // Grunnlagspor
-  | '§14.4'   // Lovendring
+  | '§10.2'   // Nektelse av kontraktsmedhjelper
+  | '§14.4'   // Lovendring (kontraktsgjenstand)
   | '§14.6'   // Valg av løsninger (valgrettsbegrensning)
+  | '§15.2'   // Lovendring (prosess)
+  | '§19.1'   // Skade forårsaket av byggherren
+  | '§21.4'   // Samordning utover påregnelig
+  | '§22'     // Byggherrens medvirkningsplikt
+  | '§26.3'   // Offentlige gebyrer og avgifter
+  | '§29.2'   // Stansing ved betalingsmislighold
+  | '§23.1'   // Uforutsette grunnforhold
+  | '§23.3'   // Kulturminner
+  | '§24.1'   // Byggherrens prosjekteringsrisiko
   | '§24.2.2' // Risikoovergang - kontroll av byggherrens materiale
   | '§25.1.2' // Varslingsplikt ved forhold som forstyrrer gjennomføringen
   | '§25.2'   // Varslingsplikt ved uegnet prosjektering (funksjonskrav)
+  | '§32.1'   // Definisjon av pålegg og utførelsesplikt
   | '§32.2'   // Irregulære endringer (pålegg uten endringsordre)
   | '§32.3'   // Passivitetsrisiko (byggherre)
+  | '§38.1'   // Urettmessig brukstakelse
   // Fristspor
   | '§33.1' | '§33.3' | '§33.4' | '§33.5' | '§33.6.1' | '§33.6.2' | '§33.7' | '§33.8';
 
@@ -85,15 +97,40 @@ type KontraktsregelInlineProps =
  *    - "blir oppmerksom på"       → Faktisk kunnskap (mildest krav til varslende)
  *    - "burde ha blitt klar over" → Normal aktsomhet (strengest krav til varslende)
  *    - "måtte ha blitt klar over" → Kun åpenbare mangler (midt imellom)
- *    NB: §5-mekanismen snur bevisbyrden - motparten må påberope senhet.
  *
- * 3. STRUKTURÉR INNHOLDET:
+ * 3. §5-MEKANISMEN (varsler og krav):
+ *    §5 ligger "over" spesialreglene som et filter og er en forutsetning for at
+ *    spesialregelens konsekvens skal inntre.
+ *
+ *    Systematikk:
+ *    ┌─────────────────────────────────────────────────────────────────────────┐
+ *    │ §5 (overordnet)                                                         │
+ *    │ Den som vil påberope senhet må gjøre det skriftlig uten ugrunnet        │
+ *    │ opphold etter mottak. Gjør han ikke det, anses varselet/svaret rettidig.│
+ *    ├─────────────────────────────────────────────────────────────────────────┤
+ *    │ Spesialregel (f.eks. §32.3, §33.7)                                      │
+ *    │ Definerer konsekvensen ved brudd (passiv aksept, preklusjon, etc.)      │
+ *    └─────────────────────────────────────────────────────────────────────────┘
+ *
+ *    Eksempel - §32.3 (byggherrens svarplikt på §32.2-varsel):
+ *    1. Totalentreprenøren sender §32.2-varsel
+ *    2. Byggherren svarer med avslag - men for sent
+ *    3. §32.3 definerer konsekvensen: "pålegget anses å innebære en endring"
+ *    4. MEN §5 krever at totalentreprenøren påberoper senheten i tide
+ *    5. Påberoper totalentreprenøren for sent → §5 slår inn: svaret anses rettidig
+ *    6. Resultat: Avslaget står, ingen endring
+ *
+ *    Viktig: §5 anvendes kun én gang - ikke rekursivt. Motparten trenger ikke
+ *    påberope at senhetspåberopelsen var for sen. §5 slår direkte inn når
+ *    fristen "uten ugrunnet opphold" er oversittet.
+ *
+ * 4. STRUKTURÉR INNHOLDET:
  *    - inline: Hovedregelen i én setning. Start med subjekt, deretter handling og frist.
  *    - konsekvens: Hva skjer ved brudd? Bruk konsekvenstyper fra kartleggingen.
  *    - paragraf5: paaberoper = hvem må påberope senhet ('TE'/'BH'), tekst = påminnelse.
  *    - systematikk: Valgfritt. For underpunkter, definisjoner, eller sammenhenger.
  *
- * 4. EKSEMPEL (§32.3):
+ * 5. EKSEMPEL (§32.3):
  *    - HVEM: BH | TRIGGER: Mottar varsel etter §32.2 | FRIST: Uten ugrunnet opphold
  *    - KONSEKVENS: Passiv aksept (pålegget anses som endring)
  *    - inline: "Når byggherren mottar varsel etter §32.2, skal han..."
@@ -108,16 +145,31 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
 }> = {
   // ========== GRUNNLAGSPOR ==========
 
-  '§14.4': {
-    inline: 'Lov- eller forskriftsendringer etter tilbudsfristens utløp som medfører endrede skatter, avgifter eller krav til kontraktsarbeidet, gir rett til justering av kontraktssummen og/eller fristforlengelse.',
-    konsekvens: 'Bare endringer som inntrer ETTER tilbudsfristens utløp gir grunnlag. Entreprenøren bærer risikoen for endringer han burde kjent til ved tilbudet.',
+  '§10.2': {
+    inline: 'Nekter byggherren å godta totalentreprenørens valg av kontraktsmedhjelper uten saklig grunn, kan totalentreprenøren kreve fristforlengelse eller vederlagsjustering etter §33 og §34.',
+    konsekvens: 'Byggherren må godtgjøre at nektelsen er saklig begrunnet i kontraktsmedhjelperens forhold. Kan han ikke det, har totalentreprenøren krav på kompensasjon.',
     paragraf5: {
       paaberoper: 'BH',
       tekst: '',
     },
+    systematikk: {
+      label: 'Vilkår for nektelse (§10.2)',
+      innhold: [
+        { ref: 'Frist', tekst: 'Byggherren må melde fra uten ugrunnet opphold, senest 14 dager etter mottatt underretning.' },
+        { ref: 'Saklig grunn', tekst: 'Nektelsen må være begrunnet i kontraktsmedhjelperens forhold (ikke totalentreprenørens).' },
+      ],
+    },
+  },
+  '§14.4': {
+    inline: 'Skjer det lovendringer eller fattes enkeltvedtak etter tilbudet som krever endring av kontraktsgjenstanden, kan totalentreprenøren påberope dette som endring og skal varsle etter §32.2.',
+    konsekvens: 'Preklusjon – manglende varsel etter §32.2 medfører tap av retten til å påberope forholdet som endring. Gjelder kun forhold totalentreprenøren ikke burde ha tatt i betraktning ved tilbudet.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
   },
   '§14.6': {
-    inline: 'Totalentreprenøren har rett til å velge materiale, utførelse og løsning innenfor kontraktens rammer (§14.1-14.5). Pålegg som begrenser valgretten er en endring.',
+    inline: 'Mottar totalentreprenøren pålegg som begrenser valgretten for materiale, utførelse eller løsning innenfor kontraktens rammer (§14.1-14.5), er dette en endring.',
     konsekvens: 'Vil totalentreprenøren påberope begrensning av valgrett som endring, må han varsle etter §32.2. Manglende varsel medfører tap av rett.',
     paragraf5: {
       paaberoper: 'BH',
@@ -133,9 +185,94 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
       ],
     },
   },
+  '§15.2': {
+    inline: 'Skjer det lovendringer eller fattes enkeltvedtak etter tilbudet som krever endring av avtalte prosesskrav (§15.1), kan totalentreprenøren påberope dette som endring og skal varsle etter §32.2.',
+    konsekvens: 'Preklusjon – manglende varsel etter §32.2 medfører tap av retten til å påberope forholdet som endring. Gjelder kun forhold totalentreprenøren ikke burde ha tatt i betraktning ved tilbudet.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+  },
+  '§19.1': {
+    inline: 'Forårsaker byggherren eller hans kontraktsmedhjelpere skade på kontraktsgjenstanden i byggetiden, bærer byggherren risikoen.',
+    konsekvens: 'Totalentreprenøren bærer ikke risikoen for skade forårsaket av byggherren, eller for ekstraordinære omstendigheter som krig, opprør og naturkatastrofer.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: '',
+    },
+  },
+  '§21.4': {
+    inline: 'Medfører byggherrens koordinering at totalentreprenøren må legge om sin utførelse utover det som er påregnelig etter kontrakten, kan han påberope dette som endring og skal varsle etter §32.2.',
+    konsekvens: 'Preklusjon – manglende varsel etter §32.2 medfører tap av retten til å påberope forholdet som endring.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+    systematikk: {
+      label: 'Hva er «påregnelig» samordning?',
+      innhold: [
+        { ref: 'Rammer', tekst: 'Det som følger av kontraktens angivelse av arbeidets art, omfang og fremdrift.' },
+        { ref: 'Sideentrepriser', tekst: 'Kontraktens opplysninger om sideentreprisenes antall, art og fremdrift.' },
+      ],
+    },
+  },
+  '§22': {
+    inline: 'Svikter byggherren i sin medvirkningsplikt etter §22.1-22.4, skal totalentreprenøren varsle uten ugrunnet opphold etter §25.1.2.',
+    konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Kravet tapes ikke.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+    systematikk: {
+      label: 'Byggherrens medvirkningsplikter (§22.1-22.4)',
+      innhold: [
+        { ref: '§22.1', tekst: 'Overholde lover, forskrifter og offentlige vedtak for sine kontraktsforpliktelser.' },
+        { ref: '§22.2', tekst: 'Sørge for nødvendig offentligrettslig og privatrettslig råderett over eiendommen.' },
+        { ref: '§22.3', tekst: 'Stille til rådighet fysisk arbeidsgrunnlag som totalentreprenøren skal bygge på.' },
+        { ref: '§22.4', tekst: 'Levere materialer dersom avtalt; bærer risikoen for at leveransene er i henhold til avtalen.' },
+      ],
+    },
+  },
+  '§23.1': {
+    inline: 'Blir eller burde totalentreprenøren ha blitt oppmerksom på at grunnforholdene avviker fra det han hadde grunn til å regne med ved tilbudet, skal han varsle byggherren etter §25.1.2 uten ugrunnet opphold.',
+    konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Kravet tapes ikke.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+    systematikk: {
+      label: 'Ved avtalt risikoovergang (§23.2)',
+      innhold: [
+        { ref: 'Terskel', tekst: 'Har totalentreprenøren overtatt risikoen, kan han likevel påberope seg forhold som avviker vesentlig fra det han hadde grunn til å regne med.' },
+      ],
+    },
+  },
+  '§23.3': {
+    inline: 'Oppdager totalentreprenøren kulturminner, skal han straks innstille arbeidet i nærheten, iverksette nødvendig sikring og varsle byggherren uten ugrunnet opphold etter §25.1.2.',
+    konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Totalentreprenøren har ikke risikoen for kulturminner med mindre han hadde kunnskap ved tilbudet.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+  },
+  '§24.1': {
+    inline: 'Oppdager totalentreprenøren svikt i løsninger eller prosjektering som byggherren har foreskrevet eller pålagt, skal han varsle uten ugrunnet opphold etter §25.1.2.',
+    konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Merk: Kravet tapes IKKE. Byggherren bærer risikoen for egen prosjektering.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+    systematikk: {
+      label: '§24.1: Byggherrens prosjekteringsrisiko',
+      innhold: [
+        { ref: 'Omfang', tekst: 'Byggherren har risikoen for løsninger og prosjektering i egne kontraktsdokumenter, samt pålegg gitt etter kontraktsinngåelse.' },
+        { ref: 'Aktsomhet', tekst: '«burde» (§25.1.2) – normal aktsomhet ved forhold som kan forstyrre gjennomføringen.' },
+      ],
+    },
+  },
   '§24.2.2': {
-    inline: 'Gjelder kun når avtalt risikoovergang etter §24.2.1. Regulerer totalentreprenørens frist for å varsle om forhold i byggherrens materiale som ikke vil oppfylle §14-kravene, samt byggherrens svarplikt.',
-    konsekvens: 'Innebærer byggherrens svar en endring uten at endringsordre utstedes, må totalentreprenøren varsle etter §32.2 for å påberope seg endringen.',
+    inline: 'Innebærer byggherrens svar på varsel etter §24.2.2 en endring uten at endringsordre utstedes, skal totalentreprenøren varsle etter §32.2.',
+    konsekvens: 'Uten varsel etter §32.2 tapes retten til å påberope at svaret innebærer en endring.',
     paragraf5: {
       paaberoper: 'BH',
       tekst: '',
@@ -153,11 +290,11 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§25.1.2': {
-    inline: 'Totalentreprenøren skal varsle byggherren «uten ugrunnet opphold» etter at han blir eller burde ha blitt oppmerksom på forhold som vil kunne forstyrre gjennomføringen av arbeidet.',
+    inline: 'Blir eller burde totalentreprenøren ha blitt oppmerksom på forhold som kan forstyrre gjennomføringen, skal han varsle byggherren uten ugrunnet opphold.',
     konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Merk: Kravet tapes IKKE (ingen preklusjon).',
     paragraf5: {
       paaberoper: 'BH',
-      tekst: 'Byggherren må påberope senhet skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
     },
     systematikk: {
       label: 'Hva er «forhold» (§25.1.1)?',
@@ -171,11 +308,11 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§25.2': {
-    inline: 'Totalentreprenøren skal varsle byggherren «uten ugrunnet opphold» etter at han blir eller måtte ha blitt klar over at byggherrens prosjektering ikke er egnet til å oppfylle funksjonskravene i §14.',
+    inline: 'Blir eller måtte totalentreprenøren ha blitt klar over at byggherrens prosjektering ikke er egnet til å oppfylle funksjonskravene i §14, skal han varsle byggherren uten ugrunnet opphold.',
     konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Merk: Kravet tapes IKKE (ingen preklusjon).',
     paragraf5: {
       paaberoper: 'BH',
-      tekst: 'Byggherren må påberope senhet skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
     },
     systematikk: {
       label: 'Hva er «funksjonskravene»?',
@@ -186,12 +323,28 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
       ],
     },
   },
-  '§32.2': {
-    inline: 'Mottar totalentreprenøren pålegg uten endringsordre, skal han «uten ugrunnet opphold» varsle byggherren dersom han vil påberope seg dette som en endring.',
-    konsekvens: 'Gjør han ikke det, taper han retten til å påberope seg at pålegget innebærer en endring.',
+  '§26.3': {
+    inline: 'Endres offentlige gebyrer eller avgifter som totalentreprenøren etter kontrakten skal betale etter at han inngav sitt tilbud, kan han påberope dette som endring og skal varsle etter §32.2.',
+    konsekvens: 'Preklusjon – manglende varsel etter §32.2 medfører tap av retten til å påberope forholdet som endring. Vederlagsjustering er uten påslag for indirekte kostnader, risiko og fortjeneste.',
     paragraf5: {
       paaberoper: 'BH',
-      tekst: 'Byggherren må påberope at varselet er for sent skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+  },
+  '§29.2': {
+    inline: 'Ved vesentlig betalingsmislighold fra byggherren har totalentreprenøren rett til å stanse arbeidet etter 24 timers skriftlig varsel, og kan kreve fristforlengelse eller vederlagsjustering etter §33 og §34.',
+    konsekvens: 'Stansingsretten forutsetter vesentlig mislighold eller at slikt mislighold klart vil inntre. Totalentreprenøren må varsle 24 timer før stans.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: '',
+    },
+  },
+  '§32.1': {
+    inline: 'Mottar totalentreprenøren pålegg uten endringsordre fra person med fullmakt (a, b) eller via arbeidstegninger/beskrivelser (c), skal han iverksette det selv om han mener det er en endring.',
+    konsekvens: 'Vil totalentreprenøren påberope at pålegget er en endring, må han varsle etter §32.2 uten ugrunnet opphold. Manglende varsel medfører tap av rett.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
     },
     systematikk: {
       label: 'Hva er et «pålegg» (§32.1)?',
@@ -203,8 +356,16 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
       ],
     },
   },
+  '§32.2': {
+    inline: 'Mottar totalentreprenøren pålegg uten endringsordre og vil påberope det som endring, skal han varsle byggherren uten ugrunnet opphold.',
+    konsekvens: 'Gjør han ikke det, taper han retten til å påberope seg at pålegget innebærer en endring.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope at varselet er for sent skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+  },
   '§32.3': {
-    inline: 'Når byggherren mottar varsel etter §32.2, skal han «uten ugrunnet opphold» besvare det ved enten å utstede endringsordre, avslå kravet, eller frafalle pålegget.',
+    inline: 'Mottar byggherren varsel etter §32.2, skal han besvare det uten ugrunnet opphold ved enten å utstede endringsordre, avslå kravet, eller frafalle pålegget.',
     konsekvens: 'Svarer ikke byggherren uten ugrunnet opphold, anses pålegget å innebære en endring. Ved avslag skal byggherren begrunne avslaget uten ugrunnet opphold.',
     paragraf5: {
       paaberoper: 'TE',
@@ -219,6 +380,14 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
         { ref: 'Passivitet', tekst: 'Manglende svar innen rimelig tid medfører at forholdet anses som endring' },
         { ref: 'Begrunnelse', tekst: 'Ved avvisning skal byggherren gi en skriftlig begrunnelse uten ugrunnet opphold' },
       ],
+    },
+  },
+  '§38.1': {
+    inline: 'Tar byggherren kontraktsgjenstanden i bruk før overtakelse uten avtale, er dette kontraktsbrudd og totalentreprenøren kan kreve fristforlengelse eller vederlagsjustering etter §33 og §34.',
+    konsekvens: 'Risikoen for delene som tas i bruk går automatisk over til byggherren, og eventuell dagmulkt reduseres forholdsmessig.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: '',
     },
   },
 
@@ -241,8 +410,8 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§33.3': {
-    inline: 'Fristforlengelse ved force majeure forutsetter at fremdriften hindres av forhold utenfor partenes kontroll (f.eks. ekstraordinære værforhold, offentlige påbud, streik). Hindringen kan ikke være noe parten burde forutsett eller kunne unngått.',
-    konsekvens: 'Force majeure gir kun fristforlengelse – ikke vederlagsjustering. Partene plikter å begrense skadevirkningene (§33.5).',
+    inline: 'Force majeure er forhold utenfor partenes kontroll, slik som ekstraordinære værforhold, offentlige påbud og forbud, streik, lockout og overenskomstbestemmelser.',
+    konsekvens: 'Force majeure gir kun fristforlengelse – ikke vederlagsjustering. Gjelder begge parter og deres kontraktsmedhjelpere.',
     paragraf5: {
       paaberoper: 'BH',
       tekst: '',
