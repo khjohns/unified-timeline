@@ -31,6 +31,7 @@ type Hjemmel =
   // Grunnlagspor
   | '§14.4'   // Lovendring
   | '§14.6'   // Valg av løsninger (valgrettsbegrensning)
+  | '§23.1'   // Uforutsette grunnforhold
   | '§24.2.2' // Risikoovergang - kontroll av byggherrens materiale
   | '§25.1.2' // Varslingsplikt ved forhold som forstyrrer gjennomføringen
   | '§25.2'   // Varslingsplikt ved uegnet prosjektering (funksjonskrav)
@@ -156,6 +157,25 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
         { ref: 'Rammer', tekst: 'Begrenset av §14.1-14.5 (funksjonskrav, standarder, offentlige krav, etc.).' },
         { ref: 'Begrensning = endring', tekst: 'Pålegg (jf. §32.1) som begrenser valgretten er en endring.' },
         { ref: 'Varsling', tekst: 'Totalentreprenøren må varsle etter §32.2 for å påberope endringen.' },
+      ],
+    },
+  },
+  '§23.1': {
+    inline: 'Avviker forhold ved grunnen fra det totalentreprenøren hadde grunn til å regne med ved tilbudet, har byggherren risikoen for dette.',
+    konsekvens: 'Totalentreprenøren må varsle etter §25.1.2 uten ugrunnet opphold. Byggherren svarer for uriktige eller mangelfulle opplysninger han har gitt.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+    systematikk: {
+      label: '§23: Risikoen for forhold ved grunnen',
+      innhold: [
+        { ref: 'Hovedregel', tekst: 'Byggherren har risikoen for uforutsette grunnforhold (§23.1).' },
+        { ref: 'TEs plikt a)', tekst: 'Aktsom besiktigelse av byggeområdet og dets omgivelser.' },
+        { ref: 'TEs plikt b)', tekst: 'Innhente foreliggende opplysninger om grunnforhold fra offentlige etater.' },
+        { ref: 'TEs plikt c)', tekst: 'Innhente opplysninger om kabler og rør.' },
+        { ref: 'BHs plikt', tekst: 'Opplyse om forhold han kjente eller måtte kjenne til.' },
+        { ref: 'Ved avtalt risikoovergang', tekst: 'Har totalentreprenøren overtatt risikoen (§23.2), kan han likevel påberope seg forhold som avviker vesentlig fra det han hadde grunn til å regne med.' },
       ],
     },
   },
