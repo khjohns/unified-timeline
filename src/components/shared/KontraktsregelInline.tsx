@@ -161,7 +161,7 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§23.1': {
-    inline: 'Oppdager totalentreprenøren at grunnforholdene avviker fra det han hadde grunn til å regne med ved tilbudet, skal han varsle byggherren etter §25.1.2 uten ugrunnet opphold.',
+    inline: 'Blir eller burde totalentreprenøren ha blitt oppmerksom på at grunnforholdene avviker fra det han hadde grunn til å regne med ved tilbudet, skal han varsle byggherren etter §25.1.2 uten ugrunnet opphold.',
     konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Kravet tapes ikke.',
     paragraf5: {
       paaberoper: 'BH',
