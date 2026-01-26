@@ -342,8 +342,8 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§33.3': {
-    inline: 'Fristforlengelse ved force majeure forutsetter at fremdriften hindres av forhold utenfor partenes kontroll (f.eks. ekstraordinære værforhold, offentlige påbud, streik). Hindringen kan ikke være noe parten burde forutsett eller kunne unngått.',
-    konsekvens: 'Force majeure gir kun fristforlengelse – ikke vederlagsjustering. Partene plikter å begrense skadevirkningene (§33.5).',
+    inline: 'Force majeure er forhold utenfor partenes kontroll, slik som ekstraordinære værforhold, offentlige påbud og forbud, streik, lockout og overenskomstbestemmelser.',
+    konsekvens: 'Force majeure gir kun fristforlengelse – ikke vederlagsjustering. Gjelder begge parter og deres kontraktsmedhjelpere.',
     paragraf5: {
       paaberoper: 'BH',
       tekst: '',
