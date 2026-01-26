@@ -425,6 +425,7 @@ export function RespondGrunnlagModal({
           tabs={tabs}
           activeTab={activeTab}
           onTabChange={(id) => setActiveTab(id as 'vurdering' | 'begrunnelse')}
+          fullWidth
         />
 
         {/* ==================== FANE 1: VURDERING ==================== */}
@@ -686,21 +687,9 @@ export function RespondGrunnlagModal({
         {/* ==================== FANE 2: BEGRUNNELSE ==================== */}
         {activeTab === 'begrunnelse' && (
           <div className="space-y-6">
-            {/* Show current selection summary */}
-            {selectedResultat && (
-              <div className="p-3 bg-pkt-surface-subtle rounded border border-pkt-border-subtle">
-                <p className="text-sm">
-                  <span className="font-medium">Valgt resultat:</span>{' '}
-                  <Badge variant={selectedResultat === 'avslatt' ? 'danger' : selectedResultat === 'godkjent' ? 'success' : 'warning'} size="sm">
-                    {RESULTAT_LABELS[selectedResultat]}
-                  </Badge>
-                </p>
-              </div>
-            )}
-
             {/* Begrunnelse - with much larger textarea */}
             <FormField
-              label="Din begrunnelse"
+              label="Byggherrens begrunnelse"
               required
               error={errors.begrunnelse?.message}
               helpText={

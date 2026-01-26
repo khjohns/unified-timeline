@@ -95,8 +95,8 @@ export function Modal({
                 {
                   // Default: Solid background matching modal
                   'bg-pkt-bg-card px-2': framedTitleVariant === 'default',
-                  // Pill: Thin border, transparent background
-                  'border border-pkt-border-default rounded px-3 py-1 bg-pkt-bg-card/80 backdrop-blur-sm': framedTitleVariant === 'pill',
+                  // Pill: Thin border, solid background
+                  'border border-pkt-border-default rounded px-3 py-1 bg-pkt-bg-card': framedTitleVariant === 'pill',
                   // Underline: Border-bottom continuing from modal border
                   'border-b border-pkt-border-default pb-1 bg-transparent': framedTitleVariant === 'underline',
                   // Inset: Small notch/tab effect
@@ -120,8 +120,8 @@ export function Modal({
                 'focus:outline-none focus:ring-2 focus:ring-pkt-brand-purple-1000/30',
                 // Desktop: Hide framed close (normal header close is shown instead)
                 'sm:hidden',
-                // Match the pill variant styling
-                'border border-pkt-border-default rounded p-1.5 bg-pkt-bg-card/80 backdrop-blur-sm',
+                // Match the pill variant styling (solid background)
+                'border border-pkt-border-default rounded p-1.5 bg-pkt-bg-card',
                 'hover:bg-pkt-surface-light-beige'
               )}
               aria-label="Lukk dialog"
