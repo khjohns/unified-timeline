@@ -57,6 +57,7 @@
     "react-markdown": "^10.1.0",
     "react-pdf": "^10.2.0",
     "react-router-dom": "^7.9.5",
+    "remark-gfm": "^4.0.1",
     "turndown": "^7.2.2",
     "zod": "^3.25.76"
   },

@@ -9,6 +9,7 @@
 import { forwardRef, useState, useRef, useCallback, useMemo } from 'react';
 import * as Toolbar from '@radix-ui/react-toolbar';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import TurndownService from 'turndown';
 import clsx from 'clsx';
 import {
@@ -19,6 +20,7 @@ import {
   QuoteIcon,
   Link2Icon,
   HeadingIcon,
+  TableIcon,
 } from '@radix-ui/react-icons';
 
 export interface MarkdownEditorProps {
@@ -44,7 +46,7 @@ export interface MarkdownEditorProps {
   'aria-describedby'?: string;
 }
 
-type FormatAction = 'bold' | 'italic' | 'heading' | 'list' | 'code' | 'quote' | 'link';
+type FormatAction = 'bold' | 'italic' | 'heading' | 'list' | 'code' | 'quote' | 'link' | 'table';
 
 interface ToolbarButtonProps {
   icon: React.ReactNode;
@@ -160,6 +162,10 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
           case 'link':
             newText = `[${selectedText || 'lenketekst'}](url)`;
             cursorOffset = selectedText ? newText.length - 1 : 1;
+            break;
+          case 'table':
+            newText = `\n| Kolonne 1 | Kolonne 2 |\n|-----------|-----------|\n| Celle 1   | Celle 2   |\n`;
+            cursorOffset = 3;
             break;
         }
 
@@ -303,6 +309,13 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
                 disabled={disabled}
                 hideOnMobile
               />
+              <ToolbarButton
+                icon={<TableIcon className="w-5 h-5 sm:w-4 sm:h-4" />}
+                label="Tabell"
+                onClick={() => insertFormat('table')}
+                disabled={disabled}
+                hideOnMobile
+              />
             </Toolbar.Root>
           )}
         </div>
@@ -333,21 +346,12 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
           <div
             className={clsx(
               'px-3 py-3 min-h-[180px] sm:min-h-[150px] bg-pkt-bg-default',
-              'prose prose-sm max-w-none',
-              'prose-headings:text-pkt-text-body-dark prose-headings:font-semibold',
-              'prose-p:text-pkt-text-body-default prose-p:my-2',
-              'prose-strong:text-pkt-text-body-dark',
-              'prose-ul:list-disc prose-ul:pl-5 prose-ul:my-2',
-              'prose-ol:list-decimal prose-ol:pl-5 prose-ol:my-2',
-              'prose-li:my-0.5 prose-li:marker:text-pkt-text-body-muted',
-              'prose-code:bg-pkt-bg-subtle prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm',
-              'prose-blockquote:border-l-4 prose-blockquote:border-pkt-border-default prose-blockquote:pl-4 prose-blockquote:italic',
-              'prose-a:text-pkt-text-link prose-a:underline'
+              'markdown-preview'
             )}
             style={{ minHeight: `${rows * 1.5}rem` }}
           >
             {value ? (
-              <ReactMarkdown>{value}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
             ) : (
               <p className="text-pkt-text-placeholder italic">Ingen innhold å forhåndsvise</p>
             )}
