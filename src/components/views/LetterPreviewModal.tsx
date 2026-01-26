@@ -4,14 +4,17 @@
  * Modal for editing and previewing formal letters generated from response events.
  * Features section-based editing with reset capability.
  * Uses tabs for editor/preview navigation on all screen sizes.
+ *
+ * Architecture:
+ * - "Rediger" tab: Live HTML preview (instant, no PDF generation)
+ * - "Forhåndsvis" tab: HTML preview styled as A4 paper
+ * - PDF generation: Only on "Last ned" click (calls backend API)
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { pdf } from '@react-pdf/renderer';
-import { ResetIcon, DownloadIcon } from '@radix-ui/react-icons';
+import { ResetIcon, DownloadIcon, ReloadIcon } from '@radix-ui/react-icons';
 import { Modal, Button, Tabs } from '../primitives';
-import { PdfPreview } from '../pdf/PdfPreview';
-import { LetterDocument } from '../../pdf/LetterDocument';
+import { LetterHtmlPreview } from '../pdf/LetterHtmlPreview';
 import { buildLetterContent, isSeksjonEdited, resetSeksjon } from '../../utils/letterContentBuilder';
 import type { TimelineEvent, SakState } from '../../types/timeline';
 import type { BrevInnhold, BrevSeksjon } from '../../types/letter';
@@ -94,8 +97,7 @@ export function LetterPreviewModal({
 
   // State for editable content
   const [brevInnhold, setBrevInnhold] = useState<BrevInnhold>(initialContent);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
 
@@ -103,33 +105,6 @@ export function LetterPreviewModal({
   useEffect(() => {
     setBrevInnhold(initialContent);
   }, [initialContent]);
-
-  // Generate PDF when content changes
-  const generatePdf = useCallback(async () => {
-    setIsGenerating(true);
-    setError(undefined);
-
-    try {
-      const blob = await pdf(<LetterDocument brevInnhold={brevInnhold} />).toBlob();
-      setPdfBlob(blob);
-    } catch (err) {
-      console.error('Failed to generate PDF:', err);
-      setError('Kunne ikke generere PDF. Vennligst prøv igjen.');
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [brevInnhold]);
-
-  // Generate PDF on mount and when content changes (debounced)
-  useEffect(() => {
-    if (!open) return;
-
-    const timer = setTimeout(() => {
-      generatePdf();
-    }, 500); // Debounce 500ms
-
-    return () => clearTimeout(timer);
-  }, [open, brevInnhold, generatePdf]);
 
   // Section update handlers
   const updateSeksjon = useCallback(
@@ -161,19 +136,63 @@ export function LetterPreviewModal({
     []
   );
 
-  // Download handler
-  const handleDownload = useCallback(() => {
-    if (!pdfBlob) return;
+  // Download handler - calls backend API
+  const handleDownload = useCallback(async () => {
+    setIsDownloading(true);
+    setError(undefined);
 
-    const url = URL.createObjectURL(pdfBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `brev-${sakState.sak_id}-${brevInnhold.referanser.sporType}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, [pdfBlob, sakState.sak_id, brevInnhold.referanser.sporType]);
+    try {
+      const response = await fetch('/api/letter/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          brev_innhold: {
+            tittel: brevInnhold.tittel,
+            mottaker: brevInnhold.mottaker,
+            avsender: brevInnhold.avsender,
+            referanser: {
+              sak_id: brevInnhold.referanser.sakId,
+              sakstittel: brevInnhold.referanser.sakstittel,
+              event_id: brevInnhold.referanser.eventId,
+              spor_type: brevInnhold.referanser.sporType,
+              dato: brevInnhold.referanser.dato,
+              krav_dato: brevInnhold.referanser.kravDato,
+            },
+            seksjoner: {
+              innledning: brevInnhold.seksjoner.innledning.redigertTekst,
+              begrunnelse: brevInnhold.seksjoner.begrunnelse.redigertTekst,
+              avslutning: brevInnhold.seksjoner.avslutning.redigertTekst,
+            },
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // Get blob from response
+      const blob = await response.blob();
+      const filename = `brev-${sakState.sak_id}-${brevInnhold.referanser.sporType}.pdf`;
+
+      // Trigger download
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+      setError('Kunne ikke generere PDF. Vennligst prøv igjen.');
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [brevInnhold, sakState.sak_id]);
 
   const handleClose = () => onOpenChange(false);
 
@@ -218,13 +237,19 @@ export function LetterPreviewModal({
           />
         </div>
       ) : (
-        <PdfPreview
-          blob={pdfBlob}
-          isLoading={isGenerating}
-          error={error}
-          height="calc(85dvh - 280px)"
-          filename={`brev-${sakState.sak_id}.pdf`}
-        />
+        <div
+          className="overflow-auto border border-pkt-border-subtle bg-pkt-grays-gray-100"
+          style={{ height: 'calc(85dvh - 280px)' }}
+        >
+          <LetterHtmlPreview brevInnhold={brevInnhold} className="py-4" />
+        </div>
+      )}
+
+      {/* Error message */}
+      {error && (
+        <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
       )}
 
       {/* Footer */}
@@ -235,10 +260,19 @@ export function LetterPreviewModal({
         <Button
           variant="primary"
           onClick={handleDownload}
-          disabled={!pdfBlob || isGenerating}
+          disabled={isDownloading}
         >
-          <DownloadIcon className="w-4 h-4 mr-2" />
-          Last ned PDF
+          {isDownloading ? (
+            <>
+              <ReloadIcon className="w-4 h-4 mr-2 animate-spin" />
+              Genererer...
+            </>
+          ) : (
+            <>
+              <DownloadIcon className="w-4 h-4 mr-2" />
+              Last ned PDF
+            </>
+          )}
         </Button>
       </div>
     </Modal>
