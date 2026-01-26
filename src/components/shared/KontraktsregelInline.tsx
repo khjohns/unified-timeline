@@ -142,7 +142,7 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§14.6': {
-    inline: 'Totalentreprenøren har rett til å velge materiale, utførelse og løsning innenfor kontraktens rammer (§14.1-14.5). Pålegg som begrenser valgretten er en endring.',
+    inline: 'Mottar totalentreprenøren pålegg som begrenser valgretten for materiale, utførelse eller løsning innenfor kontraktens rammer (§14.1-14.5), er dette en endring.',
     konsekvens: 'Vil totalentreprenøren påberope begrensning av valgrett som endring, må han varsle etter §32.2. Manglende varsel medfører tap av rett.',
     paragraf5: {
       paaberoper: 'BH',
@@ -159,8 +159,8 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§24.2.2': {
-    inline: 'Gjelder kun når avtalt risikoovergang etter §24.2.1. Regulerer totalentreprenørens frist for å varsle om forhold i byggherrens materiale som ikke vil oppfylle §14-kravene, samt byggherrens svarplikt.',
-    konsekvens: 'Innebærer byggherrens svar en endring uten at endringsordre utstedes, må totalentreprenøren varsle etter §32.2 for å påberope seg endringen.',
+    inline: 'Innebærer byggherrens svar på varsel etter §24.2.2 en endring uten at endringsordre utstedes, skal totalentreprenøren varsle etter §32.2.',
+    konsekvens: 'Uten varsel etter §32.2 tapes retten til å påberope at svaret innebærer en endring.',
     paragraf5: {
       paaberoper: 'BH',
       tekst: '',
@@ -212,7 +212,7 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§32.2': {
-    inline: 'Mottar totalentreprenøren pålegg uten endringsordre, skal han «uten ugrunnet opphold» varsle byggherren dersom han vil påberope seg dette som en endring.',
+    inline: 'Mottar totalentreprenøren pålegg uten endringsordre og vil påberope det som endring, skal han varsle byggherren uten ugrunnet opphold.',
     konsekvens: 'Gjør han ikke det, taper han retten til å påberope seg at pålegget innebærer en endring.',
     paragraf5: {
       paaberoper: 'BH',
@@ -229,7 +229,7 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§32.3': {
-    inline: 'Når byggherren mottar varsel etter §32.2, skal han «uten ugrunnet opphold» besvare det ved enten å utstede endringsordre, avslå kravet, eller frafalle pålegget.',
+    inline: 'Mottar byggherren varsel etter §32.2, skal han besvare det uten ugrunnet opphold ved enten å utstede endringsordre, avslå kravet, eller frafalle pålegget.',
     konsekvens: 'Svarer ikke byggherren uten ugrunnet opphold, anses pålegget å innebære en endring. Ved avslag skal byggherren begrunne avslaget uten ugrunnet opphold.',
     paragraf5: {
       paaberoper: 'TE',
