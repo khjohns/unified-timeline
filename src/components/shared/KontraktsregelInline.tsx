@@ -5,7 +5,7 @@
  * Progressiv avsløring via accordion.
  *
  * Støtter:
- * - Grunnlagspor: §10.2, §14.4, §14.6, §15.2, §21.4, §22, §23.1, §23.3, §24.1, §24.2.2, §25.1.2, §25.2, §26.3, §32.1, §32.2, §32.3
+ * - Grunnlagspor: §10.2, §14.4, §14.6, §15.2, §19.1, §21.4, §22, §23.1, §23.3, §24.1, §24.2.2, §25.1.2, §25.2, §26.3, §32.1, §32.2, §32.3
  * - Fristspor: §33.1, §33.3, §33.4, §33.5, §33.6.1, §33.6.2, §33.7, §33.8
  * - Custom mode: Dynamisk innhold med samme visuelle stil
  *
@@ -33,6 +33,7 @@ type Hjemmel =
   | '§14.4'   // Lovendring (kontraktsgjenstand)
   | '§14.6'   // Valg av løsninger (valgrettsbegrensning)
   | '§15.2'   // Lovendring (prosess)
+  | '§19.1'   // Skade forårsaket av byggherren
   | '§21.4'   // Samordning utover påregnelig
   | '§22'     // Byggherrens medvirkningsplikt
   | '§26.3'   // Offentlige gebyrer og avgifter
@@ -188,6 +189,22 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     paragraf5: {
       paaberoper: 'BH',
       tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+  },
+  '§19.1': {
+    inline: 'Forårsaker byggherren eller hans kontraktsmedhjelpere skade på kontraktsgjenstanden i byggetiden, bærer byggherren risikoen og totalentreprenøren skal varsle etter §25.1.2.',
+    konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Kravet tapes ikke.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+    systematikk: {
+      label: 'Risikofordeling i byggetiden (§19.1)',
+      innhold: [
+        { ref: 'Hovedregel', tekst: 'Totalentreprenøren bærer risikoen for materialer og utført arbeid frem til overtakelse.' },
+        { ref: 'Unntak 1', tekst: 'Skade forårsaket av byggherren eller hans kontraktsmedhjelpere.' },
+        { ref: 'Unntak 2', tekst: 'Ekstraordinære omstendigheter (krig, opprør, naturkatastrofe).' },
+      ],
     },
   },
   '§21.4': {
