@@ -277,8 +277,9 @@ class TestForseringService:
     # Test: finn_forseringer_for_sak
     # ========================================================================
 
+    @patch('services.forsering_service.parse_event')
     def test_finn_forseringer_for_sak_found(
-        self, service, mock_catenda_client, mock_event_repository, mock_timeline_service
+        self, mock_parse_event, service, mock_catenda_client, mock_event_repository, mock_timeline_service
     ):
         """Test finding forseringer that reference a KOE case."""
         # Arrange
@@ -286,8 +287,9 @@ class TestForseringService:
             {'guid': 'forsering-001'}
         ]
 
-        mock_events = [Mock()]
+        mock_events = [{"event_type": "forsering_varsel"}]
         mock_event_repository.get_events.return_value = (mock_events, 1)
+        mock_parse_event.side_effect = lambda e: Mock(event_type=e.get("event_type"))
 
         mock_state = SakState(
             sak_id="forsering-001",

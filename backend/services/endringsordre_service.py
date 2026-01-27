@@ -15,7 +15,6 @@ from models.sak_state import (
     SaksType,
     EndringsordreData,
     EOStatus,
-    EOKonsekvenser,
     SakState,
     SporStatus,
     SakRelasjon,
@@ -31,6 +30,7 @@ from models.events import (
     EOOpprettetData,
     EOUtstedtEvent,
     EOUtstedtData,
+    EOKonsekvenser,  # Import from events, not sak_state, for EOUtstedtData compatibility
     VederlagKompensasjon,
     VederlagsMetode,
 )

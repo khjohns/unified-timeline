@@ -125,6 +125,7 @@ class TestValidateGrunnlagEvent:
             validate_grunnlag_event({
                 "hovedkategori": "ENDRING",
                 "underkategori": "EO",
+                "tittel": "Test tittel",
                 "dato_oppdaget": "2025-01-15"
             })
         assert "beskrivelse er påkrevd" in str(exc_info.value)
@@ -135,6 +136,7 @@ class TestValidateGrunnlagEvent:
             validate_grunnlag_event({
                 "hovedkategori": "ENDRING",
                 "underkategori": "EO",
+                "tittel": "Test tittel",
                 "beskrivelse": "Test beskrivelse"
             })
         assert "dato_oppdaget er påkrevd" in str(exc_info.value)
@@ -145,7 +147,8 @@ class TestValidateGrunnlagEvent:
         validate_grunnlag_event({
             "hovedkategori": "ENDRING",
             "underkategori": "EO",
-            "beskrivelse": "Endring i prosjektering",
+            "tittel": "Endring i prosjektering",
+            "beskrivelse": "Detaljert beskrivelse av endringen",
             "dato_oppdaget": "2025-01-15"
         })
 
@@ -154,7 +157,8 @@ class TestValidateGrunnlagEvent:
         validate_grunnlag_event({
             "hovedkategori": "ENDRING",
             "underkategori": ["EO", "IRREG"],
-            "beskrivelse": "Multiple kategorier",
+            "tittel": "Multiple kategorier",
+            "beskrivelse": "Detaljert beskrivelse",
             "dato_oppdaget": "2025-01-15"
         })
 
@@ -319,18 +323,18 @@ class TestValidateFristEvent:
         """Raises ValidationError when begrunnelse is missing."""
         with pytest.raises(ValidationError) as exc_info:
             validate_frist_event({
-                "varsel_type": "noytralt"
+                "varsel_type": "varsel"
             })
         assert "begrunnelse er påkrevd" in str(exc_info.value)
 
-    def test_noytralt_requires_noytralt_varsel(self):
-        """Raises ValidationError when nøytralt varsel is missing."""
+    def test_varsel_requires_frist_varsel(self):
+        """Raises ValidationError when frist_varsel is missing for varsel type."""
         with pytest.raises(ValidationError) as exc_info:
             validate_frist_event({
-                "varsel_type": "noytralt",
+                "varsel_type": "varsel",
                 "begrunnelse": "Test"
             })
-        assert "noytralt_varsel er påkrevd" in str(exc_info.value)
+        assert "frist_varsel er påkrevd" in str(exc_info.value)
 
     def test_spesifisert_requires_spesifisert_varsel(self):
         """Raises ValidationError when spesifisert varsel is missing."""
@@ -362,12 +366,12 @@ class TestValidateFristEvent:
             })
         assert "antall_dager må være >= 0" in str(exc_info.value)
 
-    def test_valid_frist_noytralt(self):
-        """Valid frist event with nøytralt passes."""
+    def test_valid_frist_varsel(self):
+        """Valid frist event with varsel passes."""
         validate_frist_event({
-            "varsel_type": "noytralt",
+            "varsel_type": "varsel",
             "begrunnelse": "Værforhold hindret arbeid",
-            "noytralt_varsel": {"dato_sendt": "2025-01-15"}
+            "frist_varsel": {"dato_sendt": "2025-01-15"}
         })
 
     def test_valid_frist_spesifisert(self):
@@ -562,6 +566,7 @@ class TestRealisticPayloads:
         validate_grunnlag_event({
             "hovedkategori": "ENDRING",
             "underkategori": "EO",
+            "tittel": "Endring i fasadeutforming",
             "beskrivelse": "Endring i arkitektonisk utforming av fasade",
             "dato_oppdaget": "2025-01-15",
             "konsekvenser": {

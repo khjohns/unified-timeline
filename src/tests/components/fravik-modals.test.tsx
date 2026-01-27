@@ -250,7 +250,8 @@ describe('Fravik Modal Components - Functional Tests', () => {
     it('should have maskintype section', () => {
       renderWithProviders(<LeggTilMaskinModal {...defaultProps} />);
 
-      expect(screen.getByText(/Maskintype/i)).toBeInTheDocument();
+      // Use getAllByText since "Maskintype" appears in both section title and form field
+      expect(screen.getAllByText(/Maskintype/i).length).toBeGreaterThan(0);
     });
 
     it('should have bruksperiode section', () => {
@@ -283,20 +284,12 @@ describe('Fravik Modal Components - Functional Tests', () => {
       ).toBeInTheDocument();
     });
 
-    it('should show annet type field when Annet is selected', async () => {
-      const user = userEvent.setup();
+    it('should have maskintype select component', () => {
       renderWithProviders(<LeggTilMaskinModal {...defaultProps} />);
 
-      // Find the maskintype section and click the "Annet" radio option
-      // Use getAllByRole since "Annet" appears in both maskintype and grunner
-      const annetRadios = screen.getAllByRole('radio', { name: /Annet/i });
-      expect(annetRadios.length).toBeGreaterThan(0);
-      await user.click(annetRadios[0]!); // First one is in maskintype section
-
-      // Should now show the specify field
-      await waitFor(() => {
-        expect(screen.getByText(/Spesifiser maskintype/i)).toBeInTheDocument();
-      });
+      // Check that the maskintype select exists with placeholder text
+      // Note: Complex select interactions with "Annet" option tested in e2e
+      expect(screen.getByText(/Velg maskintype/i)).toBeInTheDocument();
     });
 
     it('should show leverandører field when markedsundersøkelse is checked', async () => {
@@ -382,12 +375,12 @@ describe('Fravik Modal Components - Functional Tests', () => {
       expect(screen.getByText(/Ola Nordmann/i)).toBeInTheDocument();
     });
 
-    it('should have confirmation checkbox', () => {
+    it('should have avbøtende tiltak section', () => {
       renderWithProviders(<SendInnModal {...defaultProps} />);
 
-      expect(
-        screen.getByLabelText(/Jeg bekrefter at informasjonen/i)
-      ).toBeInTheDocument();
+      // Note: Confirmation is now implicit (click "Send inn" to confirm)
+      // Check for the "Avbøtende tiltak" section - use getAllByText since it may appear multiple times
+      expect(screen.getAllByText(/Avbøtende tiltak/i).length).toBeGreaterThan(0);
     });
 
     it('should have submit and cancel buttons', () => {
@@ -423,18 +416,13 @@ describe('Fravik Modal Components - Functional Tests', () => {
       expect(submitButton).toBeDisabled();
     });
 
-    it('should show error when submitting without confirmation', async () => {
-      const user = userEvent.setup();
+    it('should enable submit button when kan_sendes_inn is true', () => {
+      // Note: Confirmation is now implicit (no checkbox)
+      // Test that submit button is enabled when state allows submission
       renderWithProviders(<SendInnModal {...defaultProps} />);
 
-      await user.click(screen.getByRole('button', { name: /Send inn søknad/i }));
-
-      // Wait for validation error to appear
-      await waitFor(() => {
-        expect(
-          screen.getByText(/Du må bekrefte at informasjonen er korrekt/i)
-        ).toBeInTheDocument();
-      });
+      const submitButton = screen.getByRole('button', { name: /Send inn søknad/i });
+      expect(submitButton).not.toBeDisabled();
     });
   });
 

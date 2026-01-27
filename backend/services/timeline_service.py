@@ -857,9 +857,9 @@ class TimelineService:
             GrunnlagResponsResultat.DELVIS_GODKJENT: SporStatus.DELVIS_GODKJENT,
             GrunnlagResponsResultat.AVSLATT: SporStatus.AVSLATT,
             GrunnlagResponsResultat.FRAFALT: SporStatus.TRUKKET,  # Pålegg frafalt
-            GrunnlagResponsResultat.KREVER_AVKLARING: SporStatus.UNDER_FORHANDLING,
         }
-        return mapping.get(resultat, SporStatus.UNDER_BEHANDLING)
+        # Default to UNDER_FORHANDLING for unknown results
+        return mapping.get(resultat, SporStatus.UNDER_FORHANDLING)
 
     def _beregnings_resultat_til_status(self, resultat) -> SporStatus:
         """
@@ -1679,12 +1679,12 @@ class MigrationHelper:
         # Fra generated_constants.py
         # NB: avslått_for_sent er fjernet - preklusjon håndteres nå via
         # subsidiær_triggers på vederlag/frist-nivå, ikke på grunnlag
+        # NB: AVVENTER (100000004) returnerer None - BH har ikke tatt beslutning ennå
         mapping = {
             '100000000': GrunnlagResponsResultat.GODKJENT,           # GODKJENT_FULLT
             '100000001': GrunnlagResponsResultat.DELVIS_GODKJENT,    # DELVIS_GODKJENT
             '100000002': GrunnlagResponsResultat.AVSLATT,            # AVSLÅTT_UENIG
             '100000003': GrunnlagResponsResultat.AVSLATT,            # AVSLÅTT_FOR_SENT -> nå AVSLATT
-            '100000004': GrunnlagResponsResultat.KREVER_AVKLARING,   # AVVENTER
             '100000005': GrunnlagResponsResultat.GODKJENT,           # GODKJENT_ANNEN_METODE
         }
-        return mapping.get(svar_kode, GrunnlagResponsResultat.KREVER_AVKLARING)
+        return mapping.get(svar_kode, None)  # None = ikke besluttet ennå

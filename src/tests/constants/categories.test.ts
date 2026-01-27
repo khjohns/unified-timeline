@@ -65,10 +65,15 @@ describe('KRAV_STRUKTUR_NS8407', () => {
     expect(fm?.type_krav).toBe('Tid');
   });
 
-  it('should have underkategorier for all hovedkategorier', () => {
+  it('should have underkategorier for all hovedkategorier except FORCE_MAJEURE', () => {
     KRAV_STRUKTUR_NS8407.forEach(kategori => {
       expect(kategori.underkategorier).toBeDefined();
-      expect(kategori.underkategorier.length).toBeGreaterThan(0);
+      // FORCE_MAJEURE has no underkategorier (it's a special case with no sub-types)
+      if (kategori.kode !== 'FORCE_MAJEURE') {
+        expect(kategori.underkategorier.length).toBeGreaterThan(0);
+      } else {
+        expect(kategori.underkategorier.length).toBe(0);
+      }
     });
   });
 
@@ -81,7 +86,7 @@ describe('KRAV_STRUKTUR_NS8407', () => {
     expect(eo?.label).toBe('Formell endringsordre');
     expect(eo?.hjemmel_basis).toBe('31.3');
     expect(eo?.beskrivelse).toBeTruthy();
-    expect(eo?.varselkrav_ref).toBe('33.4 / 34.2');
+    expect(eo?.varselkrav_ref).toBe('33.4 / 34.1.1');
   });
 
   it('should have law change underkategorier', () => {
@@ -109,9 +114,9 @@ describe('HOVEDKATEGORI_OPTIONS', () => {
     expect(values).toContain('FORCE_MAJEURE');
   });
 
-  it('should have labels with hjemmel references', () => {
+  it('should have descriptive labels', () => {
     const endring = HOVEDKATEGORI_OPTIONS.find(o => o.value === 'ENDRING');
-    expect(endring?.label).toContain('33.1 a)');
+    expect(endring?.label).toBe('Endringer');
   });
 });
 
@@ -257,7 +262,7 @@ describe('Helper Functions', () => {
       const refs = getHjemmelReferanser('ENDRING', 'EO');
       expect(refs.frist).toBe('33.1 a)');
       expect(refs.vederlag).toBe('34.1.1');
-      expect(refs.varsel).toBe('33.4 / 34.2');
+      expect(refs.varsel).toBe('33.4 / 34.1.1');
     });
 
     it('should return null for vederlag when Force Majeure', () => {

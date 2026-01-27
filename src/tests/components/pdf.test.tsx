@@ -196,7 +196,8 @@ describe('PDF Components', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('Krav om endringsordre')).toBeInTheDocument();
+        // Modal has two title elements (mobile/desktop) - use getAllByText
+        expect(screen.getAllByText('Krav om endringsordre').length).toBeGreaterThan(0);
       });
     });
 
@@ -212,7 +213,8 @@ describe('PDF Components', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('Custom Title')).toBeInTheDocument();
+        // Modal has two title elements (mobile/desktop) - use getAllByText
+        expect(screen.getAllByText('Custom Title').length).toBeGreaterThan(0);
       });
     });
 

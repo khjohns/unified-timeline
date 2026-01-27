@@ -1,12 +1,18 @@
 """
 Tests for the require_magic_link decorator.
 """
+import os
 import pytest
 from flask import Flask, jsonify
 from lib.auth import require_magic_link, get_magic_link_manager
 
 
 class TestMagicLinkDecorator:
+
+    @pytest.fixture(autouse=True)
+    def disable_auth_bypass(self, monkeypatch):
+        """Ensure DISABLE_AUTH is not set so we can actually test auth."""
+        monkeypatch.delenv('DISABLE_AUTH', raising=False)
     """Test the require_magic_link decorator."""
 
     @pytest.fixture

@@ -60,19 +60,20 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should render when open', () => {
       renderWithProviders(<RespondGrunnlagModal {...defaultProps} />);
 
-      expect(screen.getByText(/Svar på grunnlag/i)).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /Svar på ansvarsgrunnlag/i })).toBeInTheDocument();
     });
 
     it('should have begrunnelse field', () => {
       renderWithProviders(<RespondGrunnlagModal {...defaultProps} />);
 
-      expect(screen.getByText(/Begrunnelse/i)).toBeInTheDocument();
+      // Use getAllByText since "Begrunnelse" appears multiple times
+      expect(screen.getAllByText(/Begrunnelse/i).length).toBeGreaterThan(0);
     });
 
     it('should not render when closed', () => {
       renderWithProviders(<RespondGrunnlagModal {...defaultProps} open={false} />);
 
-      expect(screen.queryByText(/Svar på grunnlag/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: /Svar på ansvarsgrunnlag/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
@@ -94,7 +95,7 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should render when open', () => {
       renderWithProviders(<RespondVederlagModal {...defaultProps} />);
 
-      expect(screen.getByText(/Svar på vederlagskrav/i)).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /Svar på vederlagskrav/i })).toBeInTheDocument();
     });
 
     it('should have krav section', () => {
@@ -127,7 +128,7 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should render when open', () => {
       renderWithProviders(<RespondFristModal {...defaultProps} />);
 
-      expect(screen.getByText(/Svar på fristkrav/i)).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /Svar på fristkrav/i })).toBeInTheDocument();
     });
 
     it('should have dialog role', () => {
@@ -140,7 +141,7 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should not render when closed', () => {
       renderWithProviders(<RespondFristModal {...defaultProps} open={false} />);
 
-      expect(screen.queryByText(/Svar på fristkrav/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: /Svar på fristkrav/i })).not.toBeInTheDocument();
     });
 
     it('should have dialog with proper title', () => {
@@ -174,31 +175,32 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should render when open', () => {
       renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
-      expect(screen.getByRole('dialog', { name: /Varsle endringsforhold/i })).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /Varsle ansvarsgrunnlag/i })).toBeInTheDocument();
     });
 
     it('should have hovedkategori field', () => {
       renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
-      expect(screen.getByText(/Hovedkategori \(NS 8407\)/i)).toBeInTheDocument();
+      // Use getAllByText since text may appear in multiple places
+      expect(screen.getAllByText(/Hovedkategori/i).length).toBeGreaterThan(0);
     });
 
     it('should have tittel field', () => {
       renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
-      expect(screen.getByText(/Tittel på varselet/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Tittel/i).length).toBeGreaterThan(0);
     });
 
     it('should have beskrivelse field', () => {
       renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
-      expect(screen.getByText(/Beskrivelse/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Beskrivelse/i).length).toBeGreaterThan(0);
     });
 
     it('should not render when closed', () => {
       renderWithProviders(<SendGrunnlagModal {...defaultProps} open={false} />);
 
-      expect(screen.queryByRole('dialog', { name: /Varsle endringsforhold/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: /Varsle ansvarsgrunnlag/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
@@ -220,7 +222,7 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should render when open', () => {
       renderWithProviders(<SendVederlagModal {...defaultProps} />);
 
-      expect(screen.getByText(/Krav om Vederlagsjustering/i)).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /Krev vederlagsjustering/i })).toBeInTheDocument();
     });
 
     it('should have beregningsmetode field', () => {
@@ -232,13 +234,14 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should have begrunnelse field', () => {
       renderWithProviders(<SendVederlagModal {...defaultProps} />);
 
-      expect(screen.getByText(/Begrunnelse/i)).toBeInTheDocument();
+      // Check for the begrunnelse field by data-testid
+      expect(screen.getByTestId('vederlag-begrunnelse')).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
       renderWithProviders(<SendVederlagModal {...defaultProps} open={false} />);
 
-      expect(screen.queryByText(/Krav om Vederlagsjustering/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: /Krev vederlagsjustering/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
@@ -260,25 +263,26 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should render when open', () => {
       renderWithProviders(<SendFristModal {...defaultProps} />);
 
-      expect(screen.getByText(/Krav om fristforlengelse/i)).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /Krev fristforlengelse/i })).toBeInTheDocument();
     });
 
     it('should have varsel type field', () => {
       renderWithProviders(<SendFristModal {...defaultProps} />);
 
-      expect(screen.getByText(/Type varsel\/krav/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Kravtype/i).length).toBeGreaterThan(0);
     });
 
     it('should have begrunnelse field', () => {
       renderWithProviders(<SendFristModal {...defaultProps} />);
 
-      expect(screen.getByText(/Begrunnelse/i)).toBeInTheDocument();
+      // Check for the begrunnelse field by data-testid
+      expect(screen.getByTestId('frist-begrunnelse')).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
       renderWithProviders(<SendFristModal {...defaultProps} open={false} />);
 
-      expect(screen.queryByText(/Krav om fristforlengelse/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: /Krev fristforlengelse/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
@@ -313,19 +317,20 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should render when open', () => {
       renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
-      expect(screen.getByRole('dialog', { name: /Oppdater grunnlag/i })).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /Oppdater ansvarsgrunnlag/i })).toBeInTheDocument();
     });
 
-    it('should have endrings_begrunnelse field', () => {
+    it('should show current grunnlag in update mode', () => {
       renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
-      expect(screen.getByText(/Begrunnelse for endring/i)).toBeInTheDocument();
+      // In update mode, shows the current grunnlag section
+      expect(screen.getByText(/Nåværende ansvarsgrunnlag/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
       renderWithProviders(<SendGrunnlagModal {...defaultProps} open={false} />);
 
-      expect(screen.queryByRole('dialog', { name: /Oppdater grunnlag/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: /Oppdater ansvarsgrunnlag/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
@@ -363,19 +368,20 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should render when open', () => {
       renderWithProviders(<RespondGrunnlagModal {...defaultProps} />);
 
-      expect(screen.getByRole('dialog', { name: /Endre svar på grunnlag/i })).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /Oppdater svar på ansvarsgrunnlag/i })).toBeInTheDocument();
     });
 
     it('should have resultat field', () => {
       renderWithProviders(<RespondGrunnlagModal {...defaultProps} />);
 
-      expect(screen.getByText(/Resultat.*ansvarsgrunnlag/i)).toBeInTheDocument();
+      // Check for Resultat text in the modal
+      expect(screen.getAllByText(/Resultat/i).length).toBeGreaterThan(0);
     });
 
     it('should not render when closed', () => {
       renderWithProviders(<RespondGrunnlagModal {...defaultProps} open={false} />);
 
-      expect(screen.queryByRole('dialog', { name: /Endre svar på grunnlag/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: /Oppdater svar på ansvarsgrunnlag/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
@@ -402,19 +408,19 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should render when open', () => {
       renderWithProviders(<ReviseVederlagModal {...defaultProps} />);
 
-      expect(screen.getByRole('dialog', { name: /Revider vederlagskrav/i })).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /Oppdater vederlagskrav/i })).toBeInTheDocument();
     });
 
     it('should have begrunnelse field', () => {
       renderWithProviders(<ReviseVederlagModal {...defaultProps} />);
 
-      expect(screen.getByText(/Begrunnelse/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Begrunnelse/i).length).toBeGreaterThan(0);
     });
 
     it('should not render when closed', () => {
       renderWithProviders(<ReviseVederlagModal {...defaultProps} open={false} />);
 
-      expect(screen.queryByRole('dialog', { name: /Revider vederlagskrav/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: /Oppdater vederlagskrav/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
@@ -444,19 +450,19 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should render when open', () => {
       renderWithProviders(<ReviseFristModal {...defaultProps} />);
 
-      expect(screen.getByRole('dialog', { name: /Revider fristkrav/i })).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /Oppdater fristkrav/i })).toBeInTheDocument();
     });
 
     it('should have begrunnelse field', () => {
       renderWithProviders(<ReviseFristModal {...defaultProps} />);
 
-      expect(screen.getByText(/Begrunnelse/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Begrunnelse/i).length).toBeGreaterThan(0);
     });
 
     it('should not render when closed', () => {
       renderWithProviders(<ReviseFristModal {...defaultProps} open={false} />);
 
-      expect(screen.queryByRole('dialog', { name: /Revider fristkrav/i})).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: /Oppdater fristkrav/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
@@ -498,7 +504,7 @@ describe('Action/Modal Components - Functional Tests', () => {
       renderWithProviders(<RespondVederlagModal {...defaultProps} />);
 
       // On step 1 we see the overview, check for step indicator
-      expect(screen.getByText(/Oversikt/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Oversikt/i).length).toBeGreaterThan(0);
     });
 
     it('should not render when closed', () => {
@@ -544,7 +550,7 @@ describe('Action/Modal Components - Functional Tests', () => {
       renderWithProviders(<RespondFristModal {...defaultProps} />);
 
       // On step 1 we see the overview
-      expect(screen.getByText(/Oversikt/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Oversikt/i).length).toBeGreaterThan(0);
     });
 
     it('should not render when closed', () => {

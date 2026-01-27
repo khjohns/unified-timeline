@@ -439,8 +439,8 @@ def test_frist_respons_data():
     assert data.godkjent_dager == 14
 
 
-def test_frist_respons_har_bh_etterlyst_validator():
-    """Test that har_bh_etterlyst is allowed even when krav came on time.
+def test_frist_respons_har_bh_foresporsel_validator():
+    """Test that har_bh_foresporsel is allowed even when krav came on time.
 
     This is valid because BH may have sent an inquiry before TE responded,
     so spesifisert_krav_ok=True just means TE responded within deadline.
@@ -449,24 +449,24 @@ def test_frist_respons_har_bh_etterlyst_validator():
     # This should NOT raise - the strict validation was removed
     data = FristResponsData(
         spesifisert_krav_ok=True,  # Krav kom i tide
-        har_bh_etterlyst=True,     # OK! BH kan ha etterlyst før TE responderte
+        har_bh_foresporsel=True,   # OK! BH kan ha forespurt før TE responderte
         vilkar_oppfylt=True,
         beregnings_resultat=FristBeregningResultat.GODKJENT
     )
-    assert data.har_bh_etterlyst is True
+    assert data.har_bh_foresporsel is True
     assert data.spesifisert_krav_ok is True
 
 
-def test_frist_respons_etterlyst_allowed_when_late():
-    """Test that har_bh_etterlyst is allowed when krav is late"""
+def test_frist_respons_foresporsel_allowed_when_late():
+    """Test that har_bh_foresporsel is allowed when krav is late"""
     data = FristResponsData(
         spesifisert_krav_ok=False,  # Krav kom for sent
-        har_bh_etterlyst=True,      # OK! BH etterlyst
+        har_bh_foresporsel=True,    # OK! BH forespurte
         vilkar_oppfylt=True,
         beregnings_resultat=FristBeregningResultat.DELVIS_GODKJENT,
         godkjent_dager=10
     )
-    assert data.har_bh_etterlyst is True
+    assert data.har_bh_foresporsel is True
 
 
 def test_respons_event_creation():

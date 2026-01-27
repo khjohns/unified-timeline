@@ -13,6 +13,9 @@ from models.fravik_events import (
     FravikBeslutning,
     FravikRolle,
     MaskinType,
+    MaskinVekt,
+    Arbeidskategori,
+    Bruksintensitet,
     FravikGrunn,
     Drivstoff,
     MaskinData,
@@ -75,6 +78,7 @@ class TestMaskinData:
         """Test basic MaskinData creation with all required fields."""
         data = MaskinData(
             maskin_type=MaskinType.GRAVEMASKIN,
+            vekt=MaskinVekt.MEDIUM,
             start_dato="2025-01-15",
             slutt_dato="2025-03-15",
             grunner=[FravikGrunn.MARKEDSMANGEL],
@@ -83,6 +87,8 @@ class TestMaskinData:
             erstatningsmaskin="CAT 320",
             erstatningsdrivstoff=Drivstoff.HVO100,
             arbeidsbeskrivelse="Gravearbeid for fundament",
+            arbeidskategori=Arbeidskategori.GRAVING,
+            bruksintensitet=Bruksintensitet.NORMAL,
         )
         assert data.maskin_type == MaskinType.GRAVEMASKIN
         assert data.start_dato == "2025-01-15"
@@ -95,6 +101,7 @@ class TestMaskinData:
         data = MaskinData(
             maskin_type=MaskinType.ANNET,
             annet_type="Trommel",
+            vekt=MaskinVekt.STOR,
             registreringsnummer="AB12345",
             start_dato="2025-01-15",
             slutt_dato="2025-03-15",
@@ -104,19 +111,22 @@ class TestMaskinData:
             markedsundersokelse=True,
             undersøkte_leverandorer="Firma A, Firma B",
             erstatningsmaskin="Diesel-maskin",
-            erstatningsdrivstoff=Drivstoff.DIESEL_EURO6,
+            erstatningsdrivstoff=Drivstoff.DIESEL,
             arbeidsbeskrivelse="Komprimering av grunn",
+            arbeidskategori=Arbeidskategori.ASFALT_KOMPRIMERING,
+            bruksintensitet=Bruksintensitet.INTENSIV,
         )
         assert data.annet_type == "Trommel"
         assert data.markedsundersokelse is True
         assert len(data.grunner) == 2
-        assert data.erstatningsdrivstoff == Drivstoff.DIESEL_EURO6
+        assert data.erstatningsdrivstoff == Drivstoff.DIESEL
 
     def test_maskin_data_begrunnelse_required(self):
         """Test that begrunnelse is required."""
         with pytest.raises(ValueError):
             MaskinData(
                 maskin_type=MaskinType.GRAVEMASKIN,
+                vekt=MaskinVekt.MEDIUM,
                 start_dato="2025-01-15",
                 slutt_dato="2025-03-15",
                 grunner=[FravikGrunn.MARKEDSMANGEL],
@@ -125,6 +135,8 @@ class TestMaskinData:
                 erstatningsmaskin="CAT 320",
                 erstatningsdrivstoff=Drivstoff.HVO100,
                 arbeidsbeskrivelse="Gravearbeid",
+                arbeidskategori=Arbeidskategori.GRAVING,
+                bruksintensitet=Bruksintensitet.NORMAL,
             )
 
     def test_maskin_data_grunner_required(self):
@@ -132,6 +144,7 @@ class TestMaskinData:
         with pytest.raises(ValueError):
             MaskinData(
                 maskin_type=MaskinType.GRAVEMASKIN,
+                vekt=MaskinVekt.MEDIUM,
                 start_dato="2025-01-15",
                 slutt_dato="2025-03-15",
                 grunner=[],  # Empty list should fail
@@ -140,6 +153,8 @@ class TestMaskinData:
                 erstatningsmaskin="CAT 320",
                 erstatningsdrivstoff=Drivstoff.HVO100,
                 arbeidsbeskrivelse="Gravearbeid",
+                arbeidskategori=Arbeidskategori.GRAVING,
+                bruksintensitet=Bruksintensitet.NORMAL,
             )
 
 
@@ -149,19 +164,19 @@ class TestSoknadOpprettetData:
     def test_soknad_opprettet_data_basic(self):
         """Test basic SoknadOpprettetData creation."""
         data = SoknadOpprettetData(
-            prosjekt_id="PROJ-001",
+            prosjekt_nummer="PROJ-001",
             prosjekt_navn="Test Prosjekt",
             soker_navn="Ola Nordmann",
             soknad_type="machine",
         )
-        assert data.prosjekt_id == "PROJ-001"
+        assert data.prosjekt_nummer == "PROJ-001"
         assert data.soknad_type == "machine"
         assert data.er_haste is False  # Default
 
     def test_soknad_opprettet_data_haste(self):
         """Test SoknadOpprettetData with haste."""
         data = SoknadOpprettetData(
-            prosjekt_id="PROJ-001",
+            prosjekt_nummer="PROJ-001",
             prosjekt_navn="Test Prosjekt",
             soker_navn="Ola Nordmann",
             soknad_type="machine",
@@ -214,7 +229,7 @@ class TestSoknadOpprettetEvent:
             aktor="Ola Nordmann",
             aktor_rolle=FravikRolle.SOKER,
             data=SoknadOpprettetData(
-                prosjekt_id="PROJ-001",
+                prosjekt_nummer="PROJ-001",
                 prosjekt_navn="Test Prosjekt",
                 soker_navn="Ola Nordmann",
                 soknad_type="machine",
@@ -232,7 +247,7 @@ class TestSoknadOpprettetEvent:
             aktor="Ola Nordmann",
             aktor_rolle=FravikRolle.SOKER,
             data=SoknadOpprettetData(
-                prosjekt_id="PROJ-001",
+                prosjekt_nummer="PROJ-001",
                 prosjekt_navn="Test Prosjekt",
                 soker_navn="Ola Nordmann",
                 soknad_type="machine",
@@ -248,6 +263,7 @@ class TestMaskinLagtTilEvent:
         """Test creating MaskinLagtTilEvent."""
         maskin_data = MaskinData(
             maskin_type=MaskinType.HJULLASTER,
+            vekt=MaskinVekt.STOR,
             start_dato="2025-02-01",
             slutt_dato="2025-04-01",
             grunner=[FravikGrunn.LEVERINGSTID],
@@ -256,6 +272,8 @@ class TestMaskinLagtTilEvent:
             erstatningsmaskin="Volvo L90",
             erstatningsdrivstoff=Drivstoff.ANNET_BIODRIVSTOFF,
             arbeidsbeskrivelse="Lasting og transport av materialer",
+            arbeidskategori=Arbeidskategori.LASTING,
+            bruksintensitet=Bruksintensitet.NORMAL,
         )
         event = MaskinLagtTilEvent(
             sak_id="FRAVIK-001",
@@ -386,7 +404,7 @@ class TestParseFravikEvent:
             "aktor": "Test",
             "aktor_rolle": "SOKER",
             "data": {
-                "prosjekt_id": "PROJ-001",
+                "prosjekt_nummer": "PROJ-001",
                 "prosjekt_navn": "Test",
                 "soker_navn": "Test Person",
                 "soknad_type": "machine",
@@ -436,7 +454,7 @@ class TestEventSerialization:
             aktor="Test",
             aktor_rolle=FravikRolle.SOKER,
             data=SoknadOpprettetData(
-                prosjekt_id="PROJ-001",
+                prosjekt_nummer="PROJ-001",
                 prosjekt_navn="Test",
                 soker_navn="Test",
                 soknad_type="machine",
@@ -457,6 +475,7 @@ class TestEventSerialization:
             aktor_rolle=FravikRolle.SOKER,
             data=MaskinData(
                 maskin_type=MaskinType.LIFT,
+                vekt=MaskinVekt.MEDIUM,
                 start_dato="2025-01-01",
                 slutt_dato="2025-02-01",
                 grunner=[FravikGrunn.ANNET],
@@ -465,6 +484,8 @@ class TestEventSerialization:
                 erstatningsmaskin="JLG 450",
                 erstatningsdrivstoff=Drivstoff.HVO100,
                 arbeidsbeskrivelse="Arbeid i høyden",
+                arbeidskategori=Arbeidskategori.LOFTING,
+                bruksintensitet=Bruksintensitet.SPORADISK,
             ),
         )
         json_data = original.model_dump(mode="json")

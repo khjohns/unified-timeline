@@ -94,7 +94,7 @@ class TestEndringsordreService:
             kompensasjon_belop=150000.0
         )
 
-        assert result["sak_id"] == "eo-001"
+        assert result["sak_id"].startswith("EO-")  # sak_id is now EO-{timestamp}
         assert result["sakstype"] == "endringsordre"
         assert len(result["relaterte_saker"]) == 2
         mock_catenda_client.create_topic.assert_called_once()
@@ -191,29 +191,29 @@ class TestEndringsordreService:
         """Test adding KOE to EO with bidirectional relations."""
         result = service.legg_til_koe("eo-001", "koe-001")
 
-        assert result is True
+        assert result["success"] is True
         # Toveis-relasjoner: EO→KOE og KOE→EO
         assert mock_catenda_client.create_topic_relations.call_count == 2
 
     def test_legg_til_koe_without_client(self):
-        """Test returns False without client."""
+        """Test returns success dict without client."""
         service = EndringsordreService()
         result = service.legg_til_koe("eo-001", "koe-001")
-        assert result is False
+        assert result["success"] is True  # Still succeeds (local-only mode)
 
     def test_fjern_koe_success(self, service, mock_catenda_client):
         """Test removing KOE from EO with bidirectional relations."""
         result = service.fjern_koe("eo-001", "koe-001")
 
-        assert result is True
+        assert result["success"] is True
         # Toveis-relasjoner: fjern EO→KOE og KOE→EO
         assert mock_catenda_client.delete_topic_relation.call_count == 2
 
     def test_fjern_koe_without_client(self):
-        """Test returns False without client."""
+        """Test returns success dict without client."""
         service = EndringsordreService()
         result = service.fjern_koe("eo-001", "koe-001")
-        assert result is False
+        assert result["success"] is True  # Still succeeds (local-only mode)
 
     # ========================================================================
     # Test: hent_komplett_eo_kontekst
@@ -319,16 +319,17 @@ class TestEndringsordreService:
     # Test: hent_kandidat_koe_saker
     # ========================================================================
 
+    @patch('services.endringsordre_service.parse_event')
     def test_hent_kandidat_koe_saker_found(
-        self, service, mock_catenda_client, mock_event_repository, mock_timeline_service
+        self, mock_parse_event, service, mock_catenda_client, mock_event_repository, mock_timeline_service
     ):
         """Test finding candidate KOE cases."""
-        mock_catenda_client.list_topics.return_value = [
-            {'guid': 'KOE-001', 'title': 'Test KOE'}
-        ]
+        # Mock event repository fallback (since metadata_repository is not configured)
+        mock_event_repository.list_all_sak_ids = Mock(return_value=['KOE-001'])
 
-        mock_events = [Mock()]
+        mock_events = [{"event_type": "grunnlag_opprettet"}]
         mock_event_repository.get_events.return_value = (mock_events, 1)
+        mock_parse_event.side_effect = lambda e: Mock(event_type=e.get("event_type"))
 
         # Set up state with proper statuses so kan_utstede_eo computes to True
         # kan_utstede_eo requires: grunnlag=GODKJENT/LAAST, vederlag/frist=GODKJENT/LAAST/TRUKKET/IKKE_RELEVANT
@@ -356,16 +357,17 @@ class TestEndringsordreService:
         assert result[0]["sak_id"] == "KOE-001"
         assert result[0]["overordnet_status"] == "OMFORENT"
 
+    @patch('services.endringsordre_service.parse_event')
     def test_hent_kandidat_koe_saker_filters_non_candidates(
-        self, service, mock_catenda_client, mock_event_repository, mock_timeline_service
+        self, mock_parse_event, service, mock_catenda_client, mock_event_repository, mock_timeline_service
     ):
         """Test that non-candidate cases are filtered."""
-        mock_catenda_client.list_topics.return_value = [
-            {'guid': 'KOE-001'}
-        ]
+        # Mock event repository fallback (since metadata_repository is not configured)
+        mock_event_repository.list_all_sak_ids = Mock(return_value=['KOE-001'])
 
-        mock_events = [Mock()]
+        mock_events = [{"event_type": "grunnlag_opprettet"}]
         mock_event_repository.get_events.return_value = (mock_events, 1)
+        mock_parse_event.side_effect = lambda e: Mock(event_type=e.get("event_type"))
 
         # Case where kan_utstede_eo is False
         mock_state = SakState(

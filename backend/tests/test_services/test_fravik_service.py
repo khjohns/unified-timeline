@@ -13,6 +13,11 @@ from models.fravik_events import (
     FravikBeslutning,
     FravikRolle,
     MaskinType,
+    MaskinVekt,
+    Arbeidskategori,
+    Bruksintensitet,
+    FravikGrunn,
+    Drivstoff,
     MaskinData,
     SoknadOpprettetData,
     SoknadOppdatertData,
@@ -34,6 +39,40 @@ from models.fravik_events import (
     EierAvslattEvent,
     EierDelvisGodkjentEvent,
 )
+
+
+def make_maskin_data(maskin_id: str = "MASKIN-001", **kwargs) -> MaskinData:
+    """Helper to create MaskinData with all required fields."""
+    defaults = {
+        "maskin_id": maskin_id,
+        "maskin_type": MaskinType.GRAVEMASKIN,
+        "vekt": MaskinVekt.MEDIUM,
+        "start_dato": "2025-02-01",
+        "slutt_dato": "2025-04-01",
+        "grunner": [FravikGrunn.MARKEDSMANGEL],
+        "begrunnelse": "Ingen elektrisk alternativ",
+        "alternativer_vurdert": "Undersøkt flere leverandører",
+        "erstatningsmaskin": "CAT 320",
+        "erstatningsdrivstoff": Drivstoff.HVO100,
+        "arbeidsbeskrivelse": "Gravearbeid",
+        "arbeidskategori": Arbeidskategori.GRAVING,
+        "bruksintensitet": Bruksintensitet.NORMAL,
+        "markedsundersokelse": True,
+    }
+    defaults.update(kwargs)
+    return MaskinData(**defaults)
+
+
+def make_soknad_data(**kwargs) -> SoknadOpprettetData:
+    """Helper to create SoknadOpprettetData with all required fields."""
+    defaults = {
+        "prosjekt_nummer": "PROJ-001",
+        "prosjekt_navn": "Test Prosjekt",
+        "soker_navn": "Søker Person",
+        "soknad_type": "machine",
+    }
+    defaults.update(kwargs)
+    return SoknadOpprettetData(**defaults)
 from models.fravik_state import (
     FravikState,
     MaskinVurderingStatus,
@@ -61,13 +100,7 @@ class TestFravikServiceBasics:
             aktor="Søker Person",
             aktor_rolle=FravikRolle.SOKER,
             tidsstempel=base_time,
-            data=SoknadOpprettetData(
-                prosjekt_id="PROJ-001",
-                prosjekt_navn="Test Prosjekt",
-                prosjekt_nummer="P-123",
-                soker_navn="Søker Person",
-                soknad_type="machine",
-            ),
+            data=make_soknad_data(),
         )
 
     def test_compute_state_empty_events(self, service):
@@ -91,7 +124,7 @@ class TestFravikServiceBasics:
         state = service.compute_state([soknad_opprettet_event])
 
         assert state.sak_id == "FRAVIK-001"
-        assert state.prosjekt_id == "PROJ-001"
+        assert state.prosjekt_nummer == "PROJ-001"
         assert state.prosjekt_navn == "Test Prosjekt"
         assert state.soker_navn == "Søker Person"
         assert state.status == FravikStatus.UTKAST
@@ -118,26 +151,14 @@ class TestFravikServiceMaskiner:
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time,
-                data=SoknadOpprettetData(
-                    prosjekt_id="PROJ-001",
-                    prosjekt_navn="Test",
-                    soker_navn="Søker",
-                    soknad_type="machine",
-                ),
+                data=make_soknad_data(soker_navn="Søker", prosjekt_navn="Test"),
             ),
             MaskinLagtTilEvent(
                 sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time + timedelta(minutes=1),
-                data=MaskinData(
-                    maskin_id="MASKIN-001",
-                    maskin_type=MaskinType.GRAVEMASKIN,
-                    start_dato="2025-02-01",
-                    slutt_dato="2025-04-01",
-                    begrunnelse="Ingen elektrisk alternativ",
-                    markedsundersokelse=True,
-                ),
+                data=make_maskin_data("MASKIN-001"),
             ),
         ]
 
@@ -175,12 +196,13 @@ class TestFravikServiceMaskiner:
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time + timedelta(minutes=2),
-                data=MaskinData(
+                data=make_maskin_data(
                     maskin_id="MASKIN-002",
                     maskin_type=MaskinType.HJULLASTER,
                     start_dato="2025-02-15",
                     slutt_dato="2025-03-15",
                     begrunnelse="Spesialbehov",
+                    arbeidskategori=Arbeidskategori.LASTING,
                 ),
             ),
         ]
@@ -211,25 +233,14 @@ class TestFravikServiceGodkjenningsflyt:
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time,
-                data=SoknadOpprettetData(
-                    prosjekt_id="PROJ-001",
-                    prosjekt_navn="Test",
-                    soker_navn="Søker",
-                    soknad_type="machine",
-                ),
+                data=make_soknad_data(soker_navn="Søker", prosjekt_navn="Test"),
             ),
             MaskinLagtTilEvent(
                 sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time + timedelta(minutes=1),
-                data=MaskinData(
-                    maskin_id="MASKIN-001",
-                    maskin_type=MaskinType.GRAVEMASKIN,
-                    start_dato="2025-02-01",
-                    slutt_dato="2025-04-01",
-                    begrunnelse="Ingen elektrisk alternativ",
-                ),
+                data=make_maskin_data("MASKIN-001"),
             ),
             SoknadSendtInnEvent(
                 sak_id="FRAVIK-001",
@@ -429,37 +440,25 @@ class TestFravikServiceGodkjenningsflyt:
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time,
-                data=SoknadOpprettetData(
-                    prosjekt_id="PROJ-001",
-                    prosjekt_navn="Test",
-                    soker_navn="Søker",
-                    soknad_type="machine",
-                ),
+                data=make_soknad_data(soker_navn="Søker", prosjekt_navn="Test"),
             ),
             MaskinLagtTilEvent(
                 sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time + timedelta(minutes=1),
-                data=MaskinData(
-                    maskin_id="MASKIN-001",
-                    maskin_type=MaskinType.GRAVEMASKIN,
-                    start_dato="2025-02-01",
-                    slutt_dato="2025-04-01",
-                    begrunnelse="Test 1",
-                ),
+                data=make_maskin_data("MASKIN-001", begrunnelse="Test 1"),
             ),
             MaskinLagtTilEvent(
                 sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time + timedelta(minutes=2),
-                data=MaskinData(
-                    maskin_id="MASKIN-002",
+                data=make_maskin_data(
+                    "MASKIN-002",
                     maskin_type=MaskinType.HJULLASTER,
-                    start_dato="2025-02-01",
-                    slutt_dato="2025-04-01",
                     begrunnelse="Test 2",
+                    arbeidskategori=Arbeidskategori.LASTING,
                 ),
             ),
             SoknadSendtInnEvent(
@@ -549,12 +548,7 @@ class TestFravikServiceComputedFields:
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time,
-                data=SoknadOpprettetData(
-                    prosjekt_id="PROJ-001",
-                    prosjekt_navn="Test",
-                    soker_navn="Søker",
-                    soknad_type="machine",
-                ),
+                data=make_soknad_data(soker_navn="Søker", prosjekt_navn="Test"),
             ),
         ]
         state = service.compute_state(events)
@@ -569,25 +563,14 @@ class TestFravikServiceComputedFields:
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time,
-                data=SoknadOpprettetData(
-                    prosjekt_id="PROJ-001",
-                    prosjekt_navn="Test",
-                    soker_navn="Søker",
-                    soknad_type="machine",
-                ),
+                data=make_soknad_data(soker_navn="Søker", prosjekt_navn="Test"),
             ),
             MaskinLagtTilEvent(
                 sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time + timedelta(minutes=1),
-                data=MaskinData(
-                    maskin_id="MASKIN-001",
-                    maskin_type=MaskinType.GRAVEMASKIN,
-                    start_dato="2025-02-01",
-                    slutt_dato="2025-04-01",
-                    begrunnelse="Test",
-                ),
+                data=make_maskin_data("MASKIN-001", begrunnelse="Test"),
             ),
         ]
         state = service.compute_state(events)
@@ -602,12 +585,7 @@ class TestFravikServiceComputedFields:
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time,
-                data=SoknadOpprettetData(
-                    prosjekt_id="PROJ-001",
-                    prosjekt_navn="Test",
-                    soker_navn="Søker",
-                    soknad_type="machine",
-                ),
+                data=make_soknad_data(soker_navn="Søker", prosjekt_navn="Test"),
             ),
         ]
         state = service.compute_state(events)
@@ -623,12 +601,7 @@ class TestFravikServiceComputedFields:
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time,
-                data=SoknadOpprettetData(
-                    prosjekt_id="PROJ-001",
-                    prosjekt_navn="Test",
-                    soker_navn="Søker",
-                    soknad_type="machine",
-                ),
+                data=make_soknad_data(soker_navn="Søker", prosjekt_navn="Test"),
             ),
         ]
         state = service.compute_state(events)
@@ -650,12 +623,10 @@ class TestFravikServiceStateToListeItem:
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time,
-                data=SoknadOpprettetData(
-                    prosjekt_id="PROJ-001",
-                    prosjekt_navn="Test Prosjekt",
+                data=make_soknad_data(
                     prosjekt_nummer="P-123",
+                    prosjekt_navn="Test Prosjekt",
                     soker_navn="Søker Person",
-                    soknad_type="machine",
                 ),
             ),
         ]

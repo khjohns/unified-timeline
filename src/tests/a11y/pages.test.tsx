@@ -7,6 +7,24 @@ import { BrowserRouter } from 'react-router-dom';
 import { CasePage } from '@/pages/CasePage';
 import { ComponentShowcase } from '@/pages/ComponentShowcase';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { ToastProvider } from '@/components/primitives/Toast';
+import { UserRoleProvider } from '@/context/UserRoleContext';
+
+// Mock react-pdf to avoid DOMMatrix not defined error in jsdom
+vi.mock('react-pdf', () => ({
+  Document: ({ children }: { children: React.ReactNode }) => <div data-testid="pdf-document">{children}</div>,
+  Page: () => <div data-testid="pdf-page">PDF Page</div>,
+  pdfjs: { GlobalWorkerOptions: { workerSrc: '' } },
+}));
+
+// Mock PDF components to avoid pdfjs issues
+vi.mock('@/components/pdf/PdfPreview', () => ({
+  PdfPreview: () => <div data-testid="pdf-preview">PDF Preview Mock</div>,
+}));
+
+vi.mock('@/components/pdf/PdfPreviewModal', () => ({
+  PdfPreviewModal: () => null,
+}));
 
 // Mock the useCaseState hook
 vi.mock('@/hooks/useCaseState', () => ({
@@ -71,9 +89,13 @@ const createWrapper = () => {
   });
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <BrowserRouter>{children}</BrowserRouter>
-      </ThemeProvider>
+      <UserRoleProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <BrowserRouter>{children}</BrowserRouter>
+          </ToastProvider>
+        </ThemeProvider>
+      </UserRoleProvider>
     </QueryClientProvider>
   );
 };

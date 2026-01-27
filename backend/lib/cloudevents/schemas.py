@@ -20,7 +20,17 @@ from models.events import (
     GrunnlagResponsData,
     VederlagResponsData,
     FristResponsData,
+    EOOpprettetData,
+    EOKoeHandlingData,
     EOUtstedtData,
+    EOAkseptertData,
+    EOBestridtData,
+    EORevidertData,
+    ForseringVarselData,
+    ForseringResponsData,
+    ForseringStoppetData,
+    ForseringKostnaderOppdatertData,
+    ForseringKoeHandlingData,
     EventType,
 )
 from models.cloudevents import CLOUDEVENTS_NAMESPACE, CLOUDEVENTS_SPECVERSION
@@ -35,24 +45,43 @@ class CloudEventsContentType(str, Enum):
 
 # Mapping from event_type to data model class
 EVENT_TYPE_TO_DATA_MODEL = {
+    # Grunnlag events
     EventType.GRUNNLAG_OPPRETTET.value: GrunnlagData,
     EventType.GRUNNLAG_OPPDATERT.value: GrunnlagData,
     EventType.GRUNNLAG_TRUKKET.value: None,
+    # Vederlag events
     EventType.VEDERLAG_KRAV_SENDT.value: VederlagData,
     EventType.VEDERLAG_KRAV_OPPDATERT.value: VederlagData,
     EventType.VEDERLAG_KRAV_TRUKKET.value: None,
+    # Frist events
     EventType.FRIST_KRAV_SENDT.value: FristData,
     EventType.FRIST_KRAV_OPPDATERT.value: FristData,
     EventType.FRIST_KRAV_SPESIFISERT.value: FristData,
     EventType.FRIST_KRAV_TRUKKET.value: None,
+    # Respons events
     EventType.RESPONS_GRUNNLAG.value: GrunnlagResponsData,
     EventType.RESPONS_GRUNNLAG_OPPDATERT.value: GrunnlagResponsData,
     EventType.RESPONS_VEDERLAG.value: VederlagResponsData,
     EventType.RESPONS_VEDERLAG_OPPDATERT.value: VederlagResponsData,
     EventType.RESPONS_FRIST.value: FristResponsData,
     EventType.RESPONS_FRIST_OPPDATERT.value: FristResponsData,
+    # Sak events
+    EventType.SAK_OPPRETTET.value: None,  # No data payload
+    # EO events (§31.3)
+    EventType.EO_OPPRETTET.value: EOOpprettetData,
+    EventType.EO_KOE_LAGT_TIL.value: EOKoeHandlingData,
+    EventType.EO_KOE_FJERNET.value: EOKoeHandlingData,
     EventType.EO_UTSTEDT.value: EOUtstedtData,
-    EventType.EO_REVIDERT.value: EOUtstedtData,
+    EventType.EO_AKSEPTERT.value: EOAkseptertData,
+    EventType.EO_BESTRIDT.value: EOBestridtData,
+    EventType.EO_REVIDERT.value: EORevidertData,
+    # Forsering events (§33.8)
+    EventType.FORSERING_VARSEL.value: ForseringVarselData,
+    EventType.FORSERING_RESPONS.value: ForseringResponsData,
+    EventType.FORSERING_STOPPET.value: ForseringStoppetData,
+    EventType.FORSERING_KOSTNADER_OPPDATERT.value: ForseringKostnaderOppdatertData,
+    EventType.FORSERING_KOE_LAGT_TIL.value: ForseringKoeHandlingData,
+    EventType.FORSERING_KOE_FJERNET.value: ForseringKoeHandlingData,
 }
 
 
