@@ -102,9 +102,9 @@ function ToolbarButton({ icon, label, onClick, disabled, active, hideOnMobile }:
       aria-pressed={active}
       title={label}
       className={clsx(
-        'p-2 sm:p-1.5 rounded transition-colors',
+        'p-2 sm:p-1.5 rounded transition-all duration-150',
         active
-          ? 'bg-pkt-bg-subtle text-pkt-text-body-dark'
+          ? 'bg-pkt-brand-purple-1000/15 text-pkt-brand-purple-1000 ring-1 ring-pkt-brand-purple-1000/30 font-medium'
           : 'hover:bg-pkt-bg-subtle active:bg-pkt-bg-subtle text-pkt-text-body-muted hover:text-pkt-text-body-default',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-pkt-brand-purple-1000/30',
         'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -312,9 +312,9 @@ export function RichTextEditor({
                 aria-label="Overskrift"
                 title="Overskrift"
                 className={clsx(
-                  'inline-flex items-center gap-0.5 p-2 sm:p-1.5 rounded transition-colors',
+                  'inline-flex items-center gap-0.5 p-2 sm:p-1.5 rounded transition-all duration-150',
                   editor.isActive('heading')
-                    ? 'bg-pkt-bg-subtle text-pkt-text-body-dark'
+                    ? 'bg-pkt-brand-purple-1000/15 text-pkt-brand-purple-1000 ring-1 ring-pkt-brand-purple-1000/30 font-medium'
                     : 'hover:bg-pkt-bg-subtle active:bg-pkt-bg-subtle text-pkt-text-body-muted hover:text-pkt-text-body-default',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-pkt-brand-purple-1000/30',
                   'disabled:opacity-50 disabled:cursor-not-allowed'
