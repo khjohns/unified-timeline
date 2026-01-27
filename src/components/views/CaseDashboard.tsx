@@ -5,7 +5,7 @@
  * Displays status for all three tracks with badges instead of colored borders.
  */
 
-import { ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo, useState } from 'react';
 import { DashboardCard, InlineDataList, InlineDataListItem, Badge } from '../primitives';
 import { CategoryAccordion } from '../shared';
 import { SakState, SporStatus, TimelineEvent } from '../../types/timeline';
@@ -84,6 +84,11 @@ export function CaseDashboard({
   const vederlagEntries = useMemo(() => transformVederlagHistorikk(vederlagHistorikk), [vederlagHistorikk]);
   const fristEntries = useMemo(() => transformFristHistorikk(fristHistorikk), [fristHistorikk]);
 
+  // Collapsible state for each card's history
+  const [grunnlagExpanded, setGrunnlagExpanded] = useState(false);
+  const [vederlagExpanded, setVederlagExpanded] = useState(false);
+  const [fristExpanded, setFristExpanded] = useState(false);
+
   return (
     <section aria-labelledby="dashboard-heading">
       <h2 id="dashboard-heading" className="sr-only">
@@ -98,6 +103,10 @@ export function CaseDashboard({
           action={grunnlagActions}
           variant="default"
           className="animate-fade-in-up"
+          collapsible
+          historyCount={grunnlagEntries.length}
+          isExpanded={grunnlagExpanded}
+          onExpandedChange={setGrunnlagExpanded}
         >
           {/* Kategori med accordion for kontraktsregel */}
           {state.grunnlag.hovedkategori && (
@@ -121,7 +130,7 @@ export function CaseDashboard({
               </InlineDataListItem>
             )}
           </InlineDataList>
-          <SporHistory spor="grunnlag" entries={grunnlagEntries} events={events} sakState={state} />
+          <SporHistory spor="grunnlag" entries={grunnlagEntries} events={events} sakState={state} externalOpen={grunnlagExpanded} />
         </DashboardCard>
 
         {/* Vederlag Card */}
@@ -132,6 +141,10 @@ export function CaseDashboard({
           variant="default"
           className="animate-fade-in-up"
           style={{ animationDelay: '75ms' }}
+          collapsible
+          historyCount={vederlagEntries.length}
+          isExpanded={vederlagExpanded}
+          onExpandedChange={setVederlagExpanded}
         >
           <InlineDataList stackOnMobile>
             {state.vederlag.metode && (
@@ -156,7 +169,7 @@ export function CaseDashboard({
               )
             )}
           </InlineDataList>
-          <SporHistory spor="vederlag" entries={vederlagEntries} events={events} sakState={state} />
+          <SporHistory spor="vederlag" entries={vederlagEntries} events={events} sakState={state} externalOpen={vederlagExpanded} />
         </DashboardCard>
 
         {/* Frist Card */}
@@ -167,6 +180,10 @@ export function CaseDashboard({
           variant="default"
           className="animate-fade-in-up"
           style={{ animationDelay: '150ms' }}
+          collapsible
+          historyCount={fristEntries.length}
+          isExpanded={fristExpanded}
+          onExpandedChange={setFristExpanded}
         >
           <InlineDataList stackOnMobile>
             {state.frist.frist_varsel?.dato_sendt && (
@@ -198,7 +215,7 @@ export function CaseDashboard({
               )
             )}
           </InlineDataList>
-          <SporHistory spor="frist" entries={fristEntries} events={events} sakState={state} />
+          <SporHistory spor="frist" entries={fristEntries} events={events} sakState={state} externalOpen={fristExpanded} />
         </DashboardCard>
       </div>
     </section>

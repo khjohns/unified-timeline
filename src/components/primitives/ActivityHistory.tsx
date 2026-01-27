@@ -46,6 +46,12 @@ export interface ActivityHistoryProps {
   showCount?: boolean;
   /** Whether the list is initially expanded */
   defaultOpen?: boolean;
+  /**
+   * Externally controlled open state. When provided:
+   * - Internal trigger is hidden
+   * - Component is controlled by parent
+   */
+  externalOpen?: boolean;
   /** Additional class names */
   className?: string;
 }
@@ -151,12 +157,38 @@ export function ActivityHistory({
   label = 'Historikk',
   showCount = true,
   defaultOpen = false,
+  externalOpen,
   className,
 }: ActivityHistoryProps) {
   if (entries.length === 0) {
     return null;
   }
 
+  const isExternallyControlled = externalOpen !== undefined;
+
+  // When externally controlled, use Radix Collapsible with external open state (no trigger)
+  if (isExternallyControlled) {
+    return (
+      <RadixCollapsible.Root
+        open={externalOpen}
+        className={clsx('mt-3 pt-2 sm:mt-4 sm:pt-3 border-t border-pkt-border-subtle', className)}
+      >
+        <RadixCollapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+          <div className="mt-1">
+            {entries.map((entry, index) => (
+              <ActivityHistoryItem
+                key={entry.id}
+                entry={entry}
+                isLast={index === entries.length - 1}
+              />
+            ))}
+          </div>
+        </RadixCollapsible.Content>
+      </RadixCollapsible.Root>
+    );
+  }
+
+  // Default: internal collapsible with trigger
   return (
     <RadixCollapsible.Root
       defaultOpen={defaultOpen}
