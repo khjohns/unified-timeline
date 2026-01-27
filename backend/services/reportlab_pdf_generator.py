@@ -4,6 +4,7 @@ ReportLab PDF Generator for KOE case documents.
 Pure Python solution - no native dependencies required.
 Generates PDF showing current state and last events per track.
 """
+import re
 from typing import Optional, List, Dict, Any, TypedDict
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -169,13 +170,67 @@ class ReportLabPdfGenerator:
         ))
 
     def _wrap_text(self, text: str, style_name: str = 'KoeBodyText') -> Paragraph:
-        """Wrap text in a Paragraph for proper line breaking in tables."""
+        """Wrap text in a Paragraph with markdown formatting support."""
         if not text:
             return Paragraph('', self.styles[style_name])
-        # Escape any XML special characters and preserve newlines
-        escaped = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-        escaped = escaped.replace('\n', '<br/>')
-        return Paragraph(escaped, self.styles[style_name])
+        formatted = self._markdown_to_reportlab(text)
+        return Paragraph(formatted, self.styles[style_name])
+
+    def _markdown_to_reportlab(self, text: str) -> str:
+        """
+        Convert markdown to ReportLab Paragraph-compatible HTML.
+
+        Supports:
+        - Headers: #, ##, ###
+        - Bold: **text** or __text__
+        - Italic: *text* or _text_
+        - Strikethrough: ~~text~~
+        - Inline code: `code`
+        - Links: [text](url) -> text (url)
+        - Lists: - item, 1. item
+        - Line breaks
+        """
+        lines = text.split('\n')
+        result_lines = []
+
+        for line in lines:
+            # Escape XML special characters first (but preserve markdown)
+            line = line.replace('&', '&amp;')
+
+            # Headers: ### must come before ## which must come before #
+            if line.startswith('### '):
+                line = f'<font size="11"><b>{line[4:]}</b></font>'
+            elif line.startswith('## '):
+                line = f'<font size="12"><b>{line[3:]}</b></font>'
+            elif line.startswith('# '):
+                line = f'<font size="14"><b>{line[2:]}</b></font>'
+            # Unordered lists: - item -> • item
+            elif re.match(r'^[\t ]*[-*+] \S', line):
+                line = re.sub(r'^[\t ]*([-*+]) ', '    • ', line)
+            # Ordered lists: 1. item -> 1. item (with indent)
+            elif re.match(r'^[\t ]*\d+\. \S', line):
+                line = re.sub(r'^[\t ]*(\d+)\. ', r'    \1. ', line)
+
+            # Links: [text](url) -> text (url)
+            line = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'\1 (\2)', line)
+
+            # Bold: **text** -> <b>text</b>
+            line = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', line)
+            line = re.sub(r'__([^_]+)__', r'<b>\1</b>', line)
+
+            # Italic: *text* -> <i>text</i>
+            line = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'<i>\1</i>', line)
+            line = re.sub(r'(?<!_)_([^_]+)_(?!_)', r'<i>\1</i>', line)
+
+            # Strikethrough: ~~text~~ -> <strike>text</strike>
+            line = re.sub(r'~~([^~]+)~~', r'<strike>\1</strike>', line)
+
+            # Inline code: `code` -> monospace font
+            line = re.sub(r'`([^`]+)`', r'<font face="Courier" color="#C7254E">\1</font>', line)
+
+            result_lines.append(line)
+
+        return '<br/>'.join(result_lines)
 
     def _format_date_norwegian(self, date_str: str) -> str:
         """Format date string as '5. desember 2024'."""

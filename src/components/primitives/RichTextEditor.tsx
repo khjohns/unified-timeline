@@ -28,6 +28,7 @@ import {
   Link2Icon,
   HeadingIcon,
   TableIcon,
+  StrikethroughIcon,
 } from '@radix-ui/react-icons';
 
 export interface RichTextEditorProps {
@@ -130,6 +131,11 @@ export function RichTextEditor({
         });
         return result + '\n';
       },
+    });
+    // Handle strikethrough: <s>, <strike>, <del> -> ~~text~~
+    service.addRule('strikethrough', {
+      filter: ['s', 'strike', 'del'],
+      replacement: (content) => `~~${content}~~`,
     });
     return service;
   }, []);
@@ -242,6 +248,13 @@ export function RichTextEditor({
             onClick={() => editor.chain().focus().toggleItalic().run()}
             disabled={disabled}
             active={editor.isActive('italic')}
+          />
+          <ToolbarButton
+            icon={<StrikethroughIcon className="w-5 h-5 sm:w-4 sm:h-4" />}
+            label="Gjennomstreking"
+            onClick={() => editor.chain().focus().toggleStrike().run()}
+            disabled={disabled}
+            active={editor.isActive('strike')}
           />
           <ToolbarButton
             icon={<ListBulletIcon className="w-5 h-5 sm:w-4 sm:h-4" />}
