@@ -12,7 +12,7 @@
 
 import { useState } from 'react';
 import * as Collapsible from '@radix-ui/react-collapsible';
-import { ChevronRightIcon } from '@radix-ui/react-icons';
+import { ChevronDownIcon } from '@radix-ui/react-icons';
 import { KontraktsregelInline } from './KontraktsregelInline';
 import {
   getHovedkategori,
@@ -68,8 +68,8 @@ function UnderkategoriAccordion({
           type="button"
           className="w-full flex items-start gap-2 text-left text-sm font-medium text-pkt-text-body-dark hover:text-pkt-text-interactive transition-colors py-1"
         >
-          <ChevronRightIcon
-            className={`h-4 w-4 shrink-0 mt-0.5 text-pkt-text-body-muted transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+          <ChevronDownIcon
+            className={`h-4 w-4 shrink-0 mt-0.5 text-pkt-text-body-muted transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
           />
           <span className="break-words">{title}</span>
         </button>
@@ -170,8 +170,8 @@ function SingleCategoryAccordion({
           type="button"
           className="w-full flex items-start gap-2 text-left text-sm font-medium text-pkt-text-body-dark hover:text-pkt-text-interactive transition-colors py-1"
         >
-          <ChevronRightIcon
-            className={`h-4 w-4 shrink-0 mt-0.5 text-pkt-text-body-muted transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+          <ChevronDownIcon
+            className={`h-4 w-4 shrink-0 mt-0.5 text-pkt-text-body-muted transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
           />
           <span className="break-words">{title}</span>
         </button>
