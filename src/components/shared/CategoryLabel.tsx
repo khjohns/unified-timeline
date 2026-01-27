@@ -71,7 +71,7 @@ export function CategoryLabel({ hovedkategori, underkategori }: CategoryLabelPro
             <Tooltip.Trigger asChild>
               <button
                 type="button"
-                className="text-pkt-text-body-muted hover:text-pkt-text-interactive transition-colors shrink-0 mt-0.5"
+                className="p-1 -m-1 rounded text-pkt-text-body-muted hover:bg-pkt-surface-strong-dark-blue hover:text-pkt-text-body-light transition-colors shrink-0"
                 aria-label={`Vis kontraktsregel ${hjemmelKey}`}
               >
                 <InfoCircledIcon className="w-4 h-4" />

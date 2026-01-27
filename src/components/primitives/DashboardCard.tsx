@@ -102,13 +102,13 @@ export function DashboardCard({
   );
 
   return (
-    <Card variant={variant} className={clsx('p-0 overflow-hidden transition-shadow duration-200 hover:shadow-md', className)} style={style}>
+    <Card variant={variant} className={clsx('p-0 overflow-hidden border border-pkt-border-subtle', className)} style={style}>
       {/* Header - clickable only when there's history */}
       {isClickable ? (
         <button
           type="button"
           onClick={handleToggle}
-          className="w-full px-3 py-2 sm:px-4 sm:py-3 border-b border-pkt-border-subtle bg-pkt-surface-strong-gray flex items-center justify-between cursor-pointer hover:bg-pkt-surface-subtle transition-colors"
+          className="w-full px-3 py-2 sm:px-4 sm:py-3 border-b border-pkt-border-subtle bg-pkt-surface-strong-gray flex items-center justify-between cursor-pointer hover:bg-pkt-grays-gray-100 transition-colors"
           aria-expanded={isExpanded}
         >
           {headerContent}

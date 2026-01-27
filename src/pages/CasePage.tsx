@@ -369,7 +369,7 @@ function CasePageContent() {
 
         {/* Status Dashboard with Contextual Actions */}
         <section aria-labelledby="krav-respons-heading">
-          <Card variant="outlined" padding="md">
+          <Card variant="outlined" padding="sm">
             <h2
               id="krav-respons-heading"
               className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
@@ -560,7 +560,7 @@ function CasePageContent() {
 
         {/* Metadata Section */}
         <section aria-labelledby="metadata-heading">
-          <Card variant="outlined" padding="md">
+          <Card variant="outlined" padding="sm">
             <h2
               id="metadata-heading"
               className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
