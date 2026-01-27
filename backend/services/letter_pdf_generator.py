@@ -78,7 +78,16 @@ def _markdown_to_reportlab(text: str) -> str:
     """
     Convert markdown to ReportLab Paragraph-compatible HTML.
 
-    Supports: headers (##), bold (**), italic (*), lists (- and 1.), line breaks.
+    Supports:
+    - Headers: #, ##, ###
+    - Bold: **text** or __text__
+    - Italic: *text* or _text_
+    - Strikethrough: ~~text~~
+    - Inline code: `code`
+    - Links: [text](url) -> text (url)
+    - Lists: - item, 1. item
+    - Line breaks
+
     Note: Tables are not supported in ReportLab Paragraph.
     """
     # Process line by line for headers and lists
@@ -86,8 +95,10 @@ def _markdown_to_reportlab(text: str) -> str:
     result_lines = []
 
     for line in lines:
-        # Headers: ## Title -> larger bold text
-        if line.startswith('## '):
+        # Headers: ### must come before ## which must come before #
+        if line.startswith('### '):
+            line = f'<font size="11"><b>{line[4:]}</b></font>'
+        elif line.startswith('## '):
             line = f'<font size="12"><b>{line[3:]}</b></font>'
         elif line.startswith('# '):
             line = f'<font size="14"><b>{line[2:]}</b></font>'
@@ -98,6 +109,9 @@ def _markdown_to_reportlab(text: str) -> str:
         elif re.match(r'^[\t ]*\d+\. \S', line):
             line = re.sub(r'^[\t ]*(\d+)\. ', r'    \1. ', line)
 
+        # Links: [text](url) -> text (url) - must come before italic processing
+        line = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'\1 (\2)', line)
+
         # Bold: **text** -> <b>text</b> (text must have content)
         line = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', line)
         # Bold: __text__ -> <b>text</b> (text must have content, not just underscores)
@@ -107,6 +121,12 @@ def _markdown_to_reportlab(text: str) -> str:
         line = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'<i>\1</i>', line)
         # Italic: _text_ -> <i>text</i> (single underscore, text must have content)
         line = re.sub(r'(?<!_)_([^_]+)_(?!_)', r'<i>\1</i>', line)
+
+        # Strikethrough: ~~text~~ -> <strike>text</strike>
+        line = re.sub(r'~~([^~]+)~~', r'<strike>\1</strike>', line)
+
+        # Inline code: `code` -> monospace font with subtle background color
+        line = re.sub(r'`([^`]+)`', r'<font face="Courier" color="#C7254E">\1</font>', line)
 
         result_lines.append(line)
 
