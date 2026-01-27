@@ -861,7 +861,7 @@ export function RespondFristModal({
         {/* UPDATE MODE: Compact display of current response */}
         {isUpdateMode && lastResponseEvent && (
           <div className="flex items-center gap-2 text-sm py-2 px-3 bg-pkt-surface-subtle border-l-2 border-pkt-border-subtle">
-            <span className="text-pkt-text-body-subtle">Ditt nåværende svar:</span>
+            <span className="text-pkt-text-body-subtle">Byggherrens nåværende svar:</span>
             <Badge
               variant={
                 lastResponseEvent.resultat === 'godkjent' ? 'success' :

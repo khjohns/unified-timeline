@@ -399,19 +399,19 @@ export function ReviseVederlagModal({
 
         {/* Kompakt nåværende status - 2 linjer */}
         <div className="space-y-2 py-3 px-3 bg-pkt-surface-subtle border-l-2 border-pkt-border-subtle">
-          {/* Linje 1: Ditt krav */}
+          {/* Linje 1: Entreprenørens krav */}
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-pkt-text-body-subtle">Ditt krav:</span>
+            <span className="text-pkt-text-body-subtle">Entreprenørens krav:</span>
             <span className="font-mono font-medium">kr {forrigeBelop?.toLocaleString('nb-NO') ?? 0},-</span>
             <span className="text-pkt-text-body-subtle">({METODE_LABELS[forrigeMetode]})</span>
             {erEnhetspriser && lastVederlagEvent.krever_justert_ep && (
-              <Badge variant="info" size="sm">Justert EP</Badge>
+              <Badge variant="info" size="sm">Justert enhetspris</Badge>
             )}
           </div>
-          {/* Linje 2: BH svar (hvis finnes) */}
+          {/* Linje 2: Byggherrens svar (hvis finnes) */}
           {harBhSvar && bhResponse && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-pkt-text-body-subtle">BH svar:</span>
+              <span className="text-pkt-text-body-subtle">Byggherrens svar:</span>
               <Badge variant={RESULTAT_VARIANTS[bhResponse.resultat]} size="sm">
                 {RESULTAT_LABELS[bhResponse.resultat]}
               </Badge>

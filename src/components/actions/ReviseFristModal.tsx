@@ -295,7 +295,7 @@ export function ReviseFristModal({
             Nå har du grunnlag for å spesifisere antall dager fristforlengelse.
             <p className="mt-2 text-sm">
               Du skal sende spesifisert krav «uten ugrunnet opphold» når du har grunnlag for beregning.
-              Sen spesifisering medfører at kravet reduseres til det BH «måtte forstå» (§33.6.1).
+              Sen spesifisering medfører at kravet reduseres til det byggherren «måtte forstå» (§33.6.1).
             </p>
           </Alert>
         )}
@@ -304,25 +304,25 @@ export function ReviseFristModal({
         <div className="space-y-2 py-3 px-3 bg-pkt-surface-subtle border-l-2 border-pkt-border-subtle">
           {modalMode === 'revider' ? (
             <>
-              {/* Linje 1: Ditt krav */}
+              {/* Linje 1: Entreprenørens krav */}
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-pkt-text-body-subtle">Ditt krav:</span>
+                <span className="text-pkt-text-body-subtle">Entreprenørens krav:</span>
                 <span className="font-mono font-medium">{lastFristEvent.antall_dager} dager</span>
               </div>
-              {/* Linje 2: BH svar (hvis finnes) */}
+              {/* Linje 2: Byggherrens svar (hvis finnes) */}
               {lastResponseEvent ? (
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-pkt-text-body-subtle">BH svar:</span>
+                  <span className="text-pkt-text-body-subtle">Byggherrens svar:</span>
                   <Badge variant={RESULTAT_VARIANTS[lastResponseEvent.resultat]} size="sm">
                     {RESULTAT_LABELS[lastResponseEvent.resultat]}
                   </Badge>
                   <span className="font-mono">
-                    {erSubsidiaer ? 'Subs. ' : ''}{lastResponseEvent.godkjent_dager ?? 0} dager
+                    {erSubsidiaer ? 'Subsidiært ' : ''}{lastResponseEvent.godkjent_dager ?? 0} dager
                   </span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-pkt-text-body-subtle">BH svar:</span>
+                  <span className="text-pkt-text-body-subtle">Byggherrens svar:</span>
                   <Badge variant="neutral" size="sm">Avventer</Badge>
                 </div>
               )}
