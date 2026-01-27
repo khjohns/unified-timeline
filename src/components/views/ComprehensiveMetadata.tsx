@@ -13,6 +13,7 @@
 import { SakState } from '../../types/timeline';
 import { InlineDataList, InlineDataListItem, Badge } from '../primitives';
 import { getOverordnetStatusLabel } from '../../constants/statusLabels';
+import { formatDateMedium } from '../../utils/formatters';
 
 interface ComprehensiveMetadataProps {
   state: SakState;
@@ -34,6 +35,7 @@ export function ComprehensiveMetadata({
       {/* Compact metadata as InlineDataList */}
       <InlineDataList stackOnMobile>
         <InlineDataListItem label="Sak-ID">{sakId}</InlineDataListItem>
+        <InlineDataListItem label="Opprettet">{formatDateMedium(state.grunnlag.siste_oppdatert)}</InlineDataListItem>
         <InlineDataListItem label="Prosjekt">{state.prosjekt_navn || '—'}</InlineDataListItem>
         <InlineDataListItem label="BH">{state.byggherre || '—'}</InlineDataListItem>
         <InlineDataListItem label="TE">{state.entreprenor || '—'}</InlineDataListItem>
