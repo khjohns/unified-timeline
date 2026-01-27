@@ -376,11 +376,11 @@ SAK_STATE.relaterte_saker inneholder liste av SakRelasjon:
 | Enum | Verdier |
 |------|---------|
 | **SporStatus** | `IKKE_RELEVANT`, `UTKAST`, `SENDT`, `UNDER_BEHANDLING`, `GODKJENT`, `DELVIS_GODKJENT`, `AVSLATT`, `UNDER_FORHANDLING`, `TRUKKET`, `LAAST` |
-| **GrunnlagResponsResultat** | `GODKJENT`, `DELVIS_GODKJENT`, `AVSLATT`, `FRAFALT` (§32.3 c), `KREVER_AVKLARING` |
+| **GrunnlagResponsResultat** | `GODKJENT`, `DELVIS_GODKJENT`, `AVSLATT`, `FRAFALT` (§32.3 c) |
 | **VederlagBeregningResultat** | `GODKJENT`, `DELVIS_GODKJENT`, `AVSLATT`, `HOLD_TILBAKE` (§30.2) |
 | **FristBeregningResultat** | `GODKJENT`, `DELVIS_GODKJENT`, `AVSLATT` |
 | **VederlagsMetode** | `ENHETSPRISER` (§34.3), `REGNINGSARBEID` (§30.2/§34.4), `FASTPRIS_TILBUD` (§34.2.1) |
-| **SubsidiaerTrigger** | `GRUNNLAG_AVSLATT`, `FORSERINGSRETT_AVSLATT`, `PREKLUSJON_RIGG`, `PREKLUSJON_PRODUKTIVITET`, `PREKLUSJON_EP_JUSTERING`, `PREKLUSJON_NOYTRALT`, `PREKLUSJON_SPESIFISERT`, `INGEN_HINDRING`, `METODE_AVSLATT` |
+| **SubsidiaerTrigger** | `GRUNNLAG_AVSLATT`, `GRUNNLAG_PREKLUDERT_32_2`, `FORSERINGSRETT_AVSLATT`, `PREKLUSJON_HOVEDKRAV`, `PREKLUSJON_RIGG`, `PREKLUSJON_PRODUKTIVITET`, `PREKLUSJON_EP_JUSTERING`, `PREKLUSJON_VARSEL`, `PREKLUSJON_SPESIFISERT`, `INGEN_HINDRING`, `METODE_AVSLATT` |
 
 **VarselInfo-struktur:**
 ```
@@ -557,10 +557,16 @@ Subsidiær godkjenning er en **forhandlingsposisjon**, ikke en endelig løsning:
 | Trigger | Beskrivelse |
 |---------|-------------|
 | `GRUNNLAG_AVSLATT` | BH avslår ansvarsgrunnlaget |
+| `GRUNNLAG_PREKLUDERT_32_2` | Grunnlag varslet for sent (§32.2) - kun ENDRING |
+| `FORSERINGSRETT_AVSLATT` | TE har ikke forseringsrett (§33.8) |
+| `PREKLUSJON_HOVEDKRAV` | Hovedkrav varslet for sent (§34.1.2) - kun SVIKT/ANDRE |
 | `PREKLUSJON_RIGG` | For sent varsel om rigg/drift (§34.1.3) |
-| `PREKLUSJON_NOYTRALT` | For sent nøytralt varsel (§33.4) |
+| `PREKLUSJON_PRODUKTIVITET` | For sent varsel om produktivitet (§34.1.3) |
+| `PREKLUSJON_EP_JUSTERING` | EP-justering varslet for sent (§34.3.3) |
+| `PREKLUSJON_VARSEL` | For sent varsel om fristforlengelse (§33.4) |
 | `PREKLUSJON_SPESIFISERT` | For sent spesifisert krav (§33.6) |
 | `INGEN_HINDRING` | BH mener ingen faktisk hindring (§33.5) |
+| `METODE_AVSLATT` | BH aksepterer ikke foreslått metode |
 
 Se `backend/models/events.py` for komplett SubsidiaerTrigger enum.
 
