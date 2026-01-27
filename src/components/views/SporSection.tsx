@@ -50,7 +50,7 @@ const SPOR_TITLES: Record<SporType, string> = {
 };
 
 /** Hjemler per spor (forenklet mapping) */
-function getHjemmelForSpor(spor: SporType, state: SakState): '§25.2' | '§32.2' | '§33.4' | '§34.1' | null {
+function getHjemmelForSpor(spor: SporType, state: SakState): '§25.2' | '§32.2' | '§33.4' | null {
   switch (spor) {
     case 'grunnlag':
       // Forenklet: bruk §32.2 for irregulære endringer som default
