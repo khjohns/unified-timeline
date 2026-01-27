@@ -4,6 +4,7 @@ Letter PDF Generator using ReportLab.
 Generates formal letters (brev) as PDF from structured content.
 Pure Python - no system dependencies required.
 """
+import re
 from typing import Optional
 from pathlib import Path
 from datetime import datetime, timezone
@@ -71,6 +72,46 @@ def _get_norwegian_date() -> str:
     ]
 
     return f"{local_time.day}. {months[local_time.month - 1]} {local_time.year}"
+
+
+def _markdown_to_reportlab(text: str) -> str:
+    """
+    Convert markdown to ReportLab Paragraph-compatible HTML.
+
+    Supports: headers (##), bold (**), italic (*), lists (- and 1.), line breaks.
+    Note: Tables are not supported in ReportLab Paragraph.
+    """
+    # Process line by line for headers and lists
+    lines = text.split('\n')
+    result_lines = []
+
+    for line in lines:
+        # Headers: ## Title -> larger bold text
+        if line.startswith('## '):
+            line = f'<font size="12"><b>{line[3:]}</b></font>'
+        elif line.startswith('# '):
+            line = f'<font size="14"><b>{line[2:]}</b></font>'
+        # Unordered lists: - item -> • item (only if followed by space and text)
+        elif re.match(r'^[\t ]*[-*+] \S', line):
+            line = re.sub(r'^[\t ]*([-*+]) ', '    • ', line)
+        # Ordered lists: 1. item -> 1. item (with indent)
+        elif re.match(r'^[\t ]*\d+\. \S', line):
+            line = re.sub(r'^[\t ]*(\d+)\. ', r'    \1. ', line)
+
+        # Bold: **text** -> <b>text</b> (text must have content)
+        line = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', line)
+        # Bold: __text__ -> <b>text</b> (text must have content, not just underscores)
+        line = re.sub(r'__([^_]+)__', r'<b>\1</b>', line)
+
+        # Italic: *text* -> <i>text</i> (single asterisk, text must have content)
+        line = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'<i>\1</i>', line)
+        # Italic: _text_ -> <i>text</i> (single underscore, text must have content)
+        line = re.sub(r'(?<!_)_([^_]+)_(?!_)', r'<i>\1</i>', line)
+
+        result_lines.append(line)
+
+    # Join with <br/> for line breaks
+    return '<br/>'.join(result_lines)
 
 
 def _format_date_norwegian(date_str: Optional[str]) -> str:
@@ -260,19 +301,19 @@ class LetterPdfGenerator:
             # --- Content sections ---
             if brev_innhold.seksjoner.innledning:
                 story.append(Paragraph(
-                    brev_innhold.seksjoner.innledning.replace('\n', '<br/>'),
+                    _markdown_to_reportlab(brev_innhold.seksjoner.innledning),
                     self.styles['LetterBody']
                 ))
 
             if brev_innhold.seksjoner.begrunnelse:
                 story.append(Paragraph(
-                    brev_innhold.seksjoner.begrunnelse.replace('\n', '<br/>'),
+                    _markdown_to_reportlab(brev_innhold.seksjoner.begrunnelse),
                     self.styles['LetterBody']
                 ))
 
             if brev_innhold.seksjoner.avslutning:
                 story.append(Paragraph(
-                    brev_innhold.seksjoner.avslutning.replace('\n', '<br/>'),
+                    _markdown_to_reportlab(brev_innhold.seksjoner.avslutning),
                     self.styles['LetterBody']
                 ))
 
