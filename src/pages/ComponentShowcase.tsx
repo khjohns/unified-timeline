@@ -53,6 +53,7 @@ import {
 import { PageHeader } from '../components/PageHeader';
 import type { DateRangeValue, ActivityHistoryEntry } from '../components/primitives';
 import { CheckCircledIcon, PaperPlaneIcon, PlusCircledIcon } from '@radix-ui/react-icons';
+import { ConstructionAnimation, FloatingConstructionAnimation } from '../components/ascii';
 
 /**
  * Component Showcase Page
@@ -112,6 +113,7 @@ export function ComponentShowcase() {
             { id: 'feedback', label: 'Feedback & Overlays' },
             { id: 'layout', label: 'Layout' },
             { id: 'animations', label: 'Animations' },
+            { id: 'ascii', label: 'ASCII Animation' },
           ]}
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -816,6 +818,115 @@ export function ComponentShowcase() {
                   <div className="p-4 bg-pkt-bg-card rounded border border-pkt-border-subtle transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
                     <p className="font-medium">hover:shadow + lift</p>
                     <p className="text-sm text-pkt-text-body-subtle">Med subtil løft-effekt</p>
+                  </div>
+                </div>
+              </Card>
+            </>
+          )}
+
+          {/* ============================================
+              TAB 7: ASCII ANIMATION
+              ============================================ */}
+          {activeTab === 'ascii' && (
+            <>
+              {/* Info */}
+              <Alert variant="info" title="ASCII-animasjon">
+                Illustrerer KOE-prosessen fra byggeplass til avtale. Kan brukes som loading-indikator eller dekorativt element.
+              </Alert>
+
+              {/* Hovedanimasjon */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">KOE-prosessen - Full animasjon</h2>
+                <p className="text-pkt-text-body-subtle mb-4">
+                  Historien om en krav om endring: fra oppdagelse på byggeplass, via avslag og forhandling, til endelig avtale.
+                </p>
+                <ConstructionAnimation
+                  autoPlay
+                  speed={1}
+                  loop
+                  showTimeline
+                />
+              </Card>
+
+              {/* Kompakt versjon */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Kompakt versjon (for loading)</h2>
+                <p className="text-pkt-text-body-subtle mb-4">
+                  Mindre versjon uten kontroller - perfekt som loading-indikator.
+                </p>
+                <div className="flex gap-4">
+                  <div>
+                    <p className="text-sm text-pkt-text-body-subtle mb-2">Normal hastighet:</p>
+                    <ConstructionAnimation
+                      compact
+                      showTimeline={false}
+                      loop
+                      speed={1}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm text-pkt-text-body-subtle mb-2">Rask (1.5x):</p>
+                    <ConstructionAnimation
+                      compact
+                      showTimeline={false}
+                      loop
+                      speed={1.5}
+                    />
+                  </div>
+                </div>
+              </Card>
+
+              {/* Flytende versjon */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Flytende animasjon</h2>
+                <p className="text-pkt-text-body-subtle mb-4">
+                  Kan plasseres som dekorativt element som beveger seg over siden.
+                  Eksempel: Brukes på innloggingssiden eller mens data lastes.
+                </p>
+                <div className="relative h-48 bg-slate-100 rounded-lg overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-center text-pkt-text-body-subtle">
+                    Se animasjonen som flyter over dette området
+                  </div>
+                  <FloatingConstructionAnimation
+                    startPosition={{ top: '10%', left: '5%' }}
+                    path="horizontal"
+                  />
+                </div>
+              </Card>
+
+              {/* Brukseksempler */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Brukseksempler</h2>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-pkt-text-body-subtle mb-2">Som loading-indikator:</h3>
+                    <pre className="bg-slate-100 p-3 rounded text-sm overflow-x-auto">
+{`<ConstructionAnimation
+  compact
+  showTimeline={false}
+  loop
+  speed={1.5}
+/>`}
+                    </pre>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-pkt-text-body-subtle mb-2">Med tidslinje og kontroller:</h3>
+                    <pre className="bg-slate-100 p-3 rounded text-sm overflow-x-auto">
+{`<ConstructionAnimation
+  autoPlay
+  showTimeline
+  onComplete={() => console.log('Ferdig!')}
+/>`}
+                    </pre>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-pkt-text-body-subtle mb-2">Flytende over siden:</h3>
+                    <pre className="bg-slate-100 p-3 rounded text-sm overflow-x-auto">
+{`<FloatingConstructionAnimation
+  startPosition={{ top: '20%', left: '10%' }}
+  path="diagonal"
+/>`}
+                    </pre>
                   </div>
                 </div>
               </Card>
