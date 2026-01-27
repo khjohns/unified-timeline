@@ -46,7 +46,7 @@ def run_detector(script_name: str, format_arg: str = "json") -> dict:
         return {"error": str(e), "drift_detected": False}
 
 
-def format_text_report(contract_result: dict, state_result: dict) -> str:
+def format_text_report(contract_result: dict, state_result: dict, validation_result: dict = None) -> str:
     """Formater samlet tekstrapport"""
     lines = []
     lines.append("=" * 60)
@@ -82,11 +82,27 @@ def format_text_report(contract_result: dict, state_result: dict) -> str:
         lines.append("  OK - Ingen drift")
     lines.append("")
 
+    # Validation drift
+    if validation_result:
+        lines.append("VALIDATION DRIFT (Zod/validators.py)")
+        lines.append("-" * 40)
+        if validation_result.get("error"):
+            lines.append(f"  Feil: {validation_result['error']}")
+        elif validation_result.get("drift_detected"):
+            summary = validation_result.get("summary", {})
+            lines.append(f"  DRIFT FUNNET: {summary.get('critical', 0)} kritiske, {summary.get('warning', 0)} advarsler")
+            for finding in validation_result.get("findings", [])[:5]:
+                lines.append(f"    - {finding['schema']}.{finding.get('field', '?')}: {finding['message']}")
+        else:
+            lines.append("  OK - Ingen drift")
+        lines.append("")
+
     # Oppsummering
     lines.append("=" * 60)
     total_drift = (
         contract_result.get("drift_detected", False) or
-        state_result.get("drift_detected", False)
+        state_result.get("drift_detected", False) or
+        (validation_result and validation_result.get("drift_detected", False))
     )
 
     if total_drift:
@@ -106,12 +122,19 @@ def format_text_report(contract_result: dict, state_result: dict) -> str:
             sum(1 for d in f['details'] if d['severity'] == 'info')
             for f in state_result.get("findings", [])
         )
+        validation_summary = validation_result.get("summary", {}) if validation_result else {}
+        validation_critical = validation_summary.get("critical", 0)
+        validation_warning = validation_summary.get("warning", 0)
 
-        lines.append(f"  TOTALT: {contract_issues + state_critical} kritiske, {state_warning} advarsler, {state_info} info")
+        total_critical = contract_issues + state_critical + validation_critical
+        total_warning = state_warning + validation_warning
+
+        lines.append(f"  TOTALT: {total_critical} kritiske, {total_warning} advarsler, {state_info} info")
         lines.append("")
         lines.append("  Kjør individuelt for detaljer:")
         lines.append("    python scripts/contract_drift.py")
         lines.append("    python scripts/state_drift.py")
+        lines.append("    python scripts/validation_drift.py")
     else:
         lines.append("  OK - Ingen drift funnet")
 
@@ -120,18 +143,21 @@ def format_text_report(contract_result: dict, state_result: dict) -> str:
     return "\n".join(lines)
 
 
-def format_json_report(contract_result: dict, state_result: dict) -> str:
+def format_json_report(contract_result: dict, state_result: dict, validation_result: dict = None) -> str:
     """Formater samlet JSON-rapport"""
     report = {
         "drift_detected": (
             contract_result.get("drift_detected", False) or
-            state_result.get("drift_detected", False)
+            state_result.get("drift_detected", False) or
+            (validation_result and validation_result.get("drift_detected", False))
         ),
         "contract_drift": contract_result,
         "state_drift": state_result,
+        "validation_drift": validation_result or {},
         "summary": {
             "contract_types_with_drift": contract_result.get("types_with_drift", 0),
             "state_models_with_drift": state_result.get("models_with_drift", 0),
+            "validation_schemas_with_drift": validation_result.get("schemas_with_drift", 0) if validation_result else 0,
         }
     }
     return json.dumps(report, indent=2, ensure_ascii=False)
@@ -162,11 +188,14 @@ def main():
     print("Kjører state_drift.py...", file=sys.stderr)
     state_result = run_detector("state_drift.py", "json")
 
+    print("Kjører validation_drift.py...", file=sys.stderr)
+    validation_result = run_detector("validation_drift.py", "json")
+
     # Formater output
     if args.format == "json":
-        output = format_json_report(contract_result, state_result)
+        output = format_json_report(contract_result, state_result, validation_result)
     else:
-        output = format_text_report(contract_result, state_result)
+        output = format_text_report(contract_result, state_result, validation_result)
 
     print(output)
 
@@ -174,7 +203,8 @@ def main():
     if args.ci:
         has_drift = (
             contract_result.get("drift_detected", False) or
-            state_result.get("drift_detected", False)
+            state_result.get("drift_detected", False) or
+            validation_result.get("drift_detected", False)
         )
         if has_drift:
             sys.exit(1)

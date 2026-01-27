@@ -171,7 +171,11 @@ export function ActivityHistory({
     return (
       <RadixCollapsible.Root
         open={externalOpen}
-        className={clsx('mt-3 pt-2 sm:mt-4 sm:pt-3 border-t border-pkt-border-subtle', className)}
+        className={clsx(
+          // Kun vis border-t når ekspandert - unngår dobbel linje med action-separator
+          externalOpen && 'mt-3 pt-2 sm:mt-4 sm:pt-3 border-t border-pkt-border-subtle',
+          className
+        )}
       >
         <RadixCollapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
           <div className="mt-1">

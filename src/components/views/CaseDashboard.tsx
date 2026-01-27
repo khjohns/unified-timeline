@@ -7,7 +7,7 @@
 
 import { ReactNode, useMemo, useState } from 'react';
 import { DashboardCard, InlineDataList, InlineDataListItem, Badge } from '../primitives';
-import { CategoryAccordion } from '../shared';
+import { CategoryLabel } from '../shared';
 import { SakState, SporStatus, TimelineEvent } from '../../types/timeline';
 import { GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
 // getHovedkategoriLabel, getUnderkategoriLabel erstattet av CategoryAccordion
@@ -108,16 +108,15 @@ export function CaseDashboard({
           isExpanded={grunnlagExpanded}
           onExpandedChange={setGrunnlagExpanded}
         >
-          {/* Kategori med accordion for kontraktsregel */}
+          {/* Kategori som tekst med info-ikon for kontraktsregel */}
           {state.grunnlag.hovedkategori && (
             <div className="mb-2">
-              <CategoryAccordion
+              <CategoryLabel
                 hovedkategori={state.grunnlag.hovedkategori}
                 underkategori={state.grunnlag.underkategori}
               />
             </div>
           )}
-
           <InlineDataList stackOnMobile>
             {state.grunnlag.dato_oppdaget && (
               <InlineDataListItem label="Oppdaget">

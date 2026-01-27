@@ -422,9 +422,9 @@ class GrunnlagData(BaseModel):
         ...,
         description="Hovedkategori for ansvarsgrunnlag (f.eks. 'ENDRING', 'SVIKT')"
     )
-    underkategori: Union[str, List[str]] = Field(
-        ...,
-        description="Underkategori(er) - enkelt kode eller liste av koder (f.eks. 'MEDVIRK', 'PROSJ_RISIKO')"
+    underkategori: Optional[Union[str, List[str]]] = Field(
+        default=None,
+        description="Underkategori(er) - enkelt kode eller liste av koder. Valgfritt for kategorier uten underkategorier (f.eks. Force Majeure)"
     )
     beskrivelse: str = Field(
         ...,

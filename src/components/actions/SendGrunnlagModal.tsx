@@ -49,9 +49,10 @@ import {
 import { getPreklusjonsvarsel, getPreklusjonsvarselMellomDatoer, beregnDagerSiden } from '../../utils/preklusjonssjekk';
 
 // Schema for create mode - all fields required
+// Underkategori is only required if the hovedkategori has underkategorier (e.g., not Force Majeure)
 const createGrunnlagSchema = z.object({
   hovedkategori: z.string().min(1, 'Hovedkategori er påkrevd'),
-  underkategori: z.array(z.string()).min(1, 'Minst én underkategori må velges'),
+  underkategori: z.array(z.string()).default([]),
   tittel: z.string().min(3, 'Tittel må være minst 3 tegn').max(100, 'Tittel kan ikke være lengre enn 100 tegn'),
   beskrivelse: z.string().min(10, 'Beskrivelse må være minst 10 tegn'),
   dato_oppdaget: z.string().min(1, 'Dato oppdaget er påkrevd'),
@@ -59,7 +60,22 @@ const createGrunnlagSchema = z.object({
   dato_varsel_sendt: z.string().optional(),
   varsel_metode: z.array(z.string()).optional(),
   attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
-});
+}).refine(
+  (data) => {
+    // Check if hovedkategori has underkategorier
+    const hovedkat = getHovedkategori(data.hovedkategori);
+    if (!hovedkat || hovedkat.underkategorier.length === 0) {
+      // No underkategorier required (e.g., Force Majeure)
+      return true;
+    }
+    // Require at least one underkategori
+    return data.underkategori.length > 0;
+  },
+  {
+    message: 'Minst én underkategori må velges',
+    path: ['underkategori'],
+  }
+);
 
 // Schema for update mode - all fields optional
 const updateGrunnlagSchema = z.object({

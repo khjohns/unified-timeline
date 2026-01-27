@@ -52,12 +52,13 @@ class ValidationError(Exception):
         return result
 
 
-def validate_grunnlag_event(data: Dict[str, Any]) -> None:
+def validate_grunnlag_event(data: Dict[str, Any], is_update: bool = False) -> None:
     """
     Validate grunnlag-event data against constants.
 
     Args:
         data: The 'data' field from a grunnlag event (modified in place to normalize casing)
+        is_update: If True, only validate fields that are present (partial update)
 
     Raises:
         ValidationError: If validation fails (with valid_options when applicable)
@@ -80,6 +81,38 @@ def validate_grunnlag_event(data: Dict[str, Any]) -> None:
             underkategori = [uk.upper() if isinstance(uk, str) else uk for uk in underkategori]
             data['underkategori'] = underkategori
 
+    # For updates, hovedkategori and underkategori are optional (only changed fields are sent)
+    if is_update:
+        # Only validate if present
+        if hovedkategori:
+            valid_hovedkategorier = get_alle_hovedkategorier()
+            if hovedkategori not in valid_hovedkategorier:
+                raise ValidationError(
+                    f"Ugyldig hovedkategori: {hovedkategori}",
+                    valid_options={"hovedkategorier": valid_hovedkategorier},
+                    field="hovedkategori"
+                )
+            # Validate underkategori combination if both are present
+            if underkategori:
+                valid_underkategorier = get_underkategorier_for_hovedkategori(hovedkategori)
+                if valid_underkategorier:  # Only validate if hovedkategori has underkategorier
+                    if isinstance(underkategori, list):
+                        for uk in underkategori:
+                            if not validate_kategori_kombinasjon(hovedkategori, uk):
+                                raise ValidationError(
+                                    f"Ugyldig underkategori '{uk}' for hovedkategori '{hovedkategori}'",
+                                    valid_options={"hovedkategori": hovedkategori, "underkategorier": valid_underkategorier},
+                                    field="underkategori"
+                                )
+                    elif not validate_kategori_kombinasjon(hovedkategori, underkategori):
+                        raise ValidationError(
+                            f"Ugyldig underkategori '{underkategori}' for hovedkategori '{hovedkategori}'",
+                            valid_options={"hovedkategori": hovedkategori, "underkategorier": valid_underkategorier},
+                            field="underkategori"
+                        )
+        return  # Skip the rest for updates
+
+    # For create: require hovedkategori
     if not hovedkategori:
         raise ValidationError(
             "hovedkategori er påkrevd",
@@ -96,43 +129,53 @@ def validate_grunnlag_event(data: Dict[str, Any]) -> None:
             field="hovedkategori"
         )
 
-    if not underkategori:
+    # Validate category combination (underkategori only required if hovedkategori has them)
+    valid_underkategorier = get_underkategorier_for_hovedkategori(hovedkategori)
+
+    # Only require underkategori if the hovedkategori has underkategorier (e.g., not Force Majeure)
+    if valid_underkategorier and not underkategori:
         raise ValidationError(
             "underkategori er påkrevd",
             valid_options={
                 "hovedkategori": hovedkategori,
-                "underkategorier": get_underkategorier_for_hovedkategori(hovedkategori)
+                "underkategorier": valid_underkategorier
             },
             field="underkategori"
         )
 
-    # Validate category combination
-    valid_underkategorier = get_underkategorier_for_hovedkategori(hovedkategori)
-
-    # Handle both single string and list of strings
-    if isinstance(underkategori, list):
-        for uk in underkategori:
-            if not validate_kategori_kombinasjon(hovedkategori, uk):
+    # Handle both single string and list of strings (only validate if underkategori is provided)
+    if underkategori:
+        if isinstance(underkategori, list):
+            for uk in underkategori:
+                if not validate_kategori_kombinasjon(hovedkategori, uk):
+                    raise ValidationError(
+                        f"Ugyldig underkategori '{uk}' for hovedkategori '{hovedkategori}'",
+                        valid_options={
+                            "hovedkategori": hovedkategori,
+                            "underkategorier": valid_underkategorier
+                        },
+                        field="underkategori"
+                    )
+        else:
+            if not validate_kategori_kombinasjon(hovedkategori, underkategori):
                 raise ValidationError(
-                    f"Ugyldig underkategori '{uk}' for hovedkategori '{hovedkategori}'",
+                    f"Ugyldig underkategori '{underkategori}' for hovedkategori '{hovedkategori}'",
                     valid_options={
                         "hovedkategori": hovedkategori,
                         "underkategorier": valid_underkategorier
                     },
                     field="underkategori"
                 )
-    else:
-        if not validate_kategori_kombinasjon(hovedkategori, underkategori):
-            raise ValidationError(
-                f"Ugyldig underkategori '{underkategori}' for hovedkategori '{hovedkategori}'",
-                valid_options={
-                    "hovedkategori": hovedkategori,
-                    "underkategorier": valid_underkategorier
-                },
-                field="underkategori"
-            )
 
     # Validate required fields
+    tittel = data.get('tittel')
+    if not tittel:
+        raise ValidationError("tittel er påkrevd", field="tittel")
+    if len(tittel) < 3:
+        raise ValidationError("tittel må være minst 3 tegn", field="tittel")
+    if len(tittel) > 100:
+        raise ValidationError("tittel kan ikke være lengre enn 100 tegn", field="tittel")
+
     if not data.get('beskrivelse'):
         raise ValidationError("beskrivelse er påkrevd", field="beskrivelse")
 

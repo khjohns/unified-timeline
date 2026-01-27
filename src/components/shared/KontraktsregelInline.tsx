@@ -602,3 +602,13 @@ export function KontraktsregelInline(props: KontraktsregelInlineProps) {
 
 /** @deprecated Bruk KontraktsregelInline i stedet */
 export const VarslingsregelInline = KontraktsregelInline;
+
+/**
+ * Hent inline-tekst for en hjemmel (til bruk i tooltips etc.)
+ * Returnerer null hvis hjemmelen ikke er støttet.
+ */
+export function getHjemmelInline(hjemmel: string): string | null {
+  const key = hjemmel.startsWith('§') ? hjemmel : `§${hjemmel}`;
+  const innhold = HJEMMEL_INNHOLD[key as Hjemmel];
+  return innhold?.inline ?? null;
+}

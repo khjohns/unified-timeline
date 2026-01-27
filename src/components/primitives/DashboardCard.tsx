@@ -25,6 +25,8 @@ interface DashboardCardProps {
   variant?: 'default' | 'elevated' | 'outlined';
   /** Additional class names for the card (e.g., grid span) */
   className?: string;
+  /** Additional class names for the content area (e.g., background color) */
+  contentClassName?: string;
   /** Optional inline styles (e.g., for animation-delay) */
   style?: CSSProperties;
   /** Enable collapsible header - clicking header toggles expanded state */
@@ -46,6 +48,7 @@ export function DashboardCard({
   action,
   variant = 'default',
   className,
+  contentClassName,
   style,
   collapsible = false,
   historyCount,
@@ -117,7 +120,7 @@ export function DashboardCard({
       )}
 
       {/* Content */}
-      <div className="p-3 sm:p-4">
+      <div className={clsx('p-3 sm:p-4', contentClassName)}>
         {children}
 
         {/* Action */}

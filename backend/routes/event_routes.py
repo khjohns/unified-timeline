@@ -132,8 +132,10 @@ def submit_event():
         data_payload = event_data.get('data')
 
         try:
-            if event_type in [EventType.GRUNNLAG_OPPRETTET.value, EventType.GRUNNLAG_OPPDATERT.value]:
+            if event_type == EventType.GRUNNLAG_OPPRETTET.value:
                 validate_grunnlag_event(data_payload)
+            elif event_type == EventType.GRUNNLAG_OPPDATERT.value:
+                validate_grunnlag_event(data_payload, is_update=True)
             elif event_type in [EventType.VEDERLAG_KRAV_SENDT.value, EventType.VEDERLAG_KRAV_OPPDATERT.value]:
                 validate_vederlag_event(data_payload)
             elif event_type == EventType.FRIST_KRAV_SENDT.value:
