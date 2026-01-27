@@ -7,9 +7,10 @@
 
 import { ReactNode, useMemo } from 'react';
 import { DashboardCard, DataList, DataListItem, Badge } from '../primitives';
+import { CategoryAccordion } from '../shared';
 import { SakState, SporStatus, TimelineEvent } from '../../types/timeline';
 import { GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
-import { getHovedkategoriLabel, getUnderkategoriLabel } from '../../constants/categories';
+// getHovedkategoriLabel, getUnderkategoriLabel erstattet av CategoryAccordion
 import { getVederlagsmetodeLabel } from '../../constants/paymentMethods';
 import { getSporStatusStyle } from '../../constants/statusStyles';
 import {
@@ -100,19 +101,17 @@ export function CaseDashboard({
           variant="default"
           className="animate-fade-in-up"
         >
+          {/* Kategori med accordion for kontraktsregel */}
+          {state.grunnlag.hovedkategori && (
+            <div className="mb-3">
+              <CategoryAccordion
+                hovedkategori={state.grunnlag.hovedkategori}
+                underkategori={state.grunnlag.underkategori}
+              />
+            </div>
+          )}
+
           <DataList variant="grid">
-            <DataListItem label="Hovedkategori">
-              {state.grunnlag.hovedkategori
-                ? getHovedkategoriLabel(state.grunnlag.hovedkategori)
-                : '-'}
-            </DataListItem>
-            {state.grunnlag.underkategori && (
-              <DataListItem label="Underkategori">
-                {Array.isArray(state.grunnlag.underkategori)
-                  ? state.grunnlag.underkategori.map(uk => getUnderkategoriLabel(uk)).join(', ')
-                  : getUnderkategoriLabel(state.grunnlag.underkategori)}
-              </DataListItem>
-            )}
             {state.grunnlag.dato_oppdaget && (
               <DataListItem label="Dato oppdaget">
                 {formatDateMedium(state.grunnlag.dato_oppdaget)}

@@ -5,3 +5,4 @@
  */
 
 export { KontraktsregelInline, VarslingsregelInline } from './KontraktsregelInline';
+export { CategoryAccordion } from './CategoryAccordion';
