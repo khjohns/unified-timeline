@@ -130,13 +130,6 @@ GRUNNLAG_KATEGORIER: Dict[str, Hovedkategori] = {
                 "varselkrav_ref": "34.1.2 / 25.1.2",
             },
             {
-                "kode": "ADKOMST",
-                "label": "Manglende tilkomst/råderett",
-                "hjemmel_basis": "22.2",
-                "beskrivelse": "Byggherren har ikke nødvendig råderett over eiendommen.",
-                "varselkrav_ref": "34.1.2",
-            },
-            {
                 "kode": "GRUNN",
                 "label": "Uforutsette grunnforhold",
                 "hjemmel_basis": "23.1",
@@ -178,13 +171,6 @@ GRUNNLAG_KATEGORIER: Dict[str, Hovedkategori] = {
                 "varselkrav_ref": "34.1.2",
             },
             {
-                "kode": "NEKT_TILTRANSPORT",
-                "label": "Tvungen tiltransport",
-                "hjemmel_basis": "12.1.2",
-                "beskrivelse": "Byggherren gjennomfører tiltransport til tross for entreprenørens saklige innvendinger etter §12.1.2.",
-                "varselkrav_ref": "34.1.2 / 12.1.2 annet ledd",
-            },
-            {
                 "kode": "SKADE_BH",
                 "label": "Skade forårsaket av byggherren/sideentreprenør",
                 "hjemmel_basis": "19.1",
@@ -205,13 +191,6 @@ GRUNNLAG_KATEGORIER: Dict[str, Hovedkategori] = {
                 "beskrivelse": "Konsekvenser av rettmessig stans grunnet manglende betaling/sikkerhet.",
                 "varselkrav_ref": "34.1.2 / 29.2",
             },
-            {
-                "kode": "STANS_UENIGHET",
-                "label": "Pålagt stans/utsettelse",
-                "hjemmel_basis": "35.1",
-                "beskrivelse": "Byggherren pålegger utsettelse av arbeidet ved uenighet om endring.",
-                "varselkrav_ref": "34.1.2",
-            },
         ],
     },
 
@@ -219,27 +198,12 @@ GRUNNLAG_KATEGORIER: Dict[str, Hovedkategori] = {
     "FORCE_MAJEURE": {
         "kode": "FORCE_MAJEURE",
         "label": "Force Majeure",
-        "beskrivelse": "Ekstraordinære hendelser utenfor partenes kontroll.",
+        "beskrivelse": "Ekstraordinære hendelser utenfor partenes kontroll (værforhold, offentlige påbud, streik, lockout etc.).",
         "hjemmel_frist": "33.3",
         "hjemmel_vederlag": None,
         "standard_vederlagsmetode": "Ingen (Kun fristforlengelse)",
         "type_krav": "Tid",
-        "underkategorier": [
-            {
-                "kode": "FM_EGEN",
-                "label": "Force Majeure (Egen)",
-                "hjemmel_basis": "33.3 første ledd",
-                "beskrivelse": "Ekstraordinære værforhold, offentlige påbud/forbud, streik, lockout etc. som rammer entreprenøren direkte.",
-                "varselkrav_ref": "33.4",
-            },
-            {
-                "kode": "FM_MH",
-                "label": "Force Majeure (Medhjelper)",
-                "hjemmel_basis": "33.3 annet ledd",
-                "beskrivelse": "Hindring hos kontraktsmedhjelper som skyldes forhold utenfor dennes kontroll.",
-                "varselkrav_ref": "33.4",
-            },
-        ],
+        "underkategorier": [],  # Ingen underkategorier - Force Majeure er en selvstendig kategori
     },
 }
 
