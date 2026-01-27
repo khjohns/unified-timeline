@@ -35,7 +35,7 @@ const letterStyles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   logo: {
-    height: 40,
+    height: 80,
   },
   headerRight: {
     textAlign: 'right',
@@ -187,7 +187,7 @@ const MultiLineText: React.FC<{ text: string; style?: Style }> = ({ text, style 
 const Header: React.FC<{ brevInnhold: BrevInnhold }> = ({ brevInnhold }) => (
   <View style={letterStyles.header}>
     <Image
-      src={`${baseUrl}/logos/Oslo-logo-RGB.png`}
+      src={`${baseUrl}/logos/Oslo-logo-sort-RGB.png`}
       style={letterStyles.logo}
     />
     <View style={letterStyles.headerRight}>

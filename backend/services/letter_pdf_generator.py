@@ -198,14 +198,14 @@ class LetterPdfGenerator:
 
     def _find_logo_path(self) -> Optional[Path]:
         """Find the logo file."""
-        logo_path = self.static_dir / 'Oslo-logo-RGB.png'
+        logo_path = self.static_dir / 'Oslo-logo-sort-RGB.png'
         if logo_path.exists():
             return logo_path
 
         # Try alternative paths
         alt_paths = [
-            Path(__file__).parent.parent.parent / 'src' / 'assets' / 'logos' / 'Oslo-logo-RGB.png',
-            Path(__file__).parent.parent / 'static' / 'logos' / 'Oslo-logo-RGB.png',
+            Path(__file__).parent.parent.parent / 'src' / 'assets' / 'logos' / 'Oslo-logo-sort-RGB.png',
+            Path(__file__).parent.parent / 'static' / 'logos' / 'Oslo-logo-sort-RGB.png',
         ]
         for alt in alt_paths:
             if alt.exists():
@@ -319,7 +319,15 @@ class LetterPdfGenerator:
         # Logo cell
         if logo_path:
             try:
-                logo = Image(str(logo_path), width=80, height=30)
+                # Get image dimensions to preserve aspect ratio
+                from reportlab.lib.utils import ImageReader
+                img_reader = ImageReader(str(logo_path))
+                img_width, img_height = img_reader.getSize()
+                aspect_ratio = img_width / img_height
+                # Target height 80pt (matches frontend), calculate width from aspect ratio
+                target_height = 80
+                target_width = target_height * aspect_ratio
+                logo = Image(str(logo_path), width=target_width, height=target_height)
                 logo_cell = logo
             except Exception:
                 logo_cell = Paragraph("Oslo kommune", self.styles['Normal'])

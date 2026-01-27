@@ -85,9 +85,9 @@ export function LetterHtmlPreview({ brevInnhold, className }: LetterHtmlPreviewP
           }}
         >
           <img
-            src="/logos/Oslo-logo-RGB.png"
+            src="/logos/Oslo-logo-sort-RGB.png"
             alt="Oslo kommune"
-            style={{ height: '40px' }}
+            style={{ height: '80px' }}
           />
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '10pt', color: '#2C2C2C', marginBottom: '4px' }}>

@@ -20,6 +20,8 @@ import type { TimelineEvent, SakState } from '../../types/timeline';
 import type { BrevInnhold, BrevSeksjon } from '../../types/letter';
 import clsx from 'clsx';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
 interface LetterPreviewModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -142,7 +144,7 @@ export function LetterPreviewModal({
     setError(undefined);
 
     try {
-      const response = await fetch('/api/letter/generate', {
+      const response = await fetch(`${API_BASE_URL}/api/letter/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -202,7 +204,7 @@ export function LetterPreviewModal({
       onOpenChange={onOpenChange}
       title="Generer brev"
       description={brevInnhold.tittel}
-      size="lg"
+      size="xl"
     >
       {/* Tabs */}
       <Tabs

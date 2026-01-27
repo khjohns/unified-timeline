@@ -56,6 +56,27 @@ export interface ActivityHistoryProps {
   className?: string;
 }
 
+// ============ HELPERS ============
+
+/**
+ * Strip markdown formatting for plain text preview.
+ * Removes headers, bold, italic, links etc.
+ */
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/^#{1,6}\s+/gm, '')      // Headers: ## Title -> Title
+    .replace(/\*\*(.+?)\*\*/g, '$1')  // Bold: **text** -> text
+    .replace(/\*(.+?)\*/g, '$1')      // Italic: *text* -> text
+    .replace(/__(.+?)__/g, '$1')      // Bold: __text__ -> text
+    .replace(/_(.+?)_/g, '$1')        // Italic: _text_ -> text
+    .replace(/\[(.+?)\]\(.+?\)/g, '$1') // Links: [text](url) -> text
+    .replace(/`(.+?)`/g, '$1')        // Inline code: `code` -> code
+    .replace(/^\s*[-*+]\s+/gm, '')    // List items: - item -> item
+    .replace(/^\s*\d+\.\s+/gm, '')    // Numbered lists: 1. item -> item
+    .replace(/\n+/g, ' ')             // Newlines to spaces
+    .trim();
+}
+
 // ============ VARIANT STYLES ============
 
 const variantStyles: Record<ActivityHistoryVariant, string> = {
@@ -116,7 +137,7 @@ function ActivityHistoryItem({ entry, isLast }: ActivityHistoryItemProps) {
         )}
         {entry.description && (
           <div className="mt-1 text-sm text-pkt-text-body-default italic truncate">
-            "{entry.description}"
+            "{stripMarkdown(entry.description)}"
           </div>
         )}
       </div>
