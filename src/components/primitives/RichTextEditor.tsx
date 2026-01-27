@@ -162,8 +162,9 @@ export function RichTextEditor({
       },
     });
     // Handle strikethrough: <s>, <strike>, <del> -> ~~text~~
+    // Note: 'strike' is deprecated HTML but still used by some editors
     service.addRule('strikethrough', {
-      filter: ['s', 'strike', 'del'],
+      filter: ['s', 'del'] as const,
       replacement: (content) => `~~${content}~~`,
     });
     return service;
