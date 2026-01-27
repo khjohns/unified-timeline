@@ -26,10 +26,39 @@ import {
   CodeIcon,
   QuoteIcon,
   Link2Icon,
-  HeadingIcon,
   TableIcon,
   StrikethroughIcon,
+  ChevronDownIcon,
 } from '@radix-ui/react-icons';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from './DropdownMenu';
+
+// Custom icon for ordered/numbered list (not in Radix Icons)
+function OrderedListIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2.5 2H3.5V5H2.5V2Z" fill="currentColor"/>
+      <text x="2.3" y="11.5" fontSize="4" fill="currentColor" fontFamily="system-ui">2</text>
+      <path d="M5.5 3.5H12.5" stroke="currentColor" strokeWidth="1.2"/>
+      <path d="M5.5 7.5H12.5" stroke="currentColor" strokeWidth="1.2"/>
+      <path d="M5.5 11.5H12.5" stroke="currentColor" strokeWidth="1.2"/>
+    </svg>
+  );
+}
+
+// Custom icon for inline code (backtick style)
+function InlineCodeIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <text x="3" y="11" fontSize="10" fill="currentColor" fontFamily="monospace">`</text>
+      <text x="8" y="11" fontSize="10" fill="currentColor" fontFamily="monospace">`</text>
+    </svg>
+  );
+}
 
 export interface RichTextEditorProps {
   /** Current value (markdown string) */
@@ -263,16 +292,64 @@ export function RichTextEditor({
             disabled={disabled}
             active={editor.isActive('bulletList')}
           />
+          <ToolbarButton
+            icon={<OrderedListIcon className="w-5 h-5 sm:w-4 sm:h-4" />}
+            label="Nummerert liste"
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            disabled={disabled}
+            active={editor.isActive('orderedList')}
+          />
 
           <Toolbar.Separator className="w-px h-5 bg-pkt-border-subtle mx-1" />
 
-          <ToolbarButton
-            icon={<HeadingIcon className="w-5 h-5 sm:w-4 sm:h-4" />}
-            label="Overskrift"
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            disabled={disabled}
-            active={editor.isActive('heading')}
-          />
+          {/* Heading dropdown menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Toolbar.Button
+                type="button"
+                disabled={disabled}
+                aria-label="Overskrift"
+                title="Overskrift"
+                className={clsx(
+                  'inline-flex items-center gap-0.5 p-2 sm:p-1.5 rounded transition-colors',
+                  editor.isActive('heading')
+                    ? 'bg-pkt-bg-subtle text-pkt-text-body-dark'
+                    : 'hover:bg-pkt-bg-subtle active:bg-pkt-bg-subtle text-pkt-text-body-muted hover:text-pkt-text-body-default',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-pkt-brand-purple-1000/30',
+                  'disabled:opacity-50 disabled:cursor-not-allowed'
+                )}
+              >
+                <span className="text-xs sm:text-[11px] font-bold leading-none">H</span>
+                <ChevronDownIcon className="w-3 h-3" />
+              </Toolbar.Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" sideOffset={4}>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                className={editor.isActive('heading', { level: 1 }) ? 'bg-pkt-bg-subtle' : ''}
+              >
+                <span className="text-lg font-bold">Overskrift 1</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                className={editor.isActive('heading', { level: 2 }) ? 'bg-pkt-bg-subtle' : ''}
+              >
+                <span className="text-base font-bold">Overskrift 2</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                className={editor.isActive('heading', { level: 3 }) ? 'bg-pkt-bg-subtle' : ''}
+              >
+                <span className="text-sm font-bold">Overskrift 3</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().setParagraph().run()}
+                className={editor.isActive('paragraph') && !editor.isActive('heading') ? 'bg-pkt-bg-subtle' : ''}
+              >
+                <span className="text-sm">Normal tekst</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <ToolbarButton
             icon={<QuoteIcon className="w-5 h-5 sm:w-4 sm:h-4" />}
             label="Sitat"
@@ -281,8 +358,15 @@ export function RichTextEditor({
             active={editor.isActive('blockquote')}
           />
           <ToolbarButton
+            icon={<InlineCodeIcon className="w-5 h-5 sm:w-4 sm:h-4" />}
+            label="Inline kode"
+            onClick={() => editor.chain().focus().toggleCode().run()}
+            disabled={disabled}
+            active={editor.isActive('code')}
+          />
+          <ToolbarButton
             icon={<CodeIcon className="w-5 h-5 sm:w-4 sm:h-4" />}
-            label="Kode"
+            label="Kodeblokk"
             onClick={() => editor.chain().focus().toggleCodeBlock().run()}
             disabled={disabled}
             active={editor.isActive('codeBlock')}
