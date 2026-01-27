@@ -38,6 +38,11 @@ from models.events import (
     EventType,
     VederlagsMetode,
     FristVarselType,
+    SporStatus,
+    GrunnlagResponsResultat,
+    VederlagBeregningResultat,
+    FristBeregningResultat,
+    SubsidiaerTrigger,
     # Data models
     GrunnlagData,
     VederlagData,
@@ -178,6 +183,58 @@ Main category for grounds (NS 8407 §33.1):
 - SVIKT: Delay/failure by client (§33.1 b)
 - ANDRE: Other circumstances (§33.1 c)
 - FORCE_MAJEURE: Force majeure (§33.3)
+""".strip()
+    }
+
+    # Response result enums
+    schemas["SporStatus"] = generate_enum_schema(
+        SporStatus,
+        "Status for each track (spor) in a case"
+    )
+    schemas["GrunnlagResponsResultat"] = {
+        "type": "string",
+        "enum": [r.value for r in GrunnlagResponsResultat],
+        "description": """
+BH's assessment of grounds (ansvar):
+- godkjent: BH accepts responsibility
+- delvis_godkjent: BH partially accepts
+- avslatt: BH rejects responsibility
+- frafalt: BH withdraws instruction (§32.3 c, irregular changes only)
+""".strip()
+    }
+    schemas["VederlagBeregningResultat"] = {
+        "type": "string",
+        "enum": [r.value for r in VederlagBeregningResultat],
+        "description": """
+BH's assessment of compensation claim:
+- godkjent: BH accepts the claim
+- delvis_godkjent: BH partially accepts (disagreement on amount/method)
+- avslatt: BH rejects the claim
+- hold_tilbake: §30.2 withholding (missing estimate only)
+""".strip()
+    }
+    schemas["FristBeregningResultat"] = {
+        "type": "string",
+        "enum": [r.value for r in FristBeregningResultat],
+        "description": """
+BH's assessment of deadline extension claim:
+- godkjent: BH accepts the claim
+- delvis_godkjent: BH partially accepts (disagreement on days)
+- avslatt: BH rejects the claim
+""".strip()
+    }
+    schemas["SubsidiaerTrigger"] = {
+        "type": "string",
+        "enum": [t.value for t in SubsidiaerTrigger],
+        "description": """
+Reasons for subsidiary assessment (when BH takes principal position but also states
+what the result would be if principal position doesn't hold):
+- grunnlag_avslatt: BH rejected grounds
+- grunnlag_prekludert_32_2: Grounds notice too late (§32.2, ENDRING only)
+- forseringsrett_avslatt: TE has no acceleration right (§33.8)
+- preklusjon_*: Various late notice triggers (§34.1.2, §34.1.3, §33.4, §33.6)
+- ingen_hindring: No actual hindrance (§33.5)
+- metode_avslatt: BH rejects proposed method
 """.strip()
     }
 
