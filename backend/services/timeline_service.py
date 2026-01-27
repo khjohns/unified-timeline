@@ -328,6 +328,10 @@ class TimelineService:
             frist.frist_varsel = event.data.frist_varsel
         if event.data.spesifisert_varsel:
             frist.spesifisert_varsel = event.data.spesifisert_varsel
+            # Hvis spesifisert krav sendes uten at varsel (§33.4) er sendt først,
+            # regnes det spesifiserte kravet også som varsel
+            if frist.frist_varsel is None:
+                frist.frist_varsel = event.data.spesifisert_varsel
 
         frist.krevd_dager = event.data.antall_dager
         frist.begrunnelse = event.data.begrunnelse

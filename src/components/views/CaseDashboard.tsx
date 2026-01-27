@@ -6,7 +6,7 @@
  */
 
 import { ReactNode, useMemo } from 'react';
-import { DashboardCard, DataList, DataListItem, Badge } from '../primitives';
+import { DashboardCard, InlineDataList, InlineDataListItem, Badge } from '../primitives';
 import { CategoryAccordion } from '../shared';
 import { SakState, SporStatus, TimelineEvent } from '../../types/timeline';
 import { GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
@@ -17,8 +17,6 @@ import {
   formatCurrency,
   formatDays,
   formatDateMedium,
-  formatBHResultat,
-  formatVarselType,
 } from '../../utils/formatters';
 import {
   SporHistory,
@@ -103,7 +101,7 @@ export function CaseDashboard({
         >
           {/* Kategori med accordion for kontraktsregel */}
           {state.grunnlag.hovedkategori && (
-            <div className="mb-3">
+            <div className="mb-2">
               <CategoryAccordion
                 hovedkategori={state.grunnlag.hovedkategori}
                 underkategori={state.grunnlag.underkategori}
@@ -111,23 +109,18 @@ export function CaseDashboard({
             </div>
           )}
 
-          <DataList variant="grid">
+          <InlineDataList stackOnMobile>
             {state.grunnlag.dato_oppdaget && (
-              <DataListItem label="Dato oppdaget">
+              <InlineDataListItem label="Oppdaget">
                 {formatDateMedium(state.grunnlag.dato_oppdaget)}
-              </DataListItem>
+              </InlineDataListItem>
             )}
             {state.grunnlag.grunnlag_varsel?.dato_sendt && (
-              <DataListItem label="Varslet">
+              <InlineDataListItem label="Varslet">
                 {formatDateMedium(state.grunnlag.grunnlag_varsel.dato_sendt)}
-              </DataListItem>
+              </InlineDataListItem>
             )}
-            {state.grunnlag.bh_resultat && (
-              <DataListItem label="Resultat">
-                {formatBHResultat(state.grunnlag.bh_resultat).label}
-              </DataListItem>
-            )}
-          </DataList>
+          </InlineDataList>
           <SporHistory spor="grunnlag" entries={grunnlagEntries} events={events} sakState={state} />
         </DashboardCard>
 
@@ -140,35 +133,29 @@ export function CaseDashboard({
           className="animate-fade-in-up"
           style={{ animationDelay: '75ms' }}
         >
-          <DataList variant="grid">
+          <InlineDataList stackOnMobile>
             {state.vederlag.metode && (
-              <DataListItem label="Metode">
+              <InlineDataListItem label="Metode">
                 {getVederlagsmetodeLabel(state.vederlag.metode)}
-              </DataListItem>
+              </InlineDataListItem>
             )}
-            <DataListItem label="Krevd beløp">
+            <InlineDataListItem label="Krevd" mono>
               {formatCurrency(krevdBelop)}
-            </DataListItem>
-            {/* Godkjent beløp: Vis subsidiær hvis det finnes subsidiær-data */}
+            </InlineDataListItem>
             {vederlagErSubsidiaer ? (
               state.vederlag.subsidiaer_godkjent_belop != null && (
-                <DataListItem label="Subsidiært godkjent">
+                <InlineDataListItem label="Subs. godkjent" mono>
                   {formatCurrency(state.vederlag.subsidiaer_godkjent_belop)}
-                </DataListItem>
+                </InlineDataListItem>
               )
             ) : (
               state.vederlag.godkjent_belop !== undefined && (
-                <DataListItem label="Godkjent beløp">
+                <InlineDataListItem label="Godkjent" mono>
                   {formatCurrency(state.vederlag.godkjent_belop)}
-                </DataListItem>
+                </InlineDataListItem>
               )
             )}
-            {state.vederlag.bh_resultat && (
-              <DataListItem label="Resultat">
-                {formatBHResultat(state.vederlag.bh_resultat).label}
-              </DataListItem>
-            )}
-          </DataList>
+          </InlineDataList>
           <SporHistory spor="vederlag" entries={vederlagEntries} events={events} sakState={state} />
         </DashboardCard>
 
@@ -181,37 +168,36 @@ export function CaseDashboard({
           className="animate-fade-in-up"
           style={{ animationDelay: '150ms' }}
         >
-          <DataList variant="grid">
-            {state.frist.krevd_dager !== undefined && (
-              <DataListItem label="Krevd">
-                {formatDays(state.frist.krevd_dager)}
-              </DataListItem>
+          <InlineDataList stackOnMobile>
+            {state.frist.frist_varsel?.dato_sendt && (
+              <InlineDataListItem label="Varslet">
+                {formatDateMedium(state.frist.frist_varsel.dato_sendt)}
+              </InlineDataListItem>
             )}
-            {/* Godkjent dager: Vis subsidiær hvis det finnes subsidiær-data */}
+            {state.frist.spesifisert_varsel?.dato_sendt && (
+              <InlineDataListItem label="Spesifisert">
+                {formatDateMedium(state.frist.spesifisert_varsel.dato_sendt)}
+              </InlineDataListItem>
+            )}
+            {state.frist.krevd_dager !== undefined && (
+              <InlineDataListItem label="Krevd" mono>
+                {formatDays(state.frist.krevd_dager)}
+              </InlineDataListItem>
+            )}
             {fristErSubsidiaer ? (
               state.frist.subsidiaer_godkjent_dager != null && (
-                <DataListItem label="Subsidiært godkjent">
+                <InlineDataListItem label="Subs. godkjent" mono>
                   {formatDays(state.frist.subsidiaer_godkjent_dager)}
-                </DataListItem>
+                </InlineDataListItem>
               )
             ) : (
               state.frist.godkjent_dager !== undefined && (
-                <DataListItem label="Godkjent">
+                <InlineDataListItem label="Godkjent" mono>
                   {formatDays(state.frist.godkjent_dager)}
-                </DataListItem>
+                </InlineDataListItem>
               )
             )}
-            {state.frist.varsel_type && (
-              <DataListItem label="Varseltype">
-                {formatVarselType(state.frist.varsel_type)}
-              </DataListItem>
-            )}
-            {state.frist.bh_resultat && (
-              <DataListItem label="Resultat">
-                {formatBHResultat(state.frist.bh_resultat).label}
-              </DataListItem>
-            )}
-          </DataList>
+          </InlineDataList>
           <SporHistory spor="frist" entries={fristEntries} events={events} sakState={state} />
         </DashboardCard>
       </div>
