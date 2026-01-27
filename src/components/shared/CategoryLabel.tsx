@@ -7,6 +7,7 @@
  * Brukes i DashboardCard for kompakt visning uten accordion.
  */
 
+import { useState } from 'react';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import {
@@ -25,6 +26,7 @@ interface CategoryLabelProps {
 }
 
 export function CategoryLabel({ hovedkategori, underkategori }: CategoryLabelProps) {
+  const [open, setOpen] = useState(false);
   const hovedkatObj = getHovedkategori(hovedkategori);
   const hovedLabel = getHovedkategoriLabel(hovedkategori);
   const underkategorier = Array.isArray(underkategori)
@@ -67,10 +69,11 @@ export function CategoryLabel({ hovedkategori, underkategori }: CategoryLabelPro
       </span>
       {hasTooltip && (
         <Tooltip.Provider delayDuration={200}>
-          <Tooltip.Root>
+          <Tooltip.Root open={open} onOpenChange={setOpen}>
             <Tooltip.Trigger asChild>
               <button
                 type="button"
+                onClick={() => setOpen(!open)}
                 className="p-1 -m-1 rounded text-pkt-text-body-muted hover:bg-pkt-surface-strong-dark-blue hover:text-pkt-text-body-light transition-colors shrink-0"
                 aria-label={`Vis kontraktsregel ${hjemmelKey}`}
               >
@@ -82,7 +85,10 @@ export function CategoryLabel({ hovedkategori, underkategori }: CategoryLabelPro
                 side="bottom"
                 align="start"
                 sideOffset={4}
-                className="z-50 bg-pkt-bg-card border border-pkt-border-subtle rounded-md p-3 shadow-lg max-w-sm text-sm animate-in fade-in-0 zoom-in-95"
+                collisionPadding={12}
+                avoidCollisions
+                onPointerDownOutside={() => setOpen(false)}
+                className="z-50 bg-pkt-bg-card border border-pkt-border-subtle rounded-md p-3 shadow-lg max-w-[calc(100vw-2rem)] sm:max-w-sm text-sm animate-in fade-in-0 zoom-in-95"
               >
                 <p className="font-semibold text-pkt-text-body-dark mb-1">{tooltipTitle}</p>
                 <p className="text-pkt-text-body leading-relaxed">
