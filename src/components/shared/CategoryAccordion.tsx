@@ -66,16 +66,16 @@ function UnderkategoriAccordion({
       <Collapsible.Trigger asChild>
         <button
           type="button"
-          className="w-full flex items-center gap-2 text-left text-sm font-medium text-pkt-text-body-dark hover:text-pkt-text-interactive transition-colors py-1"
+          className="w-full flex items-start gap-2 text-left text-sm font-medium text-pkt-text-body-dark hover:text-pkt-text-interactive transition-colors py-1"
         >
           <ChevronRightIcon
-            className={`h-4 w-4 shrink-0 text-pkt-text-body-muted transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+            className={`h-4 w-4 shrink-0 mt-0.5 text-pkt-text-body-muted transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
           />
-          <span>{title}</span>
+          <span className="break-words">{title}</span>
         </button>
       </Collapsible.Trigger>
 
-      <Collapsible.Content className="mt-2 ml-6">
+      <Collapsible.Content className="mt-2 ml-4 sm:ml-6">
         {hjemmelSupported ? (
           <KontraktsregelInline hjemmel={hjemmel as any} />
         ) : (
@@ -168,16 +168,16 @@ function SingleCategoryAccordion({
       <Collapsible.Trigger asChild>
         <button
           type="button"
-          className="w-full flex items-center gap-2 text-left text-sm font-medium text-pkt-text-body-dark hover:text-pkt-text-interactive transition-colors py-1"
+          className="w-full flex items-start gap-2 text-left text-sm font-medium text-pkt-text-body-dark hover:text-pkt-text-interactive transition-colors py-1"
         >
           <ChevronRightIcon
-            className={`h-4 w-4 shrink-0 text-pkt-text-body-muted transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+            className={`h-4 w-4 shrink-0 mt-0.5 text-pkt-text-body-muted transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
           />
-          <span>{title}</span>
+          <span className="break-words">{title}</span>
         </button>
       </Collapsible.Trigger>
 
-      <Collapsible.Content className="mt-2 ml-6">
+      <Collapsible.Content className="mt-2 ml-4 sm:ml-6">
         {hjemmelSupported ? (
           <KontraktsregelInline hjemmel={hjemmel as any} />
         ) : (
