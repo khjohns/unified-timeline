@@ -623,7 +623,11 @@ export function BHResponsForseringModal({
           <div ref={topRef} />
 
           {/* Step Indicator */}
-          <StepIndicator currentStep={currentPort} steps={steps} />
+          <StepIndicator
+            currentStep={currentPort}
+            steps={steps}
+            onStepClick={(step) => setCurrentPort(step)}
+          />
 
           {/* Token Expired Alert */}
           <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />

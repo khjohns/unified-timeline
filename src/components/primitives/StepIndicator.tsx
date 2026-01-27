@@ -18,8 +18,6 @@ import clsx from 'clsx';
 export interface Step {
   /** Short description of the step (e.g., "Særskilte krav") */
   label: string;
-  /** Callback when step is clicked (only works for completed steps) */
-  onClick?: () => void;
   /** Whether this step has a validation error */
   hasError?: boolean;
 }
@@ -30,6 +28,8 @@ interface StepIndicatorProps {
   className?: string;
   /** Accessible label for the stepper navigation */
   ariaLabel?: string;
+  /** Callback when a completed step is clicked. Receives 1-indexed step number. */
+  onStepClick?: (stepNumber: number) => void;
 }
 
 export function StepIndicator({
@@ -37,6 +37,7 @@ export function StepIndicator({
   steps,
   className,
   ariaLabel = 'Fremdrift',
+  onStepClick,
 }: StepIndicatorProps) {
   return (
     <nav aria-label={ariaLabel} className={clsx('w-full', className)}>
@@ -57,7 +58,7 @@ export function StepIndicator({
             const stepNumber = index + 1;
             const isActive = stepNumber === currentStep;
             const isCompleted = stepNumber < currentStep;
-            const isClickable = isCompleted && step.onClick;
+            const isClickable = isCompleted && onStepClick;
             const hasError = step.hasError && !isActive;
 
             const circleContent = (
@@ -97,7 +98,7 @@ export function StepIndicator({
                 {isClickable ? (
                   <button
                     type="button"
-                    onClick={step.onClick}
+                    onClick={() => onStepClick(stepNumber)}
                     aria-label={`Gå til steg ${stepNumber}: ${step.label}`}
                     className="p-0 bg-transparent border-none"
                   >
