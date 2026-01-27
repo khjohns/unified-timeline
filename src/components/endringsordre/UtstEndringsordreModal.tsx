@@ -446,7 +446,11 @@ export function UtstEndringsordreModal({
         <div ref={topRef} />
 
         {/* Step Indicator */}
-        <StepIndicator currentStep={currentStep} steps={steps} />
+        <StepIndicator
+          currentStep={currentStep}
+          steps={steps}
+          onStepClick={(step) => setCurrentStep(step)}
+        />
 
         <form
           onSubmit={handleSubmit(onSubmit)}

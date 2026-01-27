@@ -844,7 +844,13 @@ export function RespondFristModal({
         {/* Scroll target marker */}
         <div ref={topRef} />
         {/* Step Indicator (ikke for begrunnelse_utsatt) */}
-        {!erBegrunnelseUtsatt && <StepIndicator currentStep={currentPort} steps={steps} />}
+        {!erBegrunnelseUtsatt && (
+          <StepIndicator
+            currentStep={currentPort}
+            steps={steps}
+            onStepClick={(step) => setCurrentPort(step)}
+          />
+        )}
 
         {/* §33.7 BH preclusion warning */}
         {bhPreklusjonsrisiko && (

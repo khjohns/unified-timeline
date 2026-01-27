@@ -992,7 +992,11 @@ export function RespondVederlagModal({
         {/* Scroll target marker */}
         <div ref={topRef} />
         {/* Step Indicator */}
-        <StepIndicator currentStep={currentPort} steps={steps} />
+        <StepIndicator
+          currentStep={currentPort}
+          steps={steps}
+          onStepClick={(step) => setCurrentPort(step)}
+        />
 
         {/* BH svarplikt warning */}
         {bhSvarpliktAdvarsel && (
