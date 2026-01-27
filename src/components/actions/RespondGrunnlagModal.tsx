@@ -90,7 +90,6 @@ const RESULTAT_LABELS: Record<GrunnlagResponsResultat, string> = {
   delvis_godkjent: 'Delvis godkjent',
   avslatt: 'Avslått',
   frafalt: 'Frafalt (§32.3 c)',
-  krever_avklaring: 'Krever avklaring',
 };
 
 interface RespondGrunnlagModalProps {

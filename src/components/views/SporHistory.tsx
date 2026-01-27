@@ -52,6 +52,8 @@ export interface SporHistoryProps {
   /** SakState for letter generation in EventDetailModal */
   sakState?: SakState;
   defaultOpen?: boolean;
+  /** Externally controlled open state (hides internal trigger) */
+  externalOpen?: boolean;
   className?: string;
 }
 
@@ -143,9 +145,6 @@ function getGrunnlagSammendrag(entry: GrunnlagHistorikkEntry): string {
     }
     if (entry.bh_resultat === 'frafalt') {
       return 'Frafalt';
-    }
-    if (entry.bh_resultat === 'krever_avklaring') {
-      return 'Krever avklaring';
     }
     return entry.bh_resultat_label || 'Svar mottatt';
   }
@@ -305,7 +304,7 @@ function getEntryLabel(entry: SporHistoryEntry): string {
 
 // ============ COMPONENT ============
 
-export function SporHistory({ entries, events = [], sakState, defaultOpen = false, className }: SporHistoryProps) {
+export function SporHistory({ entries, events = [], sakState, defaultOpen = false, externalOpen, className }: SporHistoryProps) {
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
   const [letterEvent, setLetterEvent] = useState<TimelineEvent | null>(null);
 
@@ -367,6 +366,7 @@ export function SporHistory({ entries, events = [], sakState, defaultOpen = fals
       <ActivityHistory
         entries={activityEntries}
         defaultOpen={defaultOpen}
+        externalOpen={externalOpen}
         className={className}
       />
 

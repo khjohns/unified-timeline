@@ -494,7 +494,6 @@ const FRAVIK_BESLUTNING_LABELS: Record<string, string> = {
   godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
   avslatt: 'Avslått',
-  krever_avklaring: 'Krever avklaring',
 };
 
 const FRAVIK_STATUS_LABELS: Record<string, string> = {

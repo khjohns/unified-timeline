@@ -221,6 +221,7 @@ class SubsidiaerTrigger(str, Enum):
     """
     # Nivå 0: Grunnlag
     GRUNNLAG_AVSLATT = "grunnlag_avslatt"  # BH avslo ansvarsgrunnlaget
+    GRUNNLAG_PREKLUDERT_32_2 = "grunnlag_prekludert_32_2"  # Grunnlag varslet for sent (§32.2) - kun ENDRING
     FORSERINGSRETT_AVSLATT = "forseringsrett_avslatt"  # TE har ikke forseringsrett (§33.8)
 
     # Nivå 1: Preklusjon (Vederlag)
@@ -715,7 +716,6 @@ class GrunnlagResponsResultat(str, Enum):
     DELVIS_GODKJENT = "delvis_godkjent"  # Byggherren aksepterer deler av grunnlaget
     AVSLATT = "avslatt"  # Byggherren avslår ansvarsgrunnlaget
     FRAFALT = "frafalt"  # §32.3 c - Byggherren frafaller pålegget (kun irregulær endring)
-    KREVER_AVKLARING = "krever_avklaring"  # Byggherren trenger mer dokumentasjon før beslutning
 
 
 class GrunnlagResponsData(BaseModel):

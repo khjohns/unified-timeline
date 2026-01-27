@@ -98,7 +98,6 @@ class ReportLabPdfGenerator:
         'delvis_godkjent': 'Delvis godkjent',
         'avslatt': 'Avslått',
         'frafalt': 'Frafalt (§32.3 c)',
-        'krever_avklaring': 'Krever avklaring',
     }
 
     VEDERLAG_RESULTAT_MAP = {

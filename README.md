@@ -160,7 +160,7 @@ Port 1: Ansvar            Port 1: Varsling           Port 1: Varsling
 • avvist                  Port 2: Beregning          Port 2: Vilkår
 • erkjenn_fm              • godkjent                 • vilkar_oppfylt?
 • frafalt                 • delvis_godkjent
-• krever_avklaring        • avslatt                  Port 3: Utmåling
+                          • avslatt                  Port 3: Utmåling
                           • avventer                 • godkjent
 → respons_grunnlag        • hold_tilbake             • delvis_godkjent
                                                      • avslatt

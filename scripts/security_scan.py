@@ -63,7 +63,8 @@ SECURITY_PATTERNS = [
         'category': Category.RANDOM_ID,
         'severity': Severity.MEDIUM,
         'description': 'Math.random() er ikke kryptografisk sikker. Bruk crypto.randomUUID() for IDs.',
-        'context_keywords': ['id', 'Id', 'ID', 'uuid', 'token', 'key', 'sak', 'SAK'],
+        'context_keywords': ['token', 'auth', 'session', 'secret', 'credential'],  # Kun sikkerhetskritiske IDs
+        'exclude_paths': ['mock', 'Mock', 'primitives/'],  # Mock-data og UI-primitives er OK
     },
 
     # localStorage med sensitiv data
@@ -133,6 +134,7 @@ SECURITY_PATTERNS = [
         'severity': Severity.HIGH,
         'description': 'Mulig SQL injection via streng-konkatenering. Bruk parameteriserte queries.',
         'flags': re.IGNORECASE,
+        'skip_comments': True,  # Ignorer kommentarer og docstrings
     },
 
     # exec() i Python
@@ -238,6 +240,34 @@ def is_test_file(file_path: Path) -> bool:
     ])
 
 
+def is_comment_or_string(line: str, file_path: Path) -> bool:
+    """Sjekk om linjen er en kommentar eller del av en docstring/string literal"""
+    stripped = line.strip()
+
+    # Python-kommentarer
+    if str(file_path).endswith('.py'):
+        if stripped.startswith('#'):
+            return True
+        # Docstrings (enkel heuristikk - linjer som starter/slutter med """)
+        if stripped.startswith('"""') or stripped.startswith("'''"):
+            return True
+        # Linjer inne i docstrings (starter med bokstav/tall, ingen kode-tegn)
+        if stripped and not any(c in stripped for c in ['=', '(', ')', '[', ']', '{', '}', ':']) and not stripped.startswith('def ') and not stripped.startswith('class '):
+            # Sannsynligvis docstring-innhold hvis det ser ut som prosa
+            words = stripped.split()
+            if len(words) > 3 and all(w[0].isalpha() or w[0] in '"\'#-' for w in words[:3] if w):
+                return True
+
+    # JS/TS-kommentarer
+    if str(file_path).endswith(('.ts', '.tsx', '.js', '.jsx')):
+        if stripped.startswith('//'):
+            return True
+        if stripped.startswith('/*') or stripped.startswith('*'):
+            return True
+
+    return False
+
+
 def scan_file(file_path: Path) -> list[SecurityFinding]:
     """Skann en fil for sikkerhetsproblemer"""
     findings = []
@@ -255,10 +285,21 @@ def scan_file(file_path: Path) -> list[SecurityFinding]:
         if file_ext and not str(file_path).endswith(file_ext):
             continue
 
+        # Sjekk exclude_paths filter
+        exclude_paths = pattern_def.get('exclude_paths', [])
+        if exclude_paths:
+            path_str = str(file_path)
+            if any(ep in path_str for ep in exclude_paths):
+                continue
+
         flags = pattern_def.get('flags', 0)
         pattern = re.compile(pattern_def['pattern'], flags)
 
         for line_num, line in enumerate(lines, 1):
+            # Hopp over kommentarer/docstrings hvis pattern krever det
+            if pattern_def.get('skip_comments') and is_comment_or_string(line, file_path):
+                continue
+
             matches = pattern.finditer(line)
             for match in matches:
                 # Sjekk context keywords hvis definert

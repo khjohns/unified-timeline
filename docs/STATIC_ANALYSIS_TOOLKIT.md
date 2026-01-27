@@ -152,9 +152,6 @@ python scripts/label_coverage.py --ci
 - `BH_VEDERLAGSSVAR_OPTIONS` dekker alle `VederlagBeregningResultat`-verdier
 - `BH_FRISTSVAR_OPTIONS` dekker alle `FristBeregningResultat`-verdier
 
-**Første kjøring fant:**
-- `krever_avklaring` mangler i `BH_GRUNNLAGSVAR_OPTIONS`
-
 ### TODO Tracker
 
 **Status:** Implementert

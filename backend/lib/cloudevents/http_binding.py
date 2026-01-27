@@ -169,7 +169,6 @@ def _get_respons_summary(event) -> str:
         'delvis_godkjent': 'Delvis godkjent',
         'avslatt': 'Avslått',
         'frafalt': 'Pålegg frafalt',
-        'krever_avklaring': 'Krever avklaring',
     }
 
     if hasattr(event.data, 'resultat'):

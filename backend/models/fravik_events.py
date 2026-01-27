@@ -121,7 +121,6 @@ class FravikBeslutning(str, Enum):
     GODKJENT = "godkjent"
     DELVIS_GODKJENT = "delvis_godkjent"
     AVSLATT = "avslatt"
-    KREVER_AVKLARING = "krever_avklaring"
 
 
 class FravikRolle(str, Enum):

@@ -484,7 +484,7 @@ Hver BH-respons følger en **port-struktur** der vurderinger skjer sekvensielt:
 ### Grunnlag - Port 1 (Ansvar)
 
 BH vurderer: Er TE's ansvarsgrunnlag gyldig?
-- `godkjent` / `delvis_godkjent` / `avslatt` / `frafalt` (§32.3 c) / `krever_avklaring`
+- `godkjent` / `delvis_godkjent` / `avslatt` / `frafalt` (§32.3 c)
 
 ### Vederlag - Port 1 + Port 2
 

@@ -75,8 +75,7 @@ export type Bruksintensitet =
 export type FravikBeslutning =
   | 'godkjent'
   | 'delvis_godkjent'
-  | 'avslatt'
-  | 'krever_avklaring';
+  | 'avslatt';
 
 export type FravikRolle =
   | 'SOKER'

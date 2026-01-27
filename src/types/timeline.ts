@@ -82,8 +82,7 @@ export type GrunnlagResponsResultat =
   | 'godkjent'
   | 'delvis_godkjent'
   | 'avslatt'          // BH avslår ansvarsgrunnlaget
-  | 'frafalt'          // §32.3 c - BH frafaller pålegget (kun irregulær endring)
-  | 'krever_avklaring'; // Krever ytterligere avklaring før endelig beslutning
+  | 'frafalt';         // §32.3 c - BH frafaller pålegget (kun irregulær endring)
 
 // Årsaker til at subsidiær vurdering er relevant (NS 8407)
 export type SubsidiaerTrigger =

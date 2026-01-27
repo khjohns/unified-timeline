@@ -1092,7 +1092,6 @@ class TimelineService:
             'delvis_godkjent': 'Delvis godkjent',
             'avslatt': 'Avslått',
             'frafalt': 'Pålegg frafalt',
-            'krever_avklaring': 'Krever avklaring',
         }
 
         # Handle different result field names for different response types
@@ -1502,7 +1501,6 @@ class TimelineService:
             'delvis_godkjent': 'Delvis godkjent',
             'avslatt': 'Avslått',
             'frafalt': 'Frafalt (§32.3 c)',
-            'krever_avklaring': 'Krever avklaring',
         }
         return labels.get(resultat.value if hasattr(resultat, 'value') else resultat, str(resultat))
 

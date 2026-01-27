@@ -87,17 +87,7 @@ function generateEntreprenorMessage(
     };
   }
 
-  // 2. Byggherre krever avklaring på grunnlag
-  if (grunnlag.bh_resultat === 'krever_avklaring') {
-    return {
-      type: 'warning',
-      title: 'Byggherre krever avklaring',
-      description: 'Byggherre trenger mer informasjon før de kan vurdere endringsforholdet. Oppdater med etterspurt dokumentasjon.',
-      relatedSpor: 'grunnlag',
-    };
-  }
-
-  // 3. Grunnlag sendt - sjekk om entreprenør bør sende vederlagsjustering/fristforlengelse
+  // 2. Grunnlag sendt - sjekk om entreprenør bør sende vederlagsjustering/fristforlengelse
   if (grunnlagSendt) {
     const kanSendeVederlag = vederlagIUtkast && actions.canSendVederlag && !erForceMajeure;
     const kanSendeFrist = fristIUtkast && actions.canSendFrist;
