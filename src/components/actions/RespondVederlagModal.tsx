@@ -1016,7 +1016,7 @@ export function RespondVederlagModal({
               {lastResponseEvent.resultat === 'godkjent' ? 'Godkjent' :
                lastResponseEvent.resultat === 'avslatt' ? 'Avslått' : 'Delvis godkjent'}
             </Badge>
-            {lastResponseEvent.godkjent_belop !== undefined && (
+            {lastResponseEvent.godkjent_belop != null && (
               <span className="font-mono">
                 kr {lastResponseEvent.godkjent_belop.toLocaleString('nb-NO')},-
               </span>
