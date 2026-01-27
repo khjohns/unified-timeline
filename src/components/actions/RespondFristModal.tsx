@@ -858,6 +858,26 @@ export function RespondFristModal({
           </>
         )}
 
+        {/* UPDATE MODE: Compact display of current response */}
+        {isUpdateMode && lastResponseEvent && (
+          <div className="flex items-center gap-2 text-sm py-2 px-3 bg-pkt-surface-subtle border-l-2 border-pkt-border-subtle">
+            <span className="text-pkt-text-body-subtle">Byggherrens nåværende svar:</span>
+            <Badge
+              variant={
+                lastResponseEvent.resultat === 'godkjent' ? 'success' :
+                lastResponseEvent.resultat === 'avslatt' ? 'danger' : 'warning'
+              }
+              size="sm"
+            >
+              {lastResponseEvent.resultat === 'godkjent' ? 'Godkjent' :
+               lastResponseEvent.resultat === 'avslatt' ? 'Avslått' : 'Delvis godkjent'}
+            </Badge>
+            {lastResponseEvent.godkjent_dager !== undefined && (
+              <span className="font-mono">{lastResponseEvent.godkjent_dager} dager</span>
+            )}
+          </div>
+        )}
+
         <form
           onSubmit={handleSubmit(onSubmit)}
           onKeyDown={(e) => {
@@ -928,33 +948,20 @@ export function RespondFristModal({
             <div className="space-y-6">
               <h3 className="text-lg font-semibold">Oversikt</h3>
 
-              {/* Kravsammendrag */}
-              <SectionContainer title="Fristkrav fra entreprenør">
-                <DataList align="right">
-                  <DataListItem label="Krevd forlengelse" mono>
-                    {erVarselUtenDager ? (
-                      <Badge variant="warning">Ikke spesifisert</Badge>
-                    ) : (
-                      <>{effektivKrevdDager} dager</>
-                    )}
-                  </DataListItem>
-
-                  {fristEvent?.ny_sluttfrist && (
-                    <DataListItem label="Ønsket ny sluttdato" mono>
-                      {fristEvent.ny_sluttfrist}
-                    </DataListItem>
-                  )}
-
-                  {varselType && (
-                    <DataListItem label="Type varsel">
-                      <Badge variant="default">
-                        {varselType === 'varsel' && 'Foreløpig varsel (§33.4)'}
-                        {varselType === 'spesifisert' && 'Spesifisert krav (§33.6)'}
-                      </Badge>
-                    </DataListItem>
-                  )}
-                </DataList>
-              </SectionContainer>
+              {/* Kompakt kravlinje - detaljer tilgjengelig i EventDetailModal */}
+              <div className="flex items-center gap-2 text-sm py-2 px-3 bg-pkt-surface-subtle border-l-2 border-pkt-border-subtle">
+                <span className="text-pkt-text-body-subtle">Krav:</span>
+                {erVarselUtenDager ? (
+                  <Badge variant="warning" size="sm">Ikke spesifisert</Badge>
+                ) : (
+                  <span className="font-mono font-medium text-pkt-text-body">{effektivKrevdDager} dager</span>
+                )}
+                {varselType && (
+                  <span className="text-pkt-text-body-subtle">
+                    ({varselType === 'varsel' ? '§33.4 varsel' : '§33.6 spesifisert'})
+                  </span>
+                )}
+              </div>
 
               {/* Subsidiær behandling info */}
               {erGrunnlagSubsidiaer && (
