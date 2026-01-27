@@ -41,10 +41,9 @@ pydantic-settings>=2.0.0          # Settings management (Pydantic v2)
 python-json-logger>=2.0.0         # JSON logging for Azure Application Insights
 
 # ------------------------------------------------------------------------------
-# PDF Generation (Phase 1.7 - Catenda Integration)
+# PDF Generation (ReportLab - pure Python, no system dependencies)
 # ------------------------------------------------------------------------------
-weasyprint==60.1                  # HTML/CSS to PDF generator (backend fallback)
-jinja2==3.1.2                     # Template engine for PDF HTML generation
+reportlab>=4.0.0                  # PDF generator (pure Python)
 
 # ------------------------------------------------------------------------------
 # Date/Time
@@ -79,4 +78,3 @@ gunicorn==21.2.0                # Production WSGI server
 # black
 # flake8
 # mypy
-reportlab>=4.0.0

@@ -46,7 +46,7 @@ backend/
 │   ├── catenda_service.py           # Catenda API-operasjoner
 │   ├── catenda_comment_generator.py # Kommentar-generering
 │   ├── webhook_service.py           # Webhook-håndtering
-│   └── weasyprint_generator.py      # PDF-generering
+│   └── letter_pdf_generator.py      # PDF-generering (ReportLab)
 │
 ├── routes/                          # Flask Blueprints (HTTP-lag)
 │   ├── __init__.py
