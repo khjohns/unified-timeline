@@ -10,6 +10,7 @@ const ExampleCasesPage = lazy(() => import('./pages/ExampleCasesPage'));
 const OpprettSakPage = lazy(() => import('./pages/OpprettSakPage'));
 const SaksoversiktPage = lazy(() => import('./pages/SaksoversiktPage'));
 const CasePage = lazy(() => import('./pages/CasePage'));
+const CasePageDesktopTest = lazy(() => import('./pages/CasePageDesktopTest'));
 const ForseringPage = lazy(() => import('./pages/ForseringPage'));
 const EndringsordePage = lazy(() => import('./pages/EndringsordePage'));
 const FravikOversiktPage = lazy(() => import('./pages/FravikOversiktPage'));
@@ -76,6 +77,14 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <CasePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/saker/:sakId/desktop-test"
+            element={
+              <ProtectedRoute>
+                <CasePageDesktopTest />
               </ProtectedRoute>
             }
           />
