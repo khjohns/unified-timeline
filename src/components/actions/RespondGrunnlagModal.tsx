@@ -57,8 +57,6 @@ import {
   BH_GRUNNLAGSVAR_OPTIONS,
   getBhGrunnlagssvarValues,
   BH_GRUNNLAGSVAR_DESCRIPTIONS,
-  getHovedkategoriLabel,
-  getUnderkategoriLabel,
 } from '../../constants';
 import { differenceInDays } from 'date-fns';
 
@@ -287,17 +285,6 @@ export function RespondGrunnlagModal({
     : 0;
   const erPassiv = erEndringMed32_2 && dagerSidenVarsel > 10;
 
-  // Get display labels
-  const hovedkategoriLabel = grunnlagEvent?.hovedkategori
-    ? getHovedkategoriLabel(grunnlagEvent.hovedkategori)
-    : undefined;
-
-  const underkategoriLabels = grunnlagEvent?.underkategori
-    ? Array.isArray(grunnlagEvent.underkategori)
-      ? grunnlagEvent.underkategori.map(getUnderkategoriLabel).join(', ')
-      : getUnderkategoriLabel(grunnlagEvent.underkategori)
-    : undefined;
-
   // UPDATE MODE: Snuoperasjon detection
   const forrigeResultat = lastResponseEvent?.resultat;
   const varAvvist = forrigeResultat === 'avslatt';
@@ -430,52 +417,7 @@ export function RespondGrunnlagModal({
         {/* ==================== FANE 1: VURDERING ==================== */}
         {activeTab === 'vurdering' && (
           <div className="space-y-6">
-            {/* Kontekst: Entreprenørens påstand */}
-            {grunnlagEvent && (hovedkategoriLabel || grunnlagEvent.beskrivelse) && (
-              <SectionContainer title="Entreprenørens påstand" variant="subtle">
-                {hovedkategoriLabel && (
-                  <p className="text-sm">
-                    <span className="font-medium">{hovedkategoriLabel}</span>
-                    {underkategoriLabels && (
-                      <span className="text-pkt-text-body-subtle">
-                        {' '}
-                        - {underkategoriLabels}
-                      </span>
-                    )}
-                  </p>
-                )}
-                {grunnlagEvent.beskrivelse && (
-                  <p className="italic text-pkt-text-body-subtle mt-2 text-sm">
-                    &ldquo;{grunnlagEvent.beskrivelse}&rdquo;
-                  </p>
-                )}
-                {(grunnlagEvent.dato_varslet || grunnlagEvent.dato_oppdaget) && (
-                  <p className="text-xs text-pkt-text-body-subtle mt-2">
-                    {grunnlagEvent.dato_varslet && (
-                      <span>Varslet: {grunnlagEvent.dato_varslet}</span>
-                    )}
-                    {grunnlagEvent.dato_oppdaget && (
-                      <span className="ml-3">
-                        Oppdaget: {grunnlagEvent.dato_oppdaget}
-                      </span>
-                    )}
-                  </p>
-                )}
-                {/* Varslingsregler hint */}
-                {grunnlagEvent.hovedkategori && (
-                  <p className="text-xs text-pkt-text-muted mt-3 pt-2 border-t border-pkt-border-subtle">
-                    <span className="font-medium">Varslingsregler:</span>{' '}
-                    {grunnlagEvent.hovedkategori === 'ENDRING' ? (
-                      <>Grunnlag (§32.2) · Frist (§33.4) · Vederlag (§34.1.1)</>
-                    ) : grunnlagEvent.hovedkategori === 'FORCE_MAJEURE' ? (
-                      <>Frist (§33.4) – kun fristforlengelse</>
-                    ) : (
-                      <>Grunnlag (§25.1.2) · Frist (§33.4) · Vederlag (§34.1.2)</>
-                    )}
-                  </p>
-                )}
-              </SectionContainer>
-            )}
+            {/* Kontekst fjernet - tilgjengelig i DashboardCard og EventDetailModal */}
 
             {/* Force Majeure info */}
             {erForceMajeure && (

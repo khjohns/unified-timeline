@@ -18,11 +18,8 @@ import {
   AttachmentUpload,
   Badge,
   Button,
-  Collapsible,
   DatePicker,
   FormField,
-  InlineDataList,
-  InlineDataListItem,
   Input,
   Modal,
   SectionContainer,
@@ -303,70 +300,52 @@ export function ReviseFristModal({
           </Alert>
         )}
 
-        {/* Seksjon 1: Nåværende status */}
-        <SectionContainer title="Nåværende status" variant="subtle">
-          {/* Status display - adapts to mode */}
-            {modalMode === 'revider' ? (
-              /* Revision mode: Inline status display */
-              <InlineDataList>
-                <InlineDataListItem label="Krevd" mono bold>
-                  {lastFristEvent.antall_dager} dager
-                </InlineDataListItem>
-                {lastResponseEvent ? (
-                  <>
-                    <InlineDataListItem
-                      label={erSubsidiaer ? 'Subs. godkjent' : 'Godkjent'}
-                      mono
-                      bold
-                    >
-                      {lastResponseEvent.godkjent_dager ?? 0}
-                    </InlineDataListItem>
-                    <Badge variant={RESULTAT_VARIANTS[lastResponseEvent.resultat]}>
-                      {RESULTAT_LABELS[lastResponseEvent.resultat]}
-                    </Badge>
-                  </>
-                ) : (
-                  <Badge variant="neutral">Avventer svar</Badge>
-                )}
-              </InlineDataList>
-            ) : (
-              /* Specification mode: Show neutral notice status */
-              <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="warning">Foreløpig varsel</Badge>
-                  {fristTilstand.frist_varsel?.dato_sendt && (
-                    <span className="text-sm text-pkt-grays-gray-600">
-                      Sendt: {fristTilstand.frist_varsel.dato_sendt}
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm">
-                  Du varslet om behov for fristforlengelse, men har ikke spesifisert antall dager.
-                  Angi nå det konkrete kravet.
-                </p>
+        {/* Kompakt nåværende status - 2 linjer */}
+        <div className="space-y-2 py-3 px-3 bg-pkt-surface-subtle border-l-2 border-pkt-border-subtle">
+          {modalMode === 'revider' ? (
+            <>
+              {/* Linje 1: Ditt krav */}
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-pkt-text-body-subtle">Ditt krav:</span>
+                <span className="font-mono font-medium">{lastFristEvent.antall_dager} dager</span>
               </div>
-            )}
-
-            {/* BH begrunnelse - collapsible */}
-            {harBhSvar && lastResponseEvent?.begrunnelse && (
-              <Collapsible
-                title="Byggherrens begrunnelse"
-                defaultOpen={false}
-              >
-                <p className="italic text-pkt-text-body text-sm whitespace-pre-line">
-                  &ldquo;{lastResponseEvent.begrunnelse}&rdquo;
-                </p>
-              </Collapsible>
-            )}
-
-          {/* Info when BH hasn't responded - only for revision mode */}
-          {modalMode === 'revider' && !lastResponseEvent && (
-            <Alert variant="info" title="Revisjon før svar">
-              Du kan oppdatere kravet ditt før byggherren har svart. Det reviderte kravet
-              erstatter det opprinnelige kravet.
-            </Alert>
+              {/* Linje 2: BH svar (hvis finnes) */}
+              {lastResponseEvent ? (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-pkt-text-body-subtle">BH svar:</span>
+                  <Badge variant={RESULTAT_VARIANTS[lastResponseEvent.resultat]} size="sm">
+                    {RESULTAT_LABELS[lastResponseEvent.resultat]}
+                  </Badge>
+                  <span className="font-mono">
+                    {erSubsidiaer ? 'Subs. ' : ''}{lastResponseEvent.godkjent_dager ?? 0} dager
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-pkt-text-body-subtle">BH svar:</span>
+                  <Badge variant="neutral" size="sm">Avventer</Badge>
+                </div>
+              )}
+            </>
+          ) : (
+            /* Specification mode: Compact notice */
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant="warning" size="sm">Foreløpig varsel</Badge>
+              <span className="text-pkt-text-body-subtle">— spesifiser antall dager</span>
+              {fristTilstand.frist_varsel?.dato_sendt && (
+                <span className="text-pkt-text-body-subtle">(sendt {fristTilstand.frist_varsel.dato_sendt})</span>
+              )}
+            </div>
           )}
-        </SectionContainer>
+        </div>
+
+        {/* Info when BH hasn't responded - only for revision mode */}
+        {modalMode === 'revider' && !lastResponseEvent && (
+          <Alert variant="info" title="Revisjon før svar">
+            Du kan oppdatere kravet ditt før byggherren har svart. Det reviderte kravet
+            erstatter det opprinnelige kravet.
+          </Alert>
+        )}
 
         {/* Seksjon 2: Nytt krav */}
         <SectionContainer

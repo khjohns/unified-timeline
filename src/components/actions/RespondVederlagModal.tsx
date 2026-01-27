@@ -1002,6 +1002,28 @@ export function RespondVederlagModal({
           </Alert>
         )}
 
+        {/* UPDATE MODE: Compact display of current response */}
+        {isUpdateMode && lastResponseEvent && (
+          <div className="flex items-center gap-2 text-sm py-2 px-3 bg-pkt-surface-subtle border-l-2 border-pkt-border-subtle">
+            <span className="text-pkt-text-body-subtle">Ditt nåværende svar:</span>
+            <Badge
+              variant={
+                lastResponseEvent.resultat === 'godkjent' ? 'success' :
+                lastResponseEvent.resultat === 'avslatt' ? 'danger' : 'warning'
+              }
+              size="sm"
+            >
+              {lastResponseEvent.resultat === 'godkjent' ? 'Godkjent' :
+               lastResponseEvent.resultat === 'avslatt' ? 'Avslått' : 'Delvis godkjent'}
+            </Badge>
+            {lastResponseEvent.godkjent_belop !== undefined && (
+              <span className="font-mono">
+                kr {lastResponseEvent.godkjent_belop.toLocaleString('nb-NO')},-
+              </span>
+            )}
+          </div>
+        )}
+
         <form
           onSubmit={handleSubmit(onSubmit)}
           onKeyDown={(e) => {
@@ -1020,63 +1042,22 @@ export function RespondVederlagModal({
             <div className="space-y-6">
               <h3 className="text-lg font-semibold">Oversikt</h3>
 
-              {/* Kravsammendrag */}
-              <div className="p-4 border border-pkt-border-subtle rounded-none">
-                <h4 className="font-bold text-base mb-4">Krav fra entreprenør</h4>
-
-                <div className="space-y-3">
-                  {/* Hovedkrav */}
-                  <div className="flex justify-between items-center py-2 border-b border-pkt-border-subtle">
-                    <div>
-                      <span className="font-medium">Hovedkrav</span>
-                      {metodeLabel && (
-                        <span className="text-sm text-pkt-text-body-subtle ml-2">({metodeLabel})</span>
-                      )}
-                    </div>
-                    <span className="font-mono font-medium">
-                      kr {hovedkravBelop?.toLocaleString('nb-NO') || 0},-
-                    </span>
-                  </div>
-
-                  {/* Særskilte krav */}
-                  {harRiggKrav && (
-                    <div className="flex justify-between items-center py-2 border-b border-pkt-border-subtle">
-                      <div>
-                        <span className="font-medium">Rigg/drift</span>
-                        <span className="text-sm text-pkt-text-body-subtle ml-2">(særskilt krav)</span>
-                      </div>
-                      <span className="font-mono font-medium">
-                        kr {riggBelop?.toLocaleString('nb-NO') || 0},-
-                      </span>
-                    </div>
-                  )}
-
-                  {harProduktivitetKrav && (
-                    <div className="flex justify-between items-center py-2 border-b border-pkt-border-subtle">
-                      <div>
-                        <span className="font-medium">Produktivitetstap</span>
-                        <span className="text-sm text-pkt-text-body-subtle ml-2">(særskilt krav)</span>
-                      </div>
-                      <span className="font-mono font-medium">
-                        kr {produktivitetBelop?.toLocaleString('nb-NO') || 0},-
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Total */}
-                  <div className="flex justify-between items-center py-2 font-bold">
-                    <span>Totalt krevd</span>
-                    <span className="font-mono">
-                      kr{' '}
-                      {(
-                        (hovedkravBelop || 0) +
-                        (harRiggKrav ? riggBelop || 0 : 0) +
-                        (harProduktivitetKrav ? produktivitetBelop || 0 : 0)
-                      ).toLocaleString('nb-NO')}
-                      ,-
-                    </span>
-                  </div>
-                </div>
+              {/* Kompakt kravlinje - detaljer tilgjengelig i EventDetailModal */}
+              <div className="flex items-center gap-2 text-sm py-2 px-3 bg-pkt-surface-subtle border-l-2 border-pkt-border-subtle">
+                <span className="text-pkt-text-body-subtle">Krav:</span>
+                <span className="font-mono font-medium text-pkt-text-body">
+                  kr {(
+                    (hovedkravBelop || 0) +
+                    (harRiggKrav ? riggBelop || 0 : 0) +
+                    (harProduktivitetKrav ? produktivitetBelop || 0 : 0)
+                  ).toLocaleString('nb-NO')},-
+                </span>
+                {metodeLabel && (
+                  <span className="text-pkt-text-body-subtle">({metodeLabel})</span>
+                )}
+                {(harRiggKrav || harProduktivitetKrav) && (
+                  <Badge variant="neutral" size="sm">+særskilte</Badge>
+                )}
               </div>
 
               {/* Subsidiær behandling info */}
