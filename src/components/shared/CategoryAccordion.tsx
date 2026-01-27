@@ -126,7 +126,7 @@ export function CategoryAccordion({
   }
 
   // Case 2: Én underkategori - kompakt visning
-  if (underkategorier.length === 1) {
+  if (underkategorier.length === 1 && underkategorier[0]) {
     const uk = underkategorier[0];
     const title = `${hovedkat.label} → ${uk.label} (§${uk.hjemmel_basis})`;
     return <UnderkategoriAccordion underkategori={uk} title={title} />;
