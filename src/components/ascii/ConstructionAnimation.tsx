@@ -455,43 +455,47 @@ export function ConstructionAnimation({
 
   return (
     <div className={`relative ${className}`}>
-      {/* Hovedanimasjon */}
+      {/* Hovedanimasjon - responsiv med horisontal scroll på mobil */}
       <div
-        className={`font-mono text-sm leading-tight whitespace-pre bg-slate-900 text-green-400 rounded-lg overflow-hidden ${
-          compact ? 'p-2' : 'p-4'
+        className={`font-mono leading-tight whitespace-pre bg-slate-900 text-green-400 rounded-lg overflow-x-auto ${
+          compact ? 'p-2' : 'p-3 sm:p-4'
         } ${enableMovement ? 'absolute' : ''}`}
         style={containerStyle}
       >
-        <pre className={compact ? 'text-xs' : 'text-sm'}>{currentFrame}</pre>
+        {/* Skalerer ned på små skjermer */}
+        <pre className={`${compact ? 'text-[9px] sm:text-xs' : 'text-[10px] sm:text-sm'} min-w-max`}>
+          {currentFrame}
+        </pre>
       </div>
 
       {/* Kontroller */}
       {!compact && (
-        <div className="mt-4 flex gap-2">
+        <div className="mt-3 sm:mt-4 flex gap-2">
           <button
             onClick={handlePlayPause}
-            className="px-3 py-1 bg-slate-700 text-white rounded hover:bg-slate-600 text-sm"
+            className="px-2 sm:px-3 py-1 bg-slate-700 text-white rounded hover:bg-slate-600 text-xs sm:text-sm"
           >
             {isPlaying ? 'Pause' : 'Spill'}
           </button>
           <button
             onClick={handleReset}
-            className="px-3 py-1 bg-slate-700 text-white rounded hover:bg-slate-600 text-sm"
+            className="px-2 sm:px-3 py-1 bg-slate-700 text-white rounded hover:bg-slate-600 text-xs sm:text-sm"
           >
             Start på nytt
           </button>
         </div>
       )}
 
-      {/* Tidslinje */}
+      {/* Tidslinje - scrollbar på mobil, kompakte labels */}
       {showTimeline && !compact && (
-        <div className="mt-4">
-          <div className="flex items-center gap-1 overflow-x-auto pb-2">
+        <div className="mt-3 sm:mt-4">
+          <div className="flex items-center gap-1 overflow-x-auto pb-2 scrollbar-thin">
             {SCENES.map((scene, index) => (
               <button
                 key={scene.id}
                 onClick={() => handleSceneClick(index)}
-                className={`flex-shrink-0 px-2 py-1 text-xs rounded transition-colors ${
+                title={scene.label}
+                className={`flex-shrink-0 px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs rounded transition-colors ${
                   index === currentSceneIndex
                     ? 'bg-blue-600 text-white'
                     : index < currentSceneIndex
@@ -499,7 +503,9 @@ export function ConstructionAnimation({
                     : 'bg-slate-300 text-slate-700'
                 }`}
               >
-                {scene.label}
+                {/* Vis nummer på mobil, full label på desktop */}
+                <span className="sm:hidden">{index + 1}</span>
+                <span className="hidden sm:inline">{scene.label}</span>
               </button>
             ))}
           </div>
@@ -560,7 +566,7 @@ export function FloatingConstructionAnimation({
 
   return (
     <div
-      className="fixed z-50 pointer-events-none"
+      className="fixed z-50 pointer-events-none hidden sm:block"
       style={{
         ...startPosition,
         transform: `translate(${offset.x}px, ${offset.y}px)`,
