@@ -108,11 +108,28 @@ function formatCurrency(amount: number): string {
   return `kr ${amount.toLocaleString('nb-NO')},-`;
 }
 
+/**
+ * Get the effective calculation method (BH's chosen method if rejected, else TE's method)
+ */
+function getEffektivMetode(input: VederlagResponseInput): VederlagsMetode | undefined {
+  if (!input.akseptererMetode && input.oensketMetode) {
+    return input.oensketMetode;
+  }
+  return input.metode;
+}
+
+/**
+ * Check if the effective method is regningsarbeid (cost reimbursement)
+ */
+function erRegningsarbeid(input: VederlagResponseInput): boolean {
+  return getEffektivMetode(input) === 'REGNINGSARBEID';
+}
+
 function getMetodeLabel(metode?: VederlagsMetode): string {
   if (!metode) return 'ukjent beregningsmetode';
   const labels: Record<VederlagsMetode, string> = {
     'ENHETSPRISER': 'enhetspriser (§34.3)',
-    'REGNINGSARBEID': 'regningsarbeid (§30.2/§34.4)',
+    'REGNINGSARBEID': 'regningsarbeid (§34.4)',
     'FASTPRIS_TILBUD': 'fastpris/tilbud (§34.2.1)',
   };
   return labels[metode] || metode;
@@ -143,15 +160,6 @@ function generateMetodeSection(input: VederlagResponseInput): string {
       `Byggherren godtar ikke den foreslåtte beregningsmetoden ${getMetodeLabel(input.metode)}, ` +
       `og krever i stedet beregning etter ${getMetodeLabel(input.oensketMetode)}.`
     );
-
-    // Special case: rejecting fastpris - explain fallback based on chosen method
-    if (input.metode === 'FASTPRIS_TILBUD') {
-      if (input.oensketMetode === 'ENHETSPRISER') {
-        lines.push('Ved å avslå fastpristilbudet (§34.2.1) kreves oppgjør etter kontraktens enhetspriser (§34.3).');
-      } else {
-        lines.push('Ved å avslå fastpristilbudet (§34.2.1), faller oppgjøret tilbake på regningsarbeid (§34.4).');
-      }
-    }
   }
 
   // EP-justering response (§34.3.3)
@@ -204,20 +212,26 @@ function generateHovedkravSection(input: VederlagResponseInput): string {
 
   const lines: string[] = [];
   const isPrekludert = hovedkravVarsletITide === false;
+  const isRegningsarbeid = erRegningsarbeid(input);
+
+  // Terminologi for regningsarbeid vs. fastpris/enhetspriser
+  const kravLabel = isRegningsarbeid ? 'Kostnadsoverslaget' : 'Hovedkravet';
+  const kravLabelLower = isRegningsarbeid ? 'kostnadsoverslaget' : 'hovedkravet';
 
   if (isPrekludert) {
     // Prinsipalt: prekludert (§34.1.2)
     lines.push(
-      `Hovedkravet på ${formatCurrency(hovedkravBelop)} avvises prinsipalt som prekludert iht. §34.1.2, ` +
+      `${kravLabel} på ${formatCurrency(hovedkravBelop)} avvises prinsipalt som prekludert iht. §34.1.2, ` +
       `da varselet ikke ble fremsatt «uten ugrunnet opphold» etter at entreprenøren ble eller burde blitt klar over forholdet.`
     );
 
     // Subsidiært: faktisk vurdering
     const subsidiaerText = generateSubsidiaerKravText(
-      'hovedkrav',
+      kravLabelLower,
       hovedkravBelop,
       hovedkravVurdering,
-      hovedkravGodkjentBelop
+      hovedkravGodkjentBelop,
+      isRegningsarbeid
     );
     lines.push(subsidiaerText);
 
@@ -225,21 +239,24 @@ function generateHovedkravSection(input: VederlagResponseInput): string {
   }
 
   // Ikke prekludert - vanlig vurdering
+  // For regningsarbeid: "aksepteres" i stedet for "godkjennes"
+  const akseptVerb = isRegningsarbeid ? 'aksepteres' : 'godkjennes';
+
   switch (hovedkravVurdering) {
     case 'godkjent':
-      return `Hovedkravet på ${formatCurrency(hovedkravBelop)} ${getVurderingVerb('godkjent')}.`;
+      return `${kravLabel} på ${formatCurrency(hovedkravBelop)} ${akseptVerb}.`;
 
     case 'delvis': {
       const godkjent = hovedkravGodkjentBelop ?? 0;
       const prosent = hovedkravBelop > 0 ? ((godkjent / hovedkravBelop) * 100).toFixed(0) : 0;
       return (
-        `Hovedkravet ${getVurderingVerb('delvis')} med ${formatCurrency(godkjent)} ` +
+        `${kravLabel} ${akseptVerb} delvis med ${formatCurrency(godkjent)} ` +
         `av krevde ${formatCurrency(hovedkravBelop)} (${prosent}%).`
       );
     }
 
     case 'avslatt':
-      return `Hovedkravet på ${formatCurrency(hovedkravBelop)} ${getVurderingVerb('avslatt')}.`;
+      return `${kravLabel} på ${formatCurrency(hovedkravBelop)} avvises.`;
   }
 }
 
@@ -360,9 +377,12 @@ function generateSubsidiaerKravText(
   kravType: string,
   krevdBelop: number,
   vurdering: BelopVurdering,
-  godkjentBelop?: number
+  godkjentBelop?: number,
+  isRegningsarbeid?: boolean
 ): string {
-  const prefix = 'Subsidiært, dersom kravet ikke anses prekludert,';
+  const prefix = isRegningsarbeid
+    ? 'Subsidiært, dersom overslaget ikke anses prekludert,'
+    : 'Subsidiært, dersom kravet ikke anses prekludert,';
 
   switch (vurdering) {
     case 'godkjent':
@@ -372,7 +392,7 @@ function generateSubsidiaerKravText(
       return `${prefix} aksepteres ${formatCurrency(godkjentBelop ?? 0)} av krevde ${formatCurrency(krevdBelop)}.`;
 
     case 'avslatt':
-      return `${prefix} ville kravet uansett blitt avvist.`;
+      return `${prefix} ville ${isRegningsarbeid ? 'overslaget' : 'kravet'} uansett blitt avvist.`;
   }
 }
 
@@ -381,10 +401,14 @@ function generateSubsidiaerKravText(
  */
 function generateKonklusjonSection(input: VederlagResponseInput): string {
   const lines: string[] = [];
+  const isRegningsarbeid = erRegningsarbeid(input);
+
+  // Terminologi for regningsarbeid vs. fastpris/enhetspriser
+  const belopLabel = isRegningsarbeid ? 'akseptert kostnadsoverslag' : 'godkjent beløp';
 
   // Prinsipalt resultat
   lines.push(
-    `Samlet godkjent beløp utgjør etter dette ${formatCurrency(input.totalGodkjent)} ` +
+    `Samlet ${belopLabel} utgjør etter dette ${formatCurrency(input.totalGodkjent)} ` +
     `av totalt krevde ${formatCurrency(input.totalKrevd)}.`
   );
 
@@ -396,7 +420,7 @@ function generateKonklusjonSection(input: VederlagResponseInput): string {
       const hovedkravPrekludert = input.hovedkravVarsletITide === false;
       const kravType = hovedkravPrekludert ? 'kravene' : 'særskilte kravene';
       lines.push(
-        `Dersom de prekluderte ${kravType} hadde vært varslet i tide, ville samlet godkjent beløp ` +
+        `Dersom de prekluderte ${kravType} hadde vært varslet i tide, ville samlet ${belopLabel} ` +
         `utgjort ${formatCurrency(input.totalGodkjentSubsidiaer)} (subsidiært standpunkt).`
       );
     }
@@ -423,7 +447,8 @@ export function generateVederlagResponseBegrunnelse(input: VederlagResponseInput
 
   // 2. Beløpsvurdering intro
   if (!input.holdTilbake) {
-    sections.push('Hva gjelder beløpet:');
+    const isRegningsarbeidMetode = erRegningsarbeid(input);
+    sections.push(isRegningsarbeidMetode ? 'Hva gjelder kostnadsoverslaget:' : 'Hva gjelder beløpet:');
 
     // 2a. Hovedkrav
     const hovedkravSection = generateHovedkravSection(input);

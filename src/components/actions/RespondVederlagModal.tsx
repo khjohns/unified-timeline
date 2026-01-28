@@ -759,17 +759,32 @@ export function RespondVederlagModal({
 
   const currentStepType = getStepType(currentPort);
 
-  // Pre-populate begrunnelse when entering Oppsummering step (if empty)
+  // Track if user has manually edited the begrunnelse
+  const userHasEditedBegrunnelseRef = useRef(false);
+
+  // Pre-populate begrunnelse when entering Oppsummering step
+  // Also update when auto-begrunnelse changes IF user hasn't manually edited
   useEffect(() => {
-    if (currentStepType === 'oppsummering' && !formValues.begrunnelse && autoBegrunnelse) {
-      setValue('begrunnelse', autoBegrunnelse);
+    if (currentStepType === 'oppsummering' && autoBegrunnelse) {
+      // If user hasn't manually edited, always sync with auto-begrunnelse
+      if (!userHasEditedBegrunnelseRef.current) {
+        setValue('begrunnelse', autoBegrunnelse);
+      }
     }
-  }, [currentStepType, formValues.begrunnelse, autoBegrunnelse, setValue]);
+  }, [currentStepType, autoBegrunnelse, setValue]);
+
+  // Track manual edits to begrunnelse (triggered by textarea onChange)
+  // Reset the flag when leaving oppsummering or when regenerating
+  const markBegrunnelseAsEdited = useCallback(() => {
+    userHasEditedBegrunnelseRef.current = true;
+  }, []);
 
   // Handler to regenerate begrunnelse from auto-generated
   const handleRegenerBegrunnelse = useCallback(() => {
     if (autoBegrunnelse) {
       setValue('begrunnelse', autoBegrunnelse, { shouldDirty: true });
+      // Reset the edited flag so future auto-updates work
+      userHasEditedBegrunnelseRef.current = false;
     }
   }, [autoBegrunnelse, setValue]);
 
@@ -2235,7 +2250,9 @@ export function RespondVederlagModal({
                 >
                   <div className="space-y-2">
                     <Textarea
-                      {...register('begrunnelse')}
+                      {...register('begrunnelse', {
+                        onChange: markBegrunnelseAsEdited,
+                      })}
                       rows={12}
                       fullWidth
                       error={!!errors.begrunnelse}
