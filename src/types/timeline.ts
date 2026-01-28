@@ -672,8 +672,10 @@ export type BelopVurdering = 'godkjent' | 'delvis' | 'avslatt';
 
 // Vederlag response event (Port Model)
 export interface ResponsVederlagEventData {
-  // Referanse til kravet som besvares
+  // Referanse og sporbarhet
   vederlag_krav_id?: string;
+  /** Hvilken TE-versjon (0-indeksert) denne responsen gjelder. Settes automatisk av backend. */
+  respondert_versjon?: number;
 
   // Port 1: Preklusjon av særskilte krav (§34.1.3)
   rigg_varslet_i_tide?: boolean;
@@ -722,6 +724,9 @@ export interface ResponsVederlagEventData {
 
 // Frist response event (Port Model)
 export interface ResponsFristEventData {
+  /** Hvilken TE-versjon (0-indeksert) denne responsen gjelder. Settes automatisk av backend. */
+  respondert_versjon?: number;
+
   // Port 1: Preklusjon (Varsling)
   /** Var varsel om fristforlengelse (§33.4) rettidig? */
   frist_varsel_ok?: boolean;
@@ -756,6 +761,8 @@ export interface ResponsFristEventData {
 
 // Grunnlag response event
 export interface ResponsGrunnlagEventData {
+  /** Hvilken TE-versjon (0-indeksert) denne responsen gjelder. Settes automatisk av backend. */
+  respondert_versjon?: number;
   resultat: GrunnlagResponsResultat;
   begrunnelse: string;
   akseptert_kategori?: string;

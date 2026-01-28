@@ -469,6 +469,10 @@ class GrunnlagEvent(SakEvent):
         ...,
         description="Grunnlagsdata"
     )
+    versjon: int = Field(
+        default=1,
+        description="Versjonsnummer for dette grunnlaget (1, 2, 3...). Settes automatisk av backend."
+    )
 
     @field_validator('event_type')
     @classmethod
@@ -749,6 +753,12 @@ class GrunnlagResponsData(BaseModel):
         description="§32.2: Var grunnlagsvarselet rettidig? Kun relevant for ENDRING-kategorien."
     )
 
+    # ============ SPORBARHET ============
+    respondert_versjon: Optional[int] = Field(
+        default=None,
+        description="Hvilken TE-versjon (0-indeksert) denne responsen gjelder. Settes automatisk av backend."
+    )
+
     # ============ PARTIELL OPPDATERING ============
     original_respons_id: Optional[str] = Field(
         default=None,
@@ -802,10 +812,14 @@ class VederlagResponsData(BaseModel):
         description="Event-ID til original respons som oppdateres (for RESPONS_*_OPPDATERT)"
     )
 
-    # ============ REFERANSE ============
+    # ============ REFERANSE OG SPORBARHET ============
     vederlag_krav_id: Optional[str] = Field(
         default=None,
         description="Event-ID til vederlagskravet som besvares"
+    )
+    respondert_versjon: Optional[int] = Field(
+        default=None,
+        description="Hvilken TE-versjon (0-indeksert) denne responsen gjelder. Settes automatisk av backend."
     )
 
     # ============ PORT 1: PREKLUSJON (§34.1.2 og §34.1.3) ============
@@ -988,6 +1002,12 @@ class FristResponsData(BaseModel):
     original_respons_id: Optional[str] = Field(
         default=None,
         description="Event-ID til original respons som oppdateres (for RESPONS_*_OPPDATERT)"
+    )
+
+    # ============ SPORBARHET ============
+    respondert_versjon: Optional[int] = Field(
+        default=None,
+        description="Hvilken TE-versjon (0-indeksert) denne responsen gjelder. Settes automatisk av backend."
     )
 
     # ============ PORT 1: PREKLUSJON (Varslene) ============
