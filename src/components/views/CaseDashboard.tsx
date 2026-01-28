@@ -50,13 +50,29 @@ function getStatusBadge(status: SporStatus): ReactNode {
 
 /**
  * Get krevd beløp based on vederlagsmetode
+ * Includes hovedkrav + særskilte krav (§34.1.3: rigg/drift og produktivitet)
  */
 function getKrevdBelop(state: SakState): number | undefined {
   const v = state.vederlag;
+
+  // Hovedkrav
+  let hovedkrav: number | undefined;
   if (v.metode === 'REGNINGSARBEID' && v.kostnads_overslag !== undefined) {
-    return v.kostnads_overslag;
+    hovedkrav = v.kostnads_overslag;
+  } else {
+    hovedkrav = v.belop_direkte;
   }
-  return v.belop_direkte;
+
+  // Særskilte krav (§34.1.3)
+  const riggBelop = v.saerskilt_krav?.rigg_drift?.belop ?? 0;
+  const produktivitetBelop = v.saerskilt_krav?.produktivitet?.belop ?? 0;
+
+  // Returner undefined kun hvis ingen beløp finnes
+  if (hovedkrav === undefined && riggBelop === 0 && produktivitetBelop === 0) {
+    return undefined;
+  }
+
+  return (hovedkrav ?? 0) + riggBelop + produktivitetBelop;
 }
 
 /**

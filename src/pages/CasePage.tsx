@@ -217,15 +217,6 @@ function CasePageContent() {
     return state.grunnlag.grunnlag_varslet_i_tide === false;
   }, [state.grunnlag.grunnlag_varslet_i_tide]);
 
-  // Compute krevd beløp for vederlag (from belop_direkte or kostnads_overslag)
-  const krevdBelop = useMemo(() => {
-    const v = state.vederlag;
-    if (v.metode === 'REGNINGSARBEID' && v.kostnads_overslag !== undefined) {
-      return v.kostnads_overslag;
-    }
-    return v.belop_direkte;
-  }, [state.vederlag]);
-
   // Auth verification in progress
   if (isVerifying) {
     return <VerifyingState />;
