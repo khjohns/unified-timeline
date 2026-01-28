@@ -220,8 +220,8 @@ function beregnPrinsipaltResultat(
   const godkjentProsent =
     computed.totalKrevdInklPrekludert > 0 ? computed.totalGodkjent / computed.totalKrevdInklPrekludert : 0;
 
-  // 3. Total rejection (only for calculation errors, not grunnlag disputes)
-  if (godkjentProsent === 0 && data.hovedkrav_vurdering === 'avslatt') {
+  // 3. Total rejection - if nothing is approved principally (regardless of reason)
+  if (computed.totalGodkjent === 0) {
     return 'avslatt';
   }
 
