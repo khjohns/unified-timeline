@@ -1668,38 +1668,55 @@ export function RespondVederlagModal({
               {/* Sammendrag av valg */}
               <div className="space-y-4">
                 {/* Metode */}
-                <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  <InlineDataList title="Beregningsmetode" stackOnMobile>
-                    <InlineDataListItem label="Foreslått">
-                      {vederlagEvent?.metode && getVederlagsmetodeLabel(vederlagEvent.metode)}
-                    </InlineDataListItem>
-                    <InlineDataListItem
-                      label="Vurdering"
-                      variant={formValues.aksepterer_metode ? 'success' : 'warning'}
-                    >
-                      {formValues.aksepterer_metode
-                        ? 'Akseptert'
-                        : `Endret → ${formValues.oensket_metode && getVederlagsmetodeLabel(formValues.oensket_metode)}`}
-                    </InlineDataListItem>
-                  </InlineDataList>
-                  {maSvarePaJustering && (
-                    <InlineDataList className="mt-2" stackOnMobile>
-                      <InlineDataListItem
-                        label="Justerte EP"
-                        variant={formValues.ep_justering_akseptert ? 'success' : 'danger'}
-                      >
-                        {formValues.ep_justering_akseptert ? 'Akseptert' : 'Avvist'}
-                      </InlineDataListItem>
-                      {formValues.ep_justering_varslet_i_tide === false && (
-                        <InlineDataListItem label="Varsel" variant="warning">
-                          For sent
-                        </InlineDataListItem>
+                <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle space-y-3">
+                  <div>
+                    <h5 className="font-medium text-sm mb-1">Beregningsmetode</h5>
+                    <p className="text-sm">
+                      {formValues.aksepterer_metode ? (
+                        <>
+                          Byggherren aksepterer{' '}
+                          <span className="font-medium">
+                            {vederlagEvent?.metode && getVederlagsmetodeLabel(vederlagEvent.metode).toLowerCase()}
+                          </span>{' '}
+                          som beregningsmetode.
+                        </>
+                      ) : (
+                        <>
+                          Byggherren krever{' '}
+                          <span className="font-medium">
+                            {formValues.oensket_metode && getVederlagsmetodeLabel(formValues.oensket_metode).toLowerCase()}
+                          </span>{' '}
+                          i stedet for{' '}
+                          {vederlagEvent?.metode && getVederlagsmetodeLabel(vederlagEvent.metode).toLowerCase()}.
+                        </>
                       )}
-                    </InlineDataList>
+                    </p>
+                  </div>
+
+                  {maSvarePaJustering && (
+                    <div>
+                      <h5 className="font-medium text-sm mb-1">Justerte enhetspriser (§34.3.2)</h5>
+                      <p className="text-sm">
+                        {formValues.ep_justering_akseptert ? (
+                          'Kravet om justering av enhetsprisene aksepteres.'
+                        ) : (
+                          'Kravet om justering av enhetsprisene avvises.'
+                        )}
+                        {formValues.ep_justering_varslet_i_tide === false && (
+                          <span className="text-pkt-brand-yellow-1000">
+                            {' '}Kravet ble ikke varslet uten ugrunnet opphold (§34.3.3).
+                          </span>
+                        )}
+                      </p>
+                    </div>
                   )}
+
                   {formValues.hold_tilbake && (
-                    <div className="mt-2 text-sm text-pkt-brand-yellow-1000">
-                      Betaling holdes tilbake (§30.2)
+                    <div>
+                      <h5 className="font-medium text-sm mb-1">Tilbakeholdelse (§30.2)</h5>
+                      <p className="text-sm">
+                        Byggherren holder tilbake betaling inntil kostnadsoverslag for regningsarbeid mottas.
+                      </p>
                     </div>
                   )}
                 </div>
