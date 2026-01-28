@@ -390,7 +390,14 @@ function CasePageContent() {
               )}
               {userRole === 'TE' && actions.canUpdateGrunnlag && (
                 <Button
-                  variant={state.grunnlag.bh_resultat && state.grunnlag.bh_resultat !== 'godkjent' ? 'primary' : 'secondary'}
+                  variant={
+                    // Primary: BH har avvist/delvis godkjent OG TE har ikke sendt ny versjon etter
+                    state.grunnlag.bh_resultat &&
+                    state.grunnlag.bh_resultat !== 'godkjent' &&
+                    state.grunnlag.antall_versjoner === state.grunnlag.bh_respondert_versjon
+                      ? 'primary'
+                      : 'secondary'
+                  }
                   size="sm"
                   onClick={() => setUpdateGrunnlagOpen(true)}
                 >
@@ -454,7 +461,14 @@ function CasePageContent() {
               )}
               {userRole === 'TE' && actions.canUpdateVederlag && (
                 <Button
-                  variant={state.vederlag.bh_resultat && state.vederlag.bh_resultat !== 'godkjent' ? 'primary' : 'secondary'}
+                  variant={
+                    // Primary: BH har avvist/delvis godkjent OG TE har ikke sendt ny versjon etter
+                    state.vederlag.bh_resultat &&
+                    state.vederlag.bh_resultat !== 'godkjent' &&
+                    state.vederlag.antall_versjoner === state.vederlag.bh_respondert_versjon
+                      ? 'primary'
+                      : 'secondary'
+                  }
                   size="sm"
                   onClick={() => setReviseVederlagOpen(true)}
                 >
@@ -501,7 +515,14 @@ function CasePageContent() {
               )}
               {userRole === 'TE' && actions.canUpdateFrist && (
                 <Button
-                  variant={state.frist.bh_resultat && state.frist.bh_resultat !== 'godkjent' ? 'primary' : 'secondary'}
+                  variant={
+                    // Primary: BH har avvist/delvis godkjent OG TE har ikke sendt ny versjon etter
+                    state.frist.bh_resultat &&
+                    state.frist.bh_resultat !== 'godkjent' &&
+                    state.frist.antall_versjoner === state.frist.bh_respondert_versjon
+                      ? 'primary'
+                      : 'secondary'
+                  }
                   size="sm"
                   onClick={() => setReviseFristOpen(true)}
                 >
