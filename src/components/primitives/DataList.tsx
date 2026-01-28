@@ -86,7 +86,7 @@ export function DataListItem({ label, children, mono }: DataListItemProps) {
   if (align === 'right') {
     return (
       <div className="py-2 flex justify-between items-center">
-        <dt className="text-sm font-medium text-pkt-text-body-default">
+        <dt className="text-sm text-pkt-text-body-subtle">
           {label}
         </dt>
         <dd className={valueClasses}>
@@ -98,11 +98,11 @@ export function DataListItem({ label, children, mono }: DataListItemProps) {
 
   // Default left-aligned variant
   return (
-    <div className="py-3 flex flex-col sm:flex-row sm:gap-4">
-      <dt className="text-sm text-pkt-text-body-subtle sm:w-40 sm:flex-shrink-0">
+    <div className="py-2 flex flex-col gap-1 sm:flex-row sm:gap-4">
+      <dt className="text-sm text-pkt-text-body-subtle sm:w-44 sm:flex-shrink-0">
         {label}
       </dt>
-      <dd className={`${valueClasses} mt-1 sm:mt-0`}>
+      <dd className={valueClasses}>
         {children}
       </dd>
     </div>
