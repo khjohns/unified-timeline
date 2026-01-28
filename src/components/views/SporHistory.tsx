@@ -288,17 +288,18 @@ function getEntryVariant(type: SporHistoryEntryType, resultat?: string | null): 
 }
 
 function getEntryLabel(entry: SporHistoryEntry): string {
-  const versionSuffix = entry.type === 'te_oppdatering' && entry.versjon > 0 ? ` (Rev. ${entry.versjon})` : '';
+  // TE-versjonsreferanse for oppdateringer og BH-responser
+  const teVersionRef = entry.versjon > 1 ? ` · Rev. ${entry.versjon}` : '';
 
   switch (entry.type) {
     case 'te_krav':
       return 'Krav sendt';
     case 'te_oppdatering':
-      return `Krav oppdatert${versionSuffix}`;
+      return `Krav oppdatert${teVersionRef}`;
     case 'bh_respons':
-      return entry.sammendrag || 'Svar mottatt';
+      return `${entry.sammendrag || 'Svar mottatt'}${teVersionRef}`;
     case 'bh_oppdatering':
-      return 'Standpunkt oppdatert';
+      return `Standpunkt oppdatert${teVersionRef}`;
   }
 }
 
