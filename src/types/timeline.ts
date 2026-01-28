@@ -3,6 +3,16 @@
  *
  * These types mirror the backend models exactly.
  * State is READ-ONLY - all mutations happen via events.
+ *
+ * TERMINOLOGI - Versjon vs Revisjon:
+ * - `versjon`: Tellende nummer for innsendinger (1, 2, 3...).
+ *   Versjon 1 er original, versjon 2 er første oppdatering.
+ * - `revisjon`: UI-visning for oppdateringer. Revisjon = versjon - 1.
+ *   Original har ingen revisjon, første oppdatering er "Rev. 1".
+ * - `respondert_versjon`: 0-indeksert referanse til TE-versjon.
+ *   respondert_versjon=0 betyr respons på versjon 1 (original).
+ * - `bh_respondert_versjon`: Samme som respondert_versjon, i state.
+ * - `antall_versjoner`: Totalt antall versjoner sendt (1-indeksert).
  */
 
 // ========== ENUMS ==========
