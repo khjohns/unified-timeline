@@ -3,8 +3,8 @@
  *
  * Modal for viewing detailed event data from the timeline.
  * Supports all event types with type-specific rendering.
- * Uses DataList (with grid variant) as primary layout primitive.
- * LongTextField handles expandable text within DataList structure.
+ * Uses DataList as primary layout primitive.
+ * FullWidthTextField handles expandable text outside DataList.
  */
 
 import React from 'react';
@@ -37,11 +37,9 @@ import {
 } from '../../types/timeline';
 import {
   getHovedkategoriLabel,
-  getUnderkategoriLabel,
   getUnderkategoriObj,
 } from '../../constants/categories';
 import { getVederlagsmetodeLabel } from '../../constants/paymentMethods';
-import { getFristVarseltypeLabel } from '../../constants/fristVarselTypes';
 import {
   getBhGrunnlagssvarLabel,
   getBhVederlagssvarLabel,
@@ -85,15 +83,18 @@ function VarselInfoDisplay({ label, varsel }: VarselInfoDisplayProps) {
   );
 }
 
-interface LongTextFieldProps {
+/**
+ * FullWidthTextField - Displays label and text stacked, taking full width.
+ * Used for begrunnelse and other long-form text outside DataList.
+ */
+interface FullWidthTextFieldProps {
   label: string;
   value: string | undefined;
   defaultOpen?: boolean;
-  /** Render content as markdown */
   markdown?: boolean;
 }
 
-function LongTextField({ label, value, defaultOpen = false, markdown = false }: LongTextFieldProps) {
+function FullWidthTextField({ label, value, defaultOpen = false, markdown = false }: FullWidthTextFieldProps) {
   const [isExpanded, setIsExpanded] = React.useState(defaultOpen);
 
   if (!value) return null;
@@ -102,14 +103,15 @@ function LongTextField({ label, value, defaultOpen = false, markdown = false }: 
   const displayText = isLong && !isExpanded ? value.slice(0, 150) + '...' : value;
 
   return (
-    <DataListItem label={label}>
+    <div>
+      <p className="text-sm font-medium text-pkt-text-body-subtle mb-1">{label}</p>
       <div>
         {markdown ? (
           <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:list-disc prose-ul:pl-5 prose-ul:my-1 prose-ol:list-decimal prose-ol:pl-5 prose-li:my-0 prose-headings:text-base prose-headings:mt-2 prose-headings:mb-1">
             <ReactMarkdown>{displayText}</ReactMarkdown>
           </div>
         ) : (
-          <p className="whitespace-pre-wrap">{displayText}</p>
+          <p className="whitespace-pre-wrap text-sm">{displayText}</p>
         )}
         {isLong && (
           <button
@@ -121,7 +123,7 @@ function LongTextField({ label, value, defaultOpen = false, markdown = false }: 
           </button>
         )}
       </div>
-    </DataListItem>
+    </div>
   );
 }
 
@@ -175,15 +177,16 @@ function GrunnlagSection({ data }: { data: GrunnlagEventData }) {
 
   return (
     <div className="space-y-4">
-      {/* Metadata i grid-layout for bedre plassbruk */}
-      <DataList variant="grid">
+      <DataList>
         {data.tittel && <DataListItem label="Tittel">{data.tittel}</DataListItem>}
         {data.hovedkategori && (
-          <DataListItem label="Hovedkategori">{getHovedkategoriLabel(data.hovedkategori)}</DataListItem>
-        )}
-        {underkategoriLabels && (
-          <DataListItem label="Underkategori">
-            {underkategoriLabels}
+          <DataListItem label="Kategori">
+            {getHovedkategoriLabel(data.hovedkategori)}
+            {underkategoriLabels && (
+              <span className="ml-1 text-pkt-text-body-subtle">
+                / {underkategoriLabels}
+              </span>
+            )}
             {hjemmelRefs.length > 0 && (
               <span className="ml-1 text-pkt-text-body-subtle text-xs">
                 ({hjemmelRefs.join(', ')})
@@ -191,67 +194,69 @@ function GrunnlagSection({ data }: { data: GrunnlagEventData }) {
             )}
           </DataListItem>
         )}
-        {varselkravRefs.length > 0 && (
-          <DataListItem label="Varselkrav">
-            <span className="text-pkt-text-body-subtle">
-              NS 8407 §{varselkravRefs.join(' / §')}
-            </span>
-          </DataListItem>
-        )}
         {data.dato_oppdaget && (
-          <DataListItem label="Dato oppdaget">{formatDateMedium(data.dato_oppdaget)}</DataListItem>
+          <DataListItem label="Oppdaget">{formatDateMedium(data.dato_oppdaget)}</DataListItem>
         )}
-        {data.grunnlag_varsel?.dato_sendt && (
-          <DataListItem label="Varsel sendt">
-            {formatDateMedium(data.grunnlag_varsel.dato_sendt)}
-            {data.grunnlag_varsel.metode && data.grunnlag_varsel.metode.length > 0 && (
-              <span className="ml-1 text-pkt-text-body-subtle">
-                ({formatVarselMetode(data.grunnlag_varsel.metode)})
-              </span>
-            )}
-          </DataListItem>
-        )}
-      </DataList>
-
-      {/* Lange felt i liste-layout */}
-      <DataList>
-        <LongTextField label="Beskrivelse" value={data.beskrivelse} defaultOpen={true} />
+        <VarselInfoDisplay label="Varslet" varsel={data.grunnlag_varsel} />
         {data.kontraktsreferanser && data.kontraktsreferanser.length > 0 && (
           <DataListItem label="Kontraktsreferanser">{data.kontraktsreferanser.join(', ')}</DataListItem>
         )}
         <VedleggDisplay vedleggIds={data.vedlegg_ids} />
       </DataList>
+
+      <FullWidthTextField label="Beskrivelse" value={data.beskrivelse} defaultOpen={true} />
     </div>
   );
 }
 
 function GrunnlagOppdatertSection({ data }: { data: GrunnlagOppdatertEventData }) {
-  const underkategorier = data.underkategori
-    ? (Array.isArray(data.underkategori)
-      ? data.underkategori.map(getUnderkategoriLabel).join(', ')
-      : getUnderkategoriLabel(data.underkategori))
-    : undefined;
+  // Backend sender full GrunnlagData også for oppdaterte events
+  const fullData = data as unknown as GrunnlagEventData & GrunnlagOppdatertEventData;
 
-  const hasMetadata = data.tittel || data.hovedkategori || underkategorier || data.dato_oppdaget;
+  // Get underkategori codes as array
+  const underkategoriKoder = fullData.underkategori
+    ? (Array.isArray(fullData.underkategori) ? fullData.underkategori : [fullData.underkategori])
+    : [];
+
+  // Get full underkategori objects for hjemmel info
+  const underkategoriObjekter = underkategoriKoder
+    .map((kode) => getUnderkategoriObj(kode))
+    .filter((obj): obj is NonNullable<typeof obj> => obj !== undefined);
+
+  const underkategoriLabels = underkategoriObjekter.map((obj) => obj.label).join(', ');
+  const hjemmelRefs = [...new Set(underkategoriObjekter.map((obj) => `§${obj.hjemmel_basis}`))];
 
   return (
     <div className="space-y-4">
-      {hasMetadata && (
-        <DataList variant="grid">
-          {data.tittel && <DataListItem label="Ny tittel">{data.tittel}</DataListItem>}
-          {data.hovedkategori && (
-            <DataListItem label="Ny hovedkategori">{getHovedkategoriLabel(data.hovedkategori)}</DataListItem>
-          )}
-          {underkategorier && <DataListItem label="Ny underkategori">{underkategorier}</DataListItem>}
-          {data.dato_oppdaget && (
-            <DataListItem label="Ny dato oppdaget">{formatDateMedium(data.dato_oppdaget)}</DataListItem>
-          )}
-        </DataList>
-      )}
       <DataList>
-        <LongTextField label="Ny beskrivelse" value={data.beskrivelse} />
-        <LongTextField label="Begrunnelse for endring" value={data.endrings_begrunnelse} defaultOpen={true} />
+        {fullData.tittel && <DataListItem label="Tittel">{fullData.tittel}</DataListItem>}
+        {fullData.hovedkategori && (
+          <DataListItem label="Kategori">
+            {getHovedkategoriLabel(fullData.hovedkategori)}
+            {underkategoriLabels && (
+              <span className="ml-1 text-pkt-text-body-subtle">
+                / {underkategoriLabels}
+              </span>
+            )}
+            {hjemmelRefs.length > 0 && (
+              <span className="ml-1 text-pkt-text-body-subtle text-xs">
+                ({hjemmelRefs.join(', ')})
+              </span>
+            )}
+          </DataListItem>
+        )}
+        {fullData.dato_oppdaget && (
+          <DataListItem label="Oppdaget">{formatDateMedium(fullData.dato_oppdaget)}</DataListItem>
+        )}
+        <VarselInfoDisplay label="Varslet" varsel={fullData.grunnlag_varsel} />
+        {fullData.kontraktsreferanser && fullData.kontraktsreferanser.length > 0 && (
+          <DataListItem label="Kontraktsreferanser">{fullData.kontraktsreferanser.join(', ')}</DataListItem>
+        )}
+        <VedleggDisplay vedleggIds={fullData.vedlegg_ids} />
       </DataList>
+
+      <FullWidthTextField label="Beskrivelse" value={fullData.beskrivelse} defaultOpen={true} />
+      <FullWidthTextField label="Begrunnelse for endring" value={fullData.endrings_begrunnelse} />
     </div>
   );
 }
@@ -263,8 +268,8 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
 
   return (
     <div className="space-y-4">
-      {/* Hoveddata i grid */}
-      <DataList variant="grid">
+      {/* Hoveddata */}
+      <DataList>
         <DataListItem label="Metode">{getVederlagsmetodeLabel(data.metode)}</DataListItem>
         <DataListItem label="Hovedkrav" mono>{formatCurrency(hovedbelop)}</DataListItem>
         {riggBelop !== undefined && (
@@ -280,7 +285,7 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
 
       {/* Særskilte krav datoer */}
       {(data.saerskilt_krav?.rigg_drift?.dato_klar_over || data.saerskilt_krav?.produktivitet?.dato_klar_over) && (
-        <DataList variant="grid">
+        <DataList>
           {data.saerskilt_krav?.rigg_drift?.dato_klar_over && (
             <DataListItem label="Rigg/drift oppdaget">{formatDateMedium(data.saerskilt_krav.rigg_drift.dato_klar_over)}</DataListItem>
           )}
@@ -290,111 +295,184 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
         </DataList>
       )}
 
-      {/* Begrunnelse og vedlegg */}
-      <DataList>
-        <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-        <VarselInfoDisplay label="Forhåndsvarsel regningsarbeid" varsel={data.regningsarbeid_varsel} />
-        <VedleggDisplay vedleggIds={data.vedlegg_ids} />
-      </DataList>
+      {/* Begrunnelse i full bredde */}
+      <FullWidthTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+
+      {/* Varsler og vedlegg */}
+      {(data.regningsarbeid_varsel?.dato_sendt || data.vedlegg_ids?.length) && (
+        <DataList>
+          <VarselInfoDisplay label="Forhåndsvarsel regningsarbeid" varsel={data.regningsarbeid_varsel} />
+          <VedleggDisplay vedleggIds={data.vedlegg_ids} />
+        </DataList>
+      )}
     </div>
   );
 }
 
 function VederlagOppdatertSection({ data }: { data: VederlagOppdatertEventData }) {
+  // Backend sender full VederlagData også for oppdaterte events
+  // Cast for å få tilgang til alle feltene
+  const fullData = data as unknown as VederlagEventData & VederlagOppdatertEventData;
+
+  const hovedbelop = fullData.belop_direkte ?? fullData.kostnads_overslag ?? 0;
+  const riggBelop = fullData.saerskilt_krav?.rigg_drift?.belop;
+  const produktivitetBelop = fullData.saerskilt_krav?.produktivitet?.belop;
+
   return (
-    <DataList>
-      {data.nytt_belop_direkte !== undefined && (
-        <DataListItem label="Nytt beløp" mono>{formatCurrency(data.nytt_belop_direkte)}</DataListItem>
+    <div className="space-y-4">
+      {/* Hoveddata */}
+      <DataList>
+        {fullData.metode && (
+          <DataListItem label="Metode">{getVederlagsmetodeLabel(fullData.metode)}</DataListItem>
+        )}
+        {hovedbelop > 0 && (
+          <DataListItem label="Hovedkrav" mono>{formatCurrency(hovedbelop)}</DataListItem>
+        )}
+        {riggBelop !== undefined && (
+          <DataListItem label="Rigg/drift" mono>{formatCurrency(riggBelop)}</DataListItem>
+        )}
+        {produktivitetBelop !== undefined && (
+          <DataListItem label="Produktivitet" mono>{formatCurrency(produktivitetBelop)}</DataListItem>
+        )}
+        {fullData.krever_justert_ep && (
+          <DataListItem label="Krever justerte enhetspriser">Ja</DataListItem>
+        )}
+        {fullData.dato_revidert && (
+          <DataListItem label="Revidert dato">{formatDateMedium(fullData.dato_revidert)}</DataListItem>
+        )}
+      </DataList>
+
+      {/* Særskilte krav datoer */}
+      {(fullData.saerskilt_krav?.rigg_drift?.dato_klar_over || fullData.saerskilt_krav?.produktivitet?.dato_klar_over) && (
+        <DataList>
+          {fullData.saerskilt_krav?.rigg_drift?.dato_klar_over && (
+            <DataListItem label="Rigg/drift oppdaget">{formatDateMedium(fullData.saerskilt_krav.rigg_drift.dato_klar_over)}</DataListItem>
+          )}
+          {fullData.saerskilt_krav?.produktivitet?.dato_klar_over && (
+            <DataListItem label="Produktivitetstap oppdaget">{formatDateMedium(fullData.saerskilt_krav.produktivitet.dato_klar_over)}</DataListItem>
+          )}
+        </DataList>
       )}
-      {data.nytt_kostnads_overslag !== undefined && (
-        <DataListItem label="Nytt kostnadsoverslag" mono>{formatCurrency(data.nytt_kostnads_overslag)}</DataListItem>
+
+      {/* Begrunnelse i full bredde */}
+      <FullWidthTextField label="Begrunnelse" value={fullData.begrunnelse} defaultOpen={true} />
+
+      {/* Varsler og vedlegg */}
+      {(fullData.regningsarbeid_varsel?.dato_sendt || fullData.vedlegg_ids?.length) && (
+        <DataList>
+          <VarselInfoDisplay label="Forhåndsvarsel regningsarbeid" varsel={fullData.regningsarbeid_varsel} />
+          <VedleggDisplay vedleggIds={fullData.vedlegg_ids} />
+        </DataList>
       )}
-      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      {data.dato_revidert && (
-        <DataListItem label="Revidert dato">{formatDateMedium(data.dato_revidert)}</DataListItem>
-      )}
-    </DataList>
+    </div>
   );
 }
 
 function FristSection({ data }: { data: FristEventData }) {
   return (
-    <DataList>
-      {data.varsel_type && (
-        <DataListItem label="Varseltype">{getFristVarseltypeLabel(data.varsel_type)}</DataListItem>
-      )}
-      <VarselInfoDisplay label="Varsel om fristforlengelse (§33.4)" varsel={data.frist_varsel} />
-      <VarselInfoDisplay label="Spesifisert varsel (§33.6)" varsel={data.spesifisert_varsel} />
-      {data.antall_dager !== undefined && (
-        <DataListItem label="Krevde dager">{data.antall_dager} dager</DataListItem>
-      )}
-      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      {data.ny_sluttdato && (
-        <DataListItem label="Ny sluttdato">{formatDateMedium(data.ny_sluttdato)}</DataListItem>
-      )}
-      <LongTextField label="Fremdriftsdokumentasjon" value={data.fremdriftshindring_dokumentasjon} />
-      <VedleggDisplay vedleggIds={data.vedlegg_ids} />
-    </DataList>
+    <div className="space-y-4">
+      <DataList>
+        <VarselInfoDisplay label="Varslet" varsel={data.frist_varsel} />
+        <VarselInfoDisplay label="Spesifisert" varsel={data.spesifisert_varsel} />
+        {data.antall_dager !== undefined && (
+          <DataListItem label="Krevd">{data.antall_dager} dager</DataListItem>
+        )}
+        {data.ny_sluttdato && (
+          <DataListItem label="Ny sluttdato">{formatDateMedium(data.ny_sluttdato)}</DataListItem>
+        )}
+        <VedleggDisplay vedleggIds={data.vedlegg_ids} />
+      </DataList>
+
+      <FullWidthTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+      <FullWidthTextField label="Fremdriftsdokumentasjon" value={data.fremdriftshindring_dokumentasjon} />
+    </div>
   );
 }
 
 function FristOppdatertSection({ data }: { data: FristOppdatertEventData }) {
+  // Backend sender full FristData også for oppdaterte events
+  const fullData = data as unknown as FristEventData & FristOppdatertEventData;
+
   return (
-    <DataList>
-      {data.nytt_antall_dager !== undefined && (
-        <DataListItem label="Nytt antall dager">{data.nytt_antall_dager} dager</DataListItem>
-      )}
-      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      {data.dato_revidert && (
-        <DataListItem label="Revidert dato">{formatDateMedium(data.dato_revidert)}</DataListItem>
-      )}
-    </DataList>
+    <div className="space-y-4">
+      <DataList>
+        <VarselInfoDisplay label="Varslet" varsel={fullData.frist_varsel} />
+        <VarselInfoDisplay label="Spesifisert" varsel={fullData.spesifisert_varsel} />
+        {fullData.antall_dager !== undefined && (
+          <DataListItem label="Krevd">{fullData.antall_dager} dager</DataListItem>
+        )}
+        {fullData.ny_sluttdato && (
+          <DataListItem label="Ny sluttdato">{formatDateMedium(fullData.ny_sluttdato)}</DataListItem>
+        )}
+        {fullData.dato_revidert && (
+          <DataListItem label="Revidert dato">{formatDateMedium(fullData.dato_revidert)}</DataListItem>
+        )}
+        <VedleggDisplay vedleggIds={fullData.vedlegg_ids} />
+      </DataList>
+
+      <FullWidthTextField label="Begrunnelse" value={fullData.begrunnelse} defaultOpen={true} />
+      <FullWidthTextField label="Fremdriftsdokumentasjon" value={fullData.fremdriftshindring_dokumentasjon} />
+    </div>
   );
 }
 
 function FristSpesifisertSection({ data }: { data: FristSpesifisertEventData }) {
   return (
-    <DataList>
-      {data.antall_dager !== undefined && (
-        <DataListItem label="Antall dager">{data.antall_dager} dager</DataListItem>
-      )}
-      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      {data.er_svar_pa_foresporsel && (
-        <DataListItem label="Sendt etter BHs forespørsel">Ja</DataListItem>
-      )}
-      {data.ny_sluttdato && (
-        <DataListItem label="Ny sluttdato">{formatDateMedium(data.ny_sluttdato)}</DataListItem>
-      )}
-      {data.dato_spesifisert && (
-        <DataListItem label="Spesifisert dato">{formatDateMedium(data.dato_spesifisert)}</DataListItem>
-      )}
-    </DataList>
+    <div className="space-y-4">
+      <DataList>
+        {data.antall_dager !== undefined && (
+          <DataListItem label="Antall dager">{data.antall_dager} dager</DataListItem>
+        )}
+        {data.er_svar_pa_foresporsel && (
+          <DataListItem label="Sendt etter BHs forespørsel">Ja</DataListItem>
+        )}
+        {data.ny_sluttdato && (
+          <DataListItem label="Ny sluttdato">{formatDateMedium(data.ny_sluttdato)}</DataListItem>
+        )}
+        {data.dato_spesifisert && (
+          <DataListItem label="Spesifisert dato">{formatDateMedium(data.dato_spesifisert)}</DataListItem>
+        )}
+      </DataList>
+
+      <FullWidthTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+    </div>
   );
 }
 
 function ResponsGrunnlagSection({ data }: { data: ResponsGrunnlagEventData }) {
   return (
-    <DataList>
-      <DataListItem label="Resultat">{getBhGrunnlagssvarLabel(data.resultat)}</DataListItem>
-      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} markdown />
-      {data.akseptert_kategori && (
-        <DataListItem label="Akseptert kategori">{data.akseptert_kategori}</DataListItem>
-      )}
-    </DataList>
+    <div className="space-y-4">
+      <DataList>
+        <DataListItem label="Resultat">{getBhGrunnlagssvarLabel(data.resultat)}</DataListItem>
+        {data.grunnlag_varslet_i_tide !== undefined && (
+          <DataListItem label="Varsel rettidig (§32.2)">
+            {data.grunnlag_varslet_i_tide ? 'Ja' : 'Nei – prekludert'}
+          </DataListItem>
+        )}
+        {data.akseptert_kategori && (
+          <DataListItem label="Akseptert kategori">{data.akseptert_kategori}</DataListItem>
+        )}
+      </DataList>
+
+      <FullWidthTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} markdown />
+    </div>
   );
 }
 
 function ResponsGrunnlagOppdatertSection({ data }: { data: ResponsGrunnlagOppdatertEventData }) {
   return (
-    <DataList>
-      {data.resultat && (
-        <DataListItem label="Nytt resultat">{getBhGrunnlagssvarLabel(data.resultat)}</DataListItem>
-      )}
-      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} markdown />
-      {data.dato_endret && (
-        <DataListItem label="Endret dato">{formatDateMedium(data.dato_endret)}</DataListItem>
-      )}
-    </DataList>
+    <div className="space-y-4">
+      <DataList>
+        {data.resultat && (
+          <DataListItem label="Nytt resultat">{getBhGrunnlagssvarLabel(data.resultat)}</DataListItem>
+        )}
+        {data.dato_endret && (
+          <DataListItem label="Endret dato">{formatDateMedium(data.dato_endret)}</DataListItem>
+        )}
+      </DataList>
+
+      <FullWidthTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} markdown />
+    </div>
   );
 }
 
@@ -407,24 +485,27 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
     : data.total_godkjent_belop;
 
   return (
-    <DataList>
-      {data.vederlagsmetode && (
-        <DataListItem label="Metode">{getVederlagsmetodeLabel(data.vederlagsmetode)}</DataListItem>
-      )}
-      {data.total_krevd_belop !== undefined && (
-        <DataListItem label="Krevd" mono>{formatCurrency(data.total_krevd_belop)}</DataListItem>
-      )}
-      {godkjentBelop !== undefined && (
-        <DataListItem label={godkjentLabel} mono>{formatCurrency(godkjentBelop)}</DataListItem>
-      )}
-      {data.beregnings_resultat && (
-        <DataListItem label="Resultat">{getBhVederlagssvarLabel(data.beregnings_resultat)}</DataListItem>
-      )}
-      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      {data.frist_for_spesifikasjon && (
-        <DataListItem label="Spesifiseringsfrist">{formatDateMedium(data.frist_for_spesifikasjon)}</DataListItem>
-      )}
-    </DataList>
+    <div className="space-y-4">
+      <DataList>
+        {data.vederlagsmetode && (
+          <DataListItem label="Metode">{getVederlagsmetodeLabel(data.vederlagsmetode)}</DataListItem>
+        )}
+        {data.total_krevd_belop !== undefined && (
+          <DataListItem label="Krevd" mono>{formatCurrency(data.total_krevd_belop)}</DataListItem>
+        )}
+        {godkjentBelop !== undefined && (
+          <DataListItem label={godkjentLabel} mono>{formatCurrency(godkjentBelop)}</DataListItem>
+        )}
+        {data.beregnings_resultat && (
+          <DataListItem label="Resultat">{getBhVederlagssvarLabel(data.beregnings_resultat)}</DataListItem>
+        )}
+        {data.frist_for_spesifikasjon && (
+          <DataListItem label="Spesifiseringsfrist">{formatDateMedium(data.frist_for_spesifikasjon)}</DataListItem>
+        )}
+      </DataList>
+
+      <FullWidthTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+    </div>
   );
 }
 
@@ -437,18 +518,21 @@ function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdat
     : data.total_godkjent_belop;
 
   return (
-    <DataList>
-      {data.beregnings_resultat && (
-        <DataListItem label="Nytt resultat">{getBhVederlagssvarLabel(data.beregnings_resultat)}</DataListItem>
-      )}
-      {godkjentBelop !== undefined && (
-        <DataListItem label={godkjentLabel} mono>{formatCurrency(godkjentBelop)}</DataListItem>
-      )}
-      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      {data.dato_endret && (
-        <DataListItem label="Endret dato">{formatDateMedium(data.dato_endret)}</DataListItem>
-      )}
-    </DataList>
+    <div className="space-y-4">
+      <DataList>
+        {data.beregnings_resultat && (
+          <DataListItem label="Nytt resultat">{getBhVederlagssvarLabel(data.beregnings_resultat)}</DataListItem>
+        )}
+        {godkjentBelop !== undefined && (
+          <DataListItem label={godkjentLabel} mono>{formatCurrency(godkjentBelop)}</DataListItem>
+        )}
+        {data.dato_endret && (
+          <DataListItem label="Endret dato">{formatDateMedium(data.dato_endret)}</DataListItem>
+        )}
+      </DataList>
+
+      <FullWidthTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+    </div>
   );
 }
 
@@ -461,18 +545,21 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
     : data.godkjent_dager;
 
   return (
-    <DataList>
-      {godkjentDager !== undefined && (
-        <DataListItem label={godkjentLabel}>{godkjentDager} dager</DataListItem>
-      )}
-      {data.beregnings_resultat && (
-        <DataListItem label="Resultat">{getBhFristsvarLabel(data.beregnings_resultat)}</DataListItem>
-      )}
-      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      {data.ny_sluttdato && (
-        <DataListItem label="Ny sluttdato">{formatDateMedium(data.ny_sluttdato)}</DataListItem>
-      )}
-    </DataList>
+    <div className="space-y-4">
+      <DataList>
+        {godkjentDager !== undefined && (
+          <DataListItem label={godkjentLabel}>{godkjentDager} dager</DataListItem>
+        )}
+        {data.beregnings_resultat && (
+          <DataListItem label="Resultat">{getBhFristsvarLabel(data.beregnings_resultat)}</DataListItem>
+        )}
+        {data.ny_sluttdato && (
+          <DataListItem label="Ny sluttdato">{formatDateMedium(data.ny_sluttdato)}</DataListItem>
+        )}
+      </DataList>
+
+      <FullWidthTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+    </div>
   );
 }
 
@@ -485,21 +572,24 @@ function ResponsFristOppdatertSection({ data }: { data: ResponsFristOppdatertEve
     : data.godkjent_dager;
 
   return (
-    <DataList>
-      {data.beregnings_resultat && (
-        <DataListItem label="Nytt resultat">{getBhFristsvarLabel(data.beregnings_resultat)}</DataListItem>
-      )}
-      {godkjentDager !== undefined && (
-        <DataListItem label={godkjentLabel}>{godkjentDager} dager</DataListItem>
-      )}
-      {data.stopper_forsering && (
-        <DataListItem label="Stopper forsering">Ja - §33.8</DataListItem>
-      )}
-      <LongTextField label="Kommentar" value={data.kommentar} defaultOpen={true} />
-      {data.dato_endret && (
-        <DataListItem label="Endret dato">{formatDateMedium(data.dato_endret)}</DataListItem>
-      )}
-    </DataList>
+    <div className="space-y-4">
+      <DataList>
+        {data.beregnings_resultat && (
+          <DataListItem label="Nytt resultat">{getBhFristsvarLabel(data.beregnings_resultat)}</DataListItem>
+        )}
+        {godkjentDager !== undefined && (
+          <DataListItem label={godkjentLabel}>{godkjentDager} dager</DataListItem>
+        )}
+        {data.stopper_forsering && (
+          <DataListItem label="Stopper forsering">Ja - §33.8</DataListItem>
+        )}
+        {data.dato_endret && (
+          <DataListItem label="Endret dato">{formatDateMedium(data.dato_endret)}</DataListItem>
+        )}
+      </DataList>
+
+      <FullWidthTextField label="Kommentar" value={data.kommentar} defaultOpen={true} />
+    </div>
   );
 }
 
@@ -539,9 +629,7 @@ function ForseringVarselSection({ data }: { data: ForseringVarselEventData }) {
       </SectionContainer>
 
       {/* Begrunnelse */}
-      <SectionContainer title="Begrunnelse" variant="subtle" spacing="compact">
-        <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      </SectionContainer>
+      <FullWidthTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
 
       {/* Referanser */}
       <SectionContainer title="Referanser" variant="subtle" spacing="compact">
