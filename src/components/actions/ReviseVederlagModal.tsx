@@ -30,7 +30,6 @@ import {
   DatePicker,
   FormField,
   Modal,
-  RevisionTag,
   SectionContainer,
   Textarea,
   useToast,
@@ -198,21 +197,53 @@ export function ReviseVederlagModal({
   const formData = watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'vederlag_krav_oppdatert', formData, isDirty);
 
-  // Auto-restore backup on mount (silent restoration with toast notification)
+  // Fresh values from lastVederlagEvent (for reset and Tilbakestill)
+  const freshValues = useMemo((): ReviseVederlagFormData => ({
+    metode: lastVederlagEvent.metode,
+    nytt_belop_direkte: lastVederlagEvent.metode === 'REGNINGSARBEID' ? undefined : lastVederlagEvent.belop_direkte,
+    nytt_kostnads_overslag: lastVederlagEvent.metode === 'REGNINGSARBEID' ? lastVederlagEvent.kostnads_overslag : undefined,
+    krever_justert_ep: lastVederlagEvent.krever_justert_ep ?? false,
+    varslet_for_oppstart: lastVederlagEvent.varslet_for_oppstart ?? true,
+    har_rigg_krav: !!lastVederlagEvent.saerskilt_krav?.rigg_drift,
+    belop_rigg: lastVederlagEvent.saerskilt_krav?.rigg_drift?.belop,
+    dato_klar_over_rigg: lastVederlagEvent.saerskilt_krav?.rigg_drift?.dato_klar_over,
+    har_produktivitet_krav: !!lastVederlagEvent.saerskilt_krav?.produktivitet,
+    belop_produktivitet: lastVederlagEvent.saerskilt_krav?.produktivitet?.belop,
+    dato_klar_over_produktivitet: lastVederlagEvent.saerskilt_krav?.produktivitet?.dato_klar_over,
+    begrunnelse: '',
+    attachments: [],
+  }), [lastVederlagEvent]);
+
+  // Reset form with latest values when modal opens
   const hasCheckedBackup = useRef(false);
   useEffect(() => {
-    if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
+    if (open && !hasCheckedBackup.current) {
       hasCheckedBackup.current = true;
-      const backup = getBackup();
-      if (backup) {
-        reset(backup);
-        toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
+
+      // Check for backup and merge with fresh values (backup takes precedence, but fills gaps)
+      if (hasBackup && !isDirty) {
+        const backup = getBackup();
+        if (backup) {
+          // Merge: backup overrides, but fresh values fill in missing fields
+          reset({ ...freshValues, ...backup });
+          toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
+          return;
+        }
       }
+
+      // No backup - use fresh values
+      reset(freshValues);
     }
     if (!open) {
       hasCheckedBackup.current = false;
     }
-  }, [open, hasBackup, isDirty, getBackup, reset, toast]);
+  }, [open, hasBackup, isDirty, getBackup, reset, toast, freshValues]);
+
+  // Handle reset to fresh values (Tilbakestill button)
+  const handleReset = () => {
+    clearBackup();
+    reset(freshValues);
+  };
 
   // Watch form values
   const selectedMetode = watch('metode');
@@ -377,62 +408,10 @@ export function ReviseVederlagModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Oppdater vederlagskrav"
+      title={`Oppdater vederlagskrav (${currentVersion === 0 ? 'original' : `v${currentVersion}`} → v${nextVersion})`}
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Revision info header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-pkt-text-body-subtle">Nåværende:</span>
-            {currentVersion === 0 ? (
-              <Badge variant="neutral">Original</Badge>
-            ) : (
-              <RevisionTag version={currentVersion} size="sm" />
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-pkt-text-body-subtle">Oppretter:</span>
-            <RevisionTag version={nextVersion} size="sm" />
-          </div>
-        </div>
-
-        {/* Kompakt nåværende status - 2 linjer */}
-        <div className="space-y-2 py-3 px-3 bg-pkt-surface-subtle border-l-2 border-pkt-border-subtle">
-          {/* Linje 1: Entreprenørens krav */}
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-pkt-text-body-subtle">Entreprenørens krav:</span>
-            <span className="font-mono font-medium">kr {forrigeBelop?.toLocaleString('nb-NO') ?? 0},-</span>
-            <span className="text-pkt-text-body-subtle">({METODE_LABELS[forrigeMetode]})</span>
-            {erEnhetspriser && lastVederlagEvent.krever_justert_ep && (
-              <Badge variant="info" size="sm">Justert enhetspris</Badge>
-            )}
-          </div>
-          {/* Linje 2: Byggherrens svar (hvis finnes) */}
-          {harBhSvar && bhResponse && (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-pkt-text-body-subtle">Byggherrens svar:</span>
-              <Badge variant={RESULTAT_VARIANTS[bhResponse.resultat]} size="sm">
-                {RESULTAT_LABELS[bhResponse.resultat]}
-              </Badge>
-              {bhResponse.godkjent_belop != null && (
-                <span className="font-mono">
-                  kr {bhResponse.godkjent_belop.toLocaleString('nb-NO')},-
-                  {forrigeBelop && forrigeBelop > 0 && (
-                    <span className="text-pkt-text-body-subtle ml-1">
-                      ({((bhResponse.godkjent_belop / forrigeBelop) * 100).toFixed(0)}%)
-                    </span>
-                  )}
-                </span>
-              )}
-              {bhAvvisteMetode && bhResponse.oensket_metode && (
-                <span className="text-xs text-pkt-text-body-subtle">
-                  → ønsker {METODE_LABELS[bhResponse.oensket_metode]}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
 
         {/* Hold tilbake alert */}
         {erHoldTilbake && (
@@ -797,28 +776,46 @@ export function ReviseVederlagModal({
         )}
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-6 border-t-2 border-pkt-border-subtle">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => onOpenChange(false)}
-            disabled={isSubmitting}
-            className="w-full sm:w-auto order-2 sm:order-1"
-          >
-            Avbryt
-          </Button>
-          <Button
-            type="submit"
-            variant={overslagsokningVarselpliktig ? 'danger' : 'primary'}
-            disabled={isSubmitting || manglerPaakrevdOverslag}
-            className="w-full sm:w-auto order-1 sm:order-2"
-          >
-            {isSubmitting
-              ? 'Sender...'
-              : overslagsokningVarselpliktig
-                ? 'Send Varsel om Overslagsoverskridelse'
-                : 'Send Revisjon'}
-          </Button>
+        <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-3 pt-6 border-t-2 border-pkt-border-subtle">
+          {/* Venstre: Tilbakestill (kun synlig når isDirty) */}
+          <div>
+            {isDirty && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleReset}
+                disabled={isSubmitting}
+              >
+                Tilbakestill
+              </Button>
+            )}
+          </div>
+
+          {/* Høyre: Avbryt + Hovedhandling */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto order-2 sm:order-1"
+            >
+              Avbryt
+            </Button>
+            <Button
+              type="submit"
+              variant={overslagsokningVarselpliktig ? 'danger' : 'primary'}
+              disabled={isSubmitting || manglerPaakrevdOverslag}
+              className="w-full sm:w-auto order-1 sm:order-2"
+            >
+              {isSubmitting
+                ? 'Sender...'
+                : overslagsokningVarselpliktig
+                  ? 'Send Varsel om Overslagsoverskridelse'
+                  : 'Send Revisjon'}
+            </Button>
+          </div>
         </div>
       </form>
 

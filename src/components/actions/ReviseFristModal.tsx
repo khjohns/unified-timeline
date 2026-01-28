@@ -170,21 +170,43 @@ export function ReviseFristModal({
   const backupEventType = modalMode === 'revider' ? 'frist_krav_oppdatert' : 'frist_krav_spesifisert';
   const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, backupEventType, formData, isDirty);
 
-  // Auto-restore backup on mount (silent restoration with toast notification)
+  // Fresh values from lastFristEvent (for reset and Tilbakestill)
+  const freshValues = useMemo((): ReviseFristFormData => ({
+    antall_dager: modalMode === 'revider' ? lastFristEvent.antall_dager : 0,
+    begrunnelse: '',
+    ny_sluttdato: '',
+    attachments: [],
+  }), [modalMode, lastFristEvent.antall_dager]);
+
+  // Reset form with latest values when modal opens
   const hasCheckedBackup = useRef(false);
   useEffect(() => {
-    if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
+    if (open && !hasCheckedBackup.current) {
       hasCheckedBackup.current = true;
-      const backup = getBackup();
-      if (backup) {
-        reset(backup);
-        toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
+
+      // Check for backup and merge with fresh values (backup takes precedence, but fills gaps)
+      if (hasBackup && !isDirty) {
+        const backup = getBackup();
+        if (backup) {
+          reset({ ...freshValues, ...backup });
+          toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
+          return;
+        }
       }
+
+      // No backup - use fresh values
+      reset(freshValues);
     }
     if (!open) {
       hasCheckedBackup.current = false;
     }
-  }, [open, hasBackup, isDirty, getBackup, reset, toast]);
+  }, [open, hasBackup, isDirty, getBackup, reset, toast, freshValues]);
+
+  // Handle reset to fresh values (Tilbakestill button)
+  const handleReset = () => {
+    clearBackup();
+    reset(freshValues);
+  };
 
   const antallDager = watch('antall_dager');
 
@@ -463,22 +485,40 @@ export function ReviseFristModal({
         )}
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-6 border-t-2 border-pkt-border-subtle">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => onOpenChange(false)}
-            disabled={isSubmitting}
-          >
-            Avbryt
-          </Button>
-          <Button
-            type="submit"
-            variant={modalConfig.submitVariant}
-            disabled={isSubmitting || !watch('begrunnelse') || erUgyldigDager}
-          >
-            {isSubmitting ? 'Sender...' : modalConfig.submitLabel}
-          </Button>
+        <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-3 pt-6 border-t-2 border-pkt-border-subtle">
+          {/* Venstre: Tilbakestill (kun synlig når isDirty) */}
+          <div>
+            {isDirty && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleReset}
+                disabled={isSubmitting}
+              >
+                Tilbakestill
+              </Button>
+            )}
+          </div>
+
+          {/* Høyre: Avbryt + Hovedhandling */}
+          <div className="flex gap-2 sm:gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Avbryt
+            </Button>
+            <Button
+              type="submit"
+              variant={modalConfig.submitVariant}
+              disabled={isSubmitting || !watch('begrunnelse') || erUgyldigDager}
+            >
+              {isSubmitting ? 'Sender...' : modalConfig.submitLabel}
+            </Button>
+          </div>
         </div>
       </form>
 

@@ -334,28 +334,39 @@ export function RespondFristModal({
   const formData = watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'respons_frist', formData, isDirty);
 
-  // Auto-restore backup on mount (silent restoration with toast notification)
+  // Fresh values for reset and Tilbakestill (same as computedDefaultValues)
+  const freshValues = computedDefaultValues;
+
+  // Reset form with latest values when modal opens
   const hasCheckedBackup = useRef(false);
   useEffect(() => {
-    if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
+    if (open && !hasCheckedBackup.current) {
       hasCheckedBackup.current = true;
-      const backup = getBackup();
-      if (backup) {
-        reset(backup);
-        toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
+
+      // Check for backup and merge with fresh values (backup takes precedence, but fills gaps)
+      if (hasBackup && !isDirty) {
+        const backup = getBackup();
+        if (backup) {
+          reset({ ...freshValues, ...backup });
+          toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
+          return;
+        }
       }
+
+      // No backup - use fresh values
+      reset(freshValues);
     }
     if (!open) {
       hasCheckedBackup.current = false;
     }
-  }, [open, hasBackup, isDirty, getBackup, reset, toast]);
+  }, [open, hasBackup, isDirty, getBackup, reset, toast, freshValues]);
 
-  // Reset form when opening in update mode with new lastResponseEvent
-  useEffect(() => {
-    if (open && isUpdateMode && lastResponseEvent) {
-      reset(computedDefaultValues);
-    }
-  }, [open, isUpdateMode, lastResponseEvent, reset, computedDefaultValues]);
+  // Handle reset to fresh values (Tilbakestill button) - only for update mode
+  const handleReset = () => {
+    clearBackup();
+    reset(freshValues);
+    setCurrentPort(1);
+  };
 
   // Track pending toast for dismissal
   const pendingToastId = useRef<string | null>(null);
@@ -1943,7 +1954,7 @@ export function RespondFristModal({
           {/* Navigation Actions (ikke for begrunnelse_utsatt - har egen knapper) */}
           {!erBegrunnelseUtsatt && (
           <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-4 pt-6 border-t-2 border-pkt-border-subtle">
-            <div>
+            <div className="flex gap-2">
               {currentPort > 1 && (
                 <Button
                   type="button"
@@ -1956,6 +1967,18 @@ export function RespondFristModal({
                   className="w-full sm:w-auto"
                 >
                   ← Forrige
+                </Button>
+              )}
+              {/* Tilbakestill (kun synlig i update mode når isDirty) */}
+              {isUpdateMode && isDirty && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleReset}
+                  disabled={isSubmitting}
+                >
+                  Tilbakestill
                 </Button>
               )}
             </div>
