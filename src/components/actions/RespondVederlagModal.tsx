@@ -456,6 +456,10 @@ export function RespondVederlagModal({
   const formValues = watch();
 
   // Derived state
+  // NB: Variabelen heter erSubsidiaer men sjekker kun om grunnlag er avslått.
+  // Den faktiske er_subsidiaert_vederlag beregnes i backend (krever også at vederlag er godkjent).
+  // Her brukes den som prosess-flagg for å vise "subsidiær behandling"-veiledning i UI.
+  // Se: backend/models/sak_state.py:931-956 for fullstendig beregning.
   const erSubsidiaer = grunnlagStatus === 'avslatt';
   const kanHoldeTilbake =
     vederlagEvent?.metode === 'REGNINGSARBEID' && !vederlagEvent?.kostnads_overslag;
