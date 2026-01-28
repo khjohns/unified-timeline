@@ -257,15 +257,16 @@ describe('View Components - Functional Tests', () => {
     it('should display entreprenør and byggherre', () => {
       render(<ComprehensiveMetadata state={mockSakState1} sakId="SAK-2025-001" />);
 
-      expect(screen.getByText(/Entreprenør \(TE\)/i)).toBeInTheDocument();
-      expect(screen.getByText(/Byggherre \(BH\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/Entreprenør/i)).toBeInTheDocument();
+      expect(screen.getByText(/Byggherre/i)).toBeInTheDocument();
     });
 
-    it('should display opprettet and status fields', () => {
+    it('should display opprettet field and status badge', () => {
       render(<ComprehensiveMetadata state={mockSakState1} sakId="SAK-2025-001" />);
 
       expect(screen.getByText(/Opprettet/i)).toBeInTheDocument();
-      expect(screen.getByText(/Status/i)).toBeInTheDocument();
+      // Status is shown as a badge, not a label - "Under behandling" is tested in 'should render overordnet status'
+      expect(screen.getByText(/Under behandling/i)).toBeInTheDocument();
     });
 
     it('should display sak-id', () => {

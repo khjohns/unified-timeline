@@ -399,7 +399,7 @@ function CasePageContent() {
               )}
               {userRole === 'TE' && actions.canUpdateGrunnlag && (
                 <Button
-                  variant="secondary"
+                  variant={state.grunnlag.bh_resultat && state.grunnlag.bh_resultat !== 'godkjent' ? 'primary' : 'secondary'}
                   size="sm"
                   onClick={() => setUpdateGrunnlagOpen(true)}
                 >
@@ -463,7 +463,7 @@ function CasePageContent() {
               )}
               {userRole === 'TE' && actions.canUpdateVederlag && (
                 <Button
-                  variant="secondary"
+                  variant={state.vederlag.bh_resultat && state.vederlag.bh_resultat !== 'godkjent' ? 'primary' : 'secondary'}
                   size="sm"
                   onClick={() => setReviseVederlagOpen(true)}
                 >
@@ -510,7 +510,7 @@ function CasePageContent() {
               )}
               {userRole === 'TE' && actions.canUpdateFrist && (
                 <Button
-                  variant="secondary"
+                  variant={state.frist.bh_resultat && state.frist.bh_resultat !== 'godkjent' ? 'primary' : 'secondary'}
                   size="sm"
                   onClick={() => setReviseFristOpen(true)}
                 >
@@ -741,6 +741,7 @@ function CasePageContent() {
               begrunnelse: state.vederlag.begrunnelse,
               krever_justert_ep: state.vederlag.krever_justert_ep,
               varslet_for_oppstart: state.vederlag.regningsarbeid_varsel !== undefined,
+              saerskilt_krav: state.vederlag.saerskilt_krav,
             }}
             currentVersion={Math.max(0, (state.vederlag.antall_versjoner ?? 1) - 1)}
             bhResponse={
@@ -773,6 +774,7 @@ function CasePageContent() {
               begrunnelse: state.frist.bh_begrunnelse,
             } : undefined}
             fristTilstand={state.frist}
+            currentVersion={Math.max(0, (state.frist.antall_versjoner ?? 1) - 1)}
             originalVarselType={state.frist.varsel_type}
             harMottattForesporsel={state.frist.har_bh_foresporsel}
             fristForSpesifisering={state.frist.frist_for_spesifisering}

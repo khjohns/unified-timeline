@@ -16,7 +16,6 @@
 import {
   Alert,
   AttachmentUpload,
-  Badge,
   Button,
   DatePicker,
   FormField,
@@ -66,6 +65,8 @@ interface ReviseFristModalProps {
     begrunnelse?: string;
   };
   fristTilstand: FristTilstand;
+  /** Current version number (0 = original, 1+ = revisions). Next revision will be currentVersion + 1. */
+  currentVersion?: number;
   /** Original varsel type from the claim - determines if specification is needed */
   originalVarselType?: FristVarselType;
   /** Whether BH has sent an foresporsel (§33.6.2) */
@@ -78,18 +79,6 @@ interface ReviseFristModalProps {
   subsidiaerTriggers?: SubsidiaerTrigger[];
 }
 
-const RESULTAT_LABELS: Record<FristBeregningResultat, string> = {
-  godkjent: 'Godkjent',
-  delvis_godkjent: 'Delvis godkjent',
-  avslatt: 'Avslått',
-};
-
-const RESULTAT_VARIANTS: Record<FristBeregningResultat, 'success' | 'warning' | 'danger'> = {
-  godkjent: 'success',
-  delvis_godkjent: 'warning',
-  avslatt: 'danger',
-};
-
 export function ReviseFristModal({
   open,
   onOpenChange,
@@ -97,6 +86,7 @@ export function ReviseFristModal({
   lastFristEvent,
   lastResponseEvent,
   fristTilstand,
+  currentVersion = 0,
   originalVarselType,
   harMottattForesporsel,
   fristForSpesifisering,
@@ -104,9 +94,9 @@ export function ReviseFristModal({
   subsidiaerTriggers,
 }: ReviseFristModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
-  const erSubsidiaer = subsidiaerTriggers && subsidiaerTriggers.length > 0;
   const toast = useToast();
-  const harBhSvar = !!lastResponseEvent;
+  // This revision will become the next version
+  const nextVersion = currentVersion + 1;
 
   // Determine modal mode based on claim type and foresporsel status
   const modalMode: ModalMode = useMemo(() => {
@@ -129,7 +119,7 @@ export function ReviseFristModal({
     switch (modalMode) {
       case 'spesifiser_foresporsel':
         return {
-          title: 'Svar på byggherrens foresporsel (§33.6.2)',
+          title: 'Svar på byggherrens forespørsel (§33.6.2)',
           submitLabel: 'Send spesifisert krav',
           submitVariant: 'danger' as const,
         };
@@ -141,15 +131,14 @@ export function ReviseFristModal({
         };
       default:
         return {
-          title: 'Oppdater fristkrav',
+          title: `Oppdater fristkrav (${currentVersion === 0 ? 'original' : `v${currentVersion}`} → v${nextVersion})`,
           submitLabel: 'Oppdater Krav',
           submitVariant: 'primary' as const,
         };
     }
-  }, [modalMode]);
+  }, [modalMode, currentVersion, nextVersion]);
 
   const {
-    register,
     handleSubmit,
     formState: { errors, isSubmitting, isDirty },
     control,
@@ -319,53 +308,6 @@ export function ReviseFristModal({
               Du skal sende spesifisert krav «uten ugrunnet opphold» når du har grunnlag for beregning.
               Sen spesifisering medfører at kravet reduseres til det byggherren «måtte forstå» (§33.6.1).
             </p>
-          </Alert>
-        )}
-
-        {/* Kompakt nåværende status - 2 linjer */}
-        <div className="space-y-2 py-3 px-3 bg-pkt-surface-subtle border-l-2 border-pkt-border-subtle">
-          {modalMode === 'revider' ? (
-            <>
-              {/* Linje 1: Entreprenørens krav */}
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-pkt-text-body-subtle">Entreprenørens krav:</span>
-                <span className="font-mono font-medium">{lastFristEvent.antall_dager} dager</span>
-              </div>
-              {/* Linje 2: Byggherrens svar (hvis finnes) */}
-              {lastResponseEvent ? (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-pkt-text-body-subtle">Byggherrens svar:</span>
-                  <Badge variant={RESULTAT_VARIANTS[lastResponseEvent.resultat]} size="sm">
-                    {RESULTAT_LABELS[lastResponseEvent.resultat]}
-                  </Badge>
-                  <span className="font-mono">
-                    {erSubsidiaer ? 'Subsidiært ' : ''}{lastResponseEvent.godkjent_dager ?? 0} dager
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-pkt-text-body-subtle">Byggherrens svar:</span>
-                  <Badge variant="neutral" size="sm">Avventer</Badge>
-                </div>
-              )}
-            </>
-          ) : (
-            /* Specification mode: Compact notice */
-            <div className="flex items-center gap-2 text-sm">
-              <Badge variant="warning" size="sm">Foreløpig varsel</Badge>
-              <span className="text-pkt-text-body-subtle">— spesifiser antall dager</span>
-              {fristTilstand.frist_varsel?.dato_sendt && (
-                <span className="text-pkt-text-body-subtle">(sendt {fristTilstand.frist_varsel.dato_sendt})</span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Info when BH hasn't responded - only for revision mode */}
-        {modalMode === 'revider' && !lastResponseEvent && (
-          <Alert variant="info" title="Revisjon før svar">
-            Du kan oppdatere kravet ditt før byggherren har svart. Det reviderte kravet
-            erstatter det opprinnelige kravet.
           </Alert>
         )}
 

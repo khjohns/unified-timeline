@@ -37,8 +37,8 @@ export function ComprehensiveMetadata({
         <InlineDataListItem label="Sak-ID">{sakId}</InlineDataListItem>
         <InlineDataListItem label="Opprettet">{formatDateMedium(state.grunnlag.siste_oppdatert)}</InlineDataListItem>
         <InlineDataListItem label="Prosjekt">{state.prosjekt_navn || '—'}</InlineDataListItem>
-        <InlineDataListItem label="BH">{state.byggherre || '—'}</InlineDataListItem>
-        <InlineDataListItem label="TE">{state.entreprenor || '—'}</InlineDataListItem>
+        <InlineDataListItem label="Byggherre">{state.byggherre || '—'}</InlineDataListItem>
+        <InlineDataListItem label="Entreprenør">{state.entreprenor || '—'}</InlineDataListItem>
       </InlineDataList>
 
       {/* Status badge */}
