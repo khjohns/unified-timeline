@@ -1669,35 +1669,37 @@ export function RespondVederlagModal({
               <div className="space-y-4">
                 {/* Metode */}
                 <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  <h5 className="font-medium text-sm mb-2">Beregningsmetode</h5>
-                  <div className="flex items-center gap-2">
-                    {formValues.aksepterer_metode ? (
-                      <Badge variant="success">Akseptert</Badge>
-                    ) : (
-                      <>
-                        <Badge variant="warning">Endret</Badge>
-                        <span className="text-sm">
-                          → {formValues.oensket_metode && getVederlagsmetodeLabel(formValues.oensket_metode)}
-                        </span>
-                      </>
-                    )}
-                  </div>
+                  <InlineDataList title="Beregningsmetode" stackOnMobile>
+                    <InlineDataListItem label="Foreslått">
+                      {vederlagEvent?.metode && getVederlagsmetodeLabel(vederlagEvent.metode)}
+                    </InlineDataListItem>
+                    <InlineDataListItem
+                      label="Vurdering"
+                      variant={formValues.aksepterer_metode ? 'success' : 'warning'}
+                    >
+                      {formValues.aksepterer_metode
+                        ? 'Akseptert'
+                        : `Endret → ${formValues.oensket_metode && getVederlagsmetodeLabel(formValues.oensket_metode)}`}
+                    </InlineDataListItem>
+                  </InlineDataList>
                   {maSvarePaJustering && (
-                    <div className="mt-2 text-sm">
-                      Justerte enhetspriser:{' '}
+                    <InlineDataList className="mt-2" stackOnMobile>
+                      <InlineDataListItem
+                        label="Justerte EP"
+                        variant={formValues.ep_justering_akseptert ? 'success' : 'danger'}
+                      >
+                        {formValues.ep_justering_akseptert ? 'Akseptert' : 'Avvist'}
+                      </InlineDataListItem>
                       {formValues.ep_justering_varslet_i_tide === false && (
-                        <Badge variant="warning" className="mr-1">Varslet for sent</Badge>
+                        <InlineDataListItem label="Varsel" variant="warning">
+                          For sent
+                        </InlineDataListItem>
                       )}
-                      {formValues.ep_justering_akseptert ? (
-                        <Badge variant="success">Akseptert</Badge>
-                      ) : (
-                        <Badge variant="danger">Avvist</Badge>
-                      )}
-                    </div>
+                    </InlineDataList>
                   )}
                   {formValues.hold_tilbake && (
-                    <div className="mt-2">
-                      <Badge variant="warning">Betaling holdes tilbake (§30.2)</Badge>
+                    <div className="mt-2 text-sm text-pkt-brand-yellow-1000">
+                      Betaling holdes tilbake (§30.2)
                     </div>
                   )}
                 </div>
