@@ -186,18 +186,17 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
     hjemmel_vederlag: '34.1.2',
     standard_vederlagsmetode: 'Regningsarbeid (34.4)',
     type_krav: 'Tid og Penger',
-    // TOLKNING: §25.1.1 sier "byggherrens ytelser og andre forhold byggherren har risikoen for",
-    // så §25.1.2 gjelder som grunnlagsvarsel også for ANDRE-kategorien. Dette kan virke
-    // overflødig for underkategorier der BH har gjort en aktiv handling han selv vet om
-    // (nektelse, brukstakelse, pålagt stans), men vi inkluderer det for konsistens og
-    // for å sikre at TE alltid har dokumentert varsling.
+    // For denne kategorien har vi ikke inkludert §25.1.2 som varselkrav, fordi:
+    // 1. Underkategoriene gjelder forhold der BH selv har handlet aktivt (nektelse, brukstakelse, stans)
+    // 2. BH vet allerede om forholdet - §25.1.2 har begrenset praktisk verdi
+    // 3. Den generelle varslingsfristen i §5 gjelder uansett
     underkategorier: [
       {
         kode: 'NEKT_MH',
         label: 'Nektelse av kontraktsmedhjelper',
         hjemmel_basis: '10.2',
         beskrivelse: 'Byggherren nekter å godta valgt medhjelper uten saklig grunn.',
-        varselkrav_ref: '25.1.2 / 33.4 / 34.1.2',
+        varselkrav_ref: '5',
         gruppe: 'Kontraktsmedhjelpere',
       },
       {
@@ -205,8 +204,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Skade forårsaket av byggherren/sideentreprenør',
         hjemmel_basis: '19.1',
         beskrivelse: 'Skade på kontraktsgjenstanden forårsaket av byggherren eller hans kontraktsmedhjelpere.',
-        // §20.5 gjelder TEs egne kontraktsstridige utførelser, ikke skade forårsaket av BH
-        varselkrav_ref: '25.1.2 / 33.4 / 34.1.2',
+        varselkrav_ref: '5',
         gruppe: 'Kontraktsbrudd',
       },
       {
@@ -214,7 +212,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Urettmessig brukstakelse',
         hjemmel_basis: '38.1 annet ledd',
         beskrivelse: 'Byggherren tar kontraktsgjenstanden i bruk før overtakelse/avtalt tid.',
-        varselkrav_ref: '25.1.2 / 33.4 / 34.1.2',
+        varselkrav_ref: '5',
         gruppe: 'Kontraktsbrudd',
       },
       {
@@ -222,8 +220,16 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Stans ved betalingsmislighold',
         hjemmel_basis: '29.2',
         beskrivelse: 'Rettmessig stans pga vesentlig betalingsmislighold. Krever 24 timers skriftlig varsel.',
-        varselkrav_ref: '29.2 / 33.4 / 34.1.2',
+        varselkrav_ref: '29.2',
         gruppe: 'Stans',
+      },
+      {
+        kode: 'ANDRE_ANDRE',
+        label: 'Annet forhold',
+        hjemmel_basis: '33.1 c)',
+        beskrivelse: 'Andre forhold byggherren har risikoen for som ikke dekkes av kategoriene over.',
+        varselkrav_ref: '',
+        gruppe: 'Annet',
       },
     ],
   },

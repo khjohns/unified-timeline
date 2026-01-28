@@ -432,10 +432,8 @@ export function SendGrunnlagModal({
                             <div className="mt-2 ml-6">
                               <KontraktsregelInline
                                 custom={{
-                                  inline: kategoriInfo.beskrivelse,
-                                  hjemmel: '',
-                                  konsekvens: `Fristforlengelse: §${kategoriInfo.hjemmel_frist}${kategoriInfo.hjemmel_vederlag ? `\nVederlagsjustering: §${kategoriInfo.hjemmel_vederlag}` : ''}`,
-                                  accordionLabel: 'Hjemler',
+                                  tekst: kategoriInfo.beskrivelse,
+                                  konsekvens: `Fristforlengelse: §${kategoriInfo.hjemmel_frist}${kategoriInfo.hjemmel_vederlag ? `, Vederlagsjustering: §${kategoriInfo.hjemmel_vederlag}` : ''}`,
                                 }}
                               />
                             </div>
@@ -511,10 +509,9 @@ export function SendGrunnlagModal({
                                         ) : (
                                           <KontraktsregelInline
                                             custom={{
-                                              inline: uk.beskrivelse,
+                                              tekst: uk.beskrivelse,
                                               hjemmel: `§${uk.hjemmel_basis}`,
-                                              konsekvens: `§${uk.varselkrav_ref}`,
-                                              accordionLabel: 'Varslingskrav',
+                                              konsekvens: `Varslingskrav: §${uk.varselkrav_ref}`,
                                             }}
                                           />
                                         )}
