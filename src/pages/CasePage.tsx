@@ -392,9 +392,10 @@ function CasePageContent() {
                 <Button
                   variant={
                     // Primary: BH har avvist/delvis godkjent OG TE har ikke sendt ny versjon etter
+                    // bh_respondert_versjon er 0-indeksert, antall_versjoner teller fra 1
                     state.grunnlag.bh_resultat &&
                     state.grunnlag.bh_resultat !== 'godkjent' &&
-                    state.grunnlag.antall_versjoner === state.grunnlag.bh_respondert_versjon
+                    state.grunnlag.antall_versjoner - 1 === state.grunnlag.bh_respondert_versjon
                       ? 'primary'
                       : 'secondary'
                   }
@@ -521,9 +522,10 @@ function CasePageContent() {
                 <Button
                   variant={
                     // Primary: BH har avvist/delvis godkjent OG TE har ikke sendt ny versjon etter
+                    // bh_respondert_versjon er 0-indeksert, antall_versjoner teller fra 1
                     state.frist.bh_resultat &&
                     state.frist.bh_resultat !== 'godkjent' &&
-                    state.frist.antall_versjoner === state.frist.bh_respondert_versjon
+                    state.frist.antall_versjoner - 1 === state.frist.bh_respondert_versjon
                       ? 'primary'
                       : 'secondary'
                   }

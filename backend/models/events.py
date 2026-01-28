@@ -9,6 +9,14 @@ kan prosesseres uavhengig på tre parallelle spor:
 - Frist (Hvor lang tid?)
 
 Hver event er immutable og representerer en faktisk hendelse i tid.
+
+TERMINOLOGI - Versjon vs Revisjon:
+- `versjon`: Tellende nummer for innsendinger (1, 2, 3...).
+  Versjon 1 er original innsending, versjon 2 er første oppdatering, osv.
+- `revisjon`: Brukes i UI for å vise oppdateringer. Revisjon = versjon - 1.
+  Original innsending har ingen revisjon, første oppdatering er "Rev. 1", osv.
+- `respondert_versjon`: 0-indeksert referanse til hvilken TE-versjon BH responderer på.
+  respondert_versjon=0 betyr respons på versjon 1 (original).
 """
 from pydantic import BaseModel, Field, field_validator, model_validator, computed_field
 from typing import Optional, Literal, List, Union
@@ -469,6 +477,10 @@ class GrunnlagEvent(SakEvent):
         ...,
         description="Grunnlagsdata"
     )
+    versjon: int = Field(
+        default=1,
+        description="Versjonsnummer (1=original, 2=første oppdatering, osv.). UI viser 'Rev. N' der N=versjon-1. Settes automatisk av backend."
+    )
 
     @field_validator('event_type')
     @classmethod
@@ -575,7 +587,7 @@ class VederlagEvent(SakEvent):
     )
     versjon: int = Field(
         default=1,
-        description="Versjonsnummer for dette kravet (1, 2, 3...)"
+        description="Versjonsnummer (1=original, 2=første oppdatering, osv.). UI viser 'Rev. N' der N=versjon-1."
     )
 
     @field_validator('event_type')
@@ -691,7 +703,7 @@ class FristEvent(SakEvent):
     )
     versjon: int = Field(
         default=1,
-        description="Versjonsnummer for dette kravet (1, 2, 3...)"
+        description="Versjonsnummer (1=original, 2=første oppdatering, osv.). UI viser 'Rev. N' der N=versjon-1."
     )
 
     @field_validator('event_type')
@@ -749,6 +761,12 @@ class GrunnlagResponsData(BaseModel):
         description="§32.2: Var grunnlagsvarselet rettidig? Kun relevant for ENDRING-kategorien."
     )
 
+    # ============ SPORBARHET ============
+    respondert_versjon: Optional[int] = Field(
+        default=None,
+        description="Hvilken TE-versjon (0-indeksert) denne responsen gjelder. Settes automatisk av backend."
+    )
+
     # ============ PARTIELL OPPDATERING ============
     original_respons_id: Optional[str] = Field(
         default=None,
@@ -802,10 +820,14 @@ class VederlagResponsData(BaseModel):
         description="Event-ID til original respons som oppdateres (for RESPONS_*_OPPDATERT)"
     )
 
-    # ============ REFERANSE ============
+    # ============ REFERANSE OG SPORBARHET ============
     vederlag_krav_id: Optional[str] = Field(
         default=None,
         description="Event-ID til vederlagskravet som besvares"
+    )
+    respondert_versjon: Optional[int] = Field(
+        default=None,
+        description="Hvilken TE-versjon (0-indeksert) denne responsen gjelder. Settes automatisk av backend."
     )
 
     # ============ PORT 1: PREKLUSJON (§34.1.2 og §34.1.3) ============
@@ -988,6 +1010,12 @@ class FristResponsData(BaseModel):
     original_respons_id: Optional[str] = Field(
         default=None,
         description="Event-ID til original respons som oppdateres (for RESPONS_*_OPPDATERT)"
+    )
+
+    # ============ SPORBARHET ============
+    respondert_versjon: Optional[int] = Field(
+        default=None,
+        description="Hvilken TE-versjon (0-indeksert) denne responsen gjelder. Settes automatisk av backend."
     )
 
     # ============ PORT 1: PREKLUSJON (Varslene) ============

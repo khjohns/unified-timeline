@@ -23,7 +23,17 @@ from services.business_rules import BusinessRuleValidator
 from repositories.event_repository import ConcurrencyError
 from repositories import create_event_repository
 from repositories.supabase_sak_metadata_repository import create_metadata_repository
-from models.events import parse_event_from_request, parse_event, EventType
+from models.events import (
+    parse_event_from_request,
+    parse_event,
+    EventType,
+    GrunnlagEvent,
+    VederlagEvent,
+    FristEvent,
+    ResponsEvent,
+    AnyEvent,
+)
+from models.sak_state import SakState
 from lib.auth.csrf_protection import require_csrf
 from lib.auth.magic_link import require_magic_link, get_magic_link_manager
 from services.catenda_service import CatendaService, map_status_to_catenda
@@ -44,6 +54,69 @@ from lib.cloudevents import (
 )
 
 logger = get_logger(__name__)
+
+
+def enrich_event_with_version(event: AnyEvent, current_state: Optional[SakState]) -> AnyEvent:
+    """
+    Enrich event with version tracking fields based on current state.
+
+    For TE events (Grunnlag/Vederlag/Frist):
+    - Sets 'versjon' to current antall_versjoner + 1 for updates, or 1 for new
+
+    For BH events (Respons):
+    - Sets 'respondert_versjon' in data to track which TE version is being responded to
+
+    Returns a new event instance with updated fields (immutable).
+    """
+    if current_state is None:
+        return event
+
+    event_type = event.event_type
+
+    # TE Grunnlag events
+    if isinstance(event, GrunnlagEvent):
+        if event_type == EventType.GRUNNLAG_OPPRETTET:
+            versjon = 1
+        else:  # GRUNNLAG_OPPDATERT
+            versjon = current_state.grunnlag.antall_versjoner + 1
+        return event.model_copy(update={'versjon': versjon})
+
+    # TE Vederlag events
+    if isinstance(event, VederlagEvent):
+        if event_type == EventType.VEDERLAG_KRAV_SENDT:
+            versjon = 1
+        else:  # VEDERLAG_KRAV_OPPDATERT
+            versjon = current_state.vederlag.antall_versjoner + 1
+        return event.model_copy(update={'versjon': versjon})
+
+    # TE Frist events
+    if isinstance(event, FristEvent):
+        if event_type == EventType.FRIST_KRAV_SENDT:
+            versjon = 1
+        else:  # FRIST_KRAV_OPPDATERT, FRIST_KRAV_SPESIFISERT
+            versjon = current_state.frist.antall_versjoner + 1
+        return event.model_copy(update={'versjon': versjon})
+
+    # BH Respons events - set respondert_versjon in data
+    if isinstance(event, ResponsEvent):
+        spor = event.spor.value if event.spor else None
+        respondert_versjon = None
+
+        if spor == 'grunnlag':
+            # 0-indexed: antall_versjoner=1 means version 0
+            respondert_versjon = max(0, current_state.grunnlag.antall_versjoner - 1)
+        elif spor == 'vederlag':
+            respondert_versjon = max(0, current_state.vederlag.antall_versjoner - 1)
+        elif spor == 'frist':
+            respondert_versjon = max(0, current_state.frist.antall_versjoner - 1)
+
+        if respondert_versjon is not None:
+            # Update data with respondert_versjon
+            updated_data = event.data.model_copy(update={'respondert_versjon': respondert_versjon})
+            return event.model_copy(update={'data': updated_data})
+
+    return event
+
 
 events_bp = Blueprint('events', __name__)
 
@@ -173,16 +246,49 @@ def submit_event():
 
         # 4. Validate expected version BEFORE business rules
         if current_version != expected_version:
+            # Compute state to give more informative error message
+            conflict_message = "Tilstanden har endret seg. Vennligst last inn på nytt."
+            if existing_events_data:
+                conflict_events = [parse_event(e) for e in existing_events_data]
+                conflict_state = timeline_service.compute_state(conflict_events)
+                # Check if the change was a BH response
+                event_spor = getattr(event, 'spor', None)
+                if event_spor:
+                    spor_name = event_spor.value if hasattr(event_spor, 'value') else str(event_spor)
+                elif hasattr(event, 'event_type'):
+                    # Derive spor from event_type for TE events
+                    et = event.event_type.value if hasattr(event.event_type, 'value') else str(event.event_type)
+                    if 'grunnlag' in et.lower():
+                        spor_name = 'grunnlag'
+                    elif 'vederlag' in et.lower():
+                        spor_name = 'vederlag'
+                    elif 'frist' in et.lower():
+                        spor_name = 'frist'
+                    else:
+                        spor_name = None
+                else:
+                    spor_name = None
+
+                if spor_name:
+                    spor_state = getattr(conflict_state, spor_name, None)
+                    if spor_state and spor_state.bh_resultat:
+                        # Brukervennlige termer: grunnlag = ansvarsgrunnlag, vederlag/frist = krav
+                        if spor_name == 'grunnlag':
+                            conflict_message = "Byggherre har svart på ansvarsgrunnlaget. Last inn på nytt for å se svaret."
+                        else:
+                            conflict_message = "Byggherre har svart på kravet. Last inn på nytt for å se svaret."
+
             return jsonify({
                 "success": False,
                 "error": "VERSION_CONFLICT",
                 "expected_version": expected_version,
                 "current_version": current_version,
-                "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
+                "message": conflict_message
             }), 409
 
         # 5. Compute current state and validate business rules
         old_status = None  # Track old status for Catenda sync
+        current_state = None
         if existing_events_data:
             existing_events = [parse_event(e) for e in existing_events_data]
             current_state = timeline_service.compute_state(existing_events)
@@ -199,7 +305,10 @@ def submit_event():
         else:
             existing_events = []
 
-        # 5b. Pre-flight check: Verify Catenda token if Catenda integration is requested
+        # 5c. Enrich event with version tracking fields
+        event = enrich_event_with_version(event, current_state)
+
+        # 5d. Pre-flight check: Verify Catenda token if Catenda integration is requested
         if catenda_topic_id:
             catenda_service = get_catenda_service()
             if catenda_service and catenda_service.client:
@@ -341,7 +450,7 @@ def submit_batch():
                 "error": "VERSION_CONFLICT",
                 "expected_version": expected_version,
                 "current_version": current_version,
-                "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
+                "message": "Saken har blitt oppdatert. Last inn på nytt for å se endringene."
             }), 409
 
         # 4. Validate business rules for EACH event in sequence
@@ -365,6 +474,8 @@ def submit_batch():
                         "failed_event_type": event.event_type.value
                     }), 400
 
+            # Enrich event with version tracking fields
+            event = enrich_event_with_version(event, state)
             validated_events.append(event)
 
             # Simulate state after this event for next validation
@@ -379,8 +490,8 @@ def submit_batch():
         # 5a. Create metadata FIRST if new case (FK constraint requires this)
         if expected_version == 0:
             from models.sak_metadata import SakMetadata
-            # Compute initial state for cached values
-            initial_state = timeline_service.compute_state(events)
+            # Compute initial state for cached values (use enriched events)
+            initial_state = timeline_service.compute_state(validated_events)
             metadata = SakMetadata(
                 sak_id=sak_id,
                 prosjekt_id=data.get('prosjekt_id'),
@@ -392,9 +503,9 @@ def submit_batch():
             )
             metadata_repo.upsert(metadata)
 
-        # 5b. Persist ALL events atomically
+        # 5b. Persist ALL events atomically (use enriched validated_events)
         try:
-            new_version = event_repo.append_batch(events, expected_version)
+            new_version = event_repo.append_batch(validated_events, expected_version)
         except ConcurrencyError as e:
             # Rollback metadata if events fail (for new cases)
             if expected_version == 0:
@@ -411,7 +522,7 @@ def submit_batch():
             }), 409
 
         # 6. Compute final state and update metadata cache
-        all_events = existing_events + events
+        all_events = existing_events + validated_events
         final_state = timeline_service.compute_state(all_events)
 
         # 7. Update metadata cache (both new and existing cases)
