@@ -15,6 +15,7 @@ import { GearIcon } from '@radix-ui/react-icons';
 import { Button, CurrencyInput, Textarea, Alert, useToast } from '../primitives';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { formatCurrency } from '../../utils/formatters';
+import { getVederlagsmetodeShortLabel } from '../../constants/paymentMethods';
 import type { VederlagsMetode } from './shared';
 
 // ============================================================================
@@ -38,6 +39,8 @@ interface LastVederlagEventInfo {
     rigg_drift?: SaerskiltKravItem;
     produktivitet?: SaerskiltKravItem;
   } | null;
+  /** BH's foreslåtte metode (hvis ulik TEs metode) - brukes som forhåndsvalg */
+  bh_metode?: VederlagsMetode;
 }
 
 interface InlineReviseVederlagProps {
@@ -80,7 +83,10 @@ export function InlineReviseVederlag({
   const toast = useToast();
   const pendingToastId = useRef<string | null>(null);
 
-  const erRegningsarbeid = lastVederlagEvent.metode === 'REGNINGSARBEID';
+  // Bruk BH's foreslåtte metode hvis den finnes, ellers TEs opprinnelige
+  // I praksis vil TE alltid godkjenne BH's metode når de reviderer inline
+  const effektivMetode = lastVederlagEvent.bh_metode ?? lastVederlagEvent.metode;
+  const erRegningsarbeid = effektivMetode === 'REGNINGSARBEID';
 
   // Get current values
   const currentHovedbelop = erRegningsarbeid
@@ -170,7 +176,8 @@ export function InlineReviseVederlag({
       eventType: 'vederlag_krav_oppdatert',
       data: {
         original_event_id: lastVederlagEvent.event_id,
-        metode: lastVederlagEvent.metode,
+        // Bruk effektiv metode (BH's foreslåtte hvis den finnes)
+        metode: effektivMetode,
         belop_direkte: erRegningsarbeid ? undefined : data.hovedbelop,
         kostnads_overslag: erRegningsarbeid ? data.hovedbelop : undefined,
         krever_justert_ep: lastVederlagEvent.krever_justert_ep,
@@ -245,7 +252,13 @@ export function InlineReviseVederlag({
         {/* Total og endring */}
         <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-pkt-border-subtle">
           <span className="text-sm font-medium">= Total</span>
-          <span className="text-sm font-semibold">{formatCurrency(nyTotal)}</span>
+          <span className="text-sm font-semibold">
+            {formatCurrency(nyTotal)}
+            {/* Vis metode i parentes hvis BH har foreslått annen metode */}
+            {lastVederlagEvent.bh_metode && lastVederlagEvent.bh_metode !== lastVederlagEvent.metode && (
+              <span className="text-pkt-text-subtle font-normal"> ({getVederlagsmetodeShortLabel(effektivMetode)})</span>
+            )}
+          </span>
           {endring !== 0 && (
             <span
               className={`text-xs font-medium px-1.5 py-0.5 rounded border ${
