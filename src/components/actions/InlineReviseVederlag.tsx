@@ -248,10 +248,10 @@ export function InlineReviseVederlag({
           <span className="text-sm font-semibold">{formatCurrency(nyTotal)}</span>
           {endring !== 0 && (
             <span
-              className={`text-xs font-medium px-1.5 py-0.5 rounded ${
+              className={`text-xs font-medium px-1.5 py-0.5 rounded border ${
                 endring > 0
-                  ? 'bg-pkt-surface-faded-red text-pkt-brand-red-1000'
-                  : 'bg-pkt-surface-faded-green text-pkt-brand-dark-green-1000'
+                  ? 'bg-badge-danger-bg text-badge-danger-text border-badge-danger-border'
+                  : 'bg-badge-success-bg text-badge-success-text border-badge-success-border'
               }`}
             >
               {endring > 0 ? '+' : ''}{formatCurrency(endring)} ({endringProsent.toFixed(1)}%)

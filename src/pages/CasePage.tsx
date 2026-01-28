@@ -514,7 +514,7 @@ function CasePageContent() {
           }
           fristActions={
             <>
-              {/* TE Actions: "Send" and "Oppdater" are mutually exclusive */}
+              {/* TE Actions: "Send" (before inline revision is available) */}
               {userRole === 'TE' && actions.canSendFrist && (
                 <Button
                   variant="primary"
@@ -525,22 +525,16 @@ function CasePageContent() {
                   Send krav
                 </Button>
               )}
-              {userRole === 'TE' && actions.canUpdateFrist && (
+              {/* TE "Oppdater" now handled by inlineFristRevision prop below */}
+              {/* Exception: When BH has sent forespørsel, use full modal for critical warnings */}
+              {userRole === 'TE' && actions.canUpdateFrist && state.frist.har_bh_foresporsel && (
                 <Button
-                  variant={
-                    // Primary: BH har avvist/delvis godkjent OG TE har ikke sendt ny versjon etter
-                    // bh_respondert_versjon er 0-indeksert, antall_versjoner teller fra 1
-                    state.frist.bh_resultat &&
-                    state.frist.bh_resultat !== 'godkjent' &&
-                    state.frist.antall_versjoner - 1 === state.frist.bh_respondert_versjon
-                      ? 'primary'
-                      : 'secondary'
-                  }
+                  variant="danger"
                   size="sm"
                   onClick={() => setReviseFristOpen(true)}
                 >
                   <Pencil1Icon className="w-4 h-4 mr-2" />
-                  Oppdater
+                  Svar på forespørsel
                 </Button>
               )}
               {/* TE Actions: Forsering (§33.8) - available when BH has rejected */}
@@ -578,6 +572,29 @@ function CasePageContent() {
                 </Button>
               )}
             </>
+          }
+          inlineFristRevision={
+            // Only use inline revision when NOT in forespørsel situation
+            // Forespørsel requires full modal for critical §33.6.2 warnings
+            sakId && state.frist.krevd_dager !== undefined && !state.frist.har_bh_foresporsel
+              ? {
+                  sakId,
+                  lastFristEvent: {
+                    event_id: state.frist.siste_event_id || `frist-${sakId}`,
+                    antall_dager: state.frist.krevd_dager ?? 0,
+                    begrunnelse: state.frist.begrunnelse,
+                  },
+                  originalVarselType: state.frist.varsel_type,
+                  onOpenFullModal: () => setReviseFristOpen(true),
+                  canRevise: userRole === 'TE' && actions.canUpdateFrist,
+                  // Primary: BH har avvist/delvis godkjent OG TE har ikke sendt ny versjon etter
+                  // bh_respondert_versjon er 0-indeksert, antall_versjoner teller fra 1
+                  showPrimaryVariant:
+                    !!state.frist.bh_resultat &&
+                    state.frist.bh_resultat !== 'godkjent' &&
+                    state.frist.antall_versjoner - 1 === state.frist.bh_respondert_versjon,
+                }
+              : undefined
           }
         />
           </Card>

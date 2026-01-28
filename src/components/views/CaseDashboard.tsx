@@ -11,6 +11,7 @@ import { ReactNode, useMemo, useState } from 'react';
 import { DashboardCard, InlineDataList, InlineDataListItem, Badge, Button } from '../primitives';
 import { CategoryLabel } from '../shared';
 import { InlineReviseVederlag } from '../actions/InlineReviseVederlag';
+import { InlineReviseFrist } from '../actions/InlineReviseFrist';
 import { SakState, SporStatus, TimelineEvent } from '../../types/timeline';
 import { GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
 // getHovedkategoriLabel, getUnderkategoriLabel erstattet av CategoryAccordion
@@ -29,6 +30,7 @@ import {
 } from './SporHistory';
 import { Pencil1Icon } from '@radix-ui/react-icons';
 import type { VederlagsMetode } from '../actions/shared';
+import type { FristVarselType } from '../../types/timeline';
 
 /** Data needed for inline vederlag revision */
 interface InlineVederlagRevisionProps {
@@ -55,6 +57,24 @@ interface InlineVederlagRevisionProps {
   showPrimaryVariant?: boolean;
 }
 
+/** Data needed for inline frist revision */
+interface InlineFristRevisionProps {
+  sakId: string;
+  lastFristEvent: {
+    event_id: string;
+    antall_dager: number;
+    begrunnelse?: string;
+  };
+  /** Original varsel type - determines if this is specification or revision */
+  originalVarselType?: FristVarselType;
+  /** Callback to open full modal for advanced options */
+  onOpenFullModal: () => void;
+  /** Whether inline revision is allowed (canUpdateFrist && userRole === 'TE' && !harMottattForesporsel) */
+  canRevise: boolean;
+  /** Whether to show primary variant (BH rejected/partial and TE hasn't revised yet) */
+  showPrimaryVariant?: boolean;
+}
+
 interface CaseDashboardProps {
   state: SakState;
   grunnlagActions?: ReactNode;
@@ -70,6 +90,8 @@ interface CaseDashboardProps {
   fristHistorikk?: FristHistorikkEntry[];
   /** Props for inline vederlag revision (optional - if not provided, uses vederlagActions) */
   inlineVederlagRevision?: InlineVederlagRevisionProps;
+  /** Props for inline frist revision (optional - if not provided, uses fristActions) */
+  inlineFristRevision?: InlineFristRevisionProps;
 }
 
 /**
@@ -121,6 +143,7 @@ export function CaseDashboard({
   vederlagHistorikk = [],
   fristHistorikk = [],
   inlineVederlagRevision,
+  inlineFristRevision,
 }: CaseDashboardProps) {
   const krevdBelop = useMemo(() => getKrevdBelop(state), [state]);
 
@@ -140,6 +163,9 @@ export function CaseDashboard({
 
   // Inline vederlag revision state
   const [inlineReviseOpen, setInlineReviseOpen] = useState(false);
+
+  // Inline frist revision state
+  const [inlineFristReviseOpen, setInlineFristReviseOpen] = useState(false);
 
   return (
     <section aria-labelledby="dashboard-heading">
@@ -263,7 +289,27 @@ export function CaseDashboard({
         <DashboardCard
           title="Fristforlengelse"
           headerBadge={getStatusBadge(state.frist.status)}
-          action={fristActions}
+          action={
+            inlineFristRevision ? (
+              // Use inline revision - show "Revider" button that toggles inline form
+              <>
+                {inlineFristRevision.canRevise && !inlineFristReviseOpen && (
+                  <Button
+                    variant={inlineFristRevision.showPrimaryVariant ? 'primary' : 'secondary'}
+                    size="sm"
+                    onClick={() => setInlineFristReviseOpen(true)}
+                  >
+                    <Pencil1Icon className="w-4 h-4 mr-2" />
+                    Revider
+                  </Button>
+                )}
+                {/* Pass through other fristActions if any (like BH response buttons) */}
+                {fristActions}
+              </>
+            ) : (
+              fristActions
+            )
+          }
           variant="default"
           className="animate-fade-in-up"
           style={{ animationDelay: '150ms' }}
@@ -302,6 +348,22 @@ export function CaseDashboard({
               )
             )}
           </InlineDataList>
+
+          {/* Inline Frist Revision Form */}
+          {inlineFristRevision && inlineFristReviseOpen && (
+            <InlineReviseFrist
+              sakId={inlineFristRevision.sakId}
+              lastFristEvent={inlineFristRevision.lastFristEvent}
+              originalVarselType={inlineFristRevision.originalVarselType}
+              onOpenFullModal={() => {
+                setInlineFristReviseOpen(false);
+                inlineFristRevision.onOpenFullModal();
+              }}
+              onClose={() => setInlineFristReviseOpen(false)}
+              onSuccess={() => setInlineFristReviseOpen(false)}
+            />
+          )}
+
           <SporHistory spor="frist" entries={fristEntries} events={events} sakState={state} externalOpen={fristExpanded} />
         </DashboardCard>
       </div>
