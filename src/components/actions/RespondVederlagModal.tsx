@@ -1458,6 +1458,15 @@ export function RespondVederlagModal({
               description="Vurder beløpet for hvert krav. Dette er ren utmåling - ansvarsvurdering håndteres i Grunnlag-sporet."
             >
 
+              {/* Felles alert for prekluderte krav */}
+              {computed.harPrekludertKrav && (
+                <Alert variant="warning" className="mb-6" title="Prekluderte krav">
+                  Krav merket med <strong>PREKLUDERT</strong> er tapt på grunn av for sen varsling.
+                  Prinsipalt godkjent beløp er kr 0,-. Vurder likevel beløpet subsidiært for det
+                  tilfellet at kravet hadde vært varslet i tide.
+                </Alert>
+              )}
+
               {/* HOVEDKRAV */}
               <div>
                 <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -1475,19 +1484,6 @@ export function RespondVederlagModal({
                     kr {hovedkravBelop?.toLocaleString('nb-NO') || 0},-
                   </InlineDataListItem>
                 </InlineDataList>
-
-                {hovedkravPrekludert && (
-                  <Alert variant="warning" className="mb-4">
-                    <p className="text-sm">
-                      <strong>Prinsipalt:</strong> Kravet er prekludert (for sen varsling §34.1.2).
-                      Godkjent beløp: <strong>kr 0,-</strong>
-                    </p>
-                    <p className="text-sm mt-1">
-                      <strong>Subsidiært:</strong> Evaluer beløpet dersom kravet hadde vært varslet
-                      i tide.
-                    </p>
-                  </Alert>
-                )}
 
                 <FormField
                   label={hovedkravPrekludert ? 'Din subsidiære vurdering av beløpet' : 'Din vurdering av beløpet'}
@@ -1556,19 +1552,6 @@ export function RespondVederlagModal({
                     </InlineDataListItem>
                   </InlineDataList>
 
-                  {riggPrekludert && (
-                    <Alert variant="warning" className="mb-4">
-                      <p className="text-sm">
-                        <strong>Prinsipalt:</strong> Kravet er prekludert (for sen varsling §34.1.3).
-                        Godkjent beløp: <strong>kr 0,-</strong>
-                      </p>
-                      <p className="text-sm mt-1">
-                        <strong>Subsidiært:</strong> Evaluer beløpet dersom kravet hadde vært varslet
-                        i tide.
-                      </p>
-                    </Alert>
-                  )}
-
                   <FormField
                     label={
                       riggPrekludert ? 'Din subsidiære vurdering av beløpet' : 'Din vurdering av beløpet'
@@ -1626,19 +1609,6 @@ export function RespondVederlagModal({
                       kr {produktivitetBelop?.toLocaleString('nb-NO') || 0},-
                     </InlineDataListItem>
                   </InlineDataList>
-
-                  {produktivitetPrekludert && (
-                    <Alert variant="warning" className="mb-4">
-                      <p className="text-sm">
-                        <strong>Prinsipalt:</strong> Kravet er prekludert (for sen varsling §34.1.3).
-                        Godkjent beløp: <strong>kr 0,-</strong>
-                      </p>
-                      <p className="text-sm mt-1">
-                        <strong>Subsidiært:</strong> Evaluer beløpet dersom kravet hadde vært varslet
-                        i tide.
-                      </p>
-                    </Alert>
-                  )}
 
                   <FormField
                     label={
