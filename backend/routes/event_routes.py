@@ -272,7 +272,11 @@ def submit_event():
                 if spor_name:
                     spor_state = getattr(conflict_state, spor_name, None)
                     if spor_state and spor_state.bh_resultat:
-                        conflict_message = f"Byggherre har svart på dette sporet. Last inn på nytt for å se svaret."
+                        # Brukervennlige termer: grunnlag = ansvarsgrunnlag, vederlag/frist = krav
+                        if spor_name == 'grunnlag':
+                            conflict_message = "Byggherre har svart på ansvarsgrunnlaget. Last inn på nytt for å se svaret."
+                        else:
+                            conflict_message = "Byggherre har svart på kravet. Last inn på nytt for å se svaret."
 
             return jsonify({
                 "success": False,
