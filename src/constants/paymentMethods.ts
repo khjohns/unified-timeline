@@ -41,7 +41,7 @@ export function getVederlagsmetodeLabel(code: string): string {
 // ========== DESCRIPTIVE HELP TEXT ==========
 
 export const VEDERLAGSMETODE_DESCRIPTIONS: Record<VederlagsMetode, string> = {
-  ENHETSPRISER: "Enhetspriser (§34.3) - Kontraktens eller justerte enhetspriser. Indeksregulert iht. §26.2. Krever særskilt varsel ved justering (§34.3.3).",
-  REGNINGSARBEID: "Regningsarbeid med kostnadsoverslag (§30.2/§34.4) - Oppgjør etter medgått tid og materialer med forhåndsoverslag. Krever varsel FØR oppstart.",
-  FASTPRIS_TILBUD: "Fastpris / Tilbud (§34.2.1) - TE gir pristilbud som BH kan akseptere. Ikke indeksregulert.",
+  ENHETSPRISER: "Oppgjør basert på kontraktens enhetspriser, eventuelt justert for endrede forutsetninger.",
+  REGNINGSARBEID: "Oppgjør etter medgått tid og materialer. Entreprenøren skal gi kostnadsoverslag før arbeidet starter.",
+  FASTPRIS_TILBUD: "Entreprenøren gir et spesifisert pristilbud som byggherren kan akseptere eller avslå. Indeksreguleres ikke.",
 };

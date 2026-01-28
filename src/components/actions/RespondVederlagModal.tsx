@@ -113,6 +113,7 @@ interface LastResponseEvent {
   produktivitet_varslet_i_tide?: boolean;
   aksepterer_metode?: boolean;
   oensket_metode?: VederlagsMetode;
+  ep_justering_varslet_i_tide?: boolean;
   ep_justering_akseptert?: boolean;
   hold_tilbake?: boolean;
   hovedkrav_vurdering?: BelopVurdering;
@@ -172,6 +173,7 @@ const respondVederlagSchema = z.object({
   // Port 2: Beregningsmetode
   aksepterer_metode: z.boolean(),
   oensket_metode: z.enum(['ENHETSPRISER', 'REGNINGSARBEID', 'FASTPRIS_TILBUD']).optional(),
+  ep_justering_varslet_i_tide: z.boolean().optional(),
   ep_justering_akseptert: z.boolean().optional(),
   hold_tilbake: z.boolean().optional(),
 
@@ -753,6 +755,7 @@ export function RespondVederlagModal({
       isValid = await trigger([
         'aksepterer_metode',
         'oensket_metode',
+        'ep_justering_varslet_i_tide',
         'ep_justering_akseptert',
         'hold_tilbake',
       ]);
@@ -848,6 +851,7 @@ export function RespondVederlagModal({
           // Port 2: Beregningsmetode
           aksepterer_metode: data.aksepterer_metode,
           oensket_metode: data.oensket_metode,
+          ep_justering_varslet_i_tide: data.ep_justering_varslet_i_tide,
           ep_justering_akseptert: data.ep_justering_akseptert,
           hold_tilbake: data.hold_tilbake,
 
@@ -895,6 +899,7 @@ export function RespondVederlagModal({
           // Port 2: Beregningsmetode
           aksepterer_metode: data.aksepterer_metode,
           oensket_metode: data.oensket_metode,
+          ep_justering_varslet_i_tide: data.ep_justering_varslet_i_tide,
           ep_justering_akseptert: data.ep_justering_akseptert,
           hold_tilbake: data.hold_tilbake,
 
@@ -1311,8 +1316,8 @@ export function RespondVederlagModal({
                 {vederlagEvent?.metode === 'REGNINGSARBEID' &&
                   vederlagEvent?.varslet_for_oppstart === false && (
                     <Alert variant="info" className="mt-3">
-                      Entreprenøren varslet ikke før regningsarbeidet startet (§34.4).
-                      TE har da bare krav på det du «måtte forstå» at han har hatt av utgifter (§30.3.1).
+                      Entreprenøren varslet ikke før regningsarbeidet startet. Entreprenøren har da
+                      bare krav på det du «måtte forstå» at han har hatt av utgifter.
                     </Alert>
                   )}
 
@@ -1343,42 +1348,64 @@ export function RespondVederlagModal({
                     {/* Konsekvensvarsel for fastpristilbud */}
                     {erFastprisTilbud && (
                       <Alert variant="info">
-                        Ved å avslå fastpristilbudet (§34.2.1), faller oppgjøret tilbake på{' '}
-                        <strong>enhetspriser (§34.3)</strong> eller <strong>regningsarbeid (§34.4)</strong>.
+                        Ved å avslå fastpristilbudet faller oppgjøret tilbake på{' '}
+                        <strong>enhetspriser</strong> eller <strong>regningsarbeid</strong>.
                       </Alert>
                     )}
                   </div>
                 )}
               </div>
 
-              {/* §34.3.3 EP-justering - SVARPLIKT */}
+              {/* Justerte enhetspriser */}
               {maSvarePaJustering && (
-                <div className="space-y-3">
-                  <Alert variant="danger" title="Svarplikt: Justerte enhetspriser (§34.3.3)">
-                    Entreprenøren krever justerte enhetspriser fordi forutsetningene for enhetsprisene
-                    har endret seg (§34.3.2). Du må ta stilling til dette «uten ugrunnet opphold».
-                    Passivitet medfører at du mister dine innsigelser mot kravet.
-                  </Alert>
-                  <FormField label="Aksepterer du justering av enhetspriser?" required>
+                <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle space-y-4">
+                  <div>
+                    <h4 className="font-medium mb-2">Justerte enhetspriser</h4>
+                    <p className="text-sm text-pkt-text-body-subtle">
+                      <ExpandableText preview="Entreprenøren krever at enhetsprisene justeres.">
+                        Entreprenøren krever at enhetsprisene justeres. Dette kan skje når forutsetningene for enhetsprisene forrykkes, for eksempel på grunn av omfanget eller tidspunktet for endringsarbeidet. Den som krever justering må varsle «uten ugrunnet opphold». Du må svare «uten ugrunnet opphold» for å bevare dine innsigelser.
+                      </ExpandableText>
+                    </p>
+                  </div>
+
+                  <FormField label="Varslet entreprenøren i tide?" required>
+                    <Controller
+                      name="ep_justering_varslet_i_tide"
+                      control={control}
+                      render={({ field }) => (
+                        <RadioGroup
+                          value={field.value === undefined ? undefined : field.value ? 'ja' : 'nei'}
+                          onValueChange={(val: string) => field.onChange(val === 'ja')}
+                        >
+                          <RadioItem value="ja" label="Ja - varslet i tide" />
+                          <RadioItem value="nei" label="Nei - varslet for sent" />
+                        </RadioGroup>
+                      )}
+                    />
+                  </FormField>
+
+                  {formValues.ep_justering_varslet_i_tide === false && (
+                    <Alert variant="info" size="sm">
+                      Entreprenøren har bare krav på den justering du «måtte forstå» at forholdet ville føre til.
+                    </Alert>
+                  )}
+
+                  <FormField label="Aksepterer du justeringen?" required>
                     <Controller
                       name="ep_justering_akseptert"
                       control={control}
                       render={({ field }) => (
                         <RadioGroup
-                          value={
-                            field.value === undefined ? undefined : field.value ? 'ja' : 'nei'
-                          }
+                          value={field.value === undefined ? undefined : field.value ? 'ja' : 'nei'}
                           onValueChange={(val: string) => field.onChange(val === 'ja')}
                         >
                           <RadioItem
                             value="ja"
                             label="Ja - aksepterer justering"
-                            description="Enhetsprisene justeres for fordyrelser/besparelser"
                           />
                           <RadioItem
                             value="nei"
                             label="Nei - avviser justering"
-                            description="TE får bare den justering du «måtte forstå» at forholdet ville føre til"
                           />
                         </RadioGroup>
                       )}
@@ -1387,12 +1414,12 @@ export function RespondVederlagModal({
                 </div>
               )}
 
-              {/* §30.2 Tilbakeholdelse */}
+              {/* Tilbakeholdelse ved manglende kostnadsoverslag */}
               {kanHoldeTilbake && (
                 <div className="space-y-3">
-                  <Alert variant="warning" title="Tilbakeholdelse (§30.2)">
+                  <Alert variant="warning" title="Tilbakeholdelse">
                     Entreprenøren har ikke levert kostnadsoverslag for regningsarbeidet. Du kan holde
-                    tilbake betaling inntil overslag mottas.
+                    tilbake betaling inntil overslag mottas (§30.2).
                   </Alert>
                   <FormField label="Vil du holde tilbake betaling?">
                     <Controller
@@ -1650,7 +1677,10 @@ export function RespondVederlagModal({
                   </div>
                   {maSvarePaJustering && (
                     <div className="mt-2 text-sm">
-                      EP-justering:{' '}
+                      Justerte enhetspriser:{' '}
+                      {formValues.ep_justering_varslet_i_tide === false && (
+                        <Badge variant="warning" className="mr-1">Varslet for sent</Badge>
+                      )}
                       {formValues.ep_justering_akseptert ? (
                         <Badge variant="success">Akseptert</Badge>
                       ) : (
