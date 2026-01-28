@@ -205,7 +205,7 @@ type RespondVederlagFormData = z.infer<typeof respondVederlagSchema>;
 function beregnPrinsipaltResultat(
   data: Partial<RespondVederlagFormData>,
   computed: {
-    totalKrevd: number;
+    totalKrevdInklPrekludert: number;
     totalGodkjent: number;
     harMetodeendring: boolean;
     holdTilbake: boolean;
@@ -216,9 +216,9 @@ function beregnPrinsipaltResultat(
     return 'hold_tilbake';
   }
 
-  // 2. Calculate approval percentage
+  // 2. Calculate approval percentage (relative to total claimed, not just eligible)
   const godkjentProsent =
-    computed.totalKrevd > 0 ? computed.totalGodkjent / computed.totalKrevd : 0;
+    computed.totalKrevdInklPrekludert > 0 ? computed.totalGodkjent / computed.totalKrevdInklPrekludert : 0;
 
   // 3. Total rejection (only for calculation errors, not grunnlag disputes)
   if (godkjentProsent === 0 && data.hovedkrav_vurdering === 'avslatt') {
@@ -684,7 +684,8 @@ export function RespondVederlagModal({
       produktivitetGodkjentBelop: formValues.produktivitet_godkjent_belop,
 
       // Computed totals
-      totalKrevd: computed.totalKrevd,
+      // Bruk totalKrevdInklPrekludert for begrunnelse - viser hva TE faktisk krevde
+      totalKrevd: computed.totalKrevdInklPrekludert,
       totalGodkjent: computed.totalGodkjent,
       totalGodkjentSubsidiaer: computed.totalGodkjentInklPrekludert,
       harPrekludertKrav: computed.harPrekludertKrav,
@@ -874,7 +875,8 @@ export function RespondVederlagModal({
           // Automatisk beregnet (prinsipalt)
           beregnings_resultat: prinsipaltResultat,
           total_godkjent_belop: computed.totalGodkjent,
-          total_krevd_belop: computed.totalKrevd,
+          // Bruk totalKrevdInklPrekludert - representerer hva TE faktisk krevde
+          total_krevd_belop: computed.totalKrevdInklPrekludert,
 
           // Subsidiært standpunkt (kun når relevant)
           subsidiaer_triggers: triggers.length > 0 ? triggers : undefined,
@@ -922,7 +924,8 @@ export function RespondVederlagModal({
           // Automatisk beregnet (prinsipalt)
           beregnings_resultat: prinsipaltResultat,
           total_godkjent_belop: computed.totalGodkjent,
-          total_krevd_belop: computed.totalKrevd,
+          // Bruk totalKrevdInklPrekludert - representerer hva TE faktisk krevde
+          total_krevd_belop: computed.totalKrevdInklPrekludert,
 
           // Subsidiært standpunkt (kun når relevant)
           subsidiaer_triggers: triggers.length > 0 ? triggers : undefined,
@@ -1880,15 +1883,15 @@ export function RespondVederlagModal({
                       <tr className="font-bold">
                         <td className="py-2">TOTALT</td>
                         <td className="text-right font-mono">
-                          {computed.totalKrevd.toLocaleString('nb-NO')}
+                          {computed.totalKrevdInklPrekludert.toLocaleString('nb-NO')}
                         </td>
                         <td className="text-right font-mono">
                           {computed.totalGodkjent.toLocaleString('nb-NO')}
                         </td>
                         <td className="text-right">
-                          {computed.totalKrevd > 0 && (
+                          {computed.totalKrevdInklPrekludert > 0 && (
                             <span className="text-sm">
-                              {((computed.totalGodkjent / computed.totalKrevd) * 100).toFixed(1)}%
+                              {((computed.totalGodkjent / computed.totalKrevdInklPrekludert) * 100).toFixed(1)}%
                             </span>
                           )}
                         </td>
@@ -2060,15 +2063,15 @@ export function RespondVederlagModal({
                     <div className="p-3 border border-pkt-border-default rounded-none bg-pkt-surface-subtle">
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-bold">TOTALT</span>
-                        {computed.totalKrevd > 0 && (
+                        {computed.totalKrevdInklPrekludert > 0 && (
                           <span className="text-sm font-medium">
-                            {((computed.totalGodkjent / computed.totalKrevd) * 100).toFixed(1)}%
+                            {((computed.totalGodkjent / computed.totalKrevdInklPrekludert) * 100).toFixed(1)}%
                           </span>
                         )}
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-pkt-text-body-subtle">Krevd:</span>
-                        <span className="font-mono font-bold">{computed.totalKrevd.toLocaleString('nb-NO')}</span>
+                        <span className="font-mono font-bold">{computed.totalKrevdInklPrekludert.toLocaleString('nb-NO')}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-pkt-text-body-subtle">Godkjent:</span>

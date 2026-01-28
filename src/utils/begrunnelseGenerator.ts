@@ -156,6 +156,11 @@ function generateMetodeSection(input: VederlagResponseInput): string {
 
   // EP-justering response (§34.3.3)
   if (input.kreverJustertEp) {
+    // Når BH avviser enhetspriser som metode, men TE har krevd justerte EP
+    if (!input.akseptererMetode && input.metode === 'ENHETSPRISER') {
+      lines.push('Byggherren tar likevel stilling til entreprenørens krav om justerte enhetspriser:');
+    }
+
     // Først: Sjekk om TE varslet i tide
     if (input.epJusteringVarsletITide === false) {
       lines.push(
@@ -387,8 +392,11 @@ function generateKonklusjonSection(input: VederlagResponseInput): string {
   if (input.harPrekludertKrav && input.totalGodkjentSubsidiaer !== undefined) {
     const diff = input.totalGodkjentSubsidiaer - input.totalGodkjent;
     if (diff > 0) {
+      // Bestem riktig formulering basert på om hovedkrav er prekludert
+      const hovedkravPrekludert = input.hovedkravVarsletITide === false;
+      const kravType = hovedkravPrekludert ? 'kravene' : 'særskilte kravene';
       lines.push(
-        `Dersom de prekluderte særskilte kravene hadde vært varslet i tide, ville samlet godkjent beløp ` +
+        `Dersom de prekluderte ${kravType} hadde vært varslet i tide, ville samlet godkjent beløp ` +
         `utgjort ${formatCurrency(input.totalGodkjentSubsidiaer)} (subsidiært standpunkt).`
       );
     }
