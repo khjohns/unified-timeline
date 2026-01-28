@@ -800,9 +800,9 @@ export function RespondVederlagModal({
     if (hovedkravPrekludert) triggers.push('preklusjon_hovedkrav');
     if (riggPrekludert) triggers.push('preklusjon_rigg');
     if (produktivitetPrekludert) triggers.push('preklusjon_produktivitet');
-    // §34.3.3: EP-justering prekludert hvis TE krevde det men BH avviser varselet
-    if (vederlagEvent?.krever_justert_ep && data.ep_justering_akseptert === false) {
-      triggers.push('preklusjon_ep_justering');
+    // §34.3.3: EP-justering begrenset hvis TE varslet for sent - TE får bare det BH "måtte forstå"
+    if (vederlagEvent?.krever_justert_ep && data.ep_justering_varslet_i_tide === false) {
+      triggers.push('reduksjon_ep_justering');
     }
     if (!data.aksepterer_metode) triggers.push('metode_avslatt');
 
@@ -1356,19 +1356,19 @@ export function RespondVederlagModal({
                 )}
               </div>
 
-              {/* Justerte enhetspriser */}
+              {/* Justerte enhetspriser (§34.3.2) */}
               {maSvarePaJustering && (
                 <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle space-y-4">
                   <div>
-                    <h4 className="font-medium mb-2">Justerte enhetspriser</h4>
+                    <h4 className="font-medium mb-2">Justerte enhetspriser (§34.3.2)</h4>
                     <p className="text-sm text-pkt-text-body-subtle">
-                      <ExpandableText preview="Entreprenøren krever at enhetsprisene justeres.">
-                        Entreprenøren krever at enhetsprisene justeres. Dette kan skje når forutsetningene for enhetsprisene forrykkes, for eksempel på grunn av omfanget eller tidspunktet for endringsarbeidet. Den som krever justering må varsle «uten ugrunnet opphold». Du må svare «uten ugrunnet opphold» for å bevare dine innsigelser.
+                      <ExpandableText preview="Entreprenøren krever at enhetsprisene justeres (§34.3.2).">
+                        Entreprenøren krever at enhetsprisene justeres. Justering kan kreves når (1) ytelsene i det vesentlige er likeartet med ytelser det er fastsatt enhetspriser for, eller (2) forutsetningene for enhetsprisene forrykkes, f.eks. på grunn av omfang, antall eller tidspunkt for endringsarbeidet. Den som krever justering må varsle «uten ugrunnet opphold» (§34.3.3). Du må svare «uten ugrunnet opphold» for å bevare dine innsigelser.
                       </ExpandableText>
                     </p>
                   </div>
 
-                  <FormField label="Varslet entreprenøren i tide?" required>
+                  <FormField label="Varslet entreprenøren i tide? (§34.3.3)" required>
                     <Controller
                       name="ep_justering_varslet_i_tide"
                       control={control}
@@ -1385,8 +1385,8 @@ export function RespondVederlagModal({
                   </FormField>
 
                   {formValues.ep_justering_varslet_i_tide === false && (
-                    <Alert variant="info" size="sm">
-                      Entreprenøren har bare krav på den justering du «måtte forstå» at forholdet ville føre til.
+                    <Alert variant="warning" size="sm" title="Varslet for sent">
+                      Entreprenøren har bare krav på den justering du «måtte forstå» at forholdet ville føre til (§34.3.3 første ledd).
                     </Alert>
                   )}
 
@@ -1411,6 +1411,12 @@ export function RespondVederlagModal({
                       )}
                     />
                   </FormField>
+
+                  {formValues.ep_justering_akseptert === false && (
+                    <Alert variant="warning" size="sm" title="Begrunn avvisning">
+                      Husk å begrunne hvorfor vilkårene for justering ikke er oppfylt, f.eks. at forutsetningene ikke er forrykket eller at ytelsene ikke er tilstrekkelig likeartet.
+                    </Alert>
+                  )}
                 </div>
               )}
 

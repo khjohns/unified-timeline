@@ -92,7 +92,7 @@ export type SubsidiaerTrigger =
   | 'preklusjon_hovedkrav'     // Nivå 1: Hovedkrav varslet for sent (§34.1.2) - kun SVIKT/ANDRE
   | 'preklusjon_rigg'          // Nivå 1: Rigg/drift varslet for sent (§34.1.3)
   | 'preklusjon_produktivitet' // Nivå 1: Produktivitet varslet for sent (§34.1.3)
-  | 'preklusjon_ep_justering'  // Nivå 1: EP-justering varslet for sent (§34.3.3)
+  | 'reduksjon_ep_justering'   // Nivå 1: EP-justering varslet for sent (§34.3.3) - begrenset til det BH "måtte forstå"
   | 'preklusjon_varsel'        // Nivå 1: Varsel om fristforlengelse for sent (§33.4)
   | 'preklusjon_spesifisert'   // Nivå 1: Spesifisert krav for sent (§33.6)
   | 'ingen_hindring'           // Nivå 2: Ingen reell fremdriftshindring (§33.5)

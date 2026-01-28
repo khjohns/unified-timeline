@@ -228,7 +228,7 @@ class SubsidiaerTrigger(str, Enum):
     PREKLUSJON_HOVEDKRAV = "preklusjon_hovedkrav"  # Hovedkrav varslet for sent (§34.1.2) - kun SVIKT/ANDRE
     PREKLUSJON_RIGG = "preklusjon_rigg"  # Rigg/drift varslet for sent (§34.1.3)
     PREKLUSJON_PRODUKTIVITET = "preklusjon_produktivitet"  # Produktivitet varslet for sent (§34.1.3)
-    PREKLUSJON_EP_JUSTERING = "preklusjon_ep_justering"  # EP-justering varslet for sent (§34.3.3)
+    REDUKSJON_EP_JUSTERING = "reduksjon_ep_justering"  # EP-justering varslet for sent (§34.3.3) - begrenset til det BH "måtte forstå"
 
     # Nivå 1: Preklusjon (Frist)
     PREKLUSJON_VARSEL = "preklusjon_varsel"  # Varsel om fristforlengelse for sent (§33.4)

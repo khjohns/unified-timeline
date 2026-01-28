@@ -151,7 +151,7 @@ export const SUBSIDIAER_TRIGGER_LABELS: Record<SubsidiaerTrigger, string> = {
   preklusjon_hovedkrav: 'Hovedkrav prekludert (§34.1.2)',
   preklusjon_rigg: 'Rigg/drift prekludert (§34.1.3)',
   preklusjon_produktivitet: 'Produktivitet prekludert (§34.1.3)',
-  preklusjon_ep_justering: 'EP-justering prekludert (§34.3.3)',
+  reduksjon_ep_justering: 'EP-justering begrenset (§34.3.3) - varslet for sent',
   preklusjon_varsel: 'Varsel om fristforlengelse prekludert (§33.4)',
   preklusjon_spesifisert: 'Spesifisert krav prekludert (§33.6)',
   ingen_hindring: 'Ingen reell fremdriftshindring (§33.5)',

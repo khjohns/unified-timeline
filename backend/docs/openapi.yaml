@@ -1473,7 +1473,7 @@ components:
       - preklusjon_hovedkrav
       - preklusjon_rigg
       - preklusjon_produktivitet
-      - preklusjon_ep_justering
+      - reduksjon_ep_justering
       - preklusjon_varsel
       - preklusjon_spesifisert
       - ingen_hindring
