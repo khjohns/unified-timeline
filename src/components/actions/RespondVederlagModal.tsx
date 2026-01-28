@@ -1749,24 +1749,51 @@ export function RespondVederlagModal({
                           {hovedkravBelop?.toLocaleString('nb-NO') || 0}
                         </td>
                         <td className="text-right font-mono">
-                          {formValues.hovedkrav_vurdering === 'godkjent'
-                            ? hovedkravBelop?.toLocaleString('nb-NO') || 0
-                            : formValues.hovedkrav_vurdering === 'delvis'
-                              ? formValues.hovedkrav_godkjent_belop?.toLocaleString('nb-NO') || 0
-                              : 0}
+                          {hovedkravPrekludert
+                            ? 0
+                            : formValues.hovedkrav_vurdering === 'godkjent'
+                              ? hovedkravBelop?.toLocaleString('nb-NO') || 0
+                              : formValues.hovedkrav_vurdering === 'delvis'
+                                ? formValues.hovedkrav_godkjent_belop?.toLocaleString('nb-NO') || 0
+                                : 0}
                         </td>
                         <td className="text-right">
-                          {formValues.hovedkrav_vurdering === 'godkjent' && (
+                          {hovedkravPrekludert ? (
+                            <Badge variant="danger">Prekludert</Badge>
+                          ) : formValues.hovedkrav_vurdering === 'godkjent' ? (
                             <Badge variant="success">Godkjent</Badge>
-                          )}
-                          {formValues.hovedkrav_vurdering === 'delvis' && (
+                          ) : formValues.hovedkrav_vurdering === 'delvis' ? (
                             <Badge variant="warning">Delvis</Badge>
-                          )}
-                          {formValues.hovedkrav_vurdering === 'avslatt' && (
+                          ) : (
                             <Badge variant="danger">Avvist</Badge>
                           )}
                         </td>
                       </tr>
+                      {/* Subsidiær rad for prekludert hovedkrav */}
+                      {hovedkravPrekludert && (
+                        <tr className="border-b border-pkt-border-subtle text-pkt-text-body-subtle">
+                          <td className="py-1 pl-4 italic">↳ Hvis varslet i tide</td>
+                          <td className="text-right font-mono">
+                            {hovedkravBelop?.toLocaleString('nb-NO') || 0}
+                          </td>
+                          <td className="text-right font-mono">
+                            {formValues.hovedkrav_vurdering === 'godkjent'
+                              ? hovedkravBelop?.toLocaleString('nb-NO') || 0
+                              : formValues.hovedkrav_vurdering === 'delvis'
+                                ? formValues.hovedkrav_godkjent_belop?.toLocaleString('nb-NO') || 0
+                                : 0}
+                          </td>
+                          <td className="text-right">
+                            {formValues.hovedkrav_vurdering === 'godkjent' ? (
+                              <Badge variant="success">Godkjent</Badge>
+                            ) : formValues.hovedkrav_vurdering === 'delvis' ? (
+                              <Badge variant="warning">Delvis</Badge>
+                            ) : (
+                              <Badge variant="danger">Avvist</Badge>
+                            )}
+                          </td>
+                        </tr>
+                      )}
 
                       {/* Rigg/Drift */}
                       {harRiggKrav && (
@@ -1906,15 +1933,15 @@ export function RespondVederlagModal({
                   <div className="sm:hidden space-y-3">
                     {/* Hovedkrav card */}
                     <div className="p-3 border border-pkt-border-subtle rounded-none">
-                      <div className="flex justify-between items-start mb-2">
+                      <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
                         <span className="font-medium">Hovedkrav</span>
-                        {formValues.hovedkrav_vurdering === 'godkjent' && (
+                        {hovedkravPrekludert ? (
+                          <Badge variant="danger">Prekludert</Badge>
+                        ) : formValues.hovedkrav_vurdering === 'godkjent' ? (
                           <Badge variant="success">Godkjent</Badge>
-                        )}
-                        {formValues.hovedkrav_vurdering === 'delvis' && (
+                        ) : formValues.hovedkrav_vurdering === 'delvis' ? (
                           <Badge variant="warning">Delvis</Badge>
-                        )}
-                        {formValues.hovedkrav_vurdering === 'avslatt' && (
+                        ) : (
                           <Badge variant="danger">Avvist</Badge>
                         )}
                       </div>
@@ -1925,13 +1952,40 @@ export function RespondVederlagModal({
                       <div className="flex justify-between text-sm">
                         <span className="text-pkt-text-body-subtle">Godkjent:</span>
                         <span className="font-mono">
-                          {formValues.hovedkrav_vurdering === 'godkjent'
-                            ? hovedkravBelop?.toLocaleString('nb-NO') || 0
-                            : formValues.hovedkrav_vurdering === 'delvis'
-                              ? formValues.hovedkrav_godkjent_belop?.toLocaleString('nb-NO') || 0
-                              : 0}
+                          {hovedkravPrekludert
+                            ? 0
+                            : formValues.hovedkrav_vurdering === 'godkjent'
+                              ? hovedkravBelop?.toLocaleString('nb-NO') || 0
+                              : formValues.hovedkrav_vurdering === 'delvis'
+                                ? formValues.hovedkrav_godkjent_belop?.toLocaleString('nb-NO') || 0
+                                : 0}
                         </span>
                       </div>
+                      {/* Subsidiært på mobil */}
+                      {hovedkravPrekludert && (
+                        <div className="mt-2 pt-2 border-t border-pkt-border-subtle text-pkt-text-body-subtle">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="italic">↳ Hvis varslet i tide:</span>
+                            {formValues.hovedkrav_vurdering === 'godkjent' ? (
+                              <Badge variant="success">Godkjent</Badge>
+                            ) : formValues.hovedkrav_vurdering === 'delvis' ? (
+                              <Badge variant="warning">Delvis</Badge>
+                            ) : (
+                              <Badge variant="danger">Avvist</Badge>
+                            )}
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Godkjent:</span>
+                            <span className="font-mono">
+                              {formValues.hovedkrav_vurdering === 'godkjent'
+                                ? hovedkravBelop?.toLocaleString('nb-NO') || 0
+                                : formValues.hovedkrav_vurdering === 'delvis'
+                                  ? formValues.hovedkrav_godkjent_belop?.toLocaleString('nb-NO') || 0
+                                  : 0}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Rigg/Drift card */}
