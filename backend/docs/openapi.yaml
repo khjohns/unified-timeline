@@ -1475,7 +1475,7 @@ components:
       - preklusjon_produktivitet
       - reduksjon_ep_justering
       - preklusjon_varsel
-      - preklusjon_spesifisert
+      - reduksjon_spesifisert
       - ingen_hindring
       - metode_avslatt
       description: 'Reasons for subsidiary assessment (when BH takes principal position
@@ -1518,8 +1518,10 @@ components:
           - items:
               type: string
             type: array
-          description: Underkategori(er) - enkelt kode eller liste av koder (f.eks.
-            'MEDVIRK', 'PROSJ_RISIKO')
+          - type: 'null'
+          default: null
+          description: Underkategori(er) - enkelt kode eller liste av koder. Valgfritt
+            for kategorier uten underkategorier (f.eks. Force Majeure)
           title: Underkategori
         beskrivelse:
           description: Detaljert beskrivelse av forholdet som utløste kravet
@@ -1552,7 +1554,6 @@ components:
       required:
       - tittel
       - hovedkategori
-      - underkategori
       - beskrivelse
       - dato_oppdaget
       title: GrunnlagData

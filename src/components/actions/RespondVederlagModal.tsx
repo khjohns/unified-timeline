@@ -1460,14 +1460,39 @@ export function RespondVederlagModal({
 
               {/* HOVEDKRAV */}
               <div>
-                <h4 className="font-bold text-sm mb-3">Hovedkrav</h4>
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <h4 className="font-bold text-sm">Hovedkrav</h4>
+                  {hovedkravPrekludert && (
+                    <>
+                      <Badge variant="danger">PREKLUDERT</Badge>
+                      <Badge variant="warning">Subsidiært</Badge>
+                    </>
+                  )}
+                </div>
+
                 <InlineDataList className="mb-4">
                   <InlineDataListItem label="Krevd" mono bold>
                     kr {hovedkravBelop?.toLocaleString('nb-NO') || 0},-
                   </InlineDataListItem>
                 </InlineDataList>
 
-                <FormField label="Din vurdering av beløpet" required>
+                {hovedkravPrekludert && (
+                  <Alert variant="warning" className="mb-4">
+                    <p className="text-sm">
+                      <strong>Prinsipalt:</strong> Kravet er prekludert (for sen varsling §34.1.2).
+                      Godkjent beløp: <strong>kr 0,-</strong>
+                    </p>
+                    <p className="text-sm mt-1">
+                      <strong>Subsidiært:</strong> Evaluer beløpet dersom kravet hadde vært varslet
+                      i tide.
+                    </p>
+                  </Alert>
+                )}
+
+                <FormField
+                  label={hovedkravPrekludert ? 'Din subsidiære vurdering av beløpet' : 'Din vurdering av beløpet'}
+                  required
+                >
                   <Controller
                     name="hovedkrav_vurdering"
                     control={control}

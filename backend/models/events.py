@@ -232,7 +232,7 @@ class SubsidiaerTrigger(str, Enum):
 
     # Nivå 1: Preklusjon (Frist)
     PREKLUSJON_VARSEL = "preklusjon_varsel"  # Varsel om fristforlengelse for sent (§33.4)
-    PREKLUSJON_SPESIFISERT = "preklusjon_spesifisert"  # Spesifisert krav for sent (§33.6)
+    REDUKSJON_SPESIFISERT = "reduksjon_spesifisert"  # Spesifisert krav for sent (§33.6) - begrenset til det BH "måtte forstå"
 
     # Nivå 2: Vilkår
     INGEN_HINDRING = "ingen_hindring"  # Ingen reell fremdriftshindring (§33.5)
