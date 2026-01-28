@@ -31,6 +31,7 @@ import {
 } from '../components/primitives';
 import { VarselSeksjon } from '../components/actions/shared/VarselSeksjon';
 import { PageHeader } from '../components/PageHeader';
+import { KontraktsregelInline } from '../components/shared';
 import {
   HOVEDKATEGORI_OPTIONS,
   getHovedkategori,
@@ -272,7 +273,7 @@ export function OpprettSakPage() {
                       id="sak_id"
                       data-testid="sak-id"
                       {...register('sak_id')}
-                      className="flex-1"
+                      className="w-full sm:w-56"
                     />
                     <Button
                       type="button"
@@ -295,23 +296,24 @@ export function OpprettSakPage() {
                     id="tittel"
                     data-testid="sak-tittel"
                     {...register('tittel')}
-                    fullWidth
+                    className="w-full sm:max-w-md"
                     placeholder="F.eks. 'Endret fundamentering grunnet grunnforhold'"
                   />
                 </FormField>
               </div>
             </SectionContainer>
 
-            {/* Seksjon 2: Rettslig grunnlag */}
+            {/* Seksjon 2: Ansvarsgrunnlag */}
             <SectionContainer
-              title="Rettslig grunnlag"
-              description="Velg kategori og underkategori iht. NS 8407"
+              title="Ansvarsgrunnlag"
             >
               <div className="space-y-4">
+                {/* Hovedkategori */}
                 <FormField
                   label="Hovedkategori"
                   required
                   error={errors.hovedkategori?.message}
+                  helpText="Velg rettslig grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder og hvilke krav som kan fremmes."
                 >
                   <Controller
                     name="hovedkategori"
@@ -325,33 +327,35 @@ export function OpprettSakPage() {
                         }}
                         data-testid="sak-hovedkategori"
                       >
-                        {HOVEDKATEGORI_OPTIONS.filter(opt => opt.value !== '').map((option) => (
-                          <RadioItem
-                            key={option.value}
-                            value={option.value}
-                            label={option.label}
-                            error={!!errors.hovedkategori}
-                          />
-                        ))}
+                        {HOVEDKATEGORI_OPTIONS.filter(opt => opt.value !== '').map((option) => {
+                          const erValgt = field.value === option.value;
+                          const kategoriInfo = erValgt ? getHovedkategori(option.value) : null;
+                          return (
+                            <div key={option.value}>
+                              <RadioItem
+                                value={option.value}
+                                label={option.label}
+                                error={!!errors.hovedkategori}
+                              />
+                              {erValgt && kategoriInfo && (
+                                <div className="mt-2 ml-6">
+                                  <KontraktsregelInline
+                                    custom={{
+                                      tekst: kategoriInfo.beskrivelse,
+                                      konsekvens: `Fristforlengelse: §${kategoriInfo.hjemmel_frist}${kategoriInfo.hjemmel_vederlag ? `, Vederlagsjustering: §${kategoriInfo.hjemmel_vederlag}` : ''}`,
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </RadioGroup>
                     )}
                   />
                 </FormField>
 
-                {/* Category info box */}
-                {valgtHovedkategori && (
-                  <Alert variant="info" title={`Hjemmel: NS 8407 §${valgtHovedkategori.hjemmel_frist}`}>
-                    {valgtHovedkategori.beskrivelse}
-                    <div className="mt-2 text-xs">
-                      <strong>Type krav:</strong> {valgtHovedkategori.type_krav}
-                      {valgtHovedkategori.hjemmel_vederlag && (
-                        <> | <strong>Vederlag:</strong> §{valgtHovedkategori.hjemmel_vederlag}</>
-                      )}
-                    </div>
-                  </Alert>
-                )}
-
-                {/* Underkategori - Uten scrollbar for bedre mobilvisning */}
+                {/* Underkategori - Dynamic based on hovedkategori, grouped */}
                 {selectedHovedkategori && valgtHovedkategori && valgtHovedkategori.underkategorier.length > 0 && (
                   <Controller
                     name="underkategori"
@@ -371,22 +375,60 @@ export function OpprettSakPage() {
                                   <p className="text-sm font-semibold text-pkt-text-body mb-2">{gruppeNavn}</p>
                                 )}
                                 <div className="space-y-2 pl-0">
-                                  {underkategorier.map((uk) => (
-                                    <Checkbox
-                                      key={uk.kode}
-                                      id={`underkategori-${uk.kode}`}
-                                      label={`${uk.label} (§${uk.hjemmel_basis})`}
-                                      checked={field.value?.includes(uk.kode) ?? false}
-                                      onCheckedChange={(checked) => {
-                                        const current = field.value ?? [];
-                                        if (checked) {
-                                          field.onChange([...current, uk.kode]);
-                                        } else {
-                                          field.onChange(current.filter((v: string) => v !== uk.kode));
-                                        }
-                                      }}
-                                    />
-                                  ))}
+                                  {underkategorier.map((uk) => {
+                                    const erValgt = field.value?.includes(uk.kode) ?? false;
+                                    // Map underkategori til KontraktsregelInline hjemmel (der tilgjengelig)
+                                    const hjemmelMap: Record<string, '§10.2' | '§14.4' | '§14.6' | '§15.2' | '§19.1' | '§21.4' | '§22' | '§23.1' | '§23.3' | '§24.1' | '§24.2.2' | '§26.3' | '§29.2' | '§32.1' | '§38.1'> = {
+                                      'VALGRETT': '§14.6',
+                                      'SVAR_VARSEL': '§24.2.2',
+                                      'LOV_GJENSTAND': '§14.4',
+                                      'LOV_PROSESS': '§15.2',
+                                      'IRREG': '§32.1',
+                                      'GRUNN': '§23.1',
+                                      'KULTURMINNER': '§23.3',
+                                      'PROSJ_RISIKO': '§24.1',
+                                      'MEDVIRK': '§22',
+                                      'GEBYR': '§26.3',
+                                      'SAMORD': '§21.4',
+                                      'NEKT_MH': '§10.2',
+                                      'SKADE_BH': '§19.1',
+                                      'BRUKSTAKELSE': '§38.1',
+                                      'STANS_BET': '§29.2',
+                                    };
+                                    const hjemmel = hjemmelMap[uk.kode];
+                                    return (
+                                      <div key={uk.kode}>
+                                        <Checkbox
+                                          id={`underkategori-${uk.kode}`}
+                                          label={uk.label}
+                                          checked={erValgt}
+                                          onCheckedChange={(checked) => {
+                                            const current = field.value ?? [];
+                                            if (checked) {
+                                              field.onChange([...current, uk.kode]);
+                                            } else {
+                                              field.onChange(current.filter((v: string) => v !== uk.kode));
+                                            }
+                                          }}
+                                        />
+                                        {erValgt && (
+                                          <div className="mt-2 ml-6">
+                                            {hjemmel ? (
+                                              <KontraktsregelInline hjemmel={hjemmel} />
+                                            ) : (
+                                              <KontraktsregelInline
+                                                custom={{
+                                                  tekst: uk.beskrivelse,
+                                                  hjemmel: `§${uk.hjemmel_basis}`,
+                                                  konsekvens: `Varslingskrav: §${uk.varselkrav_ref}`,
+                                                }}
+                                              />
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               </div>
                             ))}
@@ -397,19 +439,6 @@ export function OpprettSakPage() {
                   />
                 )}
 
-                {/* Underkategori info */}
-                {valgteUnderkategorier.length > 0 && (
-                  <div className="space-y-3">
-                    {valgteUnderkategorier.map((underkat) => (
-                      <Alert key={underkat.kode} variant="info" title={underkat.label}>
-                        {underkat.beskrivelse}
-                        <p className="text-xs mt-2">
-                          <strong>Hjemmel:</strong> §{underkat.hjemmel_basis} | <strong>Varslingskrav:</strong> §{underkat.varselkrav_ref}
-                        </p>
-                      </Alert>
-                    ))}
-                  </div>
-                )}
               </div>
             </SectionContainer>
 
