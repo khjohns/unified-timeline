@@ -288,8 +288,8 @@ function getEntryVariant(type: SporHistoryEntryType, resultat?: string | null): 
 }
 
 function getEntryLabel(entry: SporHistoryEntry): string {
-  // TE-versjonsreferanse for oppdateringer og BH-responser
-  const teVersionRef = entry.versjon > 1 ? ` · Rev. ${entry.versjon}` : '';
+  // TE-versjonsreferanse: versjon 1 = original, versjon 2 = Rev. 1, osv.
+  const teVersionRef = entry.versjon > 1 ? ` · Rev. ${entry.versjon - 1}` : '';
 
   switch (entry.type) {
     case 'te_krav':
