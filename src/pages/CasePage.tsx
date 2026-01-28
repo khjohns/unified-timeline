@@ -490,7 +490,8 @@ function CasePageContent() {
               ? {
                   sakId,
                   lastVederlagEvent: {
-                    event_id: `vederlag-${sakId}`,
+                    // Use actual CloudEvents ID from state (populated by backend)
+                    event_id: state.vederlag.siste_event_id || `vederlag-${sakId}`,
                     metode: state.vederlag.metode,
                     belop_direkte: state.vederlag.belop_direkte,
                     kostnads_overslag: state.vederlag.kostnads_overslag,
@@ -748,7 +749,8 @@ function CasePageContent() {
             onOpenChange={setUpdateGrunnlagOpen}
             sakId={sakId}
             originalEvent={{
-              event_id: `grunnlag-${sakId}`,
+              // Use actual CloudEvents ID from state (populated by backend)
+              event_id: state.grunnlag.siste_event_id || `grunnlag-${sakId}`,
               grunnlag: state.grunnlag,
             }}
             onCatendaWarning={() => setShowCatendaWarning(true)}
@@ -758,7 +760,8 @@ function CasePageContent() {
             onOpenChange={setReviseVederlagOpen}
             sakId={sakId}
             lastVederlagEvent={{
-              event_id: `vederlag-${sakId}`,
+              // Use actual CloudEvents ID from state (populated by backend)
+              event_id: state.vederlag.siste_event_id || `vederlag-${sakId}`,
               metode: state.vederlag.metode || 'ENHETSPRISER',
               belop_direkte: state.vederlag.belop_direkte,
               kostnads_overslag: state.vederlag.kostnads_overslag,
@@ -787,7 +790,8 @@ function CasePageContent() {
             onOpenChange={setReviseFristOpen}
             sakId={sakId}
             lastFristEvent={{
-              event_id: `frist-${sakId}`,
+              // Use actual CloudEvents ID from state (populated by backend)
+              event_id: state.frist.siste_event_id || `frist-${sakId}`,
               antall_dager: state.frist.krevd_dager || 0,
               begrunnelse: state.frist.begrunnelse,
             }}

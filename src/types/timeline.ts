@@ -167,6 +167,8 @@ export interface GrunnlagTilstand {
   laast: boolean;
   /** Which version of the claim BH last responded to (0-indexed: 0 = original, 1 = rev 1, etc.) */
   bh_respondert_versjon?: number;
+  /** CloudEvents ID of the last event that modified this track */
+  siste_event_id?: string;
   siste_oppdatert?: string;
   antall_versjoner: number;
 }
@@ -229,6 +231,8 @@ export interface VederlagTilstand {
   visningsstatus?: string;
 
   // Metadata
+  /** CloudEvents ID of the last event that modified this track */
+  siste_event_id?: string;
   siste_oppdatert?: string;
   antall_versjoner: number;
 }
@@ -282,6 +286,8 @@ export interface FristTilstand {
   bh_respondert_versjon?: number;
 
   // Metadata
+  /** CloudEvents ID of the last event that modified this track */
+  siste_event_id?: string;
   siste_oppdatert?: string;
   antall_versjoner: number;
 }
