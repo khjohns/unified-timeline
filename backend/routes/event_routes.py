@@ -246,12 +246,40 @@ def submit_event():
 
         # 4. Validate expected version BEFORE business rules
         if current_version != expected_version:
+            # Compute state to give more informative error message
+            conflict_message = "Tilstanden har endret seg. Vennligst last inn på nytt."
+            if existing_events_data:
+                conflict_events = [parse_event(e) for e in existing_events_data]
+                conflict_state = timeline_service.compute_state(conflict_events)
+                # Check if the change was a BH response
+                event_spor = getattr(event, 'spor', None)
+                if event_spor:
+                    spor_name = event_spor.value if hasattr(event_spor, 'value') else str(event_spor)
+                elif hasattr(event, 'event_type'):
+                    # Derive spor from event_type for TE events
+                    et = event.event_type.value if hasattr(event.event_type, 'value') else str(event.event_type)
+                    if 'grunnlag' in et.lower():
+                        spor_name = 'grunnlag'
+                    elif 'vederlag' in et.lower():
+                        spor_name = 'vederlag'
+                    elif 'frist' in et.lower():
+                        spor_name = 'frist'
+                    else:
+                        spor_name = None
+                else:
+                    spor_name = None
+
+                if spor_name:
+                    spor_state = getattr(conflict_state, spor_name, None)
+                    if spor_state and spor_state.bh_resultat:
+                        conflict_message = f"Byggherre har svart på dette sporet. Last inn på nytt for å se svaret."
+
             return jsonify({
                 "success": False,
                 "error": "VERSION_CONFLICT",
                 "expected_version": expected_version,
                 "current_version": current_version,
-                "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
+                "message": conflict_message
             }), 409
 
         # 5. Compute current state and validate business rules
@@ -418,7 +446,7 @@ def submit_batch():
                 "error": "VERSION_CONFLICT",
                 "expected_version": expected_version,
                 "current_version": current_version,
-                "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
+                "message": "Saken har blitt oppdatert. Last inn på nytt for å se endringene."
             }), 409
 
         # 4. Validate business rules for EACH event in sequence
