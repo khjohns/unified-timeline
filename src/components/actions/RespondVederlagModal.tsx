@@ -663,12 +663,14 @@ export function RespondVederlagModal({
       harProduktivitetKrav: harProduktivitetKrav,
 
       // Preklusjon
+      hovedkravVarsletITide: har34_1_2_Preklusjon ? formValues.hovedkrav_varslet_i_tide : undefined,
       riggVarsletITide: formValues.rigg_varslet_i_tide,
       produktivitetVarsletITide: formValues.produktivitet_varslet_i_tide,
 
       // Metode
       akseptererMetode: formValues.aksepterer_metode,
       oensketMetode: formValues.oensket_metode,
+      epJusteringVarsletITide: formValues.ep_justering_varslet_i_tide,
       epJusteringAkseptert: formValues.ep_justering_akseptert,
       kreverJustertEp: vederlagEvent?.krever_justert_ep,
       holdTilbake: formValues.hold_tilbake,
@@ -697,6 +699,7 @@ export function RespondVederlagModal({
     produktivitetBelop,
     harRiggKrav,
     harProduktivitetKrav,
+    har34_1_2_Preklusjon,
     formValues,
     computed,
   ]);

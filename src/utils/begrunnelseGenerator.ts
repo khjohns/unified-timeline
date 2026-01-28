@@ -73,13 +73,15 @@ export interface VederlagResponseInput {
   harProduktivitetKrav: boolean;
 
   // Preklusjon (Port 1/2)
-  riggVarsletITide?: boolean;
-  produktivitetVarsletITide?: boolean;
+  hovedkravVarsletITide?: boolean;  // §34.1.2 - kun SVIKT/ANDRE
+  riggVarsletITide?: boolean;       // §34.1.3
+  produktivitetVarsletITide?: boolean;  // §34.1.3
 
   // Metode (Port 2/3)
   akseptererMetode: boolean;
   oensketMetode?: VederlagsMetode;
-  epJusteringAkseptert?: boolean;
+  epJusteringVarsletITide?: boolean;  // §34.3.3 - TE varslet i tide?
+  epJusteringAkseptert?: boolean;     // §34.3.3 - BH aksepterer?
   kreverJustertEp?: boolean;
   holdTilbake?: boolean;
 
@@ -153,11 +155,24 @@ function generateMetodeSection(input: VederlagResponseInput): string {
   }
 
   // EP-justering response (§34.3.3)
-  if (input.kreverJustertEp && input.epJusteringAkseptert !== undefined) {
-    if (input.epJusteringAkseptert) {
-      lines.push('Kravet om justerte enhetspriser (§34.3.3) aksepteres.');
-    } else {
-      lines.push('Kravet om justerte enhetspriser (§34.3.3) avvises.');
+  if (input.kreverJustertEp) {
+    // Først: Sjekk om TE varslet i tide
+    if (input.epJusteringVarsletITide === false) {
+      lines.push(
+        'Kravet om justerte enhetspriser ble ikke varslet «uten ugrunnet opphold» (§34.3.3 første ledd). ' +
+        'Entreprenøren har dermed bare krav på slik justering som byggherren måtte forstå at forholdet ville føre til.'
+      );
+    }
+    // Deretter: BHs aksept/avvisning
+    if (input.epJusteringAkseptert !== undefined) {
+      if (input.epJusteringAkseptert) {
+        lines.push('Kravet om justerte enhetspriser (§34.3.2) aksepteres.');
+      } else {
+        lines.push(
+          'Kravet om justerte enhetspriser (§34.3.2) avvises. ' +
+          'Vilkårene for justering anses ikke oppfylt.'
+        );
+      }
     }
   }
 
@@ -176,12 +191,35 @@ function generateMetodeSection(input: VederlagResponseInput): string {
  * Generate the amount evaluation section for hovedkrav
  */
 function generateHovedkravSection(input: VederlagResponseInput): string {
-  const { hovedkravVurdering, hovedkravBelop, hovedkravGodkjentBelop } = input;
+  const { hovedkravVurdering, hovedkravBelop, hovedkravGodkjentBelop, hovedkravVarsletITide } = input;
 
   if (!hovedkravBelop) {
     return '';
   }
 
+  const lines: string[] = [];
+  const isPrekludert = hovedkravVarsletITide === false;
+
+  if (isPrekludert) {
+    // Prinsipalt: prekludert (§34.1.2)
+    lines.push(
+      `Hovedkravet på ${formatCurrency(hovedkravBelop)} avvises prinsipalt som prekludert iht. §34.1.2, ` +
+      `da varselet ikke ble fremsatt «uten ugrunnet opphold» etter at entreprenøren ble eller burde blitt klar over forholdet.`
+    );
+
+    // Subsidiært: faktisk vurdering
+    const subsidiaerText = generateSubsidiaerKravText(
+      'hovedkrav',
+      hovedkravBelop,
+      hovedkravVurdering,
+      hovedkravGodkjentBelop
+    );
+    lines.push(subsidiaerText);
+
+    return lines.join(' ');
+  }
+
+  // Ikke prekludert - vanlig vurdering
   switch (hovedkravVurdering) {
     case 'godkjent':
       return `Hovedkravet på ${formatCurrency(hovedkravBelop)} ${getVurderingVerb('godkjent')}.`;
