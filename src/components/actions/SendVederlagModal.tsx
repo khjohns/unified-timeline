@@ -26,6 +26,7 @@ import {
   Checkbox,
   CurrencyInput,
   DatePicker,
+  ExpandableText,
   FormField,
   Modal,
   SectionContainer,
@@ -422,6 +423,12 @@ export function SendVederlagModal({
 
             {harRiggKrav && (
               <div className="mt-3 ml-6 space-y-4 border-l-2 border-pkt-border-subtle pl-4">
+                <p className="text-sm text-pkt-text-body-subtle">
+                  <ExpandableText preview="Kravet må varsles «uten ugrunnet opphold».">
+                    Krav på særskilt justering for rigg/drift må varsles «uten ugrunnet opphold» etter at entreprenøren ble klar over at utgifter ville påløpe som en nødvendig følge av endring, forsinkelse/svikt ved byggherrens ytelser, eller andre forhold byggherren har risikoen for.
+                  </ExpandableText>
+                </p>
+
                 <FormField
                   label="Estimert beløp for rigg/drift"
                   error={errors.belop_rigg?.message}
@@ -486,6 +493,12 @@ export function SendVederlagModal({
 
             {harProduktivitetKrav && (
               <div className="mt-3 ml-6 space-y-4 border-l-2 border-pkt-border-subtle pl-4">
+                <p className="text-sm text-pkt-text-body-subtle">
+                  <ExpandableText preview="Kravet må varsles «uten ugrunnet opphold».">
+                    Krav på produktivitetstap må varsles «uten ugrunnet opphold» etter at entreprenøren ble klar over at utgifter ville påløpe som følge av endring, forsinkelse/svikt ved byggherrens ytelser, eller andre forhold byggherren har risikoen for.
+                  </ExpandableText>
+                </p>
+
                 <FormField
                   label="Estimert beløp for produktivitetstap"
                   error={errors.belop_produktivitet?.message}

@@ -1033,28 +1033,6 @@ export function RespondVederlagModal({
           </Alert>
         )}
 
-        {/* UPDATE MODE: Compact display of current response */}
-        {isUpdateMode && lastResponseEvent && (
-          <div className="flex items-center gap-2 text-sm py-2 px-3 bg-pkt-surface-subtle border-l-2 border-pkt-border-subtle">
-            <span className="text-pkt-text-body-subtle">Byggherrens nåværende svar:</span>
-            <Badge
-              variant={
-                lastResponseEvent.resultat === 'godkjent' ? 'success' :
-                lastResponseEvent.resultat === 'avslatt' ? 'danger' : 'warning'
-              }
-              size="sm"
-            >
-              {lastResponseEvent.resultat === 'godkjent' ? 'Godkjent' :
-               lastResponseEvent.resultat === 'avslatt' ? 'Avslått' : 'Delvis godkjent'}
-            </Badge>
-            {lastResponseEvent.godkjent_belop != null && (
-              <span className="font-mono">
-                kr {lastResponseEvent.godkjent_belop.toLocaleString('nb-NO')},-
-              </span>
-            )}
-          </div>
-        )}
-
         <form
           onSubmit={handleSubmit(onSubmit)}
           onKeyDown={(e) => {

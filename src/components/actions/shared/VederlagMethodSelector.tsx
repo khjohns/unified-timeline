@@ -12,7 +12,7 @@
  * - Optional BH response context for ReviseVederlagModal
  */
 
-import { Alert, Checkbox, RadioGroup, RadioItem } from '../../primitives';
+import { Alert, Checkbox, ExpandableText, RadioGroup, RadioItem } from '../../primitives';
 import { VEDERLAG_METODER, METODE_DESCRIPTIONS, type VederlagsMetode } from './vederlagConstants';
 
 interface VederlagMethodSelectorProps {
@@ -76,24 +76,26 @@ export function VederlagMethodSelector({
           description={getDescription('ENHETSPRISER')}
         />
         {value === 'ENHETSPRISER' && onKreverJustertEpChange && (
-          <div className="ml-6 pl-4 border-l-2 border-pkt-border-subtle">
+          <div className="ml-6 pl-4 border-l-2 border-pkt-border-subtle space-y-2">
             <Checkbox
               id="krever_justert_ep"
               label="Krever justerte enhetspriser (§34.3.3)"
-              description="Når forutsetningene for enhetsprisene forrykkes"
               checked={kreverJustertEp}
               onCheckedChange={onKreverJustertEpChange}
             />
-            {kreverJustertEp && bhAvvisteEpJustering && (
-              <Alert variant="warning" className="mt-2">
-                Du opprettholder kravet selv om BH avviste det.
-              </Alert>
-            )}
-            {kreverJustertEp && !bhAvvisteEpJustering && (
-              <Alert variant="warning" className="mt-2">
-                Krav om justerte enhetspriser må varsles «uten ugrunnet opphold» etter at forholdet oppsto.
-                Uten rettidig varsel har du bare krav på den justering byggherren «måtte forstå» (§34.3.3).
-              </Alert>
+            {kreverJustertEp && (
+              <>
+                <p className="text-sm text-pkt-text-body-subtle">
+                  <ExpandableText preview="Justering kan kreves når forutsetningene forrykkes.">
+                    Justering av enhetspriser kan kreves når (1) ytelsene i det vesentlige er likeartet med ytelser det er fastsatt enhetspriser for, eller (2) forutsetningene for enhetsprisene forrykkes, f.eks. på grunn av omfang, antall eller tidspunkt for endringsarbeidet. Kravet må varsles «uten ugrunnet opphold» etter at forholdet oppsto (§34.3.3).
+                  </ExpandableText>
+                </p>
+                {bhAvvisteEpJustering && (
+                  <Alert variant="warning">
+                    Du opprettholder kravet selv om byggherren avviste det.
+                  </Alert>
+                )}
+              </>
             )}
           </div>
         )}
