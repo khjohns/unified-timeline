@@ -35,6 +35,7 @@ import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import {
   Alert,
+  AttachmentUpload,
   Badge,
   Button,
   CurrencyInput,
@@ -51,6 +52,7 @@ import {
   Textarea,
   useToast,
 } from '../primitives';
+import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -65,7 +67,6 @@ import { differenceInDays } from 'date-fns';
 import type { SubsidiaerTrigger } from '../../types/timeline';
 import {
   generateVederlagResponseBegrunnelse,
-  combineBegrunnelse,
   type VederlagResponseInput,
 } from '../../utils/begrunnelseGenerator';
 import { getResultatLabel } from '../../utils/formatters';
@@ -188,8 +189,8 @@ const respondVederlagSchema = z.object({
   produktivitet_godkjent_belop: z.number().min(0).optional(),
 
   // Port 4: Oppsummering
-  // Note: auto_begrunnelse is generated, not user-editable
-  tilleggs_begrunnelse: z.string().optional(),
+  begrunnelse: z.string().optional(),
+  vedlegg: z.array(z.any()).optional(), // AttachmentFile[]
 });
 
 type RespondVederlagFormData = z.infer<typeof respondVederlagSchema>;
@@ -339,7 +340,8 @@ export function RespondVederlagModal({
         produktivitet_godkjent_belop: lastResponseEvent.produktivitet_godkjent_belop,
         ep_justering_akseptert: lastResponseEvent.ep_justering_akseptert,
         hold_tilbake: lastResponseEvent.hold_tilbake,
-        tilleggs_begrunnelse: '',
+        begrunnelse: '',
+        vedlegg: [],
       };
     }
     // NEW RESPONSE MODE: Default values
@@ -349,6 +351,8 @@ export function RespondVederlagModal({
       hovedkrav_vurdering: 'godkjent',
       rigg_varslet_i_tide: true,
       produktivitet_varslet_i_tide: true,
+      begrunnelse: '',
+      vedlegg: [],
     };
   }, [isUpdateMode, lastResponseEvent]);
 
@@ -744,6 +748,20 @@ export function RespondVederlagModal({
 
   const currentStepType = getStepType(currentPort);
 
+  // Pre-populate begrunnelse when entering Oppsummering step (if empty)
+  useEffect(() => {
+    if (currentStepType === 'oppsummering' && !formValues.begrunnelse && autoBegrunnelse) {
+      setValue('begrunnelse', autoBegrunnelse);
+    }
+  }, [currentStepType, formValues.begrunnelse, autoBegrunnelse, setValue]);
+
+  // Handler to regenerate begrunnelse from auto-generated
+  const handleRegenerBegrunnelse = useCallback(() => {
+    if (autoBegrunnelse) {
+      setValue('begrunnelse', autoBegrunnelse);
+    }
+  }, [autoBegrunnelse, setValue]);
+
   // Navigation
   const goToNextPort = useCallback(async () => {
     let isValid = true;
@@ -778,7 +796,7 @@ export function RespondVederlagModal({
     if (isValid && currentPort < totalPorts) {
       setCurrentPort(currentPort + 1);
       // Clear errors for next step's fields to prevent premature validation display
-      clearErrors('tilleggs_begrunnelse');
+      clearErrors('begrunnelse');
       // Small delay to ensure DOM has updated before scrolling
       setTimeout(scrollToTop, 50);
     }
@@ -810,8 +828,8 @@ export function RespondVederlagModal({
     }
     if (!data.aksepterer_metode) triggers.push('metode_avslatt');
 
-    // Combine auto-generated begrunnelse with user's additional comments
-    const samletBegrunnelse = combineBegrunnelse(autoBegrunnelse, data.tilleggs_begrunnelse);
+    // Bruk brukerens begrunnelse direkte (pre-populert med auto-generert, evt. redigert)
+    const begrunnelseTekst = data.begrunnelse || autoBegrunnelse;
 
     // Calculate beløp values
     const hovedkravGodkjentBelop =
@@ -845,7 +863,7 @@ export function RespondVederlagModal({
           dato_endret: new Date().toISOString().split('T')[0],
 
           // Begrunnelse (same as new response)
-          begrunnelse: samletBegrunnelse,
+          begrunnelse: begrunnelseTekst,
 
           // Port 1: Preklusjon
           hovedkrav_varslet_i_tide: har34_1_2_Preklusjon ? data.hovedkrav_varslet_i_tide : undefined,
@@ -869,8 +887,7 @@ export function RespondVederlagModal({
 
           // Begrunnelse-detaljer
           auto_begrunnelse: autoBegrunnelse,
-          tilleggs_begrunnelse: data.tilleggs_begrunnelse,
-          vurdering_begrunnelse: samletBegrunnelse,
+          vurdering_begrunnelse: begrunnelseTekst,
 
           // Automatisk beregnet (prinsipalt)
           beregnings_resultat: prinsipaltResultat,
@@ -885,7 +902,7 @@ export function RespondVederlagModal({
             ? computed.totalGodkjentInklPrekludert
             : undefined,
           subsidiaer_begrunnelse: visSubsidiaertResultat
-            ? samletBegrunnelse
+            ? begrunnelseTekst
             : undefined,
         },
       });
@@ -916,10 +933,9 @@ export function RespondVederlagModal({
           produktivitet_vurdering: data.produktivitet_vurdering,
           produktivitet_godkjent_belop: produktivitetGodkjentBelop,
 
-          // Port 4: Oppsummering - combined auto + user begrunnelse
-          begrunnelse: samletBegrunnelse,
+          // Port 4: Oppsummering
+          begrunnelse: begrunnelseTekst,
           auto_begrunnelse: autoBegrunnelse,
-          tilleggs_begrunnelse: data.tilleggs_begrunnelse,
 
           // Automatisk beregnet (prinsipalt)
           beregnings_resultat: prinsipaltResultat,
@@ -934,7 +950,7 @@ export function RespondVederlagModal({
             ? computed.totalGodkjentInklPrekludert
             : undefined,
           subsidiaer_begrunnelse: visSubsidiaertResultat
-            ? samletBegrunnelse
+            ? begrunnelseTekst
             : undefined,
         },
       });
@@ -955,13 +971,13 @@ export function RespondVederlagModal({
       resultat = 'delvis_godkjent';
     }
 
-    // Combine auto-generated begrunnelse with user's additional comments
-    const samletBegrunnelse = combineBegrunnelse(autoBegrunnelse, data.tilleggs_begrunnelse);
+    // Bruk brukerens begrunnelse direkte
+    const begrunnelseTekstDraft = data.begrunnelse || autoBegrunnelse;
 
     onSaveDraft({
       belop: computed.totalGodkjent,
       resultat,
-      begrunnelse: samletBegrunnelse,
+      begrunnelse: begrunnelseTekstDraft,
       formData: data,
     });
 
@@ -2222,30 +2238,51 @@ export function RespondVederlagModal({
                   </>
                 )}
 
-                {/* Auto-generert begrunnelse (ikke redigerbar) */}
-                <SectionContainer
-                  title="Generert begrunnelse"
-                  variant="subtle"
-                  description="Automatisk generert basert på valgene dine. Kan ikke redigeres direkte."
-                >
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                    {autoBegrunnelse || 'Fyll ut valgene ovenfor for å generere begrunnelse.'}
-                  </p>
-                </SectionContainer>
-
-                {/* Tilleggsbegrunnelse (valgfri) */}
+                {/* Begrunnelse (redigerbar, pre-populert med auto-generert) */}
                 <FormField
-                  label="Tilleggskommentar"
-                  optional
-                  error={errors.tilleggs_begrunnelse?.message}
-                  helpText="Legg til egne kommentarer, f.eks. detaljer om beregning eller referanser til dokumenter"
+                  label="Begrunnelse"
+                  error={errors.begrunnelse?.message}
+                  helpText="Automatisk generert basert på valgene dine. Du kan redigere teksten fritt."
                 >
-                  <Textarea
-                    {...register('tilleggs_begrunnelse')}
-                    rows={3}
-                    fullWidth
-                    error={!!errors.tilleggs_begrunnelse}
-                                      />
+                  <div className="space-y-2">
+                    <Textarea
+                      {...register('begrunnelse')}
+                      rows={12}
+                      fullWidth
+                      error={!!errors.begrunnelse}
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRegenerBegrunnelse}
+                      >
+                        Regenerer fra valg
+                      </Button>
+                    </div>
+                  </div>
+                </FormField>
+
+                {/* Vedlegg */}
+                <FormField
+                  label="Vedlegg"
+                  optional
+                  helpText="Last opp dokumentasjon som støtter vurderingen (fakturaer, timelister, etc.)"
+                >
+                  <Controller
+                    name="vedlegg"
+                    control={control}
+                    render={({ field }) => (
+                      <AttachmentUpload
+                        value={field.value || []}
+                        onChange={field.onChange}
+                        multiple
+                        maxFiles={10}
+                        acceptedFormatsText="PDF, bilder, Excel, Word (maks 10 MB per fil)"
+                      />
+                    )}
+                  />
                 </FormField>
               </div>
             </SectionContainer>
