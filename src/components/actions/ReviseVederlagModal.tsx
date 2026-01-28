@@ -399,10 +399,10 @@ export function ReviseVederlagModal({
 
   // Reset amount fields when method changes
   const handleMetodeChange = (newMetode: string) => {
-    setValue('metode', newMetode as VederlagsMetode);
+    setValue('metode', newMetode as VederlagsMetode, { shouldDirty: true });
     // Clear amount fields when switching metode type
-    setValue('nytt_belop_direkte', undefined);
-    setValue('nytt_kostnads_overslag', undefined);
+    setValue('nytt_belop_direkte', undefined, { shouldDirty: true });
+    setValue('nytt_kostnads_overslag', undefined, { shouldDirty: true });
   };
 
   return (

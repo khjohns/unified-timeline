@@ -277,8 +277,8 @@ export function SendGrunnlagModal({
   // Reset underkategori when hovedkategori changes
   const handleHovedkategoriChange = (value: string) => {
     setSelectedHovedkategori(value);
-    setValue('hovedkategori', value);
-    setValue('underkategori', []);
+    setValue('hovedkategori', value, { shouldDirty: true });
+    setValue('underkategori', [], { shouldDirty: true });
   };
 
   const onSubmit = (data: GrunnlagFormData) => {

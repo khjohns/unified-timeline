@@ -769,7 +769,7 @@ export function RespondVederlagModal({
   // Handler to regenerate begrunnelse from auto-generated
   const handleRegenerBegrunnelse = useCallback(() => {
     if (autoBegrunnelse) {
-      setValue('begrunnelse', autoBegrunnelse);
+      setValue('begrunnelse', autoBegrunnelse, { shouldDirty: true });
     }
   }, [autoBegrunnelse, setValue]);
 
