@@ -2078,37 +2078,31 @@ export function RespondVederlagModal({
                   </div>
                 </div>
 
-                {/* Automatisk beregnet resultat - Prinsipalt */}
-                <div className="p-4 bg-pkt-surface-strong-dark-blue text-white rounded-none">
-                  <h5 className="font-medium text-sm mb-2 opacity-80">
-                    {visSubsidiaertResultat ? 'PRINSIPALT RESULTAT' : 'BEREGNET RESULTAT'}
-                  </h5>
-                  <div className="text-xl font-bold">{getResultatLabel(prinsipaltResultat)}</div>
-                  <div className="mt-2 text-lg font-mono">
-                    Samlet godkjent: kr {computed.totalGodkjent.toLocaleString('nb-NO')},-
+                {/* Resultatoppsummering - enkel tekst */}
+                <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="font-medium">Resultat:</span>
+                    <span className="font-bold">{getResultatLabel(prinsipaltResultat)}</span>
+                    <span className="text-pkt-text-body-subtle">–</span>
+                    <span className="font-mono">
+                      kr {computed.totalGodkjent.toLocaleString('nb-NO')} av {computed.totalKrevdInklPrekludert.toLocaleString('nb-NO')}
+                    </span>
+                    {computed.totalKrevdInklPrekludert > 0 && (
+                      <span className="text-pkt-text-body-subtle">
+                        ({((computed.totalGodkjent / computed.totalKrevdInklPrekludert) * 100).toFixed(0)}%)
+                      </span>
+                    )}
                   </div>
-                  {hovedkravPrekludert && (
-                    <div className="mt-2 text-sm opacity-80">
-                      Hovedkravet avvist som prekludert (§34.1.2)
+                  {visSubsidiaertResultat && (
+                    <div className="mt-2 text-pkt-text-body-subtle">
+                      <span>↳ Subsidiært: </span>
+                      <span className="font-mono">
+                        kr {computed.totalGodkjentInklPrekludert.toLocaleString('nb-NO')}
+                      </span>
+                      <span> dersom kravene hadde vært varslet i tide</span>
                     </div>
                   )}
                 </div>
-
-                {/* Subsidiært resultat (kun når det er prekluderte krav) */}
-                {visSubsidiaertResultat && (
-                  <div className="p-4 bg-pkt-surface-subtle border border-pkt-border-subtle rounded-none">
-                    <h5 className="font-medium text-sm mb-2 text-pkt-text-body-subtle">
-                      SUBSIDIÆRT RESULTAT
-                    </h5>
-                    <p className="text-xs text-pkt-text-body-subtle mb-2">
-                      For det tilfellet at preklusjonsinnsigelsen ikke får medhold
-                    </p>
-                    <div className="text-lg font-bold">{getResultatLabel(subsidiaertResultat)}</div>
-                    <div className="mt-1 font-mono">
-                      Samlet godkjent: kr {computed.totalGodkjentInklPrekludert.toLocaleString('nb-NO')},-
-                    </div>
-                  </div>
-                )}
 
                 {/* UPDATE MODE: Warnings and change summary */}
                 {isUpdateMode && (
