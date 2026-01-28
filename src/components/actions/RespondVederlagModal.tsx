@@ -38,6 +38,7 @@ import {
   Badge,
   Button,
   CurrencyInput,
+  ExpandableText,
   FormField,
   InlineDataList,
   InlineDataListItem,
@@ -311,18 +312,6 @@ export function RespondVederlagModal({
 
   // Vises §34.1.2 fordi BH påberoper §32.2? (for kontekstforklaring i UI)
   const erFra32_2_Paaberopelse = hovedkategori === 'ENDRING' && grunnlagVarsletForSent === true;
-
-  // Beregn dager mellom oppdagelse og vederlagskrav (for §34.1.2 info)
-  const dagerFraOppdagelseTilKrav = useMemo(() => {
-    if (!vederlagEvent?.dato_oppdaget || !vederlagEvent?.dato_krav_mottatt) return null;
-    try {
-      const oppdaget = new Date(vederlagEvent.dato_oppdaget);
-      const krav = new Date(vederlagEvent.dato_krav_mottatt);
-      return differenceInDays(krav, oppdaget);
-    } catch {
-      return null;
-    }
-  }, [vederlagEvent?.dato_oppdaget, vederlagEvent?.dato_krav_mottatt]);
 
   // Calculate total ports (5 with preklusjon-steg, 4 without)
   // Preklusjon-steg vises når: harSaerskiltKrav ELLER har34_1_2_Preklusjon
@@ -1046,23 +1035,22 @@ export function RespondVederlagModal({
             <div className="space-y-6">
               <h3 className="text-lg font-semibold">Oversikt</h3>
 
-              {/* Kompakt kravlinje - detaljer tilgjengelig i EventDetailModal */}
-              <div className="flex items-center gap-2 text-sm py-2 px-3 bg-pkt-surface-subtle border-l-2 border-pkt-border-subtle">
-                <span className="text-pkt-text-body-subtle">Krav:</span>
-                <span className="font-mono font-medium text-pkt-text-body">
-                  kr {(
-                    (hovedkravBelop || 0) +
-                    (harRiggKrav ? riggBelop || 0 : 0) +
-                    (harProduktivitetKrav ? produktivitetBelop || 0 : 0)
-                  ).toLocaleString('nb-NO')},-
-                </span>
-                {metodeLabel && (
-                  <span className="text-pkt-text-body-subtle">({metodeLabel})</span>
+              {/* Kravsammendrag */}
+              <InlineDataList stackOnMobile>
+                <InlineDataListItem label="Hovedkrav" mono>
+                  kr {(hovedkravBelop || 0).toLocaleString('nb-NO')},-
+                </InlineDataListItem>
+                {harRiggKrav && (
+                  <InlineDataListItem label="Rigg/drift" mono>
+                    kr {(riggBelop || 0).toLocaleString('nb-NO')},-
+                  </InlineDataListItem>
                 )}
-                {(harRiggKrav || harProduktivitetKrav) && (
-                  <Badge variant="neutral" size="sm">+særskilte</Badge>
+                {harProduktivitetKrav && (
+                  <InlineDataListItem label="Produktivitet" mono>
+                    kr {(produktivitetBelop || 0).toLocaleString('nb-NO')},-
+                  </InlineDataListItem>
                 )}
-              </div>
+              </InlineDataList>
 
               {/* Subsidiær behandling info */}
               {erSubsidiaer && (
@@ -1129,40 +1117,38 @@ export function RespondVederlagModal({
               ================================================================ */}
           {currentStepType === 'preklusjon' && (
             <SectionContainer
-              title={har34_1_2_Preklusjon ? "Preklusjon (§34.1.2 og §34.1.3)" : "Preklusjon av særskilte krav (§34.1.3)"}
-              description={har34_1_2_Preklusjon
-                ? "Vurder om kravene ble varslet i tide. Ved manglende varsel tapes kravet."
-                : "Disse postene krever særskilt varsel. Ved manglende varsel tapes kravet."}
+              title="Preklusjon"
+              description="Vurder om kravene ble varslet i tide. Ved manglende varsel tapes kravet."
             >
               {/* §34.1.2: Hovedkrav preklusjon (SVIKT/ANDRE, eller ENDRING der BH påberoper §32.2) */}
               {har34_1_2_Preklusjon && (
                 <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle mb-4">
-                  {/* Forklaring når §34.1.2 vises pga §32.2 påberopelse */}
+                  {/* Forklaring når preklusjon vises pga §32.2 påberopelse */}
                   {erFra32_2_Paaberopelse && (
                     <Alert variant="info" size="sm" className="mb-3">
-                      Du har påberopt §32.2-preklusjon, dvs. at forholdet <strong>ikke er en ENDRING</strong>.
-                      Dermed behandles det som SVIKT/ANDRE, og §34.1.2 gjelder for vederlagskravet.
+                      Du har påberopt at forholdet ikke er en endring. Dermed må du også vurdere
+                      om vederlagskravet ble varslet i tide.
                     </Alert>
                   )}
 
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                     <div className="flex items-center gap-2">
-                      <Badge variant="info">Hovedkrav (§34.1.2)</Badge>
-                      <span className="font-mono">
+                      <h4 className="font-medium">Hovedkrav</h4>
+                      <span className="font-mono text-sm">
                         kr {hovedkravBelop?.toLocaleString('nb-NO') || 0},-
                       </span>
                     </div>
-                    {dagerFraOppdagelseTilKrav !== null && (
+                    {vederlagEvent?.dato_oppdaget && (
                       <span className="text-xs text-pkt-grays-gray-500">
-                        {dagerFraOppdagelseTilKrav} dager fra oppdagelse til krav
+                        Entreprenøren klar over: {vederlagEvent.dato_oppdaget}
                       </span>
                     )}
                   </div>
 
                   <p className="text-sm text-pkt-text-body-subtle mb-3">
-                    Etter NS 8407 §34.1.2 skal entreprenøren varsle «uten ugrunnet opphold» når han blir
-                    klar over forhold som gir grunnlag for vederlagsjustering. Krav på vederlagsjustering
-                    tapes dersom det ikke varsles innen fristen.
+                    <ExpandableText preview="Entreprenøren skal varsle «uten ugrunnet opphold».">
+                      Entreprenøren skal varsle «uten ugrunnet opphold» når han blir eller burde ha blitt klar over forsinkelse eller svikt ved byggherrens ytelser, eller andre forhold byggherren har risikoen for. Krav på vederlagsjustering tapes dersom det ikke varsles innen fristen.
+                    </ExpandableText>
                   </p>
 
                   <FormField label="Ble vederlagskravet varslet i tide?" required>
@@ -1182,22 +1168,11 @@ export function RespondVederlagModal({
                   </FormField>
 
                   {formValues.hovedkrav_varslet_i_tide === false && (
-                    <Alert variant="danger" size="sm" title="Prekludert (§34.1.2)" className="mt-3">
-                      Hovedkravet avvises som prekludert fordi det ikke ble varslet i tide.
-                      Byggherren tar likevel stilling til beløpet for det tilfellet at preklusjonen
-                      ikke holder. Husk at du må gjøre denne innsigelsen skriftlig «uten ugrunnet
-                      opphold» etter å ha mottatt kravet, jf. §5.
+                    <Alert variant="danger" size="sm" title="Prekludert" className="mt-3">
+                      Du tar subsidiært stilling til beløpet. Husk skriftlig innsigelse.
                     </Alert>
                   )}
                 </div>
-              )}
-
-              {/* Info om særskilte krav */}
-              {harSaerskiltKrav && (
-                <Alert variant="warning" className="mb-4">
-                  Entreprenøren må ha varslet «uten ugrunnet opphold» etter at han ble klar over at
-                  forholdet ville medføre økte rigg/drift-kostnader eller produktivitetstap.
-                </Alert>
               )}
 
               {/* Rigg/Drift */}
@@ -1205,8 +1180,8 @@ export function RespondVederlagModal({
                 <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                     <div className="flex items-center gap-2">
-                      <Badge variant="default">Rigg/Drift</Badge>
-                      <span className="font-mono">
+                      <h4 className="font-medium">Rigg/drift</h4>
+                      <span className="font-mono text-sm">
                         kr {riggBelop?.toLocaleString('nb-NO') || 0},-
                       </span>
                     </div>
@@ -1218,8 +1193,9 @@ export function RespondVederlagModal({
                   </div>
 
                   <p className="text-sm text-pkt-text-body-subtle mb-3">
-                    Etter NS 8407 §34.1.3 må krav på særskilt justering for rigg/drift varsles
-                    «uten ugrunnet opphold» etter at entreprenøren ble klar over at utgifter ville påløpe.
+                    <ExpandableText preview="Kravet må varsles «uten ugrunnet opphold».">
+                      Krav på særskilt justering for rigg/drift må varsles «uten ugrunnet opphold» etter at entreprenøren ble klar over at utgifter ville påløpe som en nødvendig følge av endring, forsinkelse/svikt ved byggherrens ytelser, eller andre forhold byggherren har risikoen for.
+                    </ExpandableText>
                   </p>
 
                   <FormField label="Ble rigg/drift-kravet varslet i tide?" required>
@@ -1242,10 +1218,8 @@ export function RespondVederlagModal({
                   </FormField>
 
                   {formValues.rigg_varslet_i_tide === false && (
-                    <Alert variant="danger" size="sm" title="Prekludert (§34.1.3)" className="mt-3">
-                      Kravet prekluderes fordi det ikke ble varslet i tide.
-                      Byggherren tar likevel subsidiært standpunkt til beløpet. Husk at du må gjøre
-                      denne innsigelsen skriftlig «uten ugrunnet opphold» etter å ha mottatt kravet, jf. §5.
+                    <Alert variant="danger" size="sm" title="Prekludert" className="mt-3">
+                      Du tar subsidiært stilling til beløpet. Husk skriftlig innsigelse.
                     </Alert>
                   )}
                 </div>
@@ -1256,8 +1230,8 @@ export function RespondVederlagModal({
                 <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                     <div className="flex items-center gap-2">
-                      <Badge variant="default">Produktivitetstap</Badge>
-                      <span className="font-mono">
+                      <h4 className="font-medium">Produktivitetstap</h4>
+                      <span className="font-mono text-sm">
                         kr {produktivitetBelop?.toLocaleString('nb-NO') || 0},-
                       </span>
                     </div>
@@ -1269,8 +1243,9 @@ export function RespondVederlagModal({
                   </div>
 
                   <p className="text-sm text-pkt-text-body-subtle mb-3">
-                    Etter NS 8407 §34.1.3 annet ledd må krav på produktivitetstap varsles
-                    «uten ugrunnet opphold».
+                    <ExpandableText preview="Kravet må varsles «uten ugrunnet opphold».">
+                      Krav på produktivitetstap må varsles «uten ugrunnet opphold» etter at entreprenøren ble klar over at utgifter ville påløpe som følge av endring, forsinkelse/svikt ved byggherrens ytelser, eller andre forhold byggherren har risikoen for.
+                    </ExpandableText>
                   </p>
 
                   <FormField label="Ble produktivitetskravet varslet i tide?" required>
@@ -1293,10 +1268,8 @@ export function RespondVederlagModal({
                   </FormField>
 
                   {formValues.produktivitet_varslet_i_tide === false && (
-                    <Alert variant="danger" size="sm" title="Prekludert (§34.1.3)" className="mt-3">
-                      Kravet prekluderes fordi det ikke ble varslet i tide.
-                      Byggherren tar likevel subsidiært standpunkt til beløpet. Husk at du må gjøre
-                      denne innsigelsen skriftlig «uten ugrunnet opphold» etter å ha mottatt kravet, jf. §5.
+                    <Alert variant="danger" size="sm" title="Prekludert" className="mt-3">
+                      Du tar subsidiært stilling til beløpet. Husk skriftlig innsigelse.
                     </Alert>
                   )}
                 </div>
