@@ -502,6 +502,12 @@ function CasePageContent() {
                   currentVersion: Math.max(0, (state.vederlag.antall_versjoner ?? 1) - 1),
                   onOpenFullModal: () => setReviseVederlagOpen(true),
                   canRevise: userRole === 'TE' && actions.canUpdateVederlag,
+                  // Primary: BH har avvist/delvis godkjent OG TE har ikke sendt ny versjon etter
+                  // bh_respondert_versjon er 0-indeksert, antall_versjoner teller fra 1
+                  showPrimaryVariant:
+                    !!state.vederlag.bh_resultat &&
+                    state.vederlag.bh_resultat !== 'godkjent' &&
+                    state.vederlag.antall_versjoner - 1 === state.vederlag.bh_respondert_versjon,
                 }
               : undefined
           }

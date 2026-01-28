@@ -51,6 +51,8 @@ interface InlineVederlagRevisionProps {
   onOpenFullModal: () => void;
   /** Whether inline revision is allowed (canUpdateVederlag && userRole === 'TE') */
   canRevise: boolean;
+  /** Whether to show primary variant (BH rejected/partial and TE hasn't revised yet) */
+  showPrimaryVariant?: boolean;
 }
 
 interface CaseDashboardProps {
@@ -192,7 +194,7 @@ export function CaseDashboard({
               <>
                 {inlineVederlagRevision.canRevise && !inlineReviseOpen && (
                   <Button
-                    variant="secondary"
+                    variant={inlineVederlagRevision.showPrimaryVariant ? 'primary' : 'secondary'}
                     size="sm"
                     onClick={() => setInlineReviseOpen(true)}
                   >
