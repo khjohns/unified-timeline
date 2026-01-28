@@ -1721,7 +1721,15 @@ export function RespondVederlagModal({
 
                 {/* Beløpsoversikt */}
                 <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  <h5 className="font-medium text-sm mb-3">Beløpsvurdering</h5>
+                  <h5 className="font-medium text-sm mb-2">Beløpsvurdering</h5>
+
+                  {/* Forklaring når det finnes prekluderte krav */}
+                  {computed.harPrekludertKrav && (
+                    <p className="text-xs text-pkt-text-body-subtle mb-3">
+                      Krav merket «Prekludert» avvises fordi de ikke ble varslet i tide.
+                      Raden under viser byggherrens subsidiære standpunkt – hva som ville blitt godkjent dersom kravet hadde vært varslet i tide.
+                    </p>
+                  )}
 
                   {/* Desktop: tabell */}
                   <table className="hidden sm:table w-full text-sm">
@@ -1764,15 +1772,8 @@ export function RespondVederlagModal({
                       {harRiggKrav && (
                         <>
                           <tr className="border-b border-pkt-border-subtle">
-                            <td className="py-2">
-                              Rigg/Drift
-                              {riggPrekludert && (
-                                <span className="text-xs text-pkt-grays-gray-500 ml-1">(prinsipalt)</span>
-                              )}
-                            </td>
-                            <td
-                              className={`text-right font-mono ${riggPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}
-                            >
+                            <td className="py-2">Rigg/drift</td>
+                            <td className="text-right font-mono">
                               {riggBelop?.toLocaleString('nb-NO') || 0}
                             </td>
                             <td className="text-right font-mono">
@@ -1796,14 +1797,12 @@ export function RespondVederlagModal({
                               )}
                             </td>
                           </tr>
-                          {/* Subsidiary row for precluded rigg */}
+                          {/* Subsidiær rad for prekludert rigg */}
                           {riggPrekludert && (
-                            <tr className="border-b border-pkt-border-subtle bg-alert-warning-bg text-alert-warning-text">
-                              <td className="py-2 italic">
-                                ↳ Subsidiært
-                              </td>
+                            <tr className="border-b border-pkt-border-subtle text-pkt-text-body-subtle">
+                              <td className="py-1 pl-4 italic">↳ Hvis varslet i tide</td>
                               <td className="text-right font-mono">
-                                ({riggBelop?.toLocaleString('nb-NO') || 0})
+                                {riggBelop?.toLocaleString('nb-NO') || 0}
                               </td>
                               <td className="text-right font-mono">
                                 {formValues.rigg_vurdering === 'godkjent'
@@ -1830,15 +1829,8 @@ export function RespondVederlagModal({
                       {harProduktivitetKrav && (
                         <>
                           <tr className="border-b border-pkt-border-subtle">
-                            <td className="py-2">
-                              Produktivitet
-                              {produktivitetPrekludert && (
-                                <span className="text-xs text-pkt-grays-gray-500 ml-1">(prinsipalt)</span>
-                              )}
-                            </td>
-                            <td
-                              className={`text-right font-mono ${produktivitetPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}
-                            >
+                            <td className="py-2">Produktivitetstap</td>
+                            <td className="text-right font-mono">
                               {produktivitetBelop?.toLocaleString('nb-NO') || 0}
                             </td>
                             <td className="text-right font-mono">
@@ -1847,9 +1839,7 @@ export function RespondVederlagModal({
                                 : formValues.produktivitet_vurdering === 'godkjent'
                                   ? produktivitetBelop?.toLocaleString('nb-NO') || 0
                                   : formValues.produktivitet_vurdering === 'delvis'
-                                    ? formValues.produktivitet_godkjent_belop?.toLocaleString(
-                                        'nb-NO'
-                                      ) || 0
+                                    ? formValues.produktivitet_godkjent_belop?.toLocaleString('nb-NO') || 0
                                     : 0}
                             </td>
                             <td className="text-right">
@@ -1864,22 +1854,18 @@ export function RespondVederlagModal({
                               )}
                             </td>
                           </tr>
-                          {/* Subsidiary row for precluded produktivitet */}
+                          {/* Subsidiær rad for prekludert produktivitet */}
                           {produktivitetPrekludert && (
-                            <tr className="border-b border-pkt-border-subtle bg-alert-warning-bg text-alert-warning-text">
-                              <td className="py-2 italic">
-                                ↳ Subsidiært
-                              </td>
+                            <tr className="border-b border-pkt-border-subtle text-pkt-text-body-subtle">
+                              <td className="py-1 pl-4 italic">↳ Hvis varslet i tide</td>
                               <td className="text-right font-mono">
-                                ({produktivitetBelop?.toLocaleString('nb-NO') || 0})
+                                {produktivitetBelop?.toLocaleString('nb-NO') || 0}
                               </td>
                               <td className="text-right font-mono">
                                 {formValues.produktivitet_vurdering === 'godkjent'
                                   ? produktivitetBelop?.toLocaleString('nb-NO') || 0
                                   : formValues.produktivitet_vurdering === 'delvis'
-                                    ? formValues.produktivitet_godkjent_belop?.toLocaleString(
-                                        'nb-NO'
-                                      ) || 0
+                                    ? formValues.produktivitet_godkjent_belop?.toLocaleString('nb-NO') || 0
                                     : 0}
                               </td>
                               <td className="text-right">
@@ -1950,12 +1936,9 @@ export function RespondVederlagModal({
 
                     {/* Rigg/Drift card */}
                     {harRiggKrav && (
-                      <div className={`p-3 border rounded-none ${riggPrekludert ? 'border-alert-warning-border bg-alert-warning-bg text-alert-warning-text' : 'border-pkt-border-subtle'}`}>
+                      <div className="p-3 border border-pkt-border-subtle rounded-none">
                         <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
-                          <span className="font-medium">
-                            Rigg/Drift
-                            {riggPrekludert && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prinsipalt)</span>}
-                          </span>
+                          <span className="font-medium">Rigg/drift</span>
                           {riggPrekludert ? (
                             <Badge variant="danger">Prekludert</Badge>
                           ) : formValues.rigg_vurdering === 'godkjent' ? (
@@ -1968,7 +1951,7 @@ export function RespondVederlagModal({
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-pkt-text-body-subtle">Krevd:</span>
-                          <span className={`font-mono ${riggPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}>
+                          <span className="font-mono">
                             {riggBelop?.toLocaleString('nb-NO') || 0}
                           </span>
                         </div>
@@ -1986,9 +1969,9 @@ export function RespondVederlagModal({
                         </div>
                         {/* Subsidiært på mobil */}
                         {riggPrekludert && (
-                          <div className="mt-2 pt-2 border-t border-alert-warning-border">
-                            <div className="flex justify-between items-center text-sm mb-1">
-                              <span className="italic">↳ Subsidiært</span>
+                          <div className="mt-2 pt-2 border-t border-pkt-border-subtle text-pkt-text-body-subtle">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="italic">↳ Hvis varslet i tide:</span>
                               {formValues.rigg_vurdering === 'godkjent' ? (
                                 <Badge variant="success">Godkjent</Badge>
                               ) : formValues.rigg_vurdering === 'delvis' ? (
@@ -1997,8 +1980,8 @@ export function RespondVederlagModal({
                                 <Badge variant="danger">Avvist</Badge>
                               )}
                             </div>
-                            <div className="flex justify-between text-sm">
-                              <span>Subs. godkjent:</span>
+                            <div className="flex justify-between">
+                              <span>Godkjent:</span>
                               <span className="font-mono">
                                 {formValues.rigg_vurdering === 'godkjent'
                                   ? riggBelop?.toLocaleString('nb-NO') || 0
@@ -2014,12 +1997,9 @@ export function RespondVederlagModal({
 
                     {/* Produktivitet card */}
                     {harProduktivitetKrav && (
-                      <div className={`p-3 border rounded-none ${produktivitetPrekludert ? 'border-alert-warning-border bg-alert-warning-bg text-alert-warning-text' : 'border-pkt-border-subtle'}`}>
+                      <div className="p-3 border border-pkt-border-subtle rounded-none">
                         <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
-                          <span className="font-medium">
-                            Produktivitet
-                            {produktivitetPrekludert && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prinsipalt)</span>}
-                          </span>
+                          <span className="font-medium">Produktivitetstap</span>
                           {produktivitetPrekludert ? (
                             <Badge variant="danger">Prekludert</Badge>
                           ) : formValues.produktivitet_vurdering === 'godkjent' ? (
@@ -2032,7 +2012,7 @@ export function RespondVederlagModal({
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-pkt-text-body-subtle">Krevd:</span>
-                          <span className={`font-mono ${produktivitetPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}>
+                          <span className="font-mono">
                             {produktivitetBelop?.toLocaleString('nb-NO') || 0}
                           </span>
                         </div>
@@ -2050,9 +2030,9 @@ export function RespondVederlagModal({
                         </div>
                         {/* Subsidiært på mobil */}
                         {produktivitetPrekludert && (
-                          <div className="mt-2 pt-2 border-t border-alert-warning-border">
-                            <div className="flex justify-between items-center text-sm mb-1">
-                              <span className="italic">↳ Subsidiært</span>
+                          <div className="mt-2 pt-2 border-t border-pkt-border-subtle text-pkt-text-body-subtle">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="italic">↳ Hvis varslet i tide:</span>
                               {formValues.produktivitet_vurdering === 'godkjent' ? (
                                 <Badge variant="success">Godkjent</Badge>
                               ) : formValues.produktivitet_vurdering === 'delvis' ? (
@@ -2061,8 +2041,8 @@ export function RespondVederlagModal({
                                 <Badge variant="danger">Avvist</Badge>
                               )}
                             </div>
-                            <div className="flex justify-between text-sm">
-                              <span>Subs. godkjent:</span>
+                            <div className="flex justify-between">
+                              <span>Godkjent:</span>
                               <span className="font-mono">
                                 {formValues.produktivitet_vurdering === 'godkjent'
                                   ? produktivitetBelop?.toLocaleString('nb-NO') || 0
