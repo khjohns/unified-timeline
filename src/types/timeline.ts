@@ -3,6 +3,16 @@
  *
  * These types mirror the backend models exactly.
  * State is READ-ONLY - all mutations happen via events.
+ *
+ * TERMINOLOGI - Versjon vs Revisjon:
+ * - `versjon`: Tellende nummer for innsendinger (1, 2, 3...).
+ *   Versjon 1 er original, versjon 2 er første oppdatering.
+ * - `revisjon`: UI-visning for oppdateringer. Revisjon = versjon - 1.
+ *   Original har ingen revisjon, første oppdatering er "Rev. 1".
+ * - `respondert_versjon`: 0-indeksert referanse til TE-versjon.
+ *   respondert_versjon=0 betyr respons på versjon 1 (original).
+ * - `bh_respondert_versjon`: Samme som respondert_versjon, i state.
+ * - `antall_versjoner`: Totalt antall versjoner sendt (1-indeksert).
  */
 
 // ========== ENUMS ==========
@@ -672,8 +682,10 @@ export type BelopVurdering = 'godkjent' | 'delvis' | 'avslatt';
 
 // Vederlag response event (Port Model)
 export interface ResponsVederlagEventData {
-  // Referanse til kravet som besvares
+  // Referanse og sporbarhet
   vederlag_krav_id?: string;
+  /** Hvilken TE-versjon (0-indeksert) denne responsen gjelder. Settes automatisk av backend. */
+  respondert_versjon?: number;
 
   // Port 1: Preklusjon av særskilte krav (§34.1.3)
   rigg_varslet_i_tide?: boolean;
@@ -722,6 +734,9 @@ export interface ResponsVederlagEventData {
 
 // Frist response event (Port Model)
 export interface ResponsFristEventData {
+  /** Hvilken TE-versjon (0-indeksert) denne responsen gjelder. Settes automatisk av backend. */
+  respondert_versjon?: number;
+
   // Port 1: Preklusjon (Varsling)
   /** Var varsel om fristforlengelse (§33.4) rettidig? */
   frist_varsel_ok?: boolean;
@@ -756,6 +771,8 @@ export interface ResponsFristEventData {
 
 // Grunnlag response event
 export interface ResponsGrunnlagEventData {
+  /** Hvilken TE-versjon (0-indeksert) denne responsen gjelder. Settes automatisk av backend. */
+  respondert_versjon?: number;
   resultat: GrunnlagResponsResultat;
   begrunnelse: string;
   akseptert_kategori?: string;

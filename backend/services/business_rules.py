@@ -72,16 +72,19 @@ class BusinessRuleValidator:
                 ("ACTIVE_CLAIM_EXISTS", self._rule_active_frist_exists),
             ],
 
-            # BH responses require track to be sent
+            # BH responses require track to be sent and not already responded to current version
             EventType.RESPONS_GRUNNLAG: [
                 ("TRACK_SENT", self._rule_grunnlag_sent),
                 ("NOT_LOCKED", self._rule_grunnlag_not_locked),
+                ("NOT_ALREADY_RESPONDED", self._rule_grunnlag_not_already_responded),
             ],
             EventType.RESPONS_VEDERLAG: [
                 ("TRACK_SENT", self._rule_vederlag_sent),
+                ("NOT_ALREADY_RESPONDED", self._rule_vederlag_not_already_responded),
             ],
             EventType.RESPONS_FRIST: [
                 ("TRACK_SENT", self._rule_frist_sent),
+                ("NOT_ALREADY_RESPONDED", self._rule_frist_not_already_responded),
             ],
 
             # Cannot update locked grunnlag
@@ -223,6 +226,21 @@ class BusinessRuleValidator:
 
         return ValidationResult(is_valid=True)
 
+    def _rule_grunnlag_not_already_responded(self, event: AnyEvent, state: SakState) -> ValidationResult:
+        """R: Cannot respond if already responded to current version (use update instead)."""
+        if state.grunnlag.bh_resultat is None:
+            return ValidationResult(is_valid=True)
+
+        # Check if BH has already responded to the current version
+        current_version = max(0, state.grunnlag.antall_versjoner - 1)
+        if state.grunnlag.bh_respondert_versjon == current_version:
+            return ValidationResult(
+                is_valid=False,
+                message="Du har allerede svart på denne versjonen. Bruk 'Endre svar' for å oppdatere."
+            )
+
+        return ValidationResult(is_valid=True)
+
     # ========== VEDERLAG RULES ==========
 
     def _rule_vederlag_sent(self, event: AnyEvent, state: SakState) -> ValidationResult:
@@ -248,6 +266,21 @@ class BusinessRuleValidator:
 
         return ValidationResult(is_valid=True)
 
+    def _rule_vederlag_not_already_responded(self, event: AnyEvent, state: SakState) -> ValidationResult:
+        """R: Cannot respond if already responded to current version (use update instead)."""
+        if state.vederlag.bh_resultat is None:
+            return ValidationResult(is_valid=True)
+
+        # Check if BH has already responded to the current version
+        current_version = max(0, state.vederlag.antall_versjoner - 1)
+        if state.vederlag.bh_respondert_versjon == current_version:
+            return ValidationResult(
+                is_valid=False,
+                message="Du har allerede svart på denne versjonen. Bruk 'Endre svar' for å oppdatere."
+            )
+
+        return ValidationResult(is_valid=True)
+
     # ========== FRIST RULES ==========
 
     def _rule_frist_sent(self, event: AnyEvent, state: SakState) -> ValidationResult:
@@ -269,6 +302,21 @@ class BusinessRuleValidator:
             return ValidationResult(
                 is_valid=False,
                 message="Ingen aktivt fristkrav å oppdatere"
+            )
+
+        return ValidationResult(is_valid=True)
+
+    def _rule_frist_not_already_responded(self, event: AnyEvent, state: SakState) -> ValidationResult:
+        """R: Cannot respond if already responded to current version (use update instead)."""
+        if state.frist.bh_resultat is None:
+            return ValidationResult(is_valid=True)
+
+        # Check if BH has already responded to the current version
+        current_version = max(0, state.frist.antall_versjoner - 1)
+        if state.frist.bh_respondert_versjon == current_version:
+            return ValidationResult(
+                is_valid=False,
+                message="Du har allerede svart på denne versjonen. Bruk 'Endre svar' for å oppdatere."
             )
 
         return ValidationResult(is_valid=True)
