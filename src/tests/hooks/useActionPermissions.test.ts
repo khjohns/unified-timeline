@@ -423,12 +423,227 @@ describe('useActionPermissions', () => {
         'canRespondToGrunnlag',
         'canRespondToVederlag',
         'canRespondToFrist',
+        'canUpdateGrunnlagResponse',
+        'canUpdateVederlagResponse',
+        'canUpdateFristResponse',
+        'canSendForsering',
         'canIssueEO',
       ];
 
       for (const field of expectedFields) {
         expect(typeof actions[field]).toBe('boolean');
       }
+    });
+  });
+
+  describe('BH Response Updates (Snuoperasjoner)', () => {
+    const role: UserRole = 'BH';
+
+    it('should allow updating grunnlag response when BH has responded to current version', () => {
+      const state = createMockState({ grunnlagStatus: 'sendt' });
+      state.grunnlag.bh_resultat = 'godkjent';
+      state.grunnlag.bh_respondert_versjon = 0; // Responded to version 0
+      state.grunnlag.antall_versjoner = 1; // Current version is 0 (1-1=0)
+
+      const actions = useActionPermissions(state, role);
+      expect(actions.canUpdateGrunnlagResponse).toBe(true);
+    });
+
+    it('should not allow updating grunnlag response when BH responded to old version', () => {
+      const state = createMockState({ grunnlagStatus: 'sendt' });
+      state.grunnlag.bh_resultat = 'godkjent';
+      state.grunnlag.bh_respondert_versjon = 0; // Responded to version 0
+      state.grunnlag.antall_versjoner = 2; // Current version is 1 (2-1=1)
+
+      const actions = useActionPermissions(state, role);
+      expect(actions.canUpdateGrunnlagResponse).toBe(false);
+    });
+
+    it('should not allow updating grunnlag response when BH has not responded', () => {
+      const state = createMockState({ grunnlagStatus: 'sendt' });
+      state.grunnlag.bh_resultat = null;
+
+      const actions = useActionPermissions(state, role);
+      expect(actions.canUpdateGrunnlagResponse).toBe(false);
+    });
+
+    it('should allow updating vederlag response when BH has responded to current version', () => {
+      const state = createMockState({ vederlagStatus: 'godkjent' });
+      state.vederlag.bh_resultat = 'godkjent';
+      state.vederlag.bh_respondert_versjon = 1;
+      state.vederlag.antall_versjoner = 2; // Current version is 1
+
+      const actions = useActionPermissions(state, role);
+      expect(actions.canUpdateVederlagResponse).toBe(true);
+    });
+
+    it('should allow updating frist response when BH has responded to current version', () => {
+      const state = createMockState({ fristStatus: 'delvis_godkjent' });
+      state.frist.bh_resultat = 'delvis_godkjent';
+      state.frist.bh_respondert_versjon = 0;
+      state.frist.antall_versjoner = 1;
+
+      const actions = useActionPermissions(state, role);
+      expect(actions.canUpdateFristResponse).toBe(true);
+    });
+
+    it('TE should not be able to update BH responses', () => {
+      const state = createMockState({ grunnlagStatus: 'godkjent' });
+      state.grunnlag.bh_resultat = 'godkjent';
+      state.grunnlag.bh_respondert_versjon = 0;
+      state.grunnlag.antall_versjoner = 1;
+
+      const actions = useActionPermissions(state, 'TE');
+      expect(actions.canUpdateGrunnlagResponse).toBe(false);
+      expect(actions.canUpdateVederlagResponse).toBe(false);
+      expect(actions.canUpdateFristResponse).toBe(false);
+    });
+  });
+
+  describe('Forsering (§33.8)', () => {
+    const role: UserRole = 'TE';
+
+    it('should allow sending forsering when frist is rejected', () => {
+      const state = createMockState({ fristStatus: 'avslatt' });
+      state.frist.bh_resultat = 'avslatt';
+
+      const actions = useActionPermissions(state, role);
+      expect(actions.canSendForsering).toBe(true);
+    });
+
+    it('should allow sending forsering when frist is partially approved', () => {
+      const state = createMockState({ fristStatus: 'delvis_godkjent' });
+      state.frist.bh_resultat = 'delvis_godkjent';
+
+      const actions = useActionPermissions(state, role);
+      expect(actions.canSendForsering).toBe(true);
+    });
+
+    it('should allow sending forsering when grunnlag is rejected (implies frist rejection)', () => {
+      const state = createMockState({ grunnlagStatus: 'avslatt', fristStatus: 'sendt' });
+      state.grunnlag.bh_resultat = 'avslatt';
+      state.frist.bh_resultat = 'avslatt'; // Must have bh_resultat to trigger
+
+      const actions = useActionPermissions(state, role);
+      expect(actions.canSendForsering).toBe(true);
+    });
+
+    it('should not allow sending forsering when frist is approved', () => {
+      const state = createMockState({ fristStatus: 'godkjent' });
+      state.frist.bh_resultat = 'godkjent';
+
+      const actions = useActionPermissions(state, role);
+      expect(actions.canSendForsering).toBe(false);
+    });
+
+    it('should not allow sending forsering when BH has not responded to frist', () => {
+      const state = createMockState({ fristStatus: 'sendt' });
+      state.frist.bh_resultat = null;
+
+      const actions = useActionPermissions(state, role);
+      expect(actions.canSendForsering).toBe(false);
+    });
+
+    it('BH should not be able to send forsering', () => {
+      const state = createMockState({ fristStatus: 'avslatt' });
+      state.frist.bh_resultat = 'avslatt';
+
+      const actions = useActionPermissions(state, 'BH');
+      expect(actions.canSendForsering).toBe(false);
+    });
+  });
+
+  describe('Force Majeure (§33.3)', () => {
+    it('should not allow sending vederlag when grunnlag is Force Majeure', () => {
+      const state = createMockState({ vederlagStatus: 'utkast' });
+      state.grunnlag.hovedkategori = 'FORCE_MAJEURE';
+
+      const actions = useActionPermissions(state, 'TE');
+      expect(actions.canSendVederlag).toBe(false);
+    });
+
+    it('should allow sending frist when grunnlag is Force Majeure', () => {
+      const state = createMockState({ fristStatus: 'utkast' });
+      state.grunnlag.hovedkategori = 'FORCE_MAJEURE';
+
+      const actions = useActionPermissions(state, 'TE');
+      expect(actions.canSendFrist).toBe(true);
+    });
+
+    it('should allow sending vederlag when grunnlag is not Force Majeure', () => {
+      const state = createMockState({ vederlagStatus: 'utkast' });
+      state.grunnlag.hovedkategori = 'ENDRING_PAALAGTE_KRAV';
+
+      const actions = useActionPermissions(state, 'TE');
+      expect(actions.canSendVederlag).toBe(true);
+    });
+  });
+
+  describe('Versioning - harSvartPaaGjeldendeVersjon logic', () => {
+    const role: UserRole = 'BH';
+
+    it('should allow responding when BH has not responded yet', () => {
+      const state = createMockState({ grunnlagStatus: 'sendt' });
+      state.grunnlag.bh_resultat = null;
+      state.grunnlag.bh_respondert_versjon = undefined;
+      state.grunnlag.antall_versjoner = 1;
+
+      const actions = useActionPermissions(state, role);
+      expect(actions.canRespondToGrunnlag).toBe(true);
+      expect(actions.canUpdateGrunnlagResponse).toBe(false);
+    });
+
+    it('should allow responding when TE has updated after BH response', () => {
+      const state = createMockState({ grunnlagStatus: 'sendt' });
+      state.grunnlag.bh_resultat = 'godkjent';
+      state.grunnlag.bh_respondert_versjon = 0;
+      state.grunnlag.antall_versjoner = 2; // TE updated, now at version 1
+
+      const actions = useActionPermissions(state, role);
+      expect(actions.canRespondToGrunnlag).toBe(true); // Can respond to new version
+      expect(actions.canUpdateGrunnlagResponse).toBe(false); // Cannot update old response
+    });
+
+    it('should allow updating response when BH responded to current version', () => {
+      const state = createMockState({ grunnlagStatus: 'sendt' });
+      state.grunnlag.bh_resultat = 'avslatt';
+      state.grunnlag.bh_respondert_versjon = 2;
+      state.grunnlag.antall_versjoner = 3; // Current version is 2 (3-1)
+
+      const actions = useActionPermissions(state, role);
+      expect(actions.canRespondToGrunnlag).toBe(false); // Already responded
+      expect(actions.canUpdateGrunnlagResponse).toBe(true); // Can update
+    });
+
+    it('should handle version 0 correctly (original submission)', () => {
+      const state = createMockState({ vederlagStatus: 'sendt' });
+      state.vederlag.bh_resultat = 'godkjent';
+      state.vederlag.bh_respondert_versjon = 0;
+      state.vederlag.antall_versjoner = 1; // Only original, version 0
+
+      const actions = useActionPermissions(state, role);
+      expect(actions.canRespondToVederlag).toBe(false);
+      expect(actions.canUpdateVederlagResponse).toBe(true);
+    });
+  });
+
+  describe('delvis_godkjent status', () => {
+    it('should allow TE to update grunnlag when partially approved', () => {
+      const state = createMockState({ grunnlagStatus: 'delvis_godkjent', grunnlagLaast: false });
+      const actions = useActionPermissions(state, 'TE');
+      expect(actions.canUpdateGrunnlag).toBe(true);
+    });
+
+    it('should allow TE to update vederlag when partially approved', () => {
+      const state = createMockState({ vederlagStatus: 'delvis_godkjent' });
+      const actions = useActionPermissions(state, 'TE');
+      expect(actions.canUpdateVederlag).toBe(true);
+    });
+
+    it('should allow TE to update frist when partially approved', () => {
+      const state = createMockState({ fristStatus: 'delvis_godkjent' });
+      const actions = useActionPermissions(state, 'TE');
+      expect(actions.canUpdateFrist).toBe(true);
     });
   });
 });
