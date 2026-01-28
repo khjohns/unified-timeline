@@ -184,11 +184,11 @@ export function InlineReviseVederlag({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="mt-3 p-3 bg-pkt-surface-subtle border border-pkt-border-subtle rounded">
-      {/* Beløpsfelt */}
-      <div className="space-y-2">
+      {/* Beløpsfelt - stacker på mobil, side-by-side på desktop */}
+      <div className="space-y-3">
         {/* Hovedkrav */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-pkt-text-subtle w-24 shrink-0">Hovedkrav</span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+          <span className="text-sm text-pkt-text-subtle sm:w-28 shrink-0">Hovedkrav</span>
           <Controller
             name="hovedbelop"
             control={control}
@@ -196,7 +196,8 @@ export function InlineReviseVederlag({
               <CurrencyInput
                 value={field.value ?? null}
                 onChange={field.onChange}
-                width="sm"
+                width="full"
+                className="sm:max-w-[180px]"
                 allowNegative={!erRegningsarbeid}
               />
             )}
@@ -205,8 +206,8 @@ export function InlineReviseVederlag({
 
         {/* Rigg/drift - vis hvis hadde før eller har verdi */}
         {(hadRiggKrav || (belopRigg && belopRigg > 0)) && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-pkt-text-subtle w-24 shrink-0">+ Rigg/drift</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <span className="text-sm text-pkt-text-subtle sm:w-28 shrink-0">+ Rigg/drift</span>
             <Controller
               name="belop_rigg"
               control={control}
@@ -214,7 +215,8 @@ export function InlineReviseVederlag({
                 <CurrencyInput
                   value={field.value ?? null}
                   onChange={field.onChange}
-                  width="sm"
+                  width="full"
+                  className="sm:max-w-[180px]"
                 />
               )}
             />
@@ -223,8 +225,8 @@ export function InlineReviseVederlag({
 
         {/* Produktivitet - vis hvis hadde før eller har verdi */}
         {(hadProduktivitetKrav || (belopProduktivitet && belopProduktivitet > 0)) && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-pkt-text-subtle w-24 shrink-0">+ Produktivitet</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <span className="text-sm text-pkt-text-subtle sm:w-28 shrink-0">+ Produktivitet</span>
             <Controller
               name="belop_produktivitet"
               control={control}
@@ -232,7 +234,8 @@ export function InlineReviseVederlag({
                 <CurrencyInput
                   value={field.value ?? null}
                   onChange={field.onChange}
-                  width="sm"
+                  width="full"
+                  className="sm:max-w-[180px]"
                 />
               )}
             />
@@ -240,8 +243,8 @@ export function InlineReviseVederlag({
         )}
 
         {/* Total og endring */}
-        <div className="flex items-center gap-2 pt-2 border-t border-pkt-border-subtle">
-          <span className="text-sm font-medium w-24 shrink-0">= Total</span>
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-pkt-border-subtle">
+          <span className="text-sm font-medium">= Total</span>
           <span className="text-sm font-semibold">{formatCurrency(nyTotal)}</span>
           {endring !== 0 && (
             <span
@@ -286,8 +289,8 @@ export function InlineReviseVederlag({
       )}
 
       {/* Actions */}
-      <div className="flex items-center justify-between mt-3 pt-2 border-t border-pkt-border-subtle">
-        <div className="flex gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-2 border-t border-pkt-border-subtle">
+        <div className="flex flex-wrap gap-2">
           <Button
             type="submit"
             variant="primary"
