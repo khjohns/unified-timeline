@@ -3,11 +3,14 @@
  *
  * Alternative dashboard layout using DashboardCard (same as ForseringPage).
  * Displays status for all three tracks with badges instead of colored borders.
+ *
+ * Supports inline vederlag revision for quick amount updates.
  */
 
 import { ReactNode, useMemo, useState } from 'react';
-import { DashboardCard, InlineDataList, InlineDataListItem, Badge } from '../primitives';
+import { DashboardCard, InlineDataList, InlineDataListItem, Badge, Button } from '../primitives';
 import { CategoryLabel } from '../shared';
+import { InlineReviseVederlag } from '../actions/InlineReviseVederlag';
 import { SakState, SporStatus, TimelineEvent } from '../../types/timeline';
 import { GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
 // getHovedkategoriLabel, getUnderkategoriLabel erstattet av CategoryAccordion
@@ -24,6 +27,31 @@ import {
   transformVederlagHistorikk,
   transformFristHistorikk,
 } from './SporHistory';
+import { Pencil1Icon } from '@radix-ui/react-icons';
+import type { VederlagsMetode } from '../actions/shared';
+
+/** Data needed for inline vederlag revision */
+interface InlineVederlagRevisionProps {
+  sakId: string;
+  lastVederlagEvent: {
+    event_id: string;
+    metode: VederlagsMetode;
+    belop_direkte?: number;
+    kostnads_overslag?: number;
+    begrunnelse?: string;
+    krever_justert_ep?: boolean;
+    varslet_for_oppstart?: boolean;
+    saerskilt_krav?: {
+      rigg_drift?: { belop?: number; dato_klar_over?: string };
+      produktivitet?: { belop?: number; dato_klar_over?: string };
+    } | null;
+  };
+  currentVersion?: number;
+  /** Callback to open full modal for advanced options */
+  onOpenFullModal: () => void;
+  /** Whether inline revision is allowed (canUpdateVederlag && userRole === 'TE') */
+  canRevise: boolean;
+}
 
 interface CaseDashboardProps {
   state: SakState;
@@ -38,6 +66,8 @@ interface CaseDashboardProps {
   vederlagHistorikk?: VederlagHistorikkEntry[];
   /** Frist history entries from backend */
   fristHistorikk?: FristHistorikkEntry[];
+  /** Props for inline vederlag revision (optional - if not provided, uses vederlagActions) */
+  inlineVederlagRevision?: InlineVederlagRevisionProps;
 }
 
 /**
@@ -88,6 +118,7 @@ export function CaseDashboard({
   grunnlagHistorikk = [],
   vederlagHistorikk = [],
   fristHistorikk = [],
+  inlineVederlagRevision,
 }: CaseDashboardProps) {
   const krevdBelop = useMemo(() => getKrevdBelop(state), [state]);
 
@@ -104,6 +135,9 @@ export function CaseDashboard({
   const [grunnlagExpanded, setGrunnlagExpanded] = useState(false);
   const [vederlagExpanded, setVederlagExpanded] = useState(false);
   const [fristExpanded, setFristExpanded] = useState(false);
+
+  // Inline vederlag revision state
+  const [inlineReviseOpen, setInlineReviseOpen] = useState(false);
 
   return (
     <section aria-labelledby="dashboard-heading">
@@ -152,7 +186,27 @@ export function CaseDashboard({
         <DashboardCard
           title="Vederlag"
           headerBadge={getStatusBadge(state.vederlag.status)}
-          action={vederlagActions}
+          action={
+            inlineVederlagRevision ? (
+              // Use inline revision - show "Revider" button that toggles inline form
+              <>
+                {inlineVederlagRevision.canRevise && !inlineReviseOpen && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setInlineReviseOpen(true)}
+                  >
+                    <Pencil1Icon className="w-4 h-4 mr-2" />
+                    Revider
+                  </Button>
+                )}
+                {/* Pass through other vederlagActions if any (like BH response buttons) */}
+                {vederlagActions}
+              </>
+            ) : (
+              vederlagActions
+            )
+          }
           variant="default"
           className="animate-fade-in-up"
           style={{ animationDelay: '75ms' }}
@@ -184,6 +238,22 @@ export function CaseDashboard({
               )
             )}
           </InlineDataList>
+
+          {/* Inline Vederlag Revision Form */}
+          {inlineVederlagRevision && inlineReviseOpen && (
+            <InlineReviseVederlag
+              sakId={inlineVederlagRevision.sakId}
+              lastVederlagEvent={inlineVederlagRevision.lastVederlagEvent}
+              currentVersion={inlineVederlagRevision.currentVersion}
+              onOpenFullModal={() => {
+                setInlineReviseOpen(false);
+                inlineVederlagRevision.onOpenFullModal();
+              }}
+              onClose={() => setInlineReviseOpen(false)}
+              onSuccess={() => setInlineReviseOpen(false)}
+            />
+          )}
+
           <SporHistory spor="vederlag" entries={vederlagEntries} events={events} sakState={state} externalOpen={vederlagExpanded} />
         </DashboardCard>
 

@@ -448,7 +448,7 @@ function CasePageContent() {
                   Force majeure (§33.3) gir kun rett til fristforlengelse, ikke vederlagsjustering.
                 </Alert>
               )}
-              {/* TE Actions: "Send" and "Oppdater" are mutually exclusive */}
+              {/* TE Actions: Send initial claim (before inline revision is available) */}
               {userRole === 'TE' && actions.canSendVederlag && (
                 <Button
                   variant="primary"
@@ -459,23 +459,7 @@ function CasePageContent() {
                   Send krav
                 </Button>
               )}
-              {userRole === 'TE' && actions.canUpdateVederlag && (
-                <Button
-                  variant={
-                    // Primary: BH har avvist/delvis godkjent OG TE har ikke sendt ny versjon etter
-                    state.vederlag.bh_resultat &&
-                    state.vederlag.bh_resultat !== 'godkjent' &&
-                    state.vederlag.antall_versjoner === state.vederlag.bh_respondert_versjon
-                      ? 'primary'
-                      : 'secondary'
-                  }
-                  size="sm"
-                  onClick={() => setReviseVederlagOpen(true)}
-                >
-                  <Pencil1Icon className="w-4 h-4 mr-2" />
-                  Oppdater
-                </Button>
-              )}
+              {/* TE "Oppdater" now handled by inlineVederlagRevision prop below */}
               {/* BH Actions: Respond to TE's submission */}
               {userRole === 'BH' && actions.canRespondToVederlag && (
                 <Button
@@ -499,6 +483,26 @@ function CasePageContent() {
                 </Button>
               )}
             </>
+          }
+          inlineVederlagRevision={
+            sakId && state.vederlag.metode
+              ? {
+                  sakId,
+                  lastVederlagEvent: {
+                    event_id: `vederlag-${sakId}`,
+                    metode: state.vederlag.metode,
+                    belop_direkte: state.vederlag.belop_direkte,
+                    kostnads_overslag: state.vederlag.kostnads_overslag,
+                    begrunnelse: state.vederlag.begrunnelse,
+                    krever_justert_ep: state.vederlag.krever_justert_ep,
+                    varslet_for_oppstart: state.vederlag.regningsarbeid_varsel !== undefined,
+                    saerskilt_krav: state.vederlag.saerskilt_krav,
+                  },
+                  currentVersion: Math.max(0, (state.vederlag.antall_versjoner ?? 1) - 1),
+                  onOpenFullModal: () => setReviseVederlagOpen(true),
+                  canRevise: userRole === 'TE' && actions.canUpdateVederlag,
+                }
+              : undefined
           }
           fristActions={
             <>

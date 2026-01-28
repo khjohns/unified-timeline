@@ -20,6 +20,9 @@ export { RespondFristModal } from './RespondFristModal';
 export { ReviseVederlagModal } from './ReviseVederlagModal';
 export { ReviseFristModal } from './ReviseFristModal';
 
+// Inline revision components (TE) - compact inline forms for quick updates
+export { InlineReviseVederlag } from './InlineReviseVederlag';
+
 // Update response modals (BH) - for changing previous responses
 // Note: RespondGrunnlagUpdateModal removed - RespondGrunnlagModal handles updates via lastResponseEvent prop
 // Note: UpdateResponseVederlagModal removed - RespondVederlagModal handles updates via lastResponseEvent prop
