@@ -1702,11 +1702,9 @@ export function RespondVederlagModal({
                         ) : (
                           'Kravet om justering av enhetsprisene avvises.'
                         )}
-                        {formValues.ep_justering_varslet_i_tide === false && (
-                          <span className="text-pkt-brand-yellow-1000">
-                            {' '}Kravet ble ikke varslet uten ugrunnet opphold (§34.3.3).
-                          </span>
-                        )}
+                        {formValues.ep_justering_varslet_i_tide === false &&
+                          ' Kravet ble ikke varslet uten ugrunnet opphold (§34.3.3).'
+                        }
                       </p>
                     </div>
                   )}
