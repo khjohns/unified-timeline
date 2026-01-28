@@ -47,6 +47,8 @@ interface InlineVederlagRevisionProps {
       rigg_drift?: { belop?: number; dato_klar_over?: string };
       produktivitet?: { belop?: number; dato_klar_over?: string };
     } | null;
+    /** BH's foreslåtte metode (hvis ulik TEs metode) - brukes som forhåndsvalg */
+    bh_metode?: VederlagsMetode;
   };
   currentVersion?: number;
   /** Callback to open full modal for advanced options */

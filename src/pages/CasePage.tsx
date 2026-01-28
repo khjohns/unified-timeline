@@ -499,6 +499,8 @@ function CasePageContent() {
                     krever_justert_ep: state.vederlag.krever_justert_ep,
                     varslet_for_oppstart: state.vederlag.regningsarbeid_varsel !== undefined,
                     saerskilt_krav: state.vederlag.saerskilt_krav,
+                    // BH's foreslåtte metode - forhåndsvalgt hvis TE reviderer inline
+                    bh_metode: state.vederlag.bh_metode,
                   },
                   currentVersion: Math.max(0, (state.vederlag.antall_versjoner ?? 1) - 1),
                   onOpenFullModal: () => setReviseVederlagOpen(true),

@@ -38,6 +38,19 @@ export function getVederlagsmetodeLabel(code: string): string {
   return option?.label || code;
 }
 
+// Short labels uten hjemmel - for inline/kompakt visning
+const SHORT_LABELS: Record<VederlagsMetode, string> = {
+  ENHETSPRISER: 'Enhetspriser',
+  REGNINGSARBEID: 'Regningsarbeid',
+  FASTPRIS_TILBUD: 'Fastpris',
+};
+
+// Helper function to get short vederlagsmetode label (uten hjemmel)
+export function getVederlagsmetodeShortLabel(code: string): string {
+  const upperCode = code.toUpperCase() as VederlagsMetode;
+  return SHORT_LABELS[upperCode] || code;
+}
+
 // ========== DESCRIPTIVE HELP TEXT ==========
 
 export const VEDERLAGSMETODE_DESCRIPTIONS: Record<VederlagsMetode, string> = {
