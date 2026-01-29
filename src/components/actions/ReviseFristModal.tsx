@@ -11,21 +11,21 @@
  *
  * The antall_dager field uses the same name as SendFristModal for consistency
  * with the backend API which expects 'antall_dager' for updates.
+ *
+ * UPDATED (2026-01-29):
+ * - Uses shared KravOgBegrunnelseSeksjon component for contract rules and form fields
+ * - Merged "Beregning" and "Årsakssammenheng" into single "Krav og begrunnelse" section
  */
 
 import {
   Alert,
   AttachmentUpload,
   Button,
-  DatePicker,
-  ExpandableText,
-  FormField,
-  Input,
   Modal,
   SectionContainer,
-  Textarea,
   useToast,
 } from '../primitives';
+import { KravOgBegrunnelseSeksjon } from './shared/KravOgBegrunnelseSeksjon';
 import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -311,98 +311,21 @@ export function ReviseFristModal({
           </Alert>
         )}
 
-        {/* Seksjon 2: Nytt krav */}
-        <SectionContainer
-          title={modalMode === 'revider' ? 'Revidert krav' : 'Krav om fristforlengelse'}
-          description={modalMode === 'revider'
-            ? 'Angi nytt antall dager for fristforlengelse'
-            : 'Angi antall dager fristforlengelse'}
-        >
-          <FormField
-            label="Antall dager fristforlengelse"
-            required
-            error={errors.antall_dager?.message}
-          >
-            <Controller
-              name="antall_dager"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  type="number"
-                  value={field.value}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  width="xs"
-                  min={0}
-                />
-              )}
-            />
-          </FormField>
-          {erUgyldigDager && modalMode !== 'revider' && (
-            <p className="text-sm text-pkt-brand-orange-700">
-              Du må angi antall dager (mer enn 0) for å fremsette kravet.
-            </p>
-          )}
-
-          {/* Ny sluttdato - only for specification modes */}
-          {modalMode !== 'revider' && (
-            <FormField
-              label="Ny forventet sluttdato"
-              helpText="Forventet ny sluttdato etter fristforlengelsen"
-            >
-              <Controller
-                name="ny_sluttdato"
-                control={control}
-                render={({ field }) => (
-                  <DatePicker
-                    id="ny_sluttdato"
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
-                )}
-              />
-            </FormField>
-          )}
-        </SectionContainer>
-
-        {/* Seksjon 3: Begrunnelse */}
-        <SectionContainer
-          title="Begrunnelse"
-          description={modalMode === 'revider'
-            ? 'Forklar hvorfor du endrer kravet'
-            : 'Begrunn kravet med henvisning til årsakssammenheng'}
-        >
-          <p className="text-sm text-pkt-text-body-subtle mb-3">
-            <ExpandableText preview="Totalentreprenøren har krav på fristforlengelse når fremdriften hindres av byggherrens forhold.">
-              Dersom fremdriften hindres på grunn av endringer, forsinkelse eller svikt i byggherrens
-              medvirkning, eller andre forhold byggherren bærer risikoen for, har totalentreprenøren
-              krav på fristforlengelse (§33.1).
-            </ExpandableText>
-          </p>
-
-          <FormField
-            label={modalMode === 'revider' ? 'Begrunnelse for endring' : 'Begrunnelse for kravet'}
-            required
-            error={errors.begrunnelse?.message}
-          >
-            <Controller
-              name="begrunnelse"
-              control={control}
-              render={({ field }) => (
-                <Textarea
-                  id="begrunnelse"
-                  value={field.value}
-                  onChange={field.onChange}
-                  rows={4}
-                  fullWidth
-                  error={!!errors.begrunnelse}
-                  placeholder={modalMode !== 'revider'
-                    ? 'Begrunn kravet om fristforlengelse (årsakssammenheng, dokumentasjon av hindring)'
-                    : undefined}
-                />
-              )}
-            />
-          </FormField>
-        </SectionContainer>
+        {/* Krav og begrunnelse */}
+        <KravOgBegrunnelseSeksjon
+          control={control}
+          errors={errors}
+          tittel={modalMode === 'revider' ? 'Revidert krav' : 'Krav og begrunnelse'}
+          visNySluttdato={modalMode !== 'revider'}
+          begrunnelseRows={4}
+          antallDagerValidationMessage={
+            erUgyldigDager && modalMode !== 'revider' ? (
+              <p className="text-sm text-pkt-brand-orange-700">
+                Du må angi antall dager (mer enn 0) for å fremsette kravet.
+              </p>
+            ) : undefined
+          }
+        />
 
         {/* Seksjon 4: Vedlegg */}
         <SectionContainer
