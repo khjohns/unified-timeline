@@ -74,6 +74,8 @@ export interface VederlagResponseInput {
 
   // §32.2: Grunnlagspreklusjon - hele vederlagskravet er subsidiært
   erGrunnlagPrekludert?: boolean;
+  // Grunnlag avslått - hele vederlagskravet er subsidiært
+  erGrunnlagAvslatt?: boolean;
 
   // Preklusjon (Port 1/2)
   hovedkravVarsletITide?: boolean;  // §34.1.2 - kun SVIKT/ANDRE
@@ -483,12 +485,17 @@ function generateKonklusjonSection(input: VederlagResponseInput): string {
 export function generateVederlagResponseBegrunnelse(input: VederlagResponseInput): string {
   const sections: string[] = [];
 
-  // 0. §32.2 Grunnlagspreklusjon - hele vederlagskravet er subsidiært
+  // 0. Grunnlagsavslag eller preklusjon - hele vederlagskravet er subsidiært
   if (input.erGrunnlagPrekludert) {
     sections.push(
       'Grunnlagsvarselet ble ikke fremsatt «uten ugrunnet opphold» (§32.2). ' +
       'Vurderingen av vederlagskravet nedenfor gjelder derfor subsidiært, ' +
       'for det tilfellet at byggherren ikke får medhold i preklusjonsinnsigelsen.'
+    );
+  } else if (input.erGrunnlagAvslatt) {
+    sections.push(
+      'Ansvarsgrunnlaget er avvist. Vurderingen av vederlagskravet nedenfor gjelder derfor ' +
+      'subsidiært, for det tilfellet at byggherren ikke får medhold i avvisningen av grunnlaget.'
     );
   }
 

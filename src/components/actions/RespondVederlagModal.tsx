@@ -681,6 +681,8 @@ export function RespondVederlagModal({
 
       // §32.2: Grunnlagspreklusjon - hele vederlagskravet er subsidiært
       erGrunnlagPrekludert: erHelVederlagSubsidiaerPgaGrunnlag,
+      // Grunnlag avslått - hele vederlagskravet er subsidiært
+      erGrunnlagAvslatt: grunnlagStatus === 'avslatt' && !erHelVederlagSubsidiaerPgaGrunnlag,
 
       // Preklusjon
       hovedkravVarsletITide: har34_1_2_Preklusjon ? formValues.hovedkrav_varslet_i_tide : undefined,
@@ -721,6 +723,7 @@ export function RespondVederlagModal({
     harRiggKrav,
     harProduktivitetKrav,
     erHelVederlagSubsidiaerPgaGrunnlag,
+    grunnlagStatus,
     har34_1_2_Preklusjon,
     formValues,
     computed,
