@@ -230,14 +230,35 @@ radon cc backend/ -a -s --min C  # Verifiser CC-reduksjon
 
 ---
 
-## Forventet resultat
+## Faktiske resultater (Fase 1 fullført 2026-01-29)
 
-| Funksjon | Før | Etter |
-|----------|-----|-------|
+### Implementerte hjelpefunksjoner
+
+| Hjelpefunksjon | Fil | CC |
+|----------------|-----|-----|
+| `_validate_varsel_requirement()` | `backend/api/validators.py` | A (5) |
+| `_normalize_to_upper()` | `backend/api/validators.py` | B (6) |
+| `_copy_fields_if_present()` | `backend/services/timeline_service.py` | B (6) |
+
+### CC-forbedringer etter Fase 1
+
+| Funksjon | Før | Etter | Endring |
+|----------|-----|-------|---------|
+| `validate_vederlag_event` | 26 (D) | **8 (B)** | -18 ✅ |
+| `validate_grunnlag_event` | 32 (E) | 25 (D) | -7 |
+| `_handle_respons_vederlag` | 25 (D) | 17 (C) | -8 |
+| `_handle_respons_frist` | 26 (D) | 12 (C) | -14 ✅ |
+| validators.py gjennomsnitt | - | **9.3 (B)** | - |
+
+### Gjenstående arbeid (Fase 2)
+
+| Funksjon | Nåværende | Mål |
+|----------|-----------|-----|
 | `submit_event` | 50 (F) | < 15 (B/C) |
 | `_post_to_catenda` | 37 (E) | < 12 (C) |
-| `validate_grunnlag_event` | 32 (E) | < 12 (C) |
-| `validate_vederlag_event` | 26 (D) | < 14 (C) |
-| `_handle_respons_vederlag` | 25 (D) | < 10 (B) |
-| `_handle_respons_frist` | 26 (D) | < 10 (B) |
-| **Gjennomsnitt** | 16.7 (C) | < 12 (C) |
+| `validate_grunnlag_event` | 25 (D) | < 15 (C) |
+
+### Nye tester lagt til
+
+- `TestValidateVarselRequirement` (7 tester)
+- `TestNormalizeToUpper` (10 tester)

@@ -48,6 +48,63 @@ class ValidationError(Exception):
         return result
 
 
+# ============================================================================
+# Shared helper functions (reduces cyclomatic complexity)
+# ============================================================================
+
+def _validate_varsel_requirement(
+    data: Dict[str, Any],
+    flag_key: str,
+    varsel_key: str,
+    error_message: str
+) -> None:
+    """
+    Validate that a varsel (notice) is present and has required fields when flag is set.
+
+    This helper reduces repetitive validation patterns for NS 8407 varsel requirements.
+
+    Args:
+        data: The event data dict
+        flag_key: The key that triggers varsel requirement (e.g., 'krever_regningsarbeid')
+        varsel_key: The key for the varsel object (e.g., 'regningsarbeid_varsel')
+        error_message: Error message if varsel is missing (should include hjemmel reference)
+
+    Raises:
+        ValidationError: If flag is set but varsel is missing or incomplete
+    """
+    if not data.get(flag_key):
+        return
+
+    if not data.get(varsel_key):
+        raise ValidationError(error_message)
+
+    varsel = data.get(varsel_key)
+    if varsel and not varsel.get('dato_sendt'):
+        raise ValidationError(f"{varsel_key} må ha dato_sendt")
+
+
+def _normalize_to_upper(data: Dict[str, Any], *keys: str) -> None:
+    """
+    Normalize string fields to UPPERCASE in-place.
+
+    Handles both single strings and lists of strings.
+
+    Args:
+        data: The event data dict (modified in-place)
+        *keys: Field names to normalize
+
+    Example:
+        _normalize_to_upper(data, 'hovedkategori', 'metode')
+        _normalize_to_upper(data, 'underkategori')  # handles list of strings
+    """
+    for key in keys:
+        val = data.get(key)
+        if isinstance(val, str):
+            data[key] = val.upper()
+        elif isinstance(val, list):
+            data[key] = [v.upper() if isinstance(v, str) else v for v in val]
+
+
 def validate_grunnlag_event(data: Dict[str, Any], is_update: bool = False) -> None:
     """
     Validate grunnlag-event data against constants.
@@ -63,19 +120,10 @@ def validate_grunnlag_event(data: Dict[str, Any], is_update: bool = False) -> No
         raise ValidationError("Grunnlag data mangler")
 
     # Normalize casing to UPPERCASE (backend standard)
-    hovedkategori = data.get('hovedkategori')
-    if hovedkategori and isinstance(hovedkategori, str):
-        hovedkategori = hovedkategori.upper()
-        data['hovedkategori'] = hovedkategori
+    _normalize_to_upper(data, 'hovedkategori', 'underkategori')
 
+    hovedkategori = data.get('hovedkategori')
     underkategori = data.get('underkategori')
-    if underkategori:
-        if isinstance(underkategori, str):
-            underkategori = underkategori.upper()
-            data['underkategori'] = underkategori
-        elif isinstance(underkategori, list):
-            underkategori = [uk.upper() if isinstance(uk, str) else uk for uk in underkategori]
-            data['underkategori'] = underkategori
 
     # For updates, hovedkategori and underkategori are optional (only changed fields are sent)
     if is_update:
@@ -198,10 +246,8 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
         raise ValidationError("Vederlag data mangler")
 
     # Normalize metode to UPPERCASE (backend standard)
+    _normalize_to_upper(data, 'metode')
     metode = data.get('metode')
-    if metode and isinstance(metode, str):
-        metode = metode.upper()
-        data['metode'] = metode
 
     valid_metoder = [m.value for m in VederlagsMetode]
     if not metode:
@@ -233,59 +279,23 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
     if not data.get('begrunnelse'):
         raise ValidationError("begrunnelse er påkrevd")
 
-    # Validate NS 8407 specific warning requirements
-    # Regningsarbeid (§30.1) - must warn BEFORE starting work
-    if data.get('krever_regningsarbeid'):
-        if not data.get('regningsarbeid_varsel'):
-            raise ValidationError(
-                "Regningsarbeid krever varsel før oppstart (§30.1)"
-            )
-
-        # Validate that varsel has required fields
-        regn_varsel = data.get('regningsarbeid_varsel')
-        if regn_varsel and not regn_varsel.get('dato_sendt'):
-            raise ValidationError(
-                "regningsarbeid_varsel må ha dato_sendt"
-            )
-
-    # Rigg & Drift (§34.1.3) - must warn without undue delay
-    if data.get('inkluderer_rigg_drift'):
-        if not data.get('rigg_drift_varsel'):
-            raise ValidationError(
-                "Rigg/drift-kostnader krever særskilt varsel (§34.1.3)"
-            )
-
-        rigg_varsel = data.get('rigg_drift_varsel')
-        if rigg_varsel and not rigg_varsel.get('dato_sendt'):
-            raise ValidationError(
-                "rigg_drift_varsel må ha dato_sendt"
-            )
-
-    # Justerte enhetspriser (§34.3.3)
-    if data.get('krever_justert_ep'):
-        if not data.get('justert_ep_varsel'):
-            raise ValidationError(
-                "Justerte enhetspriser krever varsel (§34.3.3)"
-            )
-
-        justert_varsel = data.get('justert_ep_varsel')
-        if justert_varsel and not justert_varsel.get('dato_sendt'):
-            raise ValidationError(
-                "justert_ep_varsel må ha dato_sendt"
-            )
-
-    # Produktivitetstap (§34.1.3, andre ledd)
-    if data.get('inkluderer_produktivitetstap'):
-        if not data.get('produktivitetstap_varsel'):
-            raise ValidationError(
-                "Produktivitetstap krever særskilt varsel (§34.1.3, 2. ledd)"
-            )
-
-        prod_varsel = data.get('produktivitetstap_varsel')
-        if prod_varsel and not prod_varsel.get('dato_sendt'):
-            raise ValidationError(
-                "produktivitetstap_varsel må ha dato_sendt"
-            )
+    # Validate NS 8407 specific warning requirements using shared helper
+    _validate_varsel_requirement(
+        data, 'krever_regningsarbeid', 'regningsarbeid_varsel',
+        "Regningsarbeid krever varsel før oppstart (§30.1)"
+    )
+    _validate_varsel_requirement(
+        data, 'inkluderer_rigg_drift', 'rigg_drift_varsel',
+        "Rigg/drift-kostnader krever særskilt varsel (§34.1.3)"
+    )
+    _validate_varsel_requirement(
+        data, 'krever_justert_ep', 'justert_ep_varsel',
+        "Justerte enhetspriser krever varsel (§34.3.3)"
+    )
+    _validate_varsel_requirement(
+        data, 'inkluderer_produktivitetstap', 'produktivitetstap_varsel',
+        "Produktivitetstap krever særskilt varsel (§34.1.3, 2. ledd)"
+    )
 
 
 def validate_frist_event(data: Dict[str, Any], is_update: bool = False, is_specification: bool = False) -> None:
