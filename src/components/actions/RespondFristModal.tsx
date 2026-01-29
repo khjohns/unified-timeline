@@ -58,7 +58,6 @@ import { nb } from 'date-fns/locale';
 import type { SubsidiaerTrigger, FristTilstand, FristBeregningResultat } from '../../types/timeline';
 import {
   generateFristResponseBegrunnelse,
-  combineBegrunnelse,
   type FristResponseInput,
 } from '../../utils/begrunnelseGenerator';
 import { getResultatLabel, formatVarselMetode } from '../../utils/formatters';
@@ -150,8 +149,7 @@ const respondFristSchema = z.object({
   ny_sluttdato: z.string().optional(),
 
   // Port 4: Oppsummering
-  // Note: auto_begrunnelse is generated, not user-editable
-  tilleggs_begrunnelse: z.string().optional(),
+  begrunnelse: z.string().optional(),
 
   // ========== UPDATE MODE FIELDS ==========
   // Port 2: Preklusjon - kan kun endres til TEs gunst
@@ -628,6 +626,34 @@ export function RespondFristModal({
 
   const currentStepType = getStepType(currentPort);
 
+  // Track if user has manually edited the begrunnelse
+  const userHasEditedBegrunnelseRef = useRef(false);
+
+  // Pre-populate begrunnelse when entering Oppsummering step
+  // Also update when auto-begrunnelse changes IF user hasn't manually edited
+  useEffect(() => {
+    if (currentStepType === 'oppsummering' && autoBegrunnelse) {
+      // If user hasn't manually edited, always sync with auto-begrunnelse
+      if (!userHasEditedBegrunnelseRef.current) {
+        setValue('begrunnelse', autoBegrunnelse);
+      }
+    }
+  }, [currentStepType, autoBegrunnelse, setValue]);
+
+  // Track manual edits to begrunnelse (triggered by textarea onChange)
+  const markBegrunnelseAsEdited = useCallback(() => {
+    userHasEditedBegrunnelseRef.current = true;
+  }, []);
+
+  // Handler to regenerate begrunnelse from auto-generated
+  const handleRegenerBegrunnelse = useCallback(() => {
+    if (autoBegrunnelse) {
+      setValue('begrunnelse', autoBegrunnelse, { shouldDirty: true });
+      // Reset the edited flag so future auto-updates work
+      userHasEditedBegrunnelseRef.current = false;
+    }
+  }, [autoBegrunnelse, setValue]);
+
   // Navigation
   const goToNextPort = useCallback(async () => {
     let isValid = true;
@@ -649,7 +675,7 @@ export function RespondFristModal({
     if (isValid && currentPort < totalPorts) {
       setCurrentPort(currentPort + 1);
       // Clear errors for next step's fields to prevent premature validation display
-      clearErrors('tilleggs_begrunnelse');
+      clearErrors('begrunnelse');
       // Small delay to ensure DOM has updated before scrolling
       setTimeout(scrollToTop, 50);
     }
@@ -676,13 +702,13 @@ export function RespondFristModal({
       resultat = 'delvis_godkjent';
     }
 
-    // Combine auto-generated begrunnelse with user's additional comments
-    const samletBegrunnelse = combineBegrunnelse(autoBegrunnelse, data.tilleggs_begrunnelse);
+    // Bruk brukerens begrunnelse direkte (pre-populert med auto-generert, evt. redigert)
+    const begrunnelseTekst = data.begrunnelse || autoBegrunnelse;
 
     onSaveDraft({
       dager: godkjentDager,
       resultat,
-      begrunnelse: samletBegrunnelse,
+      begrunnelse: begrunnelseTekst,
       formData: data,
     });
 
@@ -760,8 +786,8 @@ export function RespondFristModal({
       triggers.push('ingen_hindring');
     }
 
-    // Combine auto-generated begrunnelse with user's additional comments
-    const samletBegrunnelse = combineBegrunnelse(autoBegrunnelse, data.tilleggs_begrunnelse);
+    // Bruk brukerens begrunnelse direkte (pre-populert med auto-generert, evt. redigert)
+    const begrunnelseTekst = data.begrunnelse || autoBegrunnelse;
 
     mutation.mutate({
       eventType: 'respons_frist',
@@ -783,10 +809,9 @@ export function RespondFristModal({
         godkjent_dager: godkjentDager,
         ny_sluttdato: data.ny_sluttdato,
 
-        // Port 4: Oppsummering - combined auto + user begrunnelse
-        begrunnelse: samletBegrunnelse,
+        // Port 4: Oppsummering
+        begrunnelse: begrunnelseTekst,
         auto_begrunnelse: autoBegrunnelse,
-        tilleggs_begrunnelse: data.tilleggs_begrunnelse,
 
         // Automatisk beregnet - prinsipalt
         beregnings_resultat: prinsipaltResultat,
@@ -796,7 +821,7 @@ export function RespondFristModal({
         subsidiaer_triggers: triggers.length > 0 ? triggers : undefined,
         subsidiaer_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
         subsidiaer_godkjent_dager: visSubsidiaertResultat ? godkjentDager : undefined,
-        subsidiaer_begrunnelse: visSubsidiaertResultat ? samletBegrunnelse : undefined,
+        subsidiaer_begrunnelse: visSubsidiaertResultat ? begrunnelseTekst : undefined,
       },
     });
   };
@@ -937,7 +962,7 @@ export function RespondFristModal({
                   helpText="Legg til eventuelle kommentarer eller merknader til begrunnelsen"
                 >
                   <Textarea
-                    {...register('tilleggs_begrunnelse')}
+                    {...register('begrunnelse')}
                     rows={3}
                     fullWidth
                     placeholder="F.eks. notater om når du forventer spesifisert krav..."
@@ -1915,30 +1940,32 @@ export function RespondFristModal({
                   </>
                 )}
 
-                {/* Auto-generert begrunnelse (ikke redigerbar) */}
-                <SectionContainer
-                  title="Generert begrunnelse"
-                  variant="subtle"
-                  description="Automatisk generert basert på valgene dine. Kan ikke redigeres direkte."
-                >
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                    {autoBegrunnelse || 'Fyll ut valgene ovenfor for å generere begrunnelse.'}
-                  </p>
-                </SectionContainer>
-
-                {/* Tilleggsbegrunnelse (valgfri) */}
+                {/* Begrunnelse (redigerbar, pre-populert med auto-generert) */}
                 <FormField
-                  label="Tilleggskommentar"
-                  optional
-                  error={errors.tilleggs_begrunnelse?.message}
-                  helpText="Legg til egne kommentarer, f.eks. detaljer om beregning eller referanser til dokumenter"
+                  label="Begrunnelse"
+                  error={errors.begrunnelse?.message}
+                  helpText="Automatisk generert basert på valgene dine. Du kan redigere teksten fritt."
                 >
-                  <Textarea
-                    {...register('tilleggs_begrunnelse')}
-                    rows={3}
-                    fullWidth
-                    error={!!errors.tilleggs_begrunnelse}
-                                      />
+                  <div className="space-y-2">
+                    <Textarea
+                      {...register('begrunnelse', {
+                        onChange: markBegrunnelseAsEdited,
+                      })}
+                      rows={12}
+                      fullWidth
+                      error={!!errors.begrunnelse}
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRegenerBegrunnelse}
+                      >
+                        Regenerer fra valg
+                      </Button>
+                    </div>
+                  </div>
                 </FormField>
               </div>
             </SectionContainer>
