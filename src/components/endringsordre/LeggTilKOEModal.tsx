@@ -97,7 +97,7 @@ export function LeggTilKOEModal({
       title="Legg til KOE-sak"
       size="lg"
     >
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {/* Info */}
         <Alert variant="info" title="Velg KOE-sak">
           Velg en KOE-sak som skal inkluderes i endringsordren.

@@ -634,7 +634,7 @@ export function BHResponsForseringModal({
 
           {/* PORT 1: OVERSIKT */}
           {currentPort === 1 && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <h3 className="text-lg font-semibold">Oversikt</h3>
 
               {/* Kravsammendrag */}
@@ -705,7 +705,7 @@ export function BHResponsForseringModal({
 
           {/* PORT 2: Forseringsrett (§33.8) - Per-sak vurdering */}
           {currentPort === 2 && (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <h3 className="text-lg font-semibold">Forseringsrett (§33.8)</h3>
               <p className="text-sm text-pkt-text-body-subtle">
                 Etter NS 8407 §33.8 har entreprenøren rett til forseringsvederlag dersom byggherren
@@ -830,7 +830,7 @@ export function BHResponsForseringModal({
 
           {/* PORT 3: 30%-regel */}
           {currentPort === 3 && (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <h3 className="text-lg font-semibold">30%-regelen (§33.8)</h3>
               <p className="text-sm text-pkt-text-body-subtle">
                 Entreprenøren har ikke valgrett til forsering dersom forseringskostnadene
@@ -874,7 +874,7 @@ export function BHResponsForseringModal({
 
           {/* PORT 4: Beløpsvurdering */}
           {currentPort === 4 && (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <h3 className="text-lg font-semibold">Beløpsvurdering</h3>
               <p className="text-sm text-pkt-text-body-subtle">
                 Vurder forseringskostnadene. Forsering dekkes etter regningsarbeid (§34.4).
@@ -1073,7 +1073,7 @@ export function BHResponsForseringModal({
 
           {/* PORT 5: Oppsummering */}
           {currentPort === 5 && (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <h3 className="text-lg font-semibold">Oppsummering</h3>
 
               {/* Per-sak forseringsrett oppsummering - tabell-layout */}

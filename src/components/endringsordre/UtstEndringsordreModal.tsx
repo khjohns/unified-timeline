@@ -712,7 +712,7 @@ export function UtstEndringsordreModal({
                 >
                   {/* Vederlagsjustering */}
                   {formValues.konsekvenser_pris && (
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       <FormField
                         label="Beregningsmetode"
                         required
@@ -857,7 +857,7 @@ export function UtstEndringsordreModal({
               description="Kontroller informasjonen før du utsteder endringsordren"
             >
               {/* Summary cards */}
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {/* Basic info */}
                 <div className="p-3 bg-pkt-surface-subtle border border-pkt-border-subtle rounded-none">
                   <h4 className="font-medium text-sm mb-2">Identifikasjon</h4>
