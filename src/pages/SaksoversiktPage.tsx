@@ -5,11 +5,11 @@
  * Allows filtering by case type and navigating to individual cases.
  */
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button, Card, DropdownMenuItem } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
-import { useCaseList } from '../hooks/useCaseList';
+import { useCaseListSuspense } from '../hooks/useCaseList';
 import { useAuth } from '../context/AuthContext';
 import { CaseListItem } from '../types/api';
 import { getOverordnetStatusLabel } from '../constants/statusLabels';
@@ -20,6 +20,8 @@ import {
 } from '../constants/statusStyles';
 import { formatDateShort } from '../utils/formatters';
 import type { OverordnetStatus } from '../types/timeline';
+import { VerifyingState, LoadingState } from '../components/PageStateHelpers';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 type SakstypeFilter = 'all' | 'standard' | 'forsering' | 'endringsordre';
 
@@ -42,17 +44,45 @@ function getCaseRoute(item: CaseListItem): string {
   }
 }
 
+/**
+ * SaksoversiktPage wrapper - handles auth and Suspense boundary
+ */
 export function SaksoversiktPage() {
-  const navigate = useNavigate();
   const { isVerifying } = useAuth();
   const [filter, setFilter] = useState<SakstypeFilter>('all');
 
-  const { data, isLoading, error } = useCaseList({
+  // Auth verification in progress
+  if (isVerifying) {
+    return <VerifyingState />;
+  }
+
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingState message="Laster saksoversikt..." />}>
+        <SaksoversiktContent filter={filter} setFilter={setFilter} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+/**
+ * Inner component that uses Suspense-enabled hooks
+ */
+function SaksoversiktContent({
+  filter,
+  setFilter,
+}: {
+  filter: SakstypeFilter;
+  setFilter: (f: SakstypeFilter) => void;
+}) {
+  const navigate = useNavigate();
+
+  // Suspense query - data guaranteed to exist
+  const { data } = useCaseListSuspense({
     sakstype: filter === 'all' ? undefined : filter,
-    enabled: !isVerifying,
   });
 
-  const cases = data?.cases ?? [];
+  const cases = data.cases;
 
   return (
     <div className="min-h-screen bg-pkt-bg-subtle">
@@ -97,32 +127,8 @@ export function SaksoversiktPage() {
           )}
         </div>
 
-        {/* Loading State */}
-        {(isLoading || isVerifying) && (
-          <Card variant="outlined" padding="lg">
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-oslo-blue" />
-              <span className="ml-3 text-pkt-text-body-subtle">Laster saker...</span>
-            </div>
-          </Card>
-        )}
-
-        {/* Error State */}
-        {error && !isLoading && (
-          <Card variant="outlined" padding="lg">
-            <div className="text-center py-12">
-              <p className="text-pkt-brand-red-1000 mb-4">
-                Kunne ikke laste saker: {error.message}
-              </p>
-              <Button variant="secondary" onClick={() => window.location.reload()}>
-                Prøv igjen
-              </Button>
-            </div>
-          </Card>
-        )}
-
         {/* Empty State */}
-        {!isLoading && !error && cases.length === 0 && (
+        {cases.length === 0 && (
           <Card variant="outlined" padding="lg">
             <div className="text-center py-12">
               <p className="text-pkt-text-body-subtle mb-4">
@@ -137,7 +143,7 @@ export function SaksoversiktPage() {
         )}
 
         {/* Case List */}
-        {!isLoading && !error && cases.length > 0 && (
+        {cases.length > 0 && (
           <section aria-labelledby="case-list-heading">
             <Card variant="outlined" padding="md">
               <div className="flex items-center justify-between mb-4">
