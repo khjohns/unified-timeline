@@ -412,7 +412,7 @@ export function sjekkVederlagspreklusjon(
       };
 
     case 'SVIKT':
-    case 'ANDRE':
+    case 'ANDRE': {
       // §34.1.2: Preklusjon - kravet tapes
       const erKritisk = dagerSidenOppdagelse !== undefined && dagerSidenOppdagelse > KRITISK_TERSKEL_DAGER;
       const erVarsel = dagerSidenOppdagelse !== undefined && dagerSidenOppdagelse > VARSEL_TERSKEL_DAGER;
@@ -444,6 +444,7 @@ export function sjekkVederlagspreklusjon(
       }
 
       return resultat;
+    }
 
     case 'FORCE_MAJEURE':
       return {
