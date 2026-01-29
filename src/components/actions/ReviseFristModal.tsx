@@ -120,13 +120,13 @@ export function ReviseFristModal({
       case 'spesifiser_foresporsel':
         return {
           title: 'Svar på byggherrens forespørsel (§33.6.2)',
-          submitLabel: 'Send spesifisert krav',
+          submitLabel: 'Fremsett krav',
           submitVariant: 'danger' as const,
         };
       case 'spesifiser_frivillig':
         return {
-          title: 'Spesifiser fristkrav (§33.6.1)',
-          submitLabel: 'Send spesifisert krav',
+          title: 'Krav om fristforlengelse (§33.6.1)',
+          submitLabel: 'Fremsett krav',
           submitVariant: 'primary' as const,
         };
       default:
@@ -247,7 +247,7 @@ export function ReviseFristModal({
   const onSubmit = (data: ReviseFristFormData) => {
     // Show pending toast immediately for better UX
     pendingToastId.current = toast.pending(
-      modalMode === 'revider' ? 'Sender revidert krav...' : 'Sender spesifisert krav...',
+      modalMode === 'revider' ? 'Sender revidert krav...' : 'Fremsetter krav...',
       'Vennligst vent mens kravet behandles.'
     );
 
@@ -290,7 +290,7 @@ export function ReviseFristModal({
         {modalMode === 'spesifiser_foresporsel' && (
           <Alert variant="danger" title="Svarplikt (§33.6.2)">
             Byggherren har etterlyst dette kravet. Du må svare «uten ugrunnet opphold».
-            Hvis du ikke sender spesifisert krav nå, <strong>tapes hele retten til fristforlengelse</strong> i denne saken.
+            Hvis du ikke fremsetter kravet nå, <strong>tapes hele retten til fristforlengelse</strong> i denne saken.
             {fristForSpesifisering && (
               <p className="mt-2">
                 <strong>Frist:</strong> {fristForSpesifisering}
@@ -301,22 +301,22 @@ export function ReviseFristModal({
 
         {/* Info for voluntary specification mode */}
         {modalMode === 'spesifiser_frivillig' && (
-          <Alert variant="info" title="Frivillig spesifisering (§33.6.1)">
+          <Alert variant="info" title="Krav om fristforlengelse (§33.6.1)">
             Du har tidligere sendt et nøytralt varsel (§33.4).
-            Nå har du grunnlag for å spesifisere antall dager fristforlengelse.
+            Nå har du grunnlag for å angi antall dager fristforlengelse.
             <p className="mt-2 text-sm">
-              Du skal sende spesifisert krav «uten ugrunnet opphold» når du har grunnlag for beregning.
-              Sen spesifisering medfører at kravet reduseres til det byggherren «måtte forstå» (§33.6.1).
+              Du skal fremsette kravet «uten ugrunnet opphold» når du har grunnlag for beregning.
+              Fremsettes ikke kravet i tide, reduseres det til det byggherren «måtte forstå» (§33.6.1).
             </p>
           </Alert>
         )}
 
         {/* Seksjon 2: Nytt krav */}
         <SectionContainer
-          title={modalMode === 'revider' ? 'Revidert krav' : 'Spesifisert krav'}
+          title={modalMode === 'revider' ? 'Revidert krav' : 'Krav om fristforlengelse'}
           description={modalMode === 'revider'
             ? 'Angi nytt antall dager for fristforlengelse'
-            : 'Spesifiser antall dager fristforlengelse'}
+            : 'Angi antall dager fristforlengelse'}
         >
           <FormField
             label="Antall dager fristforlengelse"
@@ -339,7 +339,7 @@ export function ReviseFristModal({
           </FormField>
           {erUgyldigDager && modalMode !== 'revider' && (
             <p className="text-sm text-pkt-brand-orange-700">
-              Du må angi antall dager (mer enn 0) for å sende spesifisert krav.
+              Du må angi antall dager (mer enn 0) for å fremsette kravet.
             </p>
           )}
 

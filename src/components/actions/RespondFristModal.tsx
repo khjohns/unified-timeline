@@ -1287,11 +1287,11 @@ export function RespondFristModal({
                         </div>
                       )}
 
-                      {/* §33.6.1: Vurder spesifisert krav */}
+                      {/* §33.6.1: Vurder krav om fristforlengelse */}
                       {(erFristVarselVurdertOk || formValues.frist_varsel_ok === false) && (
                         <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                           <h4 className="font-medium mb-3">
-                            Spesifisert krav (§33.6.1)
+                            Krav om fristforlengelse (§33.6.1)
                             {formValues.frist_varsel_ok === false && (
                               <Badge variant="warning" size="sm" className="ml-2">Subsidiært</Badge>
                             )}
@@ -1299,12 +1299,12 @@ export function RespondFristModal({
 
                           <p className="text-sm text-pkt-text-body-subtle mb-3">
                             <ExpandableText preview="Antall dager må angis «uten ugrunnet opphold» når beregningsgrunnlag foreligger.">
-                              Når parten har grunnlag for å beregne omfanget av fristforlengelse, må han angi og begrunne antall dager uten ugrunnet opphold (§33.6.1). Spesifiseres ikke kravet i tide, har parten bare krav på slik fristforlengelse som motparten måtte forstå at han hadde krav på.
+                              Når parten har grunnlag for å beregne omfanget av fristforlengelse, må han angi og begrunne antall dager uten ugrunnet opphold (§33.6.1). Fremsettes ikke kravet i tide, har parten bare krav på slik fristforlengelse som motparten måtte forstå at han hadde krav på.
                             </ExpandableText>
                           </p>
 
                           <FormField
-                            label="Ble kravet spesifisert i tide?"
+                            label="Ble kravet fremsatt i tide?"
                             required
                           >
                             <Controller
@@ -1388,11 +1388,11 @@ export function RespondFristModal({
                         )}
                       </div>
 
-                      {/* §33.6.1: Spesifisert krav - prinsipalt eller subsidiært */}
+                      {/* §33.6.1: Krav om fristforlengelse - prinsipalt eller subsidiært */}
                       {(formValues.frist_varsel_ok === true || formValues.frist_varsel_ok === false) && (
                         <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                           <h4 className="font-medium mb-3">
-                            Spesifisert krav (§33.6.1)
+                            Krav om fristforlengelse (§33.6.1)
                             {formValues.frist_varsel_ok === false && (
                               <Badge variant="warning" size="sm" className="ml-2">Subsidiært</Badge>
                             )}
@@ -1400,12 +1400,12 @@ export function RespondFristModal({
 
                           <p className="text-sm text-pkt-text-body-subtle mb-3">
                             <ExpandableText preview="Antall dager må angis «uten ugrunnet opphold» når beregningsgrunnlag foreligger.">
-                              Når parten har grunnlag for å beregne omfanget av fristforlengelse, må han angi og begrunne antall dager uten ugrunnet opphold (§33.6.1). Spesifiseres ikke kravet i tide, har parten bare krav på slik fristforlengelse som motparten måtte forstå at han hadde krav på.
+                              Når parten har grunnlag for å beregne omfanget av fristforlengelse, må han angi og begrunne antall dager uten ugrunnet opphold (§33.6.1). Fremsettes ikke kravet i tide, har parten bare krav på slik fristforlengelse som motparten måtte forstå at han hadde krav på.
                             </ExpandableText>
                           </p>
 
                           <FormField
-                            label="Ble kravet spesifisert i tide?"
+                            label="Ble kravet fremsatt i tide?"
                             required
                           >
                             <Controller

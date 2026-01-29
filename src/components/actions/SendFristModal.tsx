@@ -419,10 +419,10 @@ export function SendFristModal({
           </SectionContainer>
         )}
 
-        {/* Varseldetaljer for spesifisert krav */}
+        {/* Varseldetaljer for krav om fristforlengelse */}
         {selectedVarselType === 'spesifisert' && (
           <SectionContainer
-            title="Spesifisert krav (§33.6.1)"
+            title="Krav om fristforlengelse (§33.6.1)"
             description="Dokumenter når og hvordan kravet ble sendt"
           >
             {/* §33.4/§33.6.1 Preklusjonsvarsel når spesifisert krav sendes */}
