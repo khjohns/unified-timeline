@@ -18,6 +18,10 @@ from api.validators import (
     validate_respons_event,
     _validate_varsel_requirement,
     _normalize_to_upper,
+    _validate_begrunnelse,
+    _validate_antall_dager,
+    _validate_varsel_type_field,
+    _validate_frist_varsel_info,
 )
 
 
@@ -1103,3 +1107,183 @@ class TestForseringEvent:
         # §33.8: Forsering cost must be < (Dagmulkt + 30%)
         # TODO: Add validate_forsering_event when implemented
         pass
+
+
+# ============================================================================
+# _validate_begrunnelse tests (Fase 3 helper)
+# ============================================================================
+
+class TestValidateBegrunnelse:
+    """Tests for _validate_begrunnelse helper function."""
+
+    def test_valid_begrunnelse_passes(self):
+        """Valid begrunnelse passes validation."""
+        _validate_begrunnelse({"begrunnelse": "En gyldig begrunnelse"})
+
+    def test_missing_begrunnelse_fails(self):
+        """Missing begrunnelse raises ValidationError."""
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_begrunnelse({})
+        assert "begrunnelse er påkrevd" in str(exc_info.value)
+
+    def test_empty_begrunnelse_fails(self):
+        """Empty begrunnelse raises ValidationError."""
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_begrunnelse({"begrunnelse": ""})
+        assert "begrunnelse er påkrevd" in str(exc_info.value)
+
+    def test_none_begrunnelse_fails(self):
+        """None begrunnelse raises ValidationError."""
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_begrunnelse({"begrunnelse": None})
+        assert "begrunnelse er påkrevd" in str(exc_info.value)
+
+
+# ============================================================================
+# _validate_antall_dager tests (Fase 3 helper)
+# ============================================================================
+
+class TestValidateAntallDager:
+    """Tests for _validate_antall_dager helper function."""
+
+    def test_valid_positive_value_passes(self):
+        """Positive antall_dager passes validation."""
+        _validate_antall_dager({"antall_dager": 10})
+
+    def test_zero_with_allow_zero_true_passes(self):
+        """Zero passes when allow_zero=True."""
+        _validate_antall_dager({"antall_dager": 0}, allow_zero=True)
+
+    def test_zero_with_allow_zero_false_fails(self):
+        """Zero fails when allow_zero=False."""
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_antall_dager({"antall_dager": 0}, allow_zero=False)
+        assert "må være > 0" in str(exc_info.value)
+
+    def test_negative_value_fails(self):
+        """Negative antall_dager fails validation."""
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_antall_dager({"antall_dager": -5})
+        assert "må være >= 0" in str(exc_info.value)
+
+    def test_missing_required_fails(self):
+        """Missing antall_dager with required=True fails."""
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_antall_dager({}, required=True)
+        assert "antall_dager er påkrevd" in str(exc_info.value)
+
+    def test_missing_not_required_passes(self):
+        """Missing antall_dager with required=False passes."""
+        _validate_antall_dager({}, required=False)
+
+    def test_context_in_error_message(self):
+        """Context string appears in error message."""
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_antall_dager({}, required=True, context="for spesifisering")
+        assert "for spesifisering" in str(exc_info.value)
+
+    def test_context_in_allow_zero_false_error(self):
+        """Context string appears in allow_zero=False error."""
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_antall_dager(
+                {"antall_dager": 0},
+                allow_zero=False,
+                context="for spesifisering"
+            )
+        assert "for spesifisering" in str(exc_info.value)
+
+    def test_none_value_with_required_fails(self):
+        """None value with required=True fails."""
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_antall_dager({"antall_dager": None}, required=True)
+        assert "antall_dager er påkrevd" in str(exc_info.value)
+
+
+# ============================================================================
+# _validate_varsel_type_field tests (Fase 3 helper)
+# ============================================================================
+
+class TestValidateVarselTypeField:
+    """Tests for _validate_varsel_type_field helper function."""
+
+    def test_valid_varsel_type_returns_value(self):
+        """Valid varsel_type returns the value."""
+        result = _validate_varsel_type_field(
+            {"varsel_type": "varsel"},
+            ["varsel", "spesifisert"]
+        )
+        assert result == "varsel"
+
+    def test_missing_varsel_type_fails(self):
+        """Missing varsel_type raises ValidationError."""
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_varsel_type_field({}, ["varsel", "spesifisert"])
+        assert "varsel_type er påkrevd" in str(exc_info.value)
+        assert exc_info.value.field == "varsel_type"
+        assert "varsel_typer" in exc_info.value.valid_options
+
+    def test_invalid_varsel_type_fails(self):
+        """Invalid varsel_type raises ValidationError."""
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_varsel_type_field(
+                {"varsel_type": "ugyldig"},
+                ["varsel", "spesifisert"]
+            )
+        assert "Ugyldig varsel_type" in str(exc_info.value)
+        assert exc_info.value.field == "varsel_type"
+
+    def test_valid_options_in_error(self):
+        """Valid options are included in error response."""
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_varsel_type_field({}, ["a", "b", "c"])
+        assert exc_info.value.valid_options["varsel_typer"] == ["a", "b", "c"]
+
+
+# ============================================================================
+# _validate_frist_varsel_info tests (Fase 3 helper)
+# ============================================================================
+
+class TestValidateFristVarselInfo:
+    """Tests for _validate_frist_varsel_info helper function."""
+
+    def test_varsel_type_requires_frist_varsel(self):
+        """varsel_type='varsel' requires frist_varsel."""
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_frist_varsel_info({}, "varsel")
+        assert "frist_varsel er påkrevd" in str(exc_info.value)
+
+    def test_varsel_type_with_frist_varsel_passes(self):
+        """varsel_type='varsel' with frist_varsel passes."""
+        _validate_frist_varsel_info(
+            {"frist_varsel": {"dato_sendt": "2024-01-01"}},
+            "varsel"
+        )
+
+    def test_spesifisert_type_requires_spesifisert_varsel(self):
+        """varsel_type='spesifisert' requires spesifisert_varsel."""
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_frist_varsel_info({}, "spesifisert")
+        assert "spesifisert_varsel er påkrevd" in str(exc_info.value)
+
+    def test_spesifisert_type_requires_antall_dager(self):
+        """varsel_type='spesifisert' requires antall_dager."""
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_frist_varsel_info(
+                {"spesifisert_varsel": {"dato_sendt": "2024-01-01"}},
+                "spesifisert"
+            )
+        assert "antall_dager er påkrevd" in str(exc_info.value)
+
+    def test_spesifisert_type_complete_passes(self):
+        """Complete spesifisert data passes validation."""
+        _validate_frist_varsel_info(
+            {
+                "spesifisert_varsel": {"dato_sendt": "2024-01-01"},
+                "antall_dager": 10
+            },
+            "spesifisert"
+        )
+
+    def test_unknown_varsel_type_passes(self):
+        """Unknown varsel_type passes (no specific validation)."""
+        _validate_frist_varsel_info({}, "unknown_type")
