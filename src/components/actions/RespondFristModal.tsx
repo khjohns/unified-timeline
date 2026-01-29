@@ -1584,8 +1584,14 @@ export function RespondFristModal({
           {!erBegrunnelseUtsatt && currentStepType === 'beregning' && (
             <SectionContainer
               title="Beregning av fristforlengelse (§33.5)"
-              description="Vurder om kravet reflekterer reell virkning på fremdriften. Momenter: nødvendig avbrudd, årstidsforskyvning, samlet virkning av tidligere forhold, og om entreprenøren har oppfylt tapsbegrensningsplikten."
             >
+              {/* §33.5 ExpandableText */}
+              <p className="text-sm text-pkt-text-body-subtle mb-3">
+                <ExpandableText preview="Fristforlengelsen skal svare til den virkning hindringen har hatt for fremdriften.">
+                  Fristforlengelsen skal svare til den virkning hindringen har hatt for fremdriften (§33.5). Ved beregningen skal det tas hensyn til nødvendig avbrudd og oppstart, årstidsforskyvning, den samlede virkning av tidligere fristforlengelser, og om entreprenøren har oppfylt sin tapsbegrensningsplikt. Forlengelsen skal ikke overstige det som er nødvendig for å kompensere den reelle forsinkelsen.
+                </ExpandableText>
+              </p>
+
               {/* Etterlysning blocks evaluation */}
               {sendForesporsel ? (
                 <Alert variant="info" title="Avventer svar">
