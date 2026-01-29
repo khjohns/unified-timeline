@@ -549,6 +549,39 @@ backend/lib/helpers/
 
 ---
 
+### Faktiske resultater (Fase 4 delvis implementert 2026-01-29)
+
+#### Implementerte hjelpefunksjoner
+
+| Hjelpefunksjon | Fil | Beskrivelse |
+|----------------|-----|-------------|
+| `handle_concurrency_error()` | `lib/helpers/version_control.py` | Standard 409-respons for ConcurrencyError |
+| `not_found_response()` | `lib/helpers/version_control.py` | Standard 404-respons for NOT_FOUND |
+| `version_conflict_response()` | `lib/helpers/version_control.py` | Standard 409-respons for versjonskonflikter |
+| `error_response()` | `lib/helpers/responses.py` | Generisk feilrespons-builder |
+| `success_response()` | `lib/helpers/responses.py` | Generisk suksess-respons-builder |
+
+#### Refaktorerte filer
+
+| Fil | Endring | Linjer fjernet |
+|-----|---------|----------------|
+| `fravik_routes.py` | Bruker nye hjelpere i 10 endpoints | ~50 linjer |
+
+#### Tester lagt til
+
+- `tests/test_lib/test_helpers.py` - 20+ enhetstester for alle hjelpefunksjoner
+
+#### Gjenstående arbeid (Fase 4)
+
+| Oppgave | Status |
+|---------|--------|
+| `get_all_sak_ids()` | Ikke implementert |
+| Refaktorer forsering_routes.py | Bruker annet mønster (service-kall) |
+| Refaktorer endringsordre_routes.py | Ikke startet |
+| PDF-seksjon builder | Ikke startet |
+
+---
+
 ### Kommandoer for fremtidig analyse
 
 ```bash
