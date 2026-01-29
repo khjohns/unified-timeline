@@ -14,6 +14,11 @@
  * - Corrected terminology to match NS 8407 contract text
  * - Added VarslingsregelInline component for rule display with accordion
  * - Added dager-beregning fra dato_oppdaget
+ *
+ * UPDATED (2026-01-29):
+ * - Removed "Årsakssammenheng" section for neutral notice (§33.4) - not required
+ * - Merged "Årsakssammenheng" + "Beregning" into single "Krav og begrunnelse" section
+ * - Made begrunnelse optional for neutral notice, required only for specified claim
  */
 
 import {
@@ -70,7 +75,7 @@ const fristSchema = z.object({
   spesifisert_varsel_metoder: z.array(z.string()).optional(),
 
   antall_dager: z.number().min(0, 'Antall dager kan ikke være negativt').optional(),
-  begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
+  begrunnelse: z.string().optional(),
   ny_sluttdato: z.string().optional(),
   attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
 }).refine(
@@ -84,6 +89,18 @@ const fristSchema = z.object({
   {
     message: 'Antall dager er påkrevd for spesifisert krav',
     path: ['antall_dager'],
+  }
+).refine(
+  (data) => {
+    // begrunnelse is required for spesifisert krav (§33.6.1 requires justification)
+    if (data.varsel_type === 'spesifisert') {
+      return data.begrunnelse && data.begrunnelse.length >= 10;
+    }
+    return true;
+  },
+  {
+    message: 'Begrunnelse må være minst 10 tegn',
+    path: ['begrunnelse'],
   }
 );
 
@@ -581,52 +598,30 @@ export function SendFristModal({
           </SectionContainer>
         )}
 
-        {/* Årsakssammenheng */}
-        <SectionContainer
-          title="Årsakssammenheng"
-        >
-          <div className="space-y-3 sm:space-y-4">
-            {/* Vilkår: §33.3 for force majeure, §33.1 for andre forhold */}
-            {grunnlagEvent?.hovedkategori && erForceMajeure(grunnlagEvent.hovedkategori) ? (
-              <p className="text-sm text-pkt-text-body-subtle mb-3">
-                <ExpandableText preview="Totalentreprenøren har krav på fristforlengelse ved force majeure.">
-                  Dersom fremdriften hindres av ekstraordinære og upåregnelige forhold utenfor partens
-                  kontroll (force majeure), har totalentreprenøren krav på fristforlengelse (§33.3).
-                </ExpandableText>
-              </p>
-            ) : (
-              <p className="text-sm text-pkt-text-body-subtle mb-3">
-                <ExpandableText preview="Totalentreprenøren har krav på fristforlengelse når fremdriften hindres av byggherrens forhold.">
-                  Dersom fremdriften hindres på grunn av endringer, forsinkelse eller svikt i byggherrens
-                  medvirkning, eller andre forhold byggherren bærer risikoen for, har totalentreprenøren
-                  krav på fristforlengelse (§33.1).
-                </ExpandableText>
-              </p>
-            )}
-
-            <FormField
-              required
-              error={errors.begrunnelse?.message}
-            >
-              <Textarea
-                id="begrunnelse"
-                {...register('begrunnelse')}
-                rows={5}
-                fullWidth
-                error={!!errors.begrunnelse}
-                data-testid="frist-begrunnelse"
-              />
-            </FormField>
-          </div>
-        </SectionContainer>
-
-        {/* Beregning av fristforlengelse (for spesifisert/FM) */}
+        {/* Krav og begrunnelse - kun for spesifisert krav */}
         {selectedVarselType === 'spesifisert' && (
-          <SectionContainer
-            title="Beregning av fristforlengelse"
-          >
+          <SectionContainer title="Krav og begrunnelse">
             <div className="space-y-3 sm:space-y-4">
-              <p className="text-sm text-pkt-text-body-subtle mb-3">
+              {/* Vilkår: §33.3 for force majeure, §33.1 for andre forhold */}
+              {grunnlagEvent?.hovedkategori && erForceMajeure(grunnlagEvent.hovedkategori) ? (
+                <p className="text-sm text-pkt-text-body-subtle">
+                  <ExpandableText preview="Totalentreprenøren har krav på fristforlengelse ved force majeure.">
+                    Dersom fremdriften hindres av ekstraordinære og upåregnelige forhold utenfor partens
+                    kontroll (force majeure), har totalentreprenøren krav på fristforlengelse (§33.3).
+                  </ExpandableText>
+                </p>
+              ) : (
+                <p className="text-sm text-pkt-text-body-subtle">
+                  <ExpandableText preview="Totalentreprenøren har krav på fristforlengelse når fremdriften hindres av byggherrens forhold.">
+                    Dersom fremdriften hindres på grunn av endringer, forsinkelse eller svikt i byggherrens
+                    medvirkning, eller andre forhold byggherren bærer risikoen for, har totalentreprenøren
+                    krav på fristforlengelse (§33.1).
+                  </ExpandableText>
+                </p>
+              )}
+
+              {/* Beregning §33.5 */}
+              <p className="text-sm text-pkt-text-body-subtle">
                 <ExpandableText preview="Fristforlengelsen skal svare til den virkning hindringen har hatt for fremdriften.">
                   Fristforlengelsen skal svare til den virkning hindringen har hatt for fremdriften (§33.5).
                   Ved beregningen skal det tas hensyn til nødvendig avbrudd og oppstart, årstidsforskyvning,
@@ -636,6 +631,7 @@ export function SendFristModal({
                 </ExpandableText>
               </p>
 
+              {/* Antall kalenderdager og ny sluttdato */}
               <div className="flex flex-col min-[420px]:flex-row gap-3 min-[420px]:gap-6">
                 <FormField
                   label="Antall kalenderdager"
@@ -672,6 +668,22 @@ export function SendFristModal({
                   />
                 </FormField>
               </div>
+
+              {/* Begrunnelse */}
+              <FormField
+                label="Begrunnelse"
+                required
+                error={errors.begrunnelse?.message}
+              >
+                <Textarea
+                  id="begrunnelse"
+                  {...register('begrunnelse')}
+                  rows={5}
+                  fullWidth
+                  error={!!errors.begrunnelse}
+                  data-testid="frist-begrunnelse"
+                />
+              </FormField>
             </div>
           </SectionContainer>
         )}
