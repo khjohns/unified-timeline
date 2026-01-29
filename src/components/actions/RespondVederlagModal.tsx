@@ -679,6 +679,9 @@ export function RespondVederlagModal({
       harRiggKrav: harRiggKrav,
       harProduktivitetKrav: harProduktivitetKrav,
 
+      // §32.2: Grunnlagspreklusjon - hele vederlagskravet er subsidiært
+      erGrunnlagPrekludert: erHelVederlagSubsidiaerPgaGrunnlag,
+
       // Preklusjon
       hovedkravVarsletITide: har34_1_2_Preklusjon ? formValues.hovedkrav_varslet_i_tide : undefined,
       riggVarsletITide: formValues.rigg_varslet_i_tide,
@@ -717,6 +720,7 @@ export function RespondVederlagModal({
     produktivitetBelop,
     harRiggKrav,
     harProduktivitetKrav,
+    erHelVederlagSubsidiaerPgaGrunnlag,
     har34_1_2_Preklusjon,
     formValues,
     computed,

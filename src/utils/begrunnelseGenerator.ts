@@ -72,6 +72,9 @@ export interface VederlagResponseInput {
   harRiggKrav: boolean;
   harProduktivitetKrav: boolean;
 
+  // §32.2: Grunnlagspreklusjon - hele vederlagskravet er subsidiært
+  erGrunnlagPrekludert?: boolean;
+
   // Preklusjon (Port 1/2)
   hovedkravVarsletITide?: boolean;  // §34.1.2 - kun SVIKT/ANDRE
   riggVarsletITide?: boolean;       // §34.1.3
@@ -480,6 +483,15 @@ function generateKonklusjonSection(input: VederlagResponseInput): string {
 export function generateVederlagResponseBegrunnelse(input: VederlagResponseInput): string {
   const sections: string[] = [];
 
+  // 0. §32.2 Grunnlagspreklusjon - hele vederlagskravet er subsidiært
+  if (input.erGrunnlagPrekludert) {
+    sections.push(
+      'Grunnlagsvarselet ble ikke fremsatt «uten ugrunnet opphold» (§32.2). ' +
+      'Vurderingen av vederlagskravet nedenfor gjelder derfor subsidiært, ' +
+      'for det tilfellet at byggherren ikke får medhold i preklusjonsinnsigelsen.'
+    );
+  }
+
   // 1. Metode section
   const metodeSection = generateMetodeSection(input);
   if (metodeSection) {
@@ -559,7 +571,8 @@ export interface FristResponseInput {
   erForesporselSvarForSent?: boolean;  // §33.6.2 tredje ledd + §5: Sen respons på forespørsel
   erRedusert_33_6_1?: boolean;  // §33.6.1: Sen spesifisering ETTER at varsel ble sendt i tide
   harTidligereVarselITide?: boolean;  // For å vite om §33.6.1 er relevant ved spesifisert krav
-  erGrunnlagSubsidiaer?: boolean;  // Grunnlag avslått - hele fristkravet behandles subsidiært
+  erGrunnlagSubsidiaer?: boolean;  // Grunnlag avslått ELLER prekludert (§32.2) - hele fristkravet behandles subsidiært
+  erGrunnlagPrekludert?: boolean;  // §32.2: Grunnlagsvarselet kom for sent (mer spesifikk enn erGrunnlagSubsidiaer)
   prinsipaltResultat: string;
   subsidiaertResultat?: string;
   visSubsidiaertResultat: boolean;
@@ -817,8 +830,14 @@ export function generateFristResponseBegrunnelse(input: FristResponseInput): str
     );
   }
 
-  // 0. Grunnlagsavslag - hele fristkravet er subsidiært
-  if (input.erGrunnlagSubsidiaer) {
+  // 0. Grunnlagsavslag eller preklusjon - hele fristkravet er subsidiært
+  if (input.erGrunnlagPrekludert) {
+    sections.push(
+      'Grunnlagsvarselet ble ikke fremsatt «uten ugrunnet opphold» (§32.2). ' +
+      'Vurderingen av fristkravet nedenfor gjelder derfor subsidiært, ' +
+      'for det tilfellet at byggherren ikke får medhold i preklusjonsinnsigelsen.'
+    );
+  } else if (input.erGrunnlagSubsidiaer) {
     sections.push(
       'Ansvarsgrunnlaget er avvist. Vurderingen av fristkravet nedenfor gjelder derfor ' +
       'subsidiært, for det tilfellet at byggherren ikke får medhold i avvisningen av grunnlaget.'
