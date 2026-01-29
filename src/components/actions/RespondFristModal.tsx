@@ -1549,18 +1549,6 @@ export function RespondFristModal({
                   />
                 </FormField>
               </div>
-
-              {/* Begrunnelse vilkår - viktig at dette fylles ut */}
-              <FormField
-                label="Begrunnelse for vurderingen"
-                helpText="Beskriv hvorfor forholdet hindret/ikke hindret fremdriften"
-              >
-                <Textarea
-                  {...register('begrunnelse_vilkar')}
-                  rows={3}
-                  fullWidth
-                />
-              </FormField>
             </SectionContainer>
           )}
 
