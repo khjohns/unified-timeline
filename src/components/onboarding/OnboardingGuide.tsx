@@ -58,11 +58,10 @@ export function OnboardingGuide({
   onComplete,
 }: OnboardingGuideProps) {
   const [spotlight, setSpotlight] = useState<SpotlightPosition | null>(null);
-  const scrollPositionRef = useRef(0);
-
+  const [isScrolling, setIsScrolling] = useState(false);
   const currentStepConfig = steps[currentStep];
 
-  // Update spotlight position
+  // Update spotlight position based on element's current position
   const updateSpotlight = useCallback(() => {
     if (!currentStepConfig) return;
 
@@ -72,7 +71,6 @@ export function OnboardingGuide({
 
     if (element) {
       const rect = element.getBoundingClientRect();
-      // Add padding around the element
       const padding = 8;
       setSpotlight({
         x: rect.left - padding,
@@ -83,20 +81,67 @@ export function OnboardingGuide({
     }
   }, [currentStepConfig]);
 
-  // Update spotlight when step changes or on scroll/resize
+  // Scroll to element and update spotlight when step changes
+  useEffect(() => {
+    if (!isActive || !currentStepConfig) return;
+
+    const element = document.querySelector(
+      currentStepConfig.targetSelector
+    ) as HTMLElement;
+
+    if (element) {
+      setIsScrolling(true);
+
+      // Calculate where to scroll so element is visible with room for popover
+      const rect = element.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const popoverHeight = 300; // Approximate height of popover
+      const padding = 32;
+
+      // Target: element at top third of screen, leaving room for popover below
+      const targetScrollTop =
+        window.scrollY + rect.top - padding;
+
+      // If element is taller than viewport, just scroll to top of element
+      const elementFitsWithPopover = rect.height + popoverHeight < viewportHeight - padding * 2;
+
+      if (elementFitsWithPopover) {
+        // Scroll so element is in upper portion with room for popover
+        window.scrollTo({
+          top: Math.max(0, targetScrollTop - viewportHeight * 0.2),
+          behavior: 'smooth',
+        });
+      } else {
+        // Large element - scroll to show top portion
+        window.scrollTo({
+          top: Math.max(0, targetScrollTop),
+          behavior: 'smooth',
+        });
+      }
+
+      // Update spotlight after scroll completes
+      const scrollTimer = setTimeout(() => {
+        setIsScrolling(false);
+        updateSpotlight();
+      }, 400);
+
+      return () => clearTimeout(scrollTimer);
+    }
+  }, [isActive, currentStep, currentStepConfig, updateSpotlight]);
+
+  // Keep spotlight updated on scroll/resize
   useEffect(() => {
     if (!isActive) {
       setSpotlight(null);
       return;
     }
 
-    // Initial update with delay to ensure DOM is ready
-    const timer = setTimeout(updateSpotlight, 150);
-
-    // Update on scroll and resize
     const handleUpdate = () => {
       requestAnimationFrame(updateSpotlight);
     };
+
+    // Initial update
+    const timer = setTimeout(updateSpotlight, 100);
 
     window.addEventListener('scroll', handleUpdate, true);
     window.addEventListener('resize', handleUpdate);
@@ -106,7 +151,7 @@ export function OnboardingGuide({
       window.removeEventListener('scroll', handleUpdate, true);
       window.removeEventListener('resize', handleUpdate);
     };
-  }, [isActive, currentStep, updateSpotlight]);
+  }, [isActive, updateSpotlight]);
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -137,40 +182,6 @@ export function OnboardingGuide({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isActive, currentStep, steps.length, onNext, onPrevious, onSkip, onComplete]);
 
-  // Prevent body scroll when active - iOS compatible
-  useEffect(() => {
-    if (isActive) {
-      // Save current scroll position
-      scrollPositionRef.current = window.scrollY;
-
-      // Lock body scroll - works on iOS
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollPositionRef.current}px`;
-      document.body.style.left = '0';
-      document.body.style.right = '0';
-      document.body.style.width = '100%';
-    } else {
-      // Restore scroll position
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.width = '';
-      window.scrollTo(0, scrollPositionRef.current);
-    }
-
-    return () => {
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.width = '';
-    };
-  }, [isActive]);
-
   if (!isActive || !currentStepConfig) {
     return null;
   }
@@ -186,16 +197,16 @@ export function OnboardingGuide({
         className={clsx(
           'fixed inset-0 z-onboarding-overlay',
           'transition-opacity duration-300',
-          isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          isActive && !isScrolling ? 'opacity-100' : 'opacity-0',
+          'pointer-events-auto'
         )}
         onClick={onSkip}
         aria-hidden="true"
       >
         {/* SVG mask for spotlight cutout */}
-        <svg className="absolute inset-0 w-full h-full">
+        <svg className="absolute inset-0 w-full h-full pointer-events-none">
           <defs>
             <mask id="spotlight-mask">
-              {/* White = visible, black = hidden */}
               <rect x="0" y="0" width="100%" height="100%" fill="white" />
               {spotlight && (
                 <rect
@@ -209,7 +220,6 @@ export function OnboardingGuide({
               )}
             </mask>
           </defs>
-          {/* Dark overlay with spotlight cutout */}
           <rect
             x="0"
             y="0"
@@ -223,7 +233,7 @@ export function OnboardingGuide({
         {/* Spotlight border/highlight */}
         {spotlight && (
           <div
-            className="absolute rounded-lg border-2 border-pkt-brand-blue-1000 shadow-[0_0_0_4px_rgba(111,233,255,0.3)] pointer-events-none transition-all duration-300"
+            className="absolute rounded-lg border-2 border-pkt-brand-blue-1000 shadow-[0_0_0_4px_rgba(111,233,255,0.3)] pointer-events-none transition-all duration-200"
             style={{
               left: spotlight.x,
               top: spotlight.y,
@@ -234,23 +244,24 @@ export function OnboardingGuide({
         )}
       </div>
 
-      {/* Popover for current step */}
-      <OnboardingStep
-        title={currentStepConfig.title}
-        description={currentStepConfig.description}
-        targetSelector={currentStepConfig.targetSelector}
-        side={effectiveSide}
-        stepNumber={currentStep + 1}
-        totalSteps={steps.length}
-        isActive={isActive}
-        onNext={onNext}
-        onPrevious={onPrevious}
-        onSkip={onSkip}
-        onComplete={onComplete}
-      />
+      {/* Popover for current step - only show when not scrolling */}
+      {!isScrolling && (
+        <OnboardingStep
+          title={currentStepConfig.title}
+          description={currentStepConfig.description}
+          targetSelector={currentStepConfig.targetSelector}
+          side={effectiveSide}
+          stepNumber={currentStep + 1}
+          totalSteps={steps.length}
+          isActive={isActive}
+          onNext={onNext}
+          onPrevious={onPrevious}
+          onSkip={onSkip}
+          onComplete={onComplete}
+        />
+      )}
     </>
   );
 
-  // Render in portal to ensure proper z-index stacking
   return createPortal(overlayContent, document.body);
 }
