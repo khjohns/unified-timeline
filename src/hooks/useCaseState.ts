@@ -5,7 +5,7 @@
  * Automatically handles loading, error states, and background refetching.
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { fetchCaseState } from '../api/state';
 import { StateResponse } from '../types/api';
 import { STALE_TIME } from '../constants/queryConfig';
@@ -60,5 +60,44 @@ export function useCaseState(sakId: string, options: UseCaseStateOptions = {}) {
     staleTime,
     refetchOnWindowFocus,
     enabled: enabled && !!sakId,
+  });
+}
+
+export interface UseCaseStateSuspenseOptions {
+  staleTime?: number;
+  refetchOnWindowFocus?: boolean;
+}
+
+/**
+ * Suspense-enabled version of useCaseState.
+ * Suspends rendering until data is available - use with React Suspense boundary.
+ *
+ * @param sakId - The case ID
+ * @param options - Query options
+ * @returns React Query result with guaranteed state data (no isLoading)
+ *
+ * @example
+ * ```tsx
+ * // Wrap in Suspense boundary
+ * <Suspense fallback={<PageLoadingFallback />}>
+ *   <CasePage />
+ * </Suspense>
+ *
+ * // In CasePage - data is guaranteed to exist
+ * const { data } = useCaseStateSuspense('123');
+ * return <StatusDashboard state={data.state} />;
+ * ```
+ */
+export function useCaseStateSuspense(sakId: string, options: UseCaseStateSuspenseOptions = {}) {
+  const {
+    staleTime = STALE_TIME.DEFAULT,
+    refetchOnWindowFocus = true,
+  } = options;
+
+  return useSuspenseQuery<StateResponse, Error>({
+    queryKey: ['sak', sakId, 'state'],
+    queryFn: () => fetchCaseState(sakId),
+    staleTime,
+    refetchOnWindowFocus,
   });
 }
