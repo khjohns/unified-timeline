@@ -105,6 +105,112 @@ def _normalize_to_upper(data: Dict[str, Any], *keys: str) -> None:
             data[key] = [v.upper() if isinstance(v, str) else v for v in val]
 
 
+def _validate_hovedkategori(hovedkategori: Optional[str], required: bool = True) -> None:
+    """
+    Validate hovedkategori against valid options.
+
+    Args:
+        hovedkategori: The category to validate (may be None)
+        required: If True, raises error when hovedkategori is missing
+
+    Raises:
+        ValidationError: If validation fails
+    """
+    valid_hovedkategorier = get_alle_hovedkategorier()
+
+    if not hovedkategori:
+        if required:
+            raise ValidationError(
+                "hovedkategori er påkrevd",
+                valid_options={"hovedkategorier": valid_hovedkategorier},
+                field="hovedkategori"
+            )
+        return  # Not required and not present - OK
+
+    if hovedkategori not in valid_hovedkategorier:
+        raise ValidationError(
+            f"Ugyldig hovedkategori: {hovedkategori}",
+            valid_options={"hovedkategorier": valid_hovedkategorier},
+            field="hovedkategori"
+        )
+
+
+def _validate_underkategori(
+    hovedkategori: str,
+    underkategori: Any,
+    required: bool = True
+) -> None:
+    """
+    Validate underkategori(er) against hovedkategori.
+
+    Handles both single string and list of strings.
+
+    Args:
+        hovedkategori: The parent category (must be valid)
+        underkategori: Single string or list of strings to validate
+        required: If True, raises error when underkategori is missing
+                  (only for hovedkategorier that have underkategorier)
+
+    Raises:
+        ValidationError: If validation fails
+    """
+    valid_underkategorier = get_underkategorier_for_hovedkategori(hovedkategori)
+
+    # Some hovedkategorier don't have underkategorier (e.g., Force Majeure)
+    if not valid_underkategorier:
+        return  # No underkategorier to validate
+
+    if not underkategori:
+        if required:
+            raise ValidationError(
+                "underkategori er påkrevd",
+                valid_options={
+                    "hovedkategori": hovedkategori,
+                    "underkategorier": valid_underkategorier
+                },
+                field="underkategori"
+            )
+        return  # Not required and not present - OK
+
+    # Validate each underkategori
+    items = underkategori if isinstance(underkategori, list) else [underkategori]
+    for uk in items:
+        if not validate_kategori_kombinasjon(hovedkategori, uk):
+            raise ValidationError(
+                f"Ugyldig underkategori '{uk}' for hovedkategori '{hovedkategori}'",
+                valid_options={
+                    "hovedkategori": hovedkategori,
+                    "underkategorier": valid_underkategorier
+                },
+                field="underkategori"
+            )
+
+
+def _validate_required_text_fields(data: Dict[str, Any]) -> None:
+    """
+    Validate required text fields for grunnlag create events.
+
+    Args:
+        data: Event data containing tittel, beskrivelse, dato_oppdaget
+
+    Raises:
+        ValidationError: If any required field is missing or invalid
+    """
+    tittel = data.get('tittel')
+    if not tittel:
+        raise ValidationError("tittel er påkrevd", field="tittel")
+    if len(tittel) < 3:
+        raise ValidationError("tittel må være minst 3 tegn", field="tittel")
+    if len(tittel) > 100:
+        raise ValidationError("tittel kan ikke være lengre enn 100 tegn", field="tittel")
+
+    if not data.get('beskrivelse'):
+        raise ValidationError("beskrivelse er påkrevd", field="beskrivelse")
+
+    if not data.get('dato_oppdaget'):
+        raise ValidationError("dato_oppdaget er påkrevd (format: YYYY-MM-DD)", field="dato_oppdaget")
+
+
 def validate_grunnlag_event(data: Dict[str, Any], is_update: bool = False) -> None:
     """
     Validate grunnlag-event data against constants.
@@ -125,106 +231,17 @@ def validate_grunnlag_event(data: Dict[str, Any], is_update: bool = False) -> No
     hovedkategori = data.get('hovedkategori')
     underkategori = data.get('underkategori')
 
-    # For updates, hovedkategori and underkategori are optional (only changed fields are sent)
     if is_update:
-        # Only validate if present
+        # For updates: only validate fields that are present
+        _validate_hovedkategori(hovedkategori, required=False)
         if hovedkategori:
-            valid_hovedkategorier = get_alle_hovedkategorier()
-            if hovedkategori not in valid_hovedkategorier:
-                raise ValidationError(
-                    f"Ugyldig hovedkategori: {hovedkategori}",
-                    valid_options={"hovedkategorier": valid_hovedkategorier},
-                    field="hovedkategori"
-                )
-            # Validate underkategori combination if both are present
-            if underkategori:
-                valid_underkategorier = get_underkategorier_for_hovedkategori(hovedkategori)
-                if valid_underkategorier:  # Only validate if hovedkategori has underkategorier
-                    if isinstance(underkategori, list):
-                        for uk in underkategori:
-                            if not validate_kategori_kombinasjon(hovedkategori, uk):
-                                raise ValidationError(
-                                    f"Ugyldig underkategori '{uk}' for hovedkategori '{hovedkategori}'",
-                                    valid_options={"hovedkategori": hovedkategori, "underkategorier": valid_underkategorier},
-                                    field="underkategori"
-                                )
-                    elif not validate_kategori_kombinasjon(hovedkategori, underkategori):
-                        raise ValidationError(
-                            f"Ugyldig underkategori '{underkategori}' for hovedkategori '{hovedkategori}'",
-                            valid_options={"hovedkategori": hovedkategori, "underkategorier": valid_underkategorier},
-                            field="underkategori"
-                        )
-        return  # Skip the rest for updates
+            _validate_underkategori(hovedkategori, underkategori, required=False)
+        return
 
-    # For create: require hovedkategori
-    if not hovedkategori:
-        raise ValidationError(
-            "hovedkategori er påkrevd",
-            valid_options={"hovedkategorier": get_alle_hovedkategorier()},
-            field="hovedkategori"
-        )
-
-    # Check if hovedkategori is valid
-    valid_hovedkategorier = get_alle_hovedkategorier()
-    if hovedkategori not in valid_hovedkategorier:
-        raise ValidationError(
-            f"Ugyldig hovedkategori: {hovedkategori}",
-            valid_options={"hovedkategorier": valid_hovedkategorier},
-            field="hovedkategori"
-        )
-
-    # Validate category combination (underkategori only required if hovedkategori has them)
-    valid_underkategorier = get_underkategorier_for_hovedkategori(hovedkategori)
-
-    # Only require underkategori if the hovedkategori has underkategorier (e.g., not Force Majeure)
-    if valid_underkategorier and not underkategori:
-        raise ValidationError(
-            "underkategori er påkrevd",
-            valid_options={
-                "hovedkategori": hovedkategori,
-                "underkategorier": valid_underkategorier
-            },
-            field="underkategori"
-        )
-
-    # Handle both single string and list of strings (only validate if underkategori is provided)
-    if underkategori:
-        if isinstance(underkategori, list):
-            for uk in underkategori:
-                if not validate_kategori_kombinasjon(hovedkategori, uk):
-                    raise ValidationError(
-                        f"Ugyldig underkategori '{uk}' for hovedkategori '{hovedkategori}'",
-                        valid_options={
-                            "hovedkategori": hovedkategori,
-                            "underkategorier": valid_underkategorier
-                        },
-                        field="underkategori"
-                    )
-        else:
-            if not validate_kategori_kombinasjon(hovedkategori, underkategori):
-                raise ValidationError(
-                    f"Ugyldig underkategori '{underkategori}' for hovedkategori '{hovedkategori}'",
-                    valid_options={
-                        "hovedkategori": hovedkategori,
-                        "underkategorier": valid_underkategorier
-                    },
-                    field="underkategori"
-                )
-
-    # Validate required fields
-    tittel = data.get('tittel')
-    if not tittel:
-        raise ValidationError("tittel er påkrevd", field="tittel")
-    if len(tittel) < 3:
-        raise ValidationError("tittel må være minst 3 tegn", field="tittel")
-    if len(tittel) > 100:
-        raise ValidationError("tittel kan ikke være lengre enn 100 tegn", field="tittel")
-
-    if not data.get('beskrivelse'):
-        raise ValidationError("beskrivelse er påkrevd", field="beskrivelse")
-
-    if not data.get('dato_oppdaget'):
-        raise ValidationError("dato_oppdaget er påkrevd (format: YYYY-MM-DD)", field="dato_oppdaget")
+    # For create: all fields required
+    _validate_hovedkategori(hovedkategori, required=True)
+    _validate_underkategori(hovedkategori, underkategori, required=True)
+    _validate_required_text_fields(data)
 
 
 def validate_vederlag_event(data: Dict[str, Any]) -> None:

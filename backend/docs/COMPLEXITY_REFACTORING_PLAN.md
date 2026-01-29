@@ -262,3 +262,85 @@ radon cc backend/ -a -s --min C  # Verifiser CC-reduksjon
 
 - `TestValidateVarselRequirement` (7 tester)
 - `TestNormalizeToUpper` (10 tester)
+
+---
+
+## Faktiske resultater (Fase 2 fullført 2026-01-29)
+
+### Implementerte hjelpefunksjoner
+
+| Hjelpefunksjon | Fil | CC |
+|----------------|-----|-----|
+| `_validate_hovedkategori()` | `backend/api/validators.py` | A (4) |
+| `_validate_underkategori()` | `backend/api/validators.py` | B (7) |
+| `_validate_required_text_fields()` | `backend/api/validators.py` | B (6) |
+| `EVENT_VALIDATORS` (dispatch-tabell) | `backend/routes/event_routes.py` | - |
+| `_validate_event_by_type()` | `backend/routes/event_routes.py` | A (2) |
+| `_derive_spor_from_event()` | `backend/routes/event_routes.py` | B (8) |
+| `_build_validation_error_response()` | `backend/routes/event_routes.py` | B (6) |
+| `_build_version_conflict_message()` | `backend/routes/event_routes.py` | B (7) |
+| `_validate_business_rules_and_compute_state()` | `backend/routes/event_routes.py` | A (4) |
+| `_ensure_catenda_auth()` | `backend/routes/event_routes.py` | A (5) |
+| `CatendaContext` (dataklasse) | `backend/routes/event_routes.py` | A (2) |
+| `_prepare_catenda_context()` | `backend/routes/event_routes.py` | B (7) |
+| `_resolve_pdf()` | `backend/routes/event_routes.py` | B (10) |
+| `_upload_and_link_pdf()` | `backend/routes/event_routes.py` | B (8) |
+| `_post_catenda_comment()` | `backend/routes/event_routes.py` | B (6) |
+| `_sync_topic_status()` | `backend/routes/event_routes.py` | A (3) |
+
+### CC-forbedringer etter Fase 2
+
+| Funksjon | Før | Etter | Endring |
+|----------|-----|-------|---------|
+| `validate_grunnlag_event` | 25 (D) | **4 (A)** | -21 ✅ |
+| `submit_event` | 50 (F) | **17 (C)** | -33 ✅ |
+| `_post_to_catenda` | 37 (E) | **7 (B)** | -30 ✅ |
+
+### Nye tester lagt til (Fase 2)
+
+- `TestValidateHovedkategori` (5 tester)
+- `TestValidateUnderkategori` (7 tester)
+- `TestValidateRequiredTextFields` (6 tester)
+
+### Sammendrag
+
+| Metrikk | Før Fase 1 | Etter Fase 1 | Etter Fase 2 |
+|---------|------------|--------------|--------------|
+| `validators.py` gjennomsnitt | C (16.7) | B (9.3) | **B (6.7)** |
+| `event_routes.py` gjennomsnitt | - | - | **B (6.7)** |
+| Kritiske funksjoner (F) | 3 | 1 | **0** |
+| Veldig høy kompleksitet (E) | 4 | 2 | **0** |
+
+---
+
+## Fase 3: Anbefalinger for videre arbeid (Valgfritt)
+
+Etter Fase 1 og 2 er de mest kritiske funksjonene refaktorert. Gjenstående funksjoner med CC ≥ C er:
+
+| Funksjon | Fil | CC | Anbefaling |
+|----------|-----|-----|------------|
+| `_handle_eo_utstedt` | `timeline_service.py` | D (24) | **Prioritet 1** - Kan bruke lignende mønster som respons-handlers |
+| `validate_frist_event` | `validators.py` | C (20) | Trekk ut `_validate_frist_fields()` og `_validate_specification_fields()` |
+| `get_vederlag_historikk` | `timeline_service.py` | C (19) | Kan vente - kun lesing |
+| `submit_batch` | `event_routes.py` | C (18) | Bruk eksisterende hjelpere fra submit_event |
+| `submit_event` | `event_routes.py` | C (17) | Akseptabel - videre splitting gir lite gevinst |
+| `_handle_respons_vederlag` | `timeline_service.py` | C (17) | Allerede forbedret i Fase 1 |
+
+### Vurdering
+
+**Anbefalt for Fase 3:**
+- `_handle_eo_utstedt` (CC 24) - Høyeste gjenstående, potensial for -10 CC
+- `validate_frist_event` (CC 20) - Kan nå < 12 med 2 hjelpefunksjoner
+
+**Kan vente:**
+- `submit_batch` - Følger samme mønster som submit_event, relativt isolert
+- Historikk-funksjoner - Read-only, lav risiko, kompleksitet er akseptabel
+
+**Akseptabel som-er:**
+- `submit_event` (CC 17) - Videre splitting ville fragmentere flyten for mye
+- `enrich_event_with_version` (CC 14) - Tydelig struktur med instanceof-sjekker
+
+### Hovedgevinst oppnådd
+
+De tre mest kritiske funksjonene (CC 50, 37, 25) er redusert til akseptable nivåer.
+Ingen funksjoner har lenger CC F eller E. Kodebasen er nå vedlikeholdbar.

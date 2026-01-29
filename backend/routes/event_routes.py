@@ -128,6 +128,189 @@ validator = BusinessRuleValidator()
 magic_link_manager = get_magic_link_manager()
 
 
+# ============================================================================
+# Helper functions for submit_event (reduces cyclomatic complexity)
+# ============================================================================
+
+# Dispatch table for event validation - replaces if/elif chain
+EVENT_VALIDATORS = {
+    EventType.GRUNNLAG_OPPRETTET.value: lambda d: validate_grunnlag_event(d),
+    EventType.GRUNNLAG_OPPDATERT.value: lambda d: validate_grunnlag_event(d, is_update=True),
+    EventType.VEDERLAG_KRAV_SENDT.value: lambda d: validate_vederlag_event(d),
+    EventType.VEDERLAG_KRAV_OPPDATERT.value: lambda d: validate_vederlag_event(d),
+    EventType.FRIST_KRAV_SENDT.value: lambda d: validate_frist_event(d),
+    EventType.FRIST_KRAV_OPPDATERT.value: lambda d: validate_frist_event(d, is_update=True),
+    EventType.FRIST_KRAV_SPESIFISERT.value: lambda d: validate_frist_event(d, is_specification=True),
+    EventType.RESPONS_GRUNNLAG.value: lambda d: validate_respons_event(d, 'grunnlag'),
+    EventType.RESPONS_VEDERLAG.value: lambda d: validate_respons_event(d, 'vederlag'),
+    EventType.RESPONS_FRIST.value: lambda d: validate_respons_event(d, 'frist'),
+}
+
+
+def _validate_event_by_type(event_type: str, data_payload: dict) -> None:
+    """
+    Dispatch event validation to the appropriate validator.
+
+    Uses a dispatch table instead of if/elif chain for cleaner code.
+
+    Args:
+        event_type: The event type string (e.g., 'grunnlag_opprettet')
+        data_payload: The event data to validate
+
+    Raises:
+        ApiValidationError: If validation fails
+    """
+    validator_func = EVENT_VALIDATORS.get(event_type)
+    if validator_func:
+        validator_func(data_payload)
+
+
+def _derive_spor_from_event(event: AnyEvent) -> Optional[str]:
+    """
+    Derive the spor (track) name from an event.
+
+    Args:
+        event: The event to get spor from
+
+    Returns:
+        The spor name ('grunnlag', 'vederlag', 'frist') or None
+    """
+    # Check if event has explicit spor attribute (ResponsEvent)
+    event_spor = getattr(event, 'spor', None)
+    if event_spor:
+        return event_spor.value if hasattr(event_spor, 'value') else str(event_spor)
+
+    # Derive from event_type for TE events
+    if hasattr(event, 'event_type'):
+        et = event.event_type.value if hasattr(event.event_type, 'value') else str(event.event_type)
+        et_lower = et.lower()
+        if 'grunnlag' in et_lower:
+            return 'grunnlag'
+        elif 'vederlag' in et_lower:
+            return 'vederlag'
+        elif 'frist' in et_lower:
+            return 'frist'
+
+    return None
+
+
+def _build_validation_error_response(e: ApiValidationError) -> dict:
+    """
+    Build a validation error response dict from an ApiValidationError.
+
+    Args:
+        e: The validation error
+
+    Returns:
+        Dict ready for jsonify
+    """
+    response = {
+        "success": False,
+        "error": "VALIDATION_ERROR",
+        "message": e.message if hasattr(e, 'message') else str(e)
+    }
+    if hasattr(e, 'valid_options') and e.valid_options:
+        response["valid_options"] = e.valid_options
+    if hasattr(e, 'field') and e.field:
+        response["field"] = e.field
+    return response
+
+
+def _build_version_conflict_message(
+    existing_events_data: list,
+    event: AnyEvent
+) -> str:
+    """
+    Build a user-friendly version conflict message.
+
+    Checks if the conflict was caused by a BH response to provide
+    more helpful context to the user.
+
+    Args:
+        existing_events_data: Raw event data from repository
+        event: The event that was being submitted
+
+    Returns:
+        User-friendly conflict message in Norwegian
+    """
+    default_message = "Tilstanden har endret seg. Vennligst last inn på nytt."
+
+    if not existing_events_data:
+        return default_message
+
+    # Compute state to check for BH responses
+    conflict_events = [parse_event(e) for e in existing_events_data]
+    conflict_state = timeline_service.compute_state(conflict_events)
+
+    spor_name = _derive_spor_from_event(event)
+    if not spor_name:
+        return default_message
+
+    spor_state = getattr(conflict_state, spor_name, None)
+    if spor_state and spor_state.bh_resultat:
+        if spor_name == 'grunnlag':
+            return "Byggherre har svart på ansvarsgrunnlaget. Last inn på nytt for å se svaret."
+        else:
+            return "Byggherre har svart på kravet. Last inn på nytt for å se svaret."
+
+    return default_message
+
+
+def _validate_business_rules_and_compute_state(
+    event: AnyEvent,
+    existing_events_data: list
+) -> Tuple[Optional[SakState], list, Optional[str]]:
+    """
+    Compute current state and validate business rules.
+
+    Args:
+        event: The event to validate
+        existing_events_data: Raw event data from repository
+
+    Returns:
+        Tuple of (current_state, existing_events, old_status)
+        current_state may be None if no existing events.
+
+    Raises:
+        ValueError: If business rules are violated (contains rule and message)
+    """
+    if not existing_events_data:
+        return None, [], None
+
+    existing_events = [parse_event(e) for e in existing_events_data]
+    current_state = timeline_service.compute_state(existing_events)
+    old_status = current_state.overordnet_status
+
+    validation = validator.validate(event, current_state)
+    if not validation.is_valid:
+        # Raise with structured info for the caller
+        error = ValueError(validation.message)
+        error.rule = validation.violated_rule
+        raise error
+
+    return current_state, existing_events, old_status
+
+
+def _ensure_catenda_auth(catenda_topic_id: Optional[str]) -> None:
+    """
+    Pre-flight check for Catenda authentication.
+
+    Args:
+        catenda_topic_id: The Catenda topic ID (if any)
+
+    Raises:
+        CatendaAuthError: If Catenda token is expired/invalid
+    """
+    if not catenda_topic_id:
+        return
+
+    catenda_service = get_catenda_service()
+    if catenda_service and catenda_service.client:
+        if not catenda_service.client.ensure_authenticated():
+            logger.error("❌ Catenda token expired or invalid - rejecting event submission")
+            raise CatendaAuthError("Catenda access token expired")
+
+
 @events_bp.route('/api/events', methods=['POST'])
 @require_csrf
 @require_magic_link
@@ -204,37 +387,10 @@ def submit_event():
         data_payload = event_data.get('data')
 
         try:
-            if event_type == EventType.GRUNNLAG_OPPRETTET.value:
-                validate_grunnlag_event(data_payload)
-            elif event_type == EventType.GRUNNLAG_OPPDATERT.value:
-                validate_grunnlag_event(data_payload, is_update=True)
-            elif event_type in [EventType.VEDERLAG_KRAV_SENDT.value, EventType.VEDERLAG_KRAV_OPPDATERT.value]:
-                validate_vederlag_event(data_payload)
-            elif event_type == EventType.FRIST_KRAV_SENDT.value:
-                validate_frist_event(data_payload)
-            elif event_type == EventType.FRIST_KRAV_OPPDATERT.value:
-                validate_frist_event(data_payload, is_update=True)
-            elif event_type == EventType.FRIST_KRAV_SPESIFISERT.value:
-                validate_frist_event(data_payload, is_specification=True)
-            elif event_type == EventType.RESPONS_GRUNNLAG.value:
-                validate_respons_event(data_payload, 'grunnlag')
-            elif event_type == EventType.RESPONS_VEDERLAG.value:
-                validate_respons_event(data_payload, 'vederlag')
-            elif event_type == EventType.RESPONS_FRIST.value:
-                validate_respons_event(data_payload, 'frist')
+            _validate_event_by_type(event_type, data_payload)
         except ApiValidationError as e:
             logger.error(f"❌ API validation error: {e}")
-            response = {
-                "success": False,
-                "error": "VALIDATION_ERROR",
-                "message": e.message if hasattr(e, 'message') else str(e)
-            }
-            # Include valid_options if available (helps frontend/developers)
-            if hasattr(e, 'valid_options') and e.valid_options:
-                response["valid_options"] = e.valid_options
-            if hasattr(e, 'field') and e.field:
-                response["field"] = e.field
-            return jsonify(response), 400
+            return jsonify(_build_validation_error_response(e)), 400
 
         # 2. Parse event (validates server-controlled fields)
         event_data['sak_id'] = sak_id
@@ -245,38 +401,7 @@ def submit_event():
 
         # 4. Validate expected version BEFORE business rules
         if current_version != expected_version:
-            # Compute state to give more informative error message
-            conflict_message = "Tilstanden har endret seg. Vennligst last inn på nytt."
-            if existing_events_data:
-                conflict_events = [parse_event(e) for e in existing_events_data]
-                conflict_state = timeline_service.compute_state(conflict_events)
-                # Check if the change was a BH response
-                event_spor = getattr(event, 'spor', None)
-                if event_spor:
-                    spor_name = event_spor.value if hasattr(event_spor, 'value') else str(event_spor)
-                elif hasattr(event, 'event_type'):
-                    # Derive spor from event_type for TE events
-                    et = event.event_type.value if hasattr(event.event_type, 'value') else str(event.event_type)
-                    if 'grunnlag' in et.lower():
-                        spor_name = 'grunnlag'
-                    elif 'vederlag' in et.lower():
-                        spor_name = 'vederlag'
-                    elif 'frist' in et.lower():
-                        spor_name = 'frist'
-                    else:
-                        spor_name = None
-                else:
-                    spor_name = None
-
-                if spor_name:
-                    spor_state = getattr(conflict_state, spor_name, None)
-                    if spor_state and spor_state.bh_resultat:
-                        # Brukervennlige termer: grunnlag = ansvarsgrunnlag, vederlag/frist = krav
-                        if spor_name == 'grunnlag':
-                            conflict_message = "Byggherre har svart på ansvarsgrunnlaget. Last inn på nytt for å se svaret."
-                        else:
-                            conflict_message = "Byggherre har svart på kravet. Last inn på nytt for å se svaret."
-
+            conflict_message = _build_version_conflict_message(existing_events_data, event)
             return jsonify({
                 "success": False,
                 "error": "VERSION_CONFLICT",
@@ -286,34 +411,23 @@ def submit_event():
             }), 409
 
         # 5. Compute current state and validate business rules
-        old_status = None  # Track old status for Catenda sync
-        current_state = None
-        if existing_events_data:
-            existing_events = [parse_event(e) for e in existing_events_data]
-            current_state = timeline_service.compute_state(existing_events)
-            old_status = current_state.overordnet_status
-            validation = validator.validate(event, current_state)
-
-            if not validation.is_valid:
-                return jsonify({
-                    "success": False,
-                    "error": "BUSINESS_RULE_VIOLATION",
-                    "rule": validation.violated_rule,
-                    "message": validation.message
-                }), 400
-        else:
-            existing_events = []
+        try:
+            current_state, existing_events, old_status = _validate_business_rules_and_compute_state(
+                event, existing_events_data
+            )
+        except ValueError as e:
+            return jsonify({
+                "success": False,
+                "error": "BUSINESS_RULE_VIOLATION",
+                "rule": getattr(e, 'rule', None),
+                "message": str(e)
+            }), 400
 
         # 5c. Enrich event with version tracking fields
         event = enrich_event_with_version(event, current_state)
 
         # 5d. Pre-flight check: Verify Catenda token if Catenda integration is requested
-        if catenda_topic_id:
-            catenda_service = get_catenda_service()
-            if catenda_service and catenda_service.client:
-                if not catenda_service.client.ensure_authenticated():
-                    logger.error("❌ Catenda token expired or invalid - rejecting event submission")
-                    raise CatendaAuthError("Catenda access token expired")
+        _ensure_catenda_auth(catenda_topic_id)
 
         # 6. Persist event (with optimistic lock)
         try:
@@ -738,6 +852,246 @@ def get_case_historikk(sak_id: str):
 # CATENDA INTEGRATION HELPERS
 # ============================================================
 
+
+class CatendaContext:
+    """Container for Catenda integration context."""
+    def __init__(self, service, project_id, board_id, library_id, folder_id):
+        self.service = service
+        self.project_id = project_id
+        self.board_id = board_id
+        self.library_id = library_id
+        self.folder_id = folder_id
+
+
+def _prepare_catenda_context(sak_id: str) -> Optional[CatendaContext]:
+    """
+    Prepare Catenda integration context.
+
+    Args:
+        sak_id: Case identifier
+
+    Returns:
+        CatendaContext if successful, None if Catenda not available
+    """
+    catenda_service = get_catenda_service()
+    if not catenda_service:
+        logger.warning("❌ Catenda service not configured, skipping")
+        return None
+
+    metadata = metadata_repo.get(sak_id)
+    if not metadata:
+        logger.warning(f"❌ No metadata found for case {sak_id}")
+        return None
+
+    config = settings.get_catenda_config()
+    project_id = config.get('catenda_project_id')
+    board_id = metadata.catenda_board_id if metadata else None
+
+    if not project_id or not board_id:
+        logger.warning(f"❌ Missing project/board ID for case {sak_id}")
+        return None
+
+    catenda_service.set_topic_board_id(board_id)
+
+    library_id = config.get('catenda_library_id')
+    if library_id:
+        catenda_service.set_library_id(library_id)
+
+    folder_id = config.get('catenda_folder_id')
+
+    return CatendaContext(catenda_service, project_id, board_id, library_id, folder_id)
+
+
+def _resolve_pdf(
+    sak_id: str,
+    state,
+    client_pdf_base64: Optional[str],
+    client_pdf_filename: Optional[str]
+) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    """
+    Resolve PDF for Catenda upload.
+
+    Priority: client-generated PDF > server-generated PDF
+
+    Args:
+        sak_id: Case identifier
+        state: Current SakState
+        client_pdf_base64: Optional base64 PDF from client
+        client_pdf_filename: Optional filename from client
+
+    Returns:
+        (pdf_path, filename, pdf_source) where pdf_source is "client" or "server"
+    """
+    # PRIORITY 1: Try client-generated PDF
+    if client_pdf_base64:
+        try:
+            pdf_data = base64.b64decode(client_pdf_base64)
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
+                temp_pdf.write(pdf_data)
+                pdf_path = temp_pdf.name
+            filename = client_pdf_filename or f"KOE_{sak_id}.pdf"
+            logger.info(f"✅ Client PDF decoded: {len(pdf_data)} bytes")
+            return pdf_path, filename, "client"
+        except Exception as e:
+            logger.error(f"❌ Failed to decode client PDF: {e}")
+
+    # PRIORITY 2: Fallback to server generation
+    try:
+        from services.reportlab_pdf_generator import ReportLabPdfGenerator
+
+        events_list = []
+        try:
+            events_data, _ = event_repo.get_events(sak_id)
+            events_list = events_data
+        except Exception as e:
+            logger.warning(f"Could not get events for PDF: {e}")
+
+        pdf_generator = ReportLabPdfGenerator()
+        filename = f"KOE_{sak_id}.pdf"
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
+            pdf_path = temp_pdf.name
+
+        pdf_bytes = pdf_generator.generate_pdf(state, events_list, pdf_path)
+
+        if pdf_bytes is None and pdf_path:
+            logger.info(f"✅ Server PDF generated: {filename}")
+            return pdf_path, filename, "server"
+        elif pdf_bytes:
+            with open(pdf_path, 'wb') as f:
+                f.write(pdf_bytes)
+            logger.info(f"✅ Server PDF generated: {filename}")
+            return pdf_path, filename, "server"
+
+    except ImportError as e:
+        logger.warning(f"⚠️ ReportLab not installed: {e}")
+    except Exception as e:
+        logger.error(f"❌ Failed to generate PDF: {e}", exc_info=True)
+
+    return None, None, None
+
+
+def _upload_and_link_pdf(
+    ctx: CatendaContext,
+    topic_id: str,
+    pdf_path: str,
+    filename: str
+) -> bool:
+    """
+    Upload PDF to Catenda and link to topic.
+
+    Args:
+        ctx: Catenda context
+        topic_id: Catenda topic GUID
+        pdf_path: Path to PDF file
+        filename: Filename for upload
+
+    Returns:
+        True if successful
+    """
+    doc_result = ctx.service.upload_document(ctx.project_id, pdf_path, filename, ctx.folder_id)
+    if not doc_result:
+        logger.error("❌ Failed to upload PDF to Catenda")
+        return False
+
+    compact_guid = doc_result.get('id') or doc_result.get('library_item_id')
+    logger.info(f"✅ PDF uploaded to Catenda: {compact_guid}")
+
+    # Format GUID with dashes for BCF API
+    if compact_guid and len(compact_guid) == 32:
+        document_guid = (
+            f"{compact_guid[:8]}-{compact_guid[8:12]}-"
+            f"{compact_guid[12:16]}-{compact_guid[16:20]}-{compact_guid[20:]}"
+        )
+    else:
+        document_guid = compact_guid
+
+    # Link document to topic
+    if document_guid:
+        ref_result = ctx.service.create_document_reference(topic_id, document_guid)
+        if not ref_result and compact_guid != document_guid:
+            logger.warning(f"Formatted GUID failed, trying compact: {compact_guid}")
+            ref_result = ctx.service.create_document_reference(topic_id, compact_guid)
+        return ref_result is not None
+
+    return False
+
+
+def _post_catenda_comment(
+    ctx: CatendaContext,
+    topic_id: str,
+    sak_id: str,
+    state,
+    event
+) -> bool:
+    """
+    Generate and post comment to Catenda.
+
+    Args:
+        ctx: Catenda context
+        topic_id: Catenda topic GUID
+        sak_id: Case identifier
+        state: Current SakState
+        event: The triggering event
+
+    Returns:
+        True if successful
+    """
+    try:
+        from services.catenda_comment_generator import CatendaCommentGenerator
+        from utils.filtering_config import get_frontend_route
+
+        comment_generator = CatendaCommentGenerator()
+
+        magic_token = magic_link_manager.generate(sak_id=sak_id)
+        base_url = settings.dev_react_app_url or settings.react_app_url
+        sakstype = getattr(state, 'sakstype', 'koe') or 'koe'
+        frontend_route = get_frontend_route(sakstype, sak_id)
+        magic_link = f"{base_url}{frontend_route}?magicToken={magic_token}" if base_url else None
+
+        comment_text = comment_generator.generate_comment(state, event, magic_link)
+        ctx.service.create_comment(topic_id, comment_text)
+
+        logger.info(f"✅ Comment posted to Catenda for case {sak_id}")
+        return True
+
+    except ImportError:
+        logger.warning("Comment generator not available, skipping comment")
+    except Exception as e:
+        logger.error(f"❌ Failed to post comment: {e}")
+
+    return False
+
+
+def _sync_topic_status(
+    ctx: CatendaContext,
+    topic_id: str,
+    old_status: Optional[str],
+    new_status: str
+) -> None:
+    """
+    Sync topic status to Catenda if changed.
+
+    Args:
+        ctx: Catenda context
+        topic_id: Catenda topic GUID
+        old_status: Previous status
+        new_status: Current status
+    """
+    if old_status == new_status:
+        logger.debug(f"📊 Status unchanged ({new_status}), skipping Catenda update")
+        return
+
+    catenda_status = map_status_to_catenda(new_status)
+    logger.info(f"📊 Status changed: {old_status} → {new_status} (Catenda: {catenda_status})")
+
+    result = ctx.service.update_topic_status(topic_id, new_status)
+    if result:
+        logger.info(f"✅ Topic status updated to: {catenda_status}")
+    else:
+        logger.warning("⚠️ Topic status update failed or returned None")
+
+
 def _post_to_catenda(
     sak_id: str,
     state,
@@ -752,7 +1106,7 @@ def _post_to_catenda(
 
     Priority:
     1. Use client-generated PDF if provided (PREFERRED)
-    2. Generate PDF on server as fallback (WeasyPrint)
+    2. Generate PDF on server as fallback (ReportLab)
     3. Sync topic status if changed
 
     Args:
@@ -770,190 +1124,31 @@ def _post_to_catenda(
     try:
         logger.info(f"🔄 _post_to_catenda called for case {sak_id}, topic {topic_id}")
 
-        catenda_service = get_catenda_service()
-        if not catenda_service:
-            logger.warning("❌ Catenda service not configured, skipping")
+        # 1. Prepare Catenda context (service, config, IDs)
+        ctx = _prepare_catenda_context(sak_id)
+        if not ctx:
             return False, None
-        logger.info("✅ Catenda service available")
 
-        # Get case metadata for project/board IDs
-        metadata = metadata_repo.get(sak_id)
-        if not metadata:
-            logger.warning(f"❌ No metadata found for case {sak_id}")
-            return False, None
-        logger.info(f"✅ Metadata found: board_id={metadata.catenda_board_id}")
+        # 2. Resolve PDF (client or server-generated)
+        pdf_path, filename, pdf_source = _resolve_pdf(
+            sak_id, state, client_pdf_base64, client_pdf_filename
+        )
 
-        config = settings.get_catenda_config()
-        project_id = config.get('catenda_project_id')
-        board_id = metadata.catenda_board_id if metadata else None
-
-        if not project_id or not board_id:
-            logger.warning(f"❌ Missing project/board ID for case {sak_id} (project={project_id}, board={board_id})")
-            return False, None
-        logger.info(f"✅ IDs OK: project={project_id}, board={board_id}")
-
-        catenda_service.set_topic_board_id(board_id)
-
-        # Set library ID for document uploads
-        library_id = config.get('catenda_library_id')
-        if library_id:
-            catenda_service.set_library_id(library_id)
-            logger.info(f"✅ Library ID set: {library_id}")
-        else:
-            logger.warning("⚠️ No library ID configured - PDF upload may fail")
-
-        # Get folder ID for document uploads
-        folder_id = config.get('catenda_folder_id')
-        if folder_id:
-            logger.info(f"✅ Folder ID set: {folder_id}")
-
-        pdf_path = None
-        pdf_source = None
-        filename = None
+        # 3. Upload and link PDF to topic
         pdf_uploaded = False
-
-        # PRIORITY 1: Try to use client-generated PDF (PREFERRED)
-        if client_pdf_base64:
-            try:
-                logger.info(f"📄 Using client-generated PDF: {client_pdf_filename}")
-
-                # Decode base64 PDF
-                pdf_data = base64.b64decode(client_pdf_base64)
-
-                # Save to temp file
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
-                    temp_pdf.write(pdf_data)
-                    pdf_path = temp_pdf.name
-
-                filename = client_pdf_filename or f"KOE_{sak_id}.pdf"
-                pdf_source = "client"
-
-                logger.info(f"✅ Client PDF decoded: {len(pdf_data)} bytes")
-
-            except Exception as e:
-                logger.error(f"❌ Failed to decode client PDF: {e}")
-                # Fall through to server generation
-                pdf_path = None
-                pdf_source = None
-
-        # PRIORITY 2: Fallback - Generate PDF on server (ReportLab)
-        if not pdf_path:
-            logger.info("📄 Generating PDF on server (fallback)")
-
-            try:
-                from services.reportlab_pdf_generator import ReportLabPdfGenerator
-
-                # Get events for PDF (to show last TE/BH events per track)
-                events_list = []
-                try:
-                    events_data, _ = event_repo.get_events(sak_id)  # Returns (events as dicts, version)
-                    events_list = events_data  # Already dicts from repository
-                except Exception as e:
-                    logger.warning(f"Could not get events for PDF: {e}")
-
-                pdf_generator = ReportLabPdfGenerator()
-                filename = f"KOE_{sak_id}.pdf"
-
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
-                    pdf_path = temp_pdf.name
-
-                pdf_bytes = pdf_generator.generate_pdf(state, events_list, pdf_path)
-
-                if pdf_bytes is None and pdf_path:
-                    # File was written directly
-                    pdf_source = "server"
-                    logger.info(f"✅ Server PDF generated: {filename}")
-                elif pdf_bytes:
-                    # Write bytes to file
-                    with open(pdf_path, 'wb') as f:
-                        f.write(pdf_bytes)
-                    pdf_source = "server"
-                    logger.info(f"✅ Server PDF generated: {filename}")
-                else:
-                    logger.error("❌ Failed to generate PDF on server")
-                    pdf_path = None
-
-            except ImportError as e:
-                logger.warning(f"⚠️ ReportLab not installed - PDF generation skipped: {e}")
-                pdf_path = None
-            except Exception as e:
-                logger.error(f"❌ Failed to generate PDF on server: {e}", exc_info=True)
-                pdf_path = None
-
-        # Upload PDF to Catenda (if we have one)
         if pdf_path:
-            doc_result = catenda_service.upload_document(project_id, pdf_path, filename, folder_id)
-
-            if doc_result:
-                # CatendaClient returns 'id', not 'library_item_id'
-                compact_guid = doc_result.get('id') or doc_result.get('library_item_id')
-                logger.info(f"✅ PDF uploaded to Catenda: {compact_guid}")
-
-                # Format GUID with dashes for BCF API (32 hex chars -> UUID format)
-                if compact_guid and len(compact_guid) == 32:
-                    document_guid = (
-                        f"{compact_guid[:8]}-{compact_guid[8:12]}-"
-                        f"{compact_guid[12:16]}-{compact_guid[16:20]}-{compact_guid[20:]}"
-                    )
-                else:
-                    document_guid = compact_guid
-
-                # Link document to topic
-                if document_guid:
-                    ref_result = catenda_service.create_document_reference(topic_id, document_guid)
-                    if not ref_result and compact_guid != document_guid:
-                        # Fallback: try compact GUID
-                        logger.warning(f"Formatted GUID failed, trying compact: {compact_guid}")
-                        ref_result = catenda_service.create_document_reference(topic_id, compact_guid)
-                    pdf_uploaded = ref_result is not None
-            else:
-                logger.error("❌ Failed to upload PDF to Catenda")
-
+            pdf_uploaded = _upload_and_link_pdf(ctx, topic_id, pdf_path, filename)
             # Cleanup temp file
             try:
                 os.remove(pdf_path)
             except OSError:
                 pass
 
-        # Generate and post comment (ALWAYS try, regardless of PDF status)
-        comment_posted = False
-        try:
-            from services.catenda_comment_generator import CatendaCommentGenerator
-            from utils.filtering_config import get_frontend_route
-            comment_generator = CatendaCommentGenerator()
+        # 4. Post comment (always try, regardless of PDF status)
+        comment_posted = _post_catenda_comment(ctx, topic_id, sak_id, state, event)
 
-            # Generate magic link for comment
-            magic_token = magic_link_manager.generate(sak_id=sak_id)
-            base_url = settings.dev_react_app_url or settings.react_app_url
-            # Get sakstype from state, default to 'koe' if not available
-            sakstype = getattr(state, 'sakstype', 'koe') or 'koe'
-            frontend_route = get_frontend_route(sakstype, sak_id)
-            magic_link = f"{base_url}{frontend_route}?magicToken={magic_token}" if base_url else None
-
-            comment_text = comment_generator.generate_comment(state, event, magic_link)
-            catenda_service.create_comment(topic_id, comment_text)
-
-            logger.info(f"✅ Comment posted to Catenda for case {sak_id}")
-            comment_posted = True
-
-        except ImportError:
-            logger.warning("Comment generator not available, skipping comment")
-        except Exception as e:
-            logger.error(f"❌ Failed to post comment: {e}")
-
-        # Sync topic status if changed
-        new_status = state.overordnet_status
-        logger.info(f"📊 Status check: old={old_status}, new={new_status}")
-        if old_status != new_status:
-            catenda_status = map_status_to_catenda(new_status)
-            logger.info(f"📊 Status changed: {old_status} → {new_status} (Catenda: {catenda_status})")
-            result = catenda_service.update_topic_status(topic_id, new_status)
-            if result:
-                logger.info(f"✅ Topic status updated to: {catenda_status}")
-            else:
-                logger.warning("⚠️ Topic status update failed or returned None")
-        else:
-            logger.debug(f"📊 Status unchanged ({new_status}), skipping Catenda update")
+        # 5. Sync topic status if changed
+        _sync_topic_status(ctx, topic_id, old_status, state.overordnet_status)
 
         # Return success if either PDF uploaded or comment posted
         return (pdf_uploaded or comment_posted), pdf_source
