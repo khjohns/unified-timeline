@@ -10,12 +10,12 @@
  * - Type 2: Result of KOE process where parties reach agreement
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, Suspense } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { STALE_TIME } from '../constants/queryConfig';
 import { useAuth } from '../context/AuthContext';
-import { useCaseState } from '../hooks/useCaseState';
+import { useCaseStateSuspense } from '../hooks/useCaseState';
 import { useUserRole } from '../hooks/useUserRole';
 import { Alert, Button, Card } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
@@ -29,8 +29,8 @@ import {
   VerifyingState,
   AuthErrorState,
   LoadingState,
-  ErrorState,
 } from '../components/PageStateHelpers';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import type {
   EndringsordreData,
   EOKonsekvenser,
@@ -55,6 +55,14 @@ function useEOKontekst(sakId: string, enabled: boolean = true) {
     queryFn: () => fetchEOKontekst(sakId),
     staleTime: STALE_TIME.DEFAULT,
     enabled: !!sakId && enabled,
+  });
+}
+
+function useEOKontekstSuspense(sakId: string) {
+  return useSuspenseQuery<EOKontekstResponse, Error>({
+    queryKey: ['endringsordre', sakId, 'kontekst'],
+    queryFn: () => fetchEOKontekst(sakId),
+    staleTime: STALE_TIME.DEFAULT,
   });
 }
 
@@ -92,9 +100,37 @@ const EMPTY_EO_DATA: EndringsordreData = {
 // MAIN COMPONENT
 // ============================================================================
 
+/**
+ * EndringsordePage wrapper - handles auth and Suspense boundary
+ */
 export function EndringsordePage() {
   const { sakId } = useParams<{ sakId: string }>();
   const { token, isVerifying, error: authError } = useAuth();
+
+  // Auth verification in progress
+  if (isVerifying) {
+    return <VerifyingState />;
+  }
+
+  // Auth error - invalid or expired token
+  if (authError || !token) {
+    return <AuthErrorState error={authError} />;
+  }
+
+  // Auth OK - render with Suspense
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingState message="Laster endringsordre..." />}>
+        <EndringsordrePageContent sakId={sakId || ''} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+/**
+ * Inner component that uses Suspense-enabled hooks
+ */
+function EndringsordrePageContent({ sakId }: { sakId: string }) {
   const { userRole, setUserRole } = useUserRole();
   const queryClient = useQueryClient();
 
@@ -107,19 +143,9 @@ export function EndringsordePage() {
   // Catenda sync warning state
   const [showCatendaWarning, setShowCatendaWarning] = useState(false);
 
-  // Fetch EO case state (wait for auth)
-  const {
-    data: caseData,
-    isLoading: caseLoading,
-    error: caseError,
-    refetch: refetchCase,
-  } = useCaseState(sakId || '', { enabled: !!token && !isVerifying });
-
-  // Fetch EO context (related cases, events, summary) - wait for auth
-  const {
-    data: kontekstData,
-    isLoading: kontekstLoading,
-  } = useEOKontekst(sakId || '', !!token && !isVerifying);
+  // Suspense hooks - data guaranteed to exist
+  const { data: caseData, refetch: refetchCase } = useCaseStateSuspense(sakId);
+  const { data: kontekstData } = useEOKontekstSuspense(sakId);
 
   // Fetch candidate KOE cases for adding
   const { data: kandidatData } = useKandidatKOESaker();
@@ -158,49 +184,23 @@ export function EndringsordePage() {
     },
   });
 
-  const state = caseData?.state;
-  const eoData = state?.endringsordre_data || EMPTY_EO_DATA;
+  const state = caseData.state;
+  const eoData = state.endringsordre_data || EMPTY_EO_DATA;
 
   // Check if this EO has related KOE cases (Type 2) or is standalone (Type 1)
-  const harRelaterteKOE = (kontekstData?.oppsummering?.antall_koe_saker || 0) > 0;
+  const harRelaterteKOE = (kontekstData.oppsummering?.antall_koe_saker || 0) > 0;
 
   // EO case's own events
   const eoTimeline = useMemo((): TimelineEvent[] => {
-    if (!kontekstData?.eo_hendelser) return [];
+    if (!kontekstData.eo_hendelser) return [];
     // Sort by timestamp descending
     return [...kontekstData.eo_hendelser].sort((a, b) =>
       new Date(b.time || '').getTime() - new Date(a.time || '').getTime()
     );
   }, [kontekstData]);
 
-  // Auth verification in progress
-  if (isVerifying) {
-    return <VerifyingState />;
-  }
-
-  // Auth error - invalid or expired token
-  if (authError || !token) {
-    return <AuthErrorState error={authError} />;
-  }
-
-  // Loading state
-  if (caseLoading) {
-    return <LoadingState message="Laster endringsordre..." />;
-  }
-
-  // Error state
-  if (caseError) {
-    return (
-      <ErrorState
-        title="Kunne ikke laste endringsordre"
-        error={caseError}
-        onRetry={() => refetchCase()}
-      />
-    );
-  }
-
   // Check if this is actually an EO case
-  if (state && state.sakstype !== 'endringsordre') {
+  if (state.sakstype !== 'endringsordre') {
     return (
       <div className="min-h-screen bg-pkt-bg-subtle p-8">
         <div className="max-w-2xl mx-auto">
@@ -222,7 +222,7 @@ export function EndringsordePage() {
     <div className="min-h-screen bg-pkt-bg-subtle">
       {/* Header */}
       <PageHeader
-        title={state?.sakstittel || `Endringsordre ${eoData.eo_nummer}`}
+        title={state.sakstittel || `Endringsordre ${eoData.eo_nummer}`}
         subtitle={`EO ${eoData.eo_nummer}${eoData.revisjon_nummer > 0 ? ` rev. ${eoData.revisjon_nummer}` : ''}`}
         userRole={userRole}
         onToggleRole={setUserRole}

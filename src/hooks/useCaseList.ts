@@ -4,7 +4,7 @@
  * React Query hook for fetching and caching the list of all cases.
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { fetchCaseList } from '../api/cases';
 import { CaseListResponse } from '../types/api';
 import { STALE_TIME } from '../constants/queryConfig';
@@ -68,5 +68,30 @@ export function useCaseList(options: UseCaseListOptions = {}) {
     staleTime,
     refetchOnWindowFocus,
     enabled,
+  });
+}
+
+export interface UseCaseListSuspenseOptions {
+  sakstype?: 'standard' | 'forsering' | 'endringsordre';
+  staleTime?: number;
+  refetchOnWindowFocus?: boolean;
+}
+
+/**
+ * Suspense-enabled version of useCaseList.
+ * Suspends rendering until data is available.
+ */
+export function useCaseListSuspense(options: UseCaseListSuspenseOptions = {}) {
+  const {
+    sakstype,
+    staleTime = STALE_TIME.DEFAULT,
+    refetchOnWindowFocus = true,
+  } = options;
+
+  return useSuspenseQuery<CaseListResponse, Error>({
+    queryKey: ['cases', sakstype ?? 'all'],
+    queryFn: () => fetchCaseList(sakstype),
+    staleTime,
+    refetchOnWindowFocus,
   });
 }

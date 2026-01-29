@@ -6,14 +6,14 @@
  * and a combined timeline of events from all related cases.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, Suspense } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { STALE_TIME } from '../constants/queryConfig';
 import { useAuth } from '../context/AuthContext';
 import { getAuthToken, ApiError } from '../api/client';
 import { useVerifyToken } from '../hooks/useVerifyToken';
-import { useCaseState } from '../hooks/useCaseState';
+import { useCaseStateSuspense } from '../hooks/useCaseState';
 import { useUserRole } from '../hooks/useUserRole';
 import { useStandpunktEndringer } from '../hooks/useStandpunktEndringer';
 import { Alert, Button, Card } from '../components/primitives';
@@ -36,8 +36,8 @@ import {
   VerifyingState,
   AuthErrorState,
   LoadingState,
-  ErrorState,
 } from '../components/PageStateHelpers';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import type { ForseringData } from '../types/timeline';
 import {
   fetchForseringKontekst,
@@ -60,6 +60,14 @@ function useForseringKontekst(sakId: string, enabled: boolean = true) {
     queryFn: () => fetchForseringKontekst(sakId),
     staleTime: STALE_TIME.DEFAULT,
     enabled: !!sakId && enabled,
+  });
+}
+
+function useForseringKontekstSuspense(sakId: string) {
+  return useSuspenseQuery<ForseringKontekstResponse, Error>({
+    queryKey: ['forsering', sakId, 'kontekst'],
+    queryFn: () => fetchForseringKontekst(sakId),
+    staleTime: STALE_TIME.DEFAULT,
   });
 }
 
@@ -92,9 +100,37 @@ const EMPTY_FORSERING_DATA: ForseringData = {
 // COMPONENT
 // ============================================================================
 
+/**
+ * ForseringPage wrapper - handles auth and Suspense boundary
+ */
 export function ForseringPage() {
   const { sakId } = useParams<{ sakId: string }>();
   const { token, isVerifying, error: authError } = useAuth();
+
+  // Auth verification in progress
+  if (isVerifying) {
+    return <VerifyingState />;
+  }
+
+  // Auth error - invalid or expired token
+  if (authError || !token) {
+    return <AuthErrorState error={authError} />;
+  }
+
+  // Auth OK - render with Suspense
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingState message="Laster forseringssak..." />}>
+        <ForseringPageContent sakId={sakId || ''} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+/**
+ * Inner component that uses Suspense-enabled hooks
+ */
+function ForseringPageContent({ sakId }: { sakId: string }) {
   const { userRole, setUserRole } = useUserRole();
   const queryClient = useQueryClient();
   const verifyToken = useVerifyToken();
@@ -108,16 +144,9 @@ export function ForseringPage() {
   const [showConflict, setShowConflict] = useState(false);
   const [showCatendaWarning, setShowCatendaWarning] = useState(false);
 
-  // Fetch forsering case state (wait for auth)
-  const {
-    data: caseData,
-    isLoading: caseLoading,
-    error: caseError,
-    refetch: refetchCase,
-  } = useCaseState(sakId || '', { enabled: !!token && !isVerifying });
-
-  // Fetch related cases context (wait for auth)
-  const { data: kontekstData } = useForseringKontekst(sakId || '', !!token && !isVerifying);
+  // Suspense hooks - data guaranteed to exist
+  const { data: caseData, refetch: refetchCase } = useCaseStateSuspense(sakId);
+  const { data: kontekstData } = useForseringKontekstSuspense(sakId);
 
   // Fetch candidate cases for adding
   const { data: kandidatData } = useKandidatSaker();
@@ -181,7 +210,7 @@ export function ForseringPage() {
         forsering_sak_id: sakId || '',
         begrunnelse: data.begrunnelse,
         paalopte_kostnader: data.paalopte_kostnader,
-        expected_version: caseData?.version,
+        expected_version: caseData.version,
       });
     },
     onSuccess: (result) => {
@@ -215,7 +244,7 @@ export function ForseringPage() {
         forsering_sak_id: sakId || '',
         paalopte_kostnader: data.paalopte_kostnader,
         kommentar: data.kommentar,
-        expected_version: caseData?.version,
+        expected_version: caseData.version,
       });
     },
     onSuccess: (result) => {
@@ -238,19 +267,19 @@ export function ForseringPage() {
     },
   });
 
-  const state = caseData?.state;
-  const forseringData = state?.forsering_data || EMPTY_FORSERING_DATA;
+  const state = caseData.state;
+  const forseringData = state.forsering_data || EMPTY_FORSERING_DATA;
 
   // Check for BH position changes on related cases
   const { harEndringer: harStandpunktEndringer, endringer: standpunktEndringer } = useStandpunktEndringer(
     forseringData,
-    kontekstData?.relaterte_saker || [],
-    kontekstData?.sak_states || {}
+    kontekstData.relaterte_saker,
+    kontekstData.sak_states
   );
 
   // Calculate avslatteSaker data for BHResponsForseringModal
   const avslatteSaker = useMemo(() => {
-    if (!kontekstData || !forseringData.avslatte_fristkrav) return [];
+    if (!forseringData.avslatte_fristkrav) return [];
 
     return forseringData.avslatte_fristkrav.map(sakId => {
       const sakState = kontekstData.sak_states[sakId];
@@ -267,32 +296,6 @@ export function ForseringPage() {
       };
     });
   }, [kontekstData, forseringData.avslatte_fristkrav]);
-
-  // Auth verification in progress
-  if (isVerifying) {
-    return <VerifyingState />;
-  }
-
-  // Auth error - invalid or expired token
-  if (authError || !token) {
-    return <AuthErrorState error={authError} />;
-  }
-
-  // Loading state
-  if (caseLoading) {
-    return <LoadingState message="Laster forseringssak..." />;
-  }
-
-  // Error state
-  if (caseError) {
-    return (
-      <ErrorState
-        title="Kunne ikke laste forseringssak"
-        error={caseError}
-        onRetry={() => refetchCase()}
-      />
-    );
-  }
 
   // Check if this is actually a forsering case
   if (state && state.sakstype !== 'forsering') {
@@ -425,7 +428,7 @@ export function ForseringPage() {
         onOpenChange={setBhResponsModalOpen}
         sakId={sakId || ''}
         forseringData={forseringData}
-        currentVersion={caseData?.version}
+        currentVersion={caseData.version}
         lastResponse={forseringData.bh_respons}
         avslatteSaker={avslatteSaker}
         onSuccess={() => {

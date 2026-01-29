@@ -6,14 +6,14 @@
  * Shows a banner if the case is part of a forsering case or an endringsordre.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { STALE_TIME } from '../constants/queryConfig';
 import { useAuth } from '../context/AuthContext';
 import { ApprovalProvider } from '../context/ApprovalContext';
-import { useCaseState } from '../hooks/useCaseState';
-import { useTimeline } from '../hooks/useTimeline';
+import { useCaseStateSuspense } from '../hooks/useCaseState';
+import { useTimelineSuspense } from '../hooks/useTimeline';
 import { useHistorikk } from '../hooks/useRevisionHistory';
 import { useActionPermissions } from '../hooks/useActionPermissions';
 import { useUserRole } from '../hooks/useUserRole';
@@ -69,44 +69,10 @@ import {
   VerifyingState,
   AuthErrorState,
   LoadingState,
-  ErrorState,
 } from '../components/PageStateHelpers';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { downloadRevisionHistoryCsv } from '../utils/csvExport';
 import { downloadCaseExcel } from '../utils/excelExport';
-
-// Default empty state for when data is not yet loaded
-const EMPTY_STATE: SakState = {
-  sak_id: '',
-  sakstittel: '',
-  grunnlag: {
-    status: 'utkast',
-    kontraktsreferanser: [],
-    laast: false,
-    antall_versjoner: 0,
-  },
-  vederlag: {
-    status: 'utkast',
-    antall_versjoner: 0,
-  },
-  frist: {
-    status: 'utkast',
-    antall_versjoner: 0,
-  },
-  er_subsidiaert_vederlag: false,
-  er_subsidiaert_frist: false,
-  visningsstatus_vederlag: '',
-  visningsstatus_frist: '',
-  overordnet_status: 'UTKAST',
-  kan_utstede_eo: false,
-  neste_handling: {
-    rolle: null,
-    handling: '',
-    spor: null,
-  },
-  sum_krevd: 0,
-  sum_godkjent: 0,
-  antall_events: 0,
-};
 
 /**
  * CasePage renders the complete case view with dashboard and timeline
@@ -121,31 +87,55 @@ export function CasePage() {
 }
 
 /**
- * Inner component that uses the approval context
+ * Inner component that handles auth verification and wraps data loader in Suspense
  */
 function CasePageContent() {
   const { sakId } = useParams<{ sakId: string }>();
   const { token, isVerifying, error: authError } = useAuth();
 
-  // Wait for auth verification before loading data
-  const { data, isLoading, error } = useCaseState(sakId || '', { enabled: !!token && !isVerifying });
-  const { data: timelineData } = useTimeline(sakId || '', { enabled: !!token && !isVerifying });
-  const { grunnlag: grunnlagHistorikk, vederlag: vederlagHistorikk, frist: fristHistorikk } = useHistorikk(sakId || '');
+  // Auth verification in progress
+  if (isVerifying) {
+    return <VerifyingState />;
+  }
+
+  // Auth error - invalid or expired token
+  if (authError || !token) {
+    return <AuthErrorState error={authError} />;
+  }
+
+  // Auth OK - render data loader with Suspense
+  // Suspense catches both lazy-loading and data fetching
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingState message="Laster sak..." />}>
+        <CasePageDataLoader sakId={sakId || ''} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+/**
+ * Data loader component that uses Suspense-enabled hooks
+ * This component will suspend until all data is loaded
+ */
+function CasePageDataLoader({ sakId }: { sakId: string }) {
+  // These hooks suspend until data is available - no isLoading needed
+  const { data } = useCaseStateSuspense(sakId);
+  const { data: timelineData } = useTimelineSuspense(sakId);
+  const { grunnlag: grunnlagHistorikk, vederlag: vederlagHistorikk, frist: fristHistorikk } = useHistorikk(sakId);
 
   // Fetch forsering relations (check if this case is part of any forsering)
   const { data: forseringData } = useQuery<FindForseringerResponse>({
     queryKey: ['forsering', 'by-relatert', sakId],
-    queryFn: () => findForseringerForSak(sakId || ''),
+    queryFn: () => findForseringerForSak(sakId),
     staleTime: STALE_TIME.EXTENDED,
-    enabled: !!sakId && !!token && !isVerifying,
   });
 
   // Fetch endringsordre relations (check if this case is part of any endringsordre)
   const { data: endringsordreData } = useQuery<FindEOerResponse>({
     queryKey: ['endringsordre', 'by-relatert', sakId],
-    queryFn: () => findEOerForSak(sakId || ''),
+    queryFn: () => findEOerForSak(sakId),
     staleTime: STALE_TIME.EXTENDED,
-    enabled: !!sakId && !!token && !isVerifying,
   });
 
   // Modal state management - Initial submissions
@@ -179,7 +169,7 @@ function CasePageContent() {
   const { userRole, setUserRole, bhApprovalRole, currentMockUser, currentMockManager } = useUserRole();
 
   // Approval workflow (mock) - must be called unconditionally
-  const approvalWorkflow = useApprovalWorkflow(sakId || '');
+  const approvalWorkflow = useApprovalWorkflow(sakId);
 
   // Approval modal states (combined package only)
   const [sendResponsPakkeOpen, setSendResponsPakkeOpen] = useState(false);
@@ -189,10 +179,10 @@ function CasePageContent() {
   // PDF preview modal state (for testing - opened from header)
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
 
-  // Use state from data or empty state - hooks must be called unconditionally
-  const state = data?.state ?? EMPTY_STATE;
+  // Data is guaranteed to exist when using Suspense hooks
+  const state = data.state;
 
-  // Compute actions based on state - hooks must be called unconditionally
+  // Compute actions based on state
   const actions = useActionPermissions(state, userRole);
 
   // API now returns CloudEvents format directly
@@ -216,37 +206,6 @@ function CasePageContent() {
   const grunnlagVarsletForSent = useMemo((): boolean => {
     return state.grunnlag.grunnlag_varslet_i_tide === false;
   }, [state.grunnlag.grunnlag_varslet_i_tide]);
-
-  // Auth verification in progress
-  if (isVerifying) {
-    return <VerifyingState />;
-  }
-
-  // Auth error - invalid or expired token
-  if (authError || !token) {
-    return <AuthErrorState error={authError} />;
-  }
-
-  // Loading state
-  if (isLoading) {
-    return <LoadingState message="Laster sak..." />;
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <ErrorState
-        title="Feil ved lasting av sak"
-        error={error}
-        onRetry={() => window.location.reload()}
-      />
-    );
-  }
-
-  // No data state (should not happen if no error)
-  if (!data) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-pkt-bg-subtle">

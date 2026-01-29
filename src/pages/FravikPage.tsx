@@ -10,9 +10,9 @@
  * - BH (Byggherre): See søknad read-only, access 4-step approval workflow
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { DownloadIcon, ReloadIcon, BarChartIcon } from '@radix-ui/react-icons';
 import { Alert, Badge, Button, Card, DataList, DataListItem, DropdownMenuItem } from '../components/primitives';
 import { useUserRole } from '../hooks/useUserRole';
@@ -40,6 +40,8 @@ import {
 } from '../types/fravik';
 import { formatDateShort } from '../utils/formatters';
 import { downloadFravikExcel } from '../utils/excelExport';
+import { LoadingState } from '../components/PageStateHelpers';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 // ============================================================================
 // HOOKS
@@ -60,6 +62,23 @@ function useFravikEvents(sakId: string, enabled: boolean = true) {
     queryFn: () => fetchFravikEvents(sakId),
     staleTime: STALE_TIME.DEFAULT,
     enabled: !!sakId && enabled,
+  });
+}
+
+// Suspense-enabled versions for use with React Suspense
+function useFravikStateSuspense(sakId: string) {
+  return useSuspenseQuery<FravikState, Error>({
+    queryKey: ['fravik', sakId, 'state'],
+    queryFn: () => fetchFravikState(sakId),
+    staleTime: STALE_TIME.DEFAULT,
+  });
+}
+
+function useFravikEventsSuspense(sakId: string) {
+  return useSuspenseQuery<FravikEvent[], Error>({
+    queryKey: ['fravik', sakId, 'events'],
+    queryFn: () => fetchFravikEvents(sakId),
+    staleTime: STALE_TIME.DEFAULT,
   });
 }
 
@@ -90,9 +109,25 @@ function getStatusBadgeVariant(status: string): 'success' | 'danger' | 'warning'
 // MAIN COMPONENT
 // ============================================================================
 
+/**
+ * FravikPage wrapper - handles Suspense boundary
+ */
 export function FravikPage() {
   const { sakId } = useParams<{ sakId: string }>();
 
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingState message="Laster fravik-søknad..." />}>
+        <FravikPageContent sakId={sakId || ''} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+/**
+ * Inner component that uses Suspense-enabled hooks
+ */
+function FravikPageContent({ sakId }: { sakId: string }) {
   // User role management (same as CasePage)
   const { userRole, setUserRole } = useUserRole();
 
@@ -109,14 +144,9 @@ export function FravikPage() {
   const [showArbeidsgruppeVurdering, setShowArbeidsgruppeVurdering] = useState(false);
   const [showEierBeslutning, setShowEierBeslutning] = useState(false);
 
-  const {
-    data: state,
-    isLoading,
-    error,
-    refetch,
-  } = useFravikState(sakId || '');
-
-  const { data: events = [] } = useFravikEvents(sakId || '');
+  // Suspense hooks - data guaranteed to exist
+  const { data: state, refetch } = useFravikStateSuspense(sakId);
+  const { data: events } = useFravikEventsSuspense(sakId);
 
   // Demo aktor name based on role (TE = Totalentreprenør/Søker, BH = Byggherre)
   const demoAktor = userRole === 'TE' ? 'Entreprenør Demo' : 'Byggherre Demo';
@@ -128,7 +158,6 @@ export function FravikPage() {
 
   // Beregn om søknaden kan sendes inn (alle tre spor må være utfylt)
   const kanSendesInn = useMemo(() => {
-    if (!state) return false;
     const harSoknadInfo = !!state.prosjekt_navn && !!state.soker_navn;
     const harMaskinerEllerInfra = state.soknad_type === 'machine'
       ? Object.keys(state.maskiner).length > 0
@@ -136,49 +165,6 @@ export function FravikPage() {
     const harAvbotende = !!state.avbotende_tiltak && !!state.konsekvenser_ved_avslag;
     return harSoknadInfo && harMaskinerEllerInfra && harAvbotende;
   }, [state]);
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-pkt-bg-subtle">
-        <PageHeader title="Laster søknad..." subtitle="Vennligst vent" />
-        <main className="max-w-3xl mx-auto px-2 pt-2 pb-4 sm:px-4 sm:pt-3 sm:pb-6">
-          <Card variant="outlined" padding="md">
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-oslo-blue" />
-              <span className="ml-3 text-sm text-pkt-text-body-subtle">Laster søknad...</span>
-            </div>
-          </Card>
-        </main>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error || !state) {
-    return (
-      <div className="min-h-screen bg-pkt-bg-subtle">
-        <PageHeader title="Feil ved lasting" subtitle="Kunne ikke laste søknad" />
-        <main className="max-w-3xl mx-auto px-2 pt-2 pb-4 sm:px-4 sm:pt-3 sm:pb-6">
-          <Card variant="outlined" padding="md">
-            <div className="text-center py-8">
-              <p className="text-sm text-pkt-brand-red-1000 mb-4">
-                Kunne ikke laste søknad: {error?.message || 'Ukjent feil'}
-              </p>
-              <div className="flex gap-2 justify-center">
-                <Button variant="secondary" size="sm" onClick={() => refetch()}>
-                  Prøv igjen
-                </Button>
-                <Link to="/fravik">
-                  <Button variant="primary" size="sm">Tilbake til oversikt</Button>
-                </Link>
-              </div>
-            </div>
-          </Card>
-        </main>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-pkt-bg-subtle">
