@@ -23,9 +23,9 @@ import { Badge } from '../components/primitives';
 import {
   VerifyingState,
   AuthErrorState,
-  LoadingState,
   ErrorState,
 } from '../components/PageStateHelpers';
+import { PageLoadingFallback } from '../components/PageLoadingFallback';
 import { ArrowLeftIcon } from '@radix-ui/react-icons';
 import type { SakState, TimelineEvent } from '../types/timeline';
 
@@ -86,7 +86,7 @@ export function CasePageDesktopTest() {
   // Auth states
   if (isVerifying) return <VerifyingState />;
   if (authError || !token) return <AuthErrorState error={authError} />;
-  if (isLoading) return <LoadingState message="Laster sak..." />;
+  if (isLoading) return <PageLoadingFallback />;
   if (error) return <ErrorState title="Feil ved lasting" error={error} onRetry={() => window.location.reload()} />;
   if (!data) return null;
 
