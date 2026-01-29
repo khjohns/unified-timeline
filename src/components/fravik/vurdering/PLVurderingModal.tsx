@@ -384,7 +384,7 @@ export function PLVurderingModal({
       size="lg"
     >
       {modus === 'vurdering' ? (
-        <form onSubmit={vurderingForm.handleSubmit(onSubmitVurdering)} className="space-y-4">
+        <form onSubmit={vurderingForm.handleSubmit(onSubmitVurdering)} className="space-y-3 sm:space-y-4">
           {/* Veiledning */}
           <Alert variant="info" title="Din rolle">
             Verifiser at søknaden oppfyller kontraktskravene. Din anbefaling går videre til arbeidsgruppen.
@@ -516,7 +516,7 @@ export function PLVurderingModal({
           </div>
         </form>
       ) : (
-        <form onSubmit={sendTilbakeForm.handleSubmit(onSubmitSendTilbake)} className="space-y-4">
+        <form onSubmit={sendTilbakeForm.handleSubmit(onSubmitSendTilbake)} className="space-y-3 sm:space-y-4">
           {/* Toggle tilbake til vurdering */}
           <button
             type="button"

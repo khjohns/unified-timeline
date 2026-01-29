@@ -261,13 +261,13 @@ export function SendForseringModal({
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
           {/* Seksjon 2: Kostnadsberegning */}
           <SectionContainer
             title="Kostnadsberegning"
             description="Du har valgrett hvis estimert kostnad er innenfor dagmulkt + 30% (§33.8)"
           >
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {/* Inline dag-oversikt */}
               <InlineDataList bordered>
                 <InlineDataListItem label="Krevd" mono bold>
@@ -383,7 +383,7 @@ export function SendForseringModal({
             title="Forseringsdetaljer"
             description="Angi tidspunkt og begrunnelse for forsering"
           >
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <FormField
                 label="Dato for iverksettelse"
                 required

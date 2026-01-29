@@ -285,7 +285,7 @@ export function ReviseFristModal({
       title={modalConfig.title}
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
         {/* Critical warning for foresporsel mode */}
         {modalMode === 'spesifiser_foresporsel' && (
           <Alert variant="danger" title="Svarplikt (§33.6.2)">

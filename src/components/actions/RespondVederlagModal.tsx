@@ -1060,7 +1060,7 @@ export function RespondVederlagModal({
               e.preventDefault();
             }
           }}
-          className="space-y-6"
+          className="space-y-4 sm:space-y-6"
         >
           {/* ================================================================
               STEG 1: OVERSIKT
@@ -1388,7 +1388,7 @@ export function RespondVederlagModal({
 
               {/* Justerte enhetspriser (§34.3.2) */}
               {maSvarePaJustering && (
-                <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle space-y-4">
+                <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle space-y-3 sm:space-y-4">
                   <div>
                     <h4 className="font-medium mb-2">Justerte enhetspriser (§34.3.2)</h4>
                     <p className="text-sm text-pkt-text-body-subtle">
@@ -1690,7 +1690,7 @@ export function RespondVederlagModal({
             <SectionContainer title="Oppsummering">
 
               {/* Sammendrag av valg */}
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {/* Metode */}
                 <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle space-y-3">
                   <div>

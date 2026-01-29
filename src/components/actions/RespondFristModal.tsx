@@ -942,7 +942,7 @@ export function RespondFristModal({
               e.preventDefault();
             }
           }}
-          className="space-y-6"
+          className="space-y-4 sm:space-y-6"
         >
           {/* ================================================================
               SPESIALHÅNDTERING: BEGRUNNELSE FOR UTSETTELSE (§33.6.2 bokstav b)
@@ -1092,7 +1092,7 @@ export function RespondFristModal({
             >
               {/* ===== FORELØPIG VARSEL (varselType === 'varsel') ===== */}
               {varselType === 'varsel' && (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {/* §33.4 vurdering */}
                   <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
@@ -1193,7 +1193,7 @@ export function RespondFristModal({
 
               {/* ===== SPESIFISERT KRAV (varselType === 'spesifisert') ===== */}
               {varselType === 'spesifisert' && (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {/* §33.6.2: Svar på forespørsel */}
                   {erSvarPaForesporsel ? (
                     <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
@@ -1672,7 +1672,7 @@ export function RespondFristModal({
           {!erBegrunnelseUtsatt && currentStepType === 'oppsummering' && (
             <SectionContainer title="Oppsummering">
               {/* Sammendrag av valg */}
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {/* Vurdering - samlet boks som i VederlagModal */}
                 <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle space-y-3">
                   {/* Grunnlagsstatus - vises kun hvis avslått */}

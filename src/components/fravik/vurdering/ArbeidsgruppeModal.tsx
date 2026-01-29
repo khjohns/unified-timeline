@@ -306,7 +306,7 @@ export function ArbeidsgruppeModal({
           ? infrastrukturForm.handleSubmit(onSubmitInfrastruktur)
           : handleSubmit(onSubmit)
         }
-        className="space-y-6"
+        className="space-y-4 sm:space-y-6"
       >
         {/* Tidligere vurderinger kontekst */}
         <SectionContainer title="Tidligere anbefalinger" variant="subtle">
@@ -364,7 +364,7 @@ export function ArbeidsgruppeModal({
           title="Maskinvurderinger"
           description="Arbeidsgruppen vurderer hver maskin individuelt. Samlet innstilling beregnes automatisk."
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {fields.map((field, index) => {
               const maskin = maskiner.find((m) => m.maskin_id === field.maskin_id);
               if (!maskin) return null;
@@ -495,7 +495,7 @@ export function ArbeidsgruppeModal({
             title="Vurdering av infrastruktur-søknad"
             description="Arbeidsgruppen gir en samlet vurdering av søknaden."
           >
-            <div className="p-4 rounded-lg border border-pkt-border-default bg-pkt-bg-card space-y-4">
+            <div className="p-4 rounded-lg border border-pkt-border-default bg-pkt-bg-card space-y-3 sm:space-y-4">
               {state.infrastruktur && (
                 <div className="mb-3 text-sm space-y-2">
                   <p className="text-pkt-text-body-muted">

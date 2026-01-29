@@ -199,13 +199,13 @@ export function OpprettFravikModal({
       title={editMode ? 'Rediger søknadsinformasjon' : 'Opprett fravik-søknad'}
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
         {/* Prosjektinformasjon */}
         <SectionContainer
           title="Prosjektinformasjon"
           description="Informasjon om prosjektet søknaden gjelder"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <FormField
               label="Prosjektnavn"
               required
@@ -258,7 +258,7 @@ export function OpprettFravikModal({
           title="Søkerinformasjon"
           description="Hvem søker om fravik?"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <FormField
               label="Ditt navn"
               required
@@ -315,7 +315,7 @@ export function OpprettFravikModal({
           description="Marker hvis søknaden haster"
           optional
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <Controller
               name="er_haste"
               control={control}
@@ -330,7 +330,7 @@ export function OpprettFravikModal({
             />
 
             {erHaste && (
-              <div className="ml-6 space-y-4 border-l-2 border-pkt-border-subtle pl-4">
+              <div className="ml-6 space-y-3 sm:space-y-4 border-l-2 border-pkt-border-subtle pl-4">
                 <FormField
                   label="Begrunnelse for hastebehandling"
                   required

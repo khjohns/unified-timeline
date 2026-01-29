@@ -128,7 +128,7 @@ export function LeggTilRelatertSakModal({
       title="Legg til relaterte saker"
       size="lg"
     >
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {/* Info */}
         <Alert variant="info" title="Velg saker med avslått fristforlengelse">
           Velg én eller flere saker som skal inngå i forseringsgrunnlaget.

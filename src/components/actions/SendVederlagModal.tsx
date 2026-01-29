@@ -278,7 +278,7 @@ export function SendVederlagModal({
       title="Krev vederlagsjustering"
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
         {/* Subsidiary treatment info */}
         {erSubsidiaer && (
           <Alert variant="info" title="Subsidiær behandling">
@@ -422,7 +422,7 @@ export function SendVederlagModal({
             />
 
             {harRiggKrav && (
-              <div className="mt-3 ml-6 space-y-4 border-l-2 border-pkt-border-subtle pl-4">
+              <div className="mt-3 ml-6 space-y-3 sm:space-y-4 border-l-2 border-pkt-border-subtle pl-4">
                 <p className="text-sm text-pkt-text-body-subtle">
                   <ExpandableText preview="Kravet må varsles «uten ugrunnet opphold».">
                     Krav på særskilt justering for rigg/drift må varsles «uten ugrunnet opphold» etter at entreprenøren ble klar over at utgifter ville påløpe som en nødvendig følge av endring, forsinkelse/svikt ved byggherrens ytelser, eller andre forhold byggherren har risikoen for.
@@ -492,7 +492,7 @@ export function SendVederlagModal({
             />
 
             {harProduktivitetKrav && (
-              <div className="mt-3 ml-6 space-y-4 border-l-2 border-pkt-border-subtle pl-4">
+              <div className="mt-3 ml-6 space-y-3 sm:space-y-4 border-l-2 border-pkt-border-subtle pl-4">
                 <p className="text-sm text-pkt-text-body-subtle">
                   <ExpandableText preview="Kravet må varsles «uten ugrunnet opphold».">
                     Krav på produktivitetstap må varsles «uten ugrunnet opphold» etter at entreprenøren ble klar over at utgifter ville påløpe som følge av endring, forsinkelse/svikt ved byggherrens ytelser, eller andre forhold byggherren har risikoen for.

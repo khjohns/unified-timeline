@@ -250,7 +250,7 @@ export function EierBeslutningModal({
       description="Fatt endelig beslutning på fravik-søknaden."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
         {/* Oppsummering av vurderinger */}
         <SectionContainer title="Oppsummering av anbefalinger" variant="subtle">
           <DataList variant="grid">

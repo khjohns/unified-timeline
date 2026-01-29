@@ -364,7 +364,7 @@ export function SendGrunnlagModal({
       title={isUpdateMode ? "Oppdater ansvarsgrunnlag" : "Varsle ansvarsgrunnlag"}
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
         {/* UPDATE MODE: Current grunnlag summary */}
         {isUpdateMode && grunnlag && (
           <SectionContainer
@@ -398,7 +398,7 @@ export function SendGrunnlagModal({
         <SectionContainer
           title="Ansvarsgrunnlag"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {/* Hovedkategori */}
             <FormField
               label="Hovedkategori"
@@ -459,7 +459,7 @@ export function SendGrunnlagModal({
                       required
                       error={errors.underkategori?.message}
                     >
-                      <div className="space-y-4" data-testid="grunnlag-underkategori-list">
+                      <div className="space-y-3 sm:space-y-4" data-testid="grunnlag-underkategori-list">
                         {Array.from(grupperteUnderkategorier.entries()).map(([gruppeNavn, underkategorier]) => (
                           <div key={gruppeNavn ?? 'ungrouped'}>
                             {gruppeNavn && (
@@ -538,7 +538,7 @@ export function SendGrunnlagModal({
           title="Beskrivelse"
           description="Beskriv forholdet som varsles"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <FormField
               label="Tittel på varselet"
               required
@@ -576,7 +576,7 @@ export function SendGrunnlagModal({
           title="Tidspunkt og varsling"
           description="Dokumenter når forholdet ble oppdaget og varslet"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <FormField
               label="Dato forhold oppdaget"
               required

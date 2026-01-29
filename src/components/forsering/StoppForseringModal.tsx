@@ -132,7 +132,7 @@ export function StoppForseringModal({
       title="Stopp forsering"
       size="md"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
         {/* Warning */}
         <Alert variant="warning" title="Du er i ferd med å stoppe forseringen">
           <p>

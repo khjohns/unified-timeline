@@ -351,7 +351,7 @@ export function SendFristModal({
                   </RadioGroup>
                   {/* Varslingsregel-komponenter for valgt type */}
                   {field.value && (
-                    <div className="mt-4 space-y-4">
+                    <div className="mt-4 space-y-3 sm:space-y-4">
                       {/* Dager siden forholdet oppstod - kun når dato_oppdaget er tilgjengelig */}
                       {grunnlagEvent?.dato_oppdaget && (field.value === 'varsel' || field.value === 'spesifisert') && (
                         <div className="flex items-center gap-3 p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
@@ -392,7 +392,7 @@ export function SendFristModal({
         {/* Varsel om fristforlengelse (§33.4) - for både varsel og spesifisert */}
         {(selectedVarselType === 'varsel' || selectedVarselType === 'spesifisert') && (
           <SectionContainer title="Varsel om fristforlengelse (§33.4)">
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <p className="text-sm text-pkt-text-body-subtle">
                 <ExpandableText preview="Krav om fristforlengelse må varsles «uten ugrunnet opphold».">
                   Oppstår forhold som gir rett til fristforlengelse etter §33.1, §33.2 eller §33.3,
@@ -516,7 +516,7 @@ export function SendFristModal({
           <SectionContainer
             title="Krav om fristforlengelse (§33.6.1)"
           >
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <p className="text-sm text-pkt-text-body-subtle">
                 <ExpandableText preview="Antall dager må angis «uten ugrunnet opphold» når beregningsgrunnlag foreligger.">
                   Når parten har grunnlag for å beregne omfanget av fristforlengelse, må han angi og
@@ -585,7 +585,7 @@ export function SendFristModal({
         <SectionContainer
           title="Årsakssammenheng"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {/* Vilkår: §33.3 for force majeure, §33.1 for andre forhold */}
             {grunnlagEvent?.hovedkategori && erForceMajeure(grunnlagEvent.hovedkategori) ? (
               <p className="text-sm text-pkt-text-body-subtle mb-3">
@@ -625,7 +625,7 @@ export function SendFristModal({
           <SectionContainer
             title="Beregning av fristforlengelse"
           >
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <p className="text-sm text-pkt-text-body-subtle mb-3">
                 <ExpandableText preview="Fristforlengelsen skal svare til den virkning hindringen har hatt for fremdriften.">
                   Fristforlengelsen skal svare til den virkning hindringen har hatt for fremdriften (§33.5).

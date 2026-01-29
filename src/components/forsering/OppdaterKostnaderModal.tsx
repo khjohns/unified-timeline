@@ -119,7 +119,7 @@ export function OppdaterKostnaderModal({
       title="Oppdater påløpte kostnader"
       size="md"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
         {/* Current status */}
         <SectionContainer title="Kostnadsramme" variant="subtle">
           <DataList variant="grid">

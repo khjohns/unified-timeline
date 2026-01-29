@@ -210,7 +210,7 @@ export function LeggTilMaskinModal({
       title="Legg til maskin"
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
         {/* Kontraktsinformasjon */}
         <Alert variant="info" title="Krav til fravik">
           Fravik innvilges kun dersom det <strong>ikke er mulig</strong> å skaffe utslippsfri maskin.
@@ -223,7 +223,7 @@ export function LeggTilMaskinModal({
           title="Maskintype"
           description="Velg type maskin du søker fravik for"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <FormField
               label="Type maskin"
               required
@@ -419,7 +419,7 @@ export function LeggTilMaskinModal({
           title="Markedsundersøkelse"
           description="Dokumentasjon på at utslippsfri maskin ikke er tilgjengelig"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <Controller
               name="markedsundersokelse"
               control={control}
@@ -459,7 +459,7 @@ export function LeggTilMaskinModal({
           title="Erstatningsmaskin"
           description="Oppgi hvilken maskin som vil brukes i stedet"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <FormField
               label="Maskin/modell"
               required
@@ -517,7 +517,7 @@ export function LeggTilMaskinModal({
           title="Planlagt bruk"
           description="Beskriv hva maskinen skal brukes til og forventet bruksomfang"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <FormField
               label="Arbeidskategori"
               required
