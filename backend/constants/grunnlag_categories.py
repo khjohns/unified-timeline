@@ -191,6 +191,13 @@ GRUNNLAG_KATEGORIER: Dict[str, Hovedkategori] = {
                 "beskrivelse": "Konsekvenser av rettmessig stans grunnet manglende betaling/sikkerhet.",
                 "varselkrav_ref": "34.1.2 / 29.2",
             },
+            {
+                "kode": "ANDRE_ANDRE",
+                "label": "Annet forhold",
+                "hjemmel_basis": "33.1 c)",
+                "beskrivelse": "Andre forhold byggherren har risikoen for som ikke dekkes av kategoriene over.",
+                "varselkrav_ref": "33.4 / 34.1.2",
+            },
         ],
     },
 

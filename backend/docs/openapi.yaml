@@ -1804,6 +1804,14 @@ components:
           default: null
           description: '§32.2: Var grunnlagsvarselet rettidig? Kun relevant for ENDRING-kategorien.'
           title: Grunnlag Varslet I Tide
+        respondert_versjon:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          default: null
+          description: Hvilken TE-versjon (0-indeksert) denne responsen gjelder. Settes
+            automatisk av backend.
+          title: Respondert Versjon
         original_respons_id:
           anyOf:
           - type: string
@@ -1836,6 +1844,14 @@ components:
           default: null
           description: Event-ID til vederlagskravet som besvares
           title: Vederlag Krav Id
+        respondert_versjon:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          default: null
+          description: Hvilken TE-versjon (0-indeksert) denne responsen gjelder. Settes
+            automatisk av backend.
+          title: Respondert Versjon
         hovedkrav_varslet_i_tide:
           anyOf:
           - type: boolean
@@ -2071,6 +2087,14 @@ components:
           default: null
           description: Event-ID til original respons som oppdateres (for RESPONS_*_OPPDATERT)
           title: Original Respons Id
+        respondert_versjon:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          default: null
+          description: Hvilken TE-versjon (0-indeksert) denne responsen gjelder. Settes
+            automatisk av backend.
+          title: Respondert Versjon
         frist_varsel_ok:
           anyOf:
           - type: boolean
