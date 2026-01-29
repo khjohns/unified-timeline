@@ -19,6 +19,9 @@ from typing import Any, Dict, Optional, List, Tuple
 import logging
 from pathlib import Path
 
+# Default timeout for HTTP requests (seconds)
+DEFAULT_TIMEOUT = 30
+
 # Konfigurer logging
 logging.basicConfig(
     level=logging.DEBUG,
@@ -102,7 +105,7 @@ class CatendaClient:
         }
         
         try:
-            response = requests.post(url, headers=headers, data=data)
+            response = requests.post(url, headers=headers, data=data, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             
             token_data = response.json()
@@ -212,7 +215,7 @@ class CatendaClient:
         }
         
         try:
-            response = requests.post(url, headers=headers, data=data)
+            response = requests.post(url, headers=headers, data=data, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             
             token_data = response.json()
@@ -345,7 +348,7 @@ class CatendaClient:
         url = f"{self.base_url}/opencde/bcf/3.0/projects"
         
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             
             boards = response.json()
@@ -405,7 +408,7 @@ class CatendaClient:
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}"
 
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             board = response.json()
@@ -441,7 +444,7 @@ class CatendaClient:
         }
 
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload)
+            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             board = response.json()
@@ -476,7 +479,7 @@ class CatendaClient:
         payload = {"name": name}
 
         try:
-            response = requests.put(url, headers=self.get_headers(), json=payload)
+            response = requests.put(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             board = response.json()
@@ -506,7 +509,7 @@ class CatendaClient:
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions"
 
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             extensions = response.json()
@@ -547,7 +550,7 @@ class CatendaClient:
         params = {"include": "customFields,customFieldInstances"}
 
         try:
-            response = requests.get(url, headers=self.get_headers(), params=params)
+            response = requests.get(url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             board = response.json()
@@ -583,7 +586,7 @@ class CatendaClient:
         params = {"include": "customFields,customFieldInstances"}
 
         try:
-            response = requests.patch(url, headers=self.get_headers(), json=payload, params=params)
+            response = requests.patch(url, headers=self.get_headers(), json=payload, params=params, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             board = response.json()
@@ -832,7 +835,7 @@ class CatendaClient:
         url = f"{self.base_url}/v2/projects/{project_id}/custom-fields"
 
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             fields = response.json()
@@ -878,7 +881,7 @@ class CatendaClient:
             payload["description"] = description
 
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload)
+            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             field = response.json()
@@ -914,7 +917,7 @@ class CatendaClient:
         url = f"{self.base_url}/v2/projects/{project_id}/custom-fields/{custom_field_id}"
 
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             return response.json()
 
@@ -960,7 +963,7 @@ class CatendaClient:
             payload["archived"] = archived
 
         try:
-            response = requests.patch(url, headers=self.get_headers(), json=payload)
+            response = requests.patch(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             field = response.json()
@@ -999,7 +1002,7 @@ class CatendaClient:
         payload = {"enumerationItemsToAdd": items}
 
         try:
-            response = requests.patch(url, headers=self.get_headers(), json=payload)
+            response = requests.patch(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             field = response.json()
@@ -1037,7 +1040,7 @@ class CatendaClient:
         params = {"includeUnlinked": str(include_unlinked).lower()}
 
         try:
-            response = requests.get(url, headers=self.get_headers(), params=params)
+            response = requests.get(url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             statuses = response.json()
@@ -1100,7 +1103,7 @@ class CatendaClient:
         logger.debug(f"   Create status payload: {payload}")
 
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload)
+            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             status = response.json()
@@ -1151,7 +1154,7 @@ class CatendaClient:
             payload["type"] = status_type
 
         try:
-            response = requests.put(url, headers=self.get_headers(), json=payload)
+            response = requests.put(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             status = response.json()
@@ -1184,7 +1187,7 @@ class CatendaClient:
         payload = {"name": name}
 
         try:
-            response = requests.delete(url, headers=self.get_headers(), json=payload)
+            response = requests.delete(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             logger.info(f"✅ Slettet status: {name}")
@@ -1221,7 +1224,7 @@ class CatendaClient:
         params = {"includeUnlinked": str(include_unlinked).lower()}
 
         try:
-            response = requests.get(url, headers=self.get_headers(), params=params)
+            response = requests.get(url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             types = response.json()
@@ -1269,7 +1272,7 @@ class CatendaClient:
         }
 
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload)
+            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             topic_type = response.json()
@@ -1316,7 +1319,7 @@ class CatendaClient:
             payload["color"] = color
 
         try:
-            response = requests.put(url, headers=self.get_headers(), json=payload)
+            response = requests.put(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             topic_type = response.json()
@@ -1349,7 +1352,7 @@ class CatendaClient:
         payload = {"name": name}
 
         try:
-            response = requests.delete(url, headers=self.get_headers(), json=payload)
+            response = requests.delete(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             logger.info(f"✅ Slettet type: {name}")
@@ -1399,7 +1402,7 @@ class CatendaClient:
         url = f"{self.base_url}/v2/projects/{project_id}"
         
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             
             project_data = response.json()
@@ -1434,7 +1437,7 @@ class CatendaClient:
         url = f"{self.base_url}/v2/projects/{project_id}/members"
 
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             members = response.json()
@@ -1481,7 +1484,7 @@ class CatendaClient:
         url = f"{self.base_url}/v2/projects/{project_id}/libraries"
         
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             
             libraries = response.json()
@@ -1548,7 +1551,7 @@ class CatendaClient:
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}"
 
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             
             board_data = response.json()
@@ -1587,7 +1590,7 @@ class CatendaClient:
 
                 while True:
                     params = {"$top": str(page_size), "$skip": str(skip)}
-                    response = requests.get(url, headers=self.get_headers(), params=params)
+                    response = requests.get(url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT)
                     response.raise_for_status()
 
                     batch = response.json()
@@ -1609,7 +1612,7 @@ class CatendaClient:
                 if limit:
                     params["$top"] = str(limit)
 
-                response = requests.get(url, headers=self.get_headers(), params=params)
+                response = requests.get(url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT)
                 response.raise_for_status()
                 topics = response.json()
 
@@ -1673,7 +1676,7 @@ class CatendaClient:
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}"
         
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             
             topic = response.json()
@@ -1723,7 +1726,7 @@ class CatendaClient:
             payload["topic_status"] = topic_status
 
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload)
+            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             
             topic = response.json()
@@ -1901,7 +1904,7 @@ class CatendaClient:
         headers["Bimsync-Params"] = json.dumps(bimsync_params)
         
         try:
-            response = requests.post(url, headers=headers, data=file_data)
+            response = requests.post(url, headers=headers, data=file_data, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             
             result = response.json()
@@ -1973,7 +1976,7 @@ class CatendaClient:
             params["subFolders"] = "true"
 
         try:
-            response = requests.get(url, headers=self.get_headers(), params=params)
+            response = requests.get(url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             items = response.json()
@@ -2013,7 +2016,7 @@ class CatendaClient:
         url = f"{self.base_url}/v2/projects/{project_id}/libraries/{self.library_id}/items/{item_id}"
 
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             item = response.json()
             # Sjekk både top-level type og document.type
@@ -2062,7 +2065,8 @@ class CatendaClient:
             response = requests.post(
                 url,
                 headers=self.get_headers(),
-                json=payload
+                json=payload,
+                timeout=DEFAULT_TIMEOUT
             )
             response.raise_for_status()
 
@@ -2157,7 +2161,7 @@ class CatendaClient:
             payload["description"] = description
         
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload)
+            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             
             doc_ref = response.json()
@@ -2196,7 +2200,7 @@ class CatendaClient:
                f"/topics/{topic_id}/document_references")
         
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             
             doc_refs = response.json()
@@ -2284,7 +2288,7 @@ class CatendaClient:
                f"/topics/{topic_id}/comments")
         
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             
             comments = response.json()
@@ -2315,7 +2319,7 @@ class CatendaClient:
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}/viewpoints"
         
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             viewpoints = response.json()
             logger.info("✅ Fant {len(viewpoints)} viewpoint(s).")
@@ -2345,7 +2349,7 @@ class CatendaClient:
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}/viewpoints/{viewpoint_id}"
         
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             viewpoint = response.json()
             logger.info(f"✅ Detaljer hentet for viewpoint {viewpoint_id}.")
@@ -2434,7 +2438,7 @@ class CatendaClient:
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}/viewpoints/{viewpoint_id}/selection"
         
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             if response.status_code == 404:
                 return []
             response.raise_for_status()
@@ -2518,7 +2522,7 @@ class CatendaClient:
         }
         
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload)
+            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             
             products = response.json()
@@ -2574,7 +2578,7 @@ class CatendaClient:
             params["includeBimsyncProjectTopics"] = "true"
 
         try:
-            response = requests.get(url, headers=self.get_headers(), params=params)
+            response = requests.get(url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             related = response.json()
@@ -2619,7 +2623,7 @@ class CatendaClient:
         payload = [{"related_topic_guid": guid} for guid in related_topic_guids]
 
         try:
-            response = requests.put(url, headers=self.get_headers(), json=payload)
+            response = requests.put(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             logger.info("✅ Relasjoner opprettet!")
@@ -2659,7 +2663,7 @@ class CatendaClient:
                f"/topics/{topic_id}/related_topics/{related_topic_id}")
 
         try:
-            response = requests.delete(url, headers=self.get_headers())
+            response = requests.delete(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
 
             logger.info("✅ Relasjon slettet")
@@ -2705,7 +2709,7 @@ class CatendaClient:
             payload["name"] = name
         
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload)
+            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             
             webhook = response.json()
@@ -2737,7 +2741,7 @@ class CatendaClient:
         url = f"{self.base_url}/v2/projects/{project_id}/webhooks/user"
         
         try:
-            response = requests.get(url, headers=self.get_headers())
+            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             
             webhooks = response.json()
@@ -2769,7 +2773,7 @@ class CatendaClient:
         url = f"{self.base_url}/v2/projects/{project_id}/webhooks/user/{webhook_id}"
         
         try:
-            response = requests.delete(url, headers=self.get_headers())
+            response = requests.delete(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             
             if response.status_code == 204:
