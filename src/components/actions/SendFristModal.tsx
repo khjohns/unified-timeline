@@ -610,7 +610,7 @@ export function SendFristModal({
                 </ExpandableText>
               </p>
 
-              <div className="flex flex-col min-[380px]:flex-row gap-3 min-[380px]:gap-6">
+              <div className="flex flex-col min-[420px]:flex-row gap-3 min-[420px]:gap-6">
                 <FormField
                   label="Antall kalenderdager"
                   required
