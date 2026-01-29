@@ -208,7 +208,21 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
   }, [state.grunnlag.grunnlag_varslet_i_tide]);
 
   return (
-    <div className="min-h-screen bg-pkt-bg-subtle">
+    <div className="min-h-screen bg-pkt-bg-subtle relative">
+      {/* Background grid - only visible on xl+ screens outside main content */}
+      <div
+        className="fixed inset-0 top-[104px] pointer-events-none hidden xl:block"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, var(--color-pkt-brand-dark-blue-1000) 1px, transparent 1px),
+            linear-gradient(to bottom, var(--color-pkt-brand-dark-blue-1000) 1px, transparent 1px)
+          `,
+          backgroundSize: '48px 48px',
+          opacity: 0.025,
+          maskImage: 'linear-gradient(to right, black 0%, black calc(50% - 400px), transparent calc(50% - 384px), transparent calc(50% + 384px), black calc(50% + 400px), black 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, black 0%, black calc(50% - 400px), transparent calc(50% - 384px), transparent calc(50% + 384px), black calc(50% + 400px), black 100%)',
+        }}
+      />
       {/* Header */}
       <PageHeader
         title={state.sakstittel}

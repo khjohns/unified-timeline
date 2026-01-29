@@ -74,7 +74,7 @@ function KOESimulation() {
     { label: 'Saksnummer', value: 'KOE-2024-0847' },
     { label: 'Prosjekt', value: 'Nye Jordal Amfi' },
     { label: 'Beskrivelse', value: 'Endret fundamentering grunnet uforutsette grunnforhold ved hovedinngang...' },
-    { label: 'Hjemmel', value: '§ 25.2 - Byggherrens risiko' },
+    { label: 'Hjemmel', value: '§ 23.1 - Uforutsette grunnforhold' },
     { label: 'Vederlagskrav', value: 'kr 847 500,-' },
     { label: 'Fristforlengelse', value: '14 arbeidsdager' },
   ], []);
