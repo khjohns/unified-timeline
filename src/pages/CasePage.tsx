@@ -6,7 +6,7 @@
  * Shows a banner if the case is part of a forsering case or an endringsordre.
  */
 
-import { useState, useMemo, Suspense } from 'react';
+import { useState, useMemo, Suspense, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { STALE_TIME } from '../constants/queryConfig';
@@ -63,7 +63,9 @@ import {
   Pencil2Icon,
   RocketIcon,
   FileTextIcon,
+  QuestionMarkCircledIcon,
 } from '@radix-ui/react-icons';
+import { OnboardingGuide, useOnboarding, casePageSteps } from '../components/onboarding';
 import { PdfPreviewModal } from '../components/pdf';
 import {
   VerifyingState,
@@ -179,6 +181,19 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
   // PDF preview modal state (for testing - opened from header)
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
 
+  // Onboarding guide state
+  const onboarding = useOnboarding(casePageSteps.length);
+
+  // Auto-start onboarding for first-time users (after a short delay)
+  useEffect(() => {
+    if (!onboarding.hasCompletedBefore && !onboarding.isActive) {
+      const timer = setTimeout(() => {
+        onboarding.start();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [onboarding.hasCompletedBefore, onboarding.isActive, onboarding.start]);
+
   // Data is guaranteed to exist when using Suspense hooks
   const state = data.state;
 
@@ -224,13 +239,18 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
         }}
       />
       {/* Header */}
-      <PageHeader
-        title={state.sakstittel}
-        subtitle={`Sak #${sakId}`}
-        userRole={userRole}
-        onToggleRole={setUserRole}
-        menuActions={
+      <div data-onboarding="page-header">
+        <PageHeader
+          title={state.sakstittel}
+          subtitle={`Sak #${sakId}`}
+          userRole={userRole}
+          onToggleRole={setUserRole}
+          menuActions={
           <>
+            <DropdownMenuItem onClick={() => onboarding.start()}>
+              <QuestionMarkCircledIcon className="w-4 h-4 mr-2" />
+              Vis veiviser
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setPdfPreviewOpen(true)}>
               Forhåndsvis PDF
             </DropdownMenuItem>
@@ -244,7 +264,8 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
             </DropdownMenuItem>
           </>
         }
-      />
+        />
+      </div>
 
       {/* Mock Toolbar - only visible in BH mode */}
       {userRole === 'BH' && (
@@ -271,7 +292,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
         )}
 
         {/* Status Alert - kontekstuell veiledning basert på rolle og saksstatus */}
-        <section aria-label="Saksstatus">
+        <section aria-label="Saksstatus" data-onboarding="status-alert">
           <StatusAlert
             state={state}
             userRole={userRole}
@@ -332,7 +353,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
         )}
 
         {/* Status Dashboard with Contextual Actions */}
-        <section aria-labelledby="krav-respons-heading">
+        <section aria-labelledby="krav-respons-heading" data-onboarding="case-dashboard">
           <Card variant="outlined" padding="sm">
             <h2
               id="krav-respons-heading"
@@ -576,7 +597,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
         </section>
 
         {/* Metadata Section */}
-        <section aria-labelledby="metadata-heading">
+        <section aria-labelledby="metadata-heading" data-onboarding="metadata-section">
           <Card variant="outlined" padding="sm">
             <h2
               id="metadata-heading"
@@ -960,6 +981,16 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
         </div>
       )}
 
+      {/* Onboarding Guide */}
+      <OnboardingGuide
+        steps={casePageSteps}
+        isActive={onboarding.isActive}
+        currentStep={onboarding.currentStep}
+        onNext={onboarding.next}
+        onPrevious={onboarding.previous}
+        onSkip={onboarding.skip}
+        onComplete={onboarding.complete}
+      />
     </div>
   );
 }

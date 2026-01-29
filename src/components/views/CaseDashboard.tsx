@@ -177,17 +177,18 @@ export function CaseDashboard({
 
       <div className="space-y-4">
         {/* Grunnlag Card */}
-        <DashboardCard
-          title="Ansvarsgrunnlag"
-          headerBadge={getStatusBadge(state.grunnlag.status)}
-          action={grunnlagActions}
-          variant="default"
-          className="animate-fade-in-up"
-          collapsible
-          historyCount={grunnlagEntries.length}
-          isExpanded={grunnlagExpanded}
-          onExpandedChange={setGrunnlagExpanded}
-        >
+        <div data-onboarding="grunnlag-card">
+          <DashboardCard
+            title="Ansvarsgrunnlag"
+            headerBadge={getStatusBadge(state.grunnlag.status)}
+            action={grunnlagActions}
+            variant="default"
+            className="animate-fade-in-up"
+            collapsible
+            historyCount={grunnlagEntries.length}
+            isExpanded={grunnlagExpanded}
+            onExpandedChange={setGrunnlagExpanded}
+          >
           {/* Kategori som tekst med info-ikon for kontraktsregel */}
           {state.grunnlag.hovedkategori && (
             <div className="mb-2">
@@ -210,41 +211,43 @@ export function CaseDashboard({
             )}
           </InlineDataList>
           <SporHistory spor="grunnlag" entries={grunnlagEntries} events={events} sakState={state} externalOpen={grunnlagExpanded} />
-        </DashboardCard>
+          </DashboardCard>
+        </div>
 
         {/* Vederlag Card */}
-        <DashboardCard
-          title="Vederlag"
-          headerBadge={getStatusBadge(state.vederlag.status)}
-          action={
-            inlineVederlagRevision ? (
-              // Use inline revision - show "Revider" button that toggles inline form
-              <>
-                {inlineVederlagRevision.canRevise && !inlineReviseOpen && (
-                  <Button
-                    variant={inlineVederlagRevision.showPrimaryVariant ? 'primary' : 'secondary'}
-                    size="sm"
-                    onClick={() => setInlineReviseOpen(true)}
-                  >
-                    <Pencil1Icon className="w-4 h-4 mr-2" />
-                    Revider
-                  </Button>
-                )}
-                {/* Pass through other vederlagActions if any (like BH response buttons) */}
-                {vederlagActions}
-              </>
-            ) : (
-              vederlagActions
-            )
-          }
-          variant="default"
-          className="animate-fade-in-up"
-          style={{ animationDelay: '75ms' }}
-          collapsible
-          historyCount={vederlagEntries.length}
-          isExpanded={vederlagExpanded}
-          onExpandedChange={setVederlagExpanded}
-        >
+        <div data-onboarding="vederlag-card">
+          <DashboardCard
+            title="Vederlag"
+            headerBadge={getStatusBadge(state.vederlag.status)}
+            action={
+              inlineVederlagRevision ? (
+                // Use inline revision - show "Revider" button that toggles inline form
+                <>
+                  {inlineVederlagRevision.canRevise && !inlineReviseOpen && (
+                    <Button
+                      variant={inlineVederlagRevision.showPrimaryVariant ? 'primary' : 'secondary'}
+                      size="sm"
+                      onClick={() => setInlineReviseOpen(true)}
+                    >
+                      <Pencil1Icon className="w-4 h-4 mr-2" />
+                      Revider
+                    </Button>
+                  )}
+                  {/* Pass through other vederlagActions if any (like BH response buttons) */}
+                  {vederlagActions}
+                </>
+              ) : (
+                vederlagActions
+              )
+            }
+            variant="default"
+            className="animate-fade-in-up"
+            style={{ animationDelay: '75ms' }}
+            collapsible
+            historyCount={vederlagEntries.length}
+            isExpanded={vederlagExpanded}
+            onExpandedChange={setVederlagExpanded}
+          >
           <InlineDataList stackOnMobile>
             {state.vederlag.metode && (
               <InlineDataListItem label="Metode">
@@ -285,41 +288,43 @@ export function CaseDashboard({
           )}
 
           <SporHistory spor="vederlag" entries={vederlagEntries} events={events} sakState={state} externalOpen={vederlagExpanded} />
-        </DashboardCard>
+          </DashboardCard>
+        </div>
 
         {/* Frist Card */}
-        <DashboardCard
-          title="Fristforlengelse"
-          headerBadge={getStatusBadge(state.frist.status)}
-          action={
-            inlineFristRevision ? (
-              // Use inline revision - show "Revider" button that toggles inline form
-              <>
-                {inlineFristRevision.canRevise && !inlineFristReviseOpen && (
-                  <Button
-                    variant={inlineFristRevision.showPrimaryVariant ? 'primary' : 'secondary'}
-                    size="sm"
-                    onClick={() => setInlineFristReviseOpen(true)}
-                  >
-                    <Pencil1Icon className="w-4 h-4 mr-2" />
-                    Revider
-                  </Button>
-                )}
-                {/* Pass through other fristActions if any (like BH response buttons) */}
-                {fristActions}
-              </>
-            ) : (
-              fristActions
-            )
-          }
-          variant="default"
-          className="animate-fade-in-up"
-          style={{ animationDelay: '150ms' }}
-          collapsible
-          historyCount={fristEntries.length}
-          isExpanded={fristExpanded}
-          onExpandedChange={setFristExpanded}
-        >
+        <div data-onboarding="frist-card">
+          <DashboardCard
+            title="Fristforlengelse"
+            headerBadge={getStatusBadge(state.frist.status)}
+            action={
+              inlineFristRevision ? (
+                // Use inline revision - show "Revider" button that toggles inline form
+                <>
+                  {inlineFristRevision.canRevise && !inlineFristReviseOpen && (
+                    <Button
+                      variant={inlineFristRevision.showPrimaryVariant ? 'primary' : 'secondary'}
+                      size="sm"
+                      onClick={() => setInlineFristReviseOpen(true)}
+                    >
+                      <Pencil1Icon className="w-4 h-4 mr-2" />
+                      Revider
+                    </Button>
+                  )}
+                  {/* Pass through other fristActions if any (like BH response buttons) */}
+                  {fristActions}
+                </>
+              ) : (
+                fristActions
+              )
+            }
+            variant="default"
+            className="animate-fade-in-up"
+            style={{ animationDelay: '150ms' }}
+            collapsible
+            historyCount={fristEntries.length}
+            isExpanded={fristExpanded}
+            onExpandedChange={setFristExpanded}
+          >
           <InlineDataList stackOnMobile>
             {state.frist.frist_varsel?.dato_sendt && (
               <InlineDataListItem label="Varslet">
@@ -367,7 +372,8 @@ export function CaseDashboard({
           )}
 
           <SporHistory spor="frist" entries={fristEntries} events={events} sakState={state} externalOpen={fristExpanded} />
-        </DashboardCard>
+          </DashboardCard>
+        </div>
       </div>
     </section>
   );
