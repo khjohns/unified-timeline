@@ -1683,9 +1683,9 @@ export function RespondFristModal({
                     </div>
                   )}
 
-                  {/* Varslingsvurdering (§33.4 / §33.6.1 / §33.6.2) */}
+                  {/* Varslingsvurdering §33.4 */}
                   <div>
-                    <h5 className="font-medium text-sm mb-1">Varsling (§33.4)</h5>
+                    <h5 className="font-medium text-sm mb-1">Foreløpig varsel (§33.4)</h5>
                     <p className="text-sm">
                       {sendForesporsel ? (
                         'Byggherren etterspør spesifisert krav. Avventer respons fra entreprenøren.'
@@ -1693,17 +1693,33 @@ export function RespondFristModal({
                         'Svar på forespørsel kom ikke uten ugrunnet opphold (§33.6.2/§5). Kravet tapes.'
                       ) : erPrekludert ? (
                         varselType === 'varsel'
-                          ? 'Foreløpig varsel ble ikke sendt uten ugrunnet opphold. Kravet tapes (§33.4).'
-                          : 'Spesifisert krav ble ikke sendt uten ugrunnet opphold. Kravet tapes (§33.4).'
-                      ) : erRedusert_33_6_1 ? (
-                        'Spesifisert krav ble ikke sendt uten ugrunnet opphold (§33.6.1). Fristforlengelsen reduseres til det byggherren måtte forstå.'
-                      ) : erSvarPaForesporsel ? (
-                        'Svaret på forespørselen kom i tide. Byggherren kan ikke påberope §33.6.1.'
+                          ? 'Foreløpig varsel ble ikke sendt uten ugrunnet opphold. Kravet tapes.'
+                          : 'Foreløpig varsel ble ikke sendt uten ugrunnet opphold. Kravet tapes.'
                       ) : (
-                        'Kravet ble varslet uten ugrunnet opphold.'
+                        'Varslet uten ugrunnet opphold.'
                       )}
                     </p>
                   </div>
+
+                  {/* Varslingsvurdering §33.6.1 - kun hvis spesifisert krav er evaluert */}
+                  {(varselType === 'spesifisert' || formValues.spesifisert_krav_ok !== undefined) && !sendForesporsel && !erForesporselSvarForSent && (
+                    <div>
+                      <h5 className="font-medium text-sm mb-1">
+                        Spesifisert krav (§33.6.1){erPrekludert && formValues.spesifisert_krav_ok === false && ' – subsidiært'}
+                      </h5>
+                      <p className="text-sm">
+                        {erRedusert_33_6_1 || (erPrekludert && formValues.spesifisert_krav_ok === false) ? (
+                          erPrekludert
+                            ? 'Subsidiært: Spesifisert krav ble ikke sendt uten ugrunnet opphold. Fristforlengelsen reduseres til det byggherren måtte forstå.'
+                            : 'Spesifisert krav ble ikke sendt uten ugrunnet opphold. Fristforlengelsen reduseres til det byggherren måtte forstå.'
+                        ) : erSvarPaForesporsel ? (
+                          'Svaret på forespørselen kom i tide. Byggherren kan ikke påberope §33.6.1.'
+                        ) : (
+                          'Spesifisert krav sendt uten ugrunnet opphold.'
+                        )}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Årsakssammenheng (§33.1) */}
                   <div>
@@ -1776,7 +1792,13 @@ export function RespondFristModal({
                     <div className="mt-2 text-pkt-text-body-subtle">
                       <span>↳ Subsidiært: </span>
                       <span className="font-mono">{godkjentDager} dager</span>
-                      <span> dersom kravet hadde vært varslet i tide</span>
+                      <span>
+                        {erPrekludert && !harHindring
+                          ? ' dersom kravet var varslet i tide og vilkårene i §33.1 var oppfylt'
+                          : erPrekludert
+                            ? ' dersom kravet hadde vært varslet i tide'
+                            : ' dersom vilkårene i §33.1 var oppfylt'}
+                      </span>
                     </div>
                   )}
                 </div>
