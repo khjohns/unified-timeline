@@ -1516,8 +1516,10 @@ export function RespondFristModal({
 
               {/* Vilkår for fristforlengelse (§33.1) */}
               <p className="text-sm text-pkt-text-body-subtle mb-3">
-                <ExpandableText preview="Totalentreprenøren har rett til fristforlengelse dersom fremdriften hindres av forhold som skyldes byggherren.">
-                  Totalentreprenøren har rett til fristforlengelse dersom fremdriften hindres av forhold som skyldes byggherren eller forhold byggherren bærer risikoen for etter §24 (§33.1). Dette omfatter endringer, manglende medvirkning, eller andre forhold på byggherrens side. Fristforlengelsen skal dekke den forsinkelsen som faktisk oppstår på grunn av hindringen.
+                <ExpandableText preview="Totalentreprenøren har krav på fristforlengelse når fremdriften hindres av byggherrens forhold.">
+                  Dersom fremdriften hindres på grunn av endringer, forsinkelse eller svikt i byggherrens
+                  medvirkning, eller andre forhold byggherren bærer risikoen for, har totalentreprenøren
+                  krav på fristforlengelse (§33.1).
                 </ExpandableText>
               </p>
 

@@ -61,6 +61,9 @@ const fristSchema = z.object({
   frist_varsel_dato: z.string().optional(),
   frist_varsel_metoder: z.array(z.string()).optional(),
 
+  // For spesifisert krav: har bruker tidligere varslet (§33.4)?
+  har_tidligere_varslet: z.boolean().optional(),
+
   // VarselInfo for spesifisert krav (§33.6)
   spesifisert_varsel_sendes_na: z.boolean().optional(),
   spesifisert_varsel_dato: z.string().optional(),
@@ -134,6 +137,7 @@ export function SendFristModal({
     defaultValues: {
       frist_varsel_sendes_na: false,
       frist_varsel_metoder: [],
+      har_tidligere_varslet: false,
       spesifisert_varsel_sendes_na: false,
       spesifisert_varsel_metoder: [],
       attachments: [],
@@ -197,8 +201,7 @@ export function SendFristModal({
 
   // Watch for conditional rendering
   const selectedVarselType = watch('varsel_type');
-  const fristVarselSendesNa = watch('frist_varsel_sendes_na');
-  const spesifisertVarselSendesNa = watch('spesifisert_varsel_sendes_na');
+  const harTidligereVarslet = watch('har_tidligere_varslet');
 
   // Calculate days since the issue was discovered (for §33.4 preclusion warning)
   // §33.4: TE skal varsle "uten ugrunnet opphold" etter at forholdet oppstår
@@ -230,22 +233,6 @@ export function SendFristModal({
     pendingToastId.current = toast.pending('Sender fristkrav...', 'Vennligst vent mens kravet behandles.');
 
     // Build VarselInfo structures
-    // For varsel om fristforlengelse: use today's date and 'digital_oversendelse' method if "sendes nå" is checked
-    const fristVarselDato = data.frist_varsel_sendes_na
-      ? new Date().toISOString().split('T')[0]
-      : data.frist_varsel_dato;
-
-    const fristVarselMetode = data.frist_varsel_sendes_na
-      ? ['digital_oversendelse']
-      : (data.frist_varsel_metoder || []);
-
-    const fristVarsel = fristVarselDato
-      ? {
-          dato_sendt: fristVarselDato,
-          metode: fristVarselMetode,
-        }
-      : undefined;
-
     // For spesifisert varsel: use today's date and 'digital_oversendelse' method if "sendes nå" is checked
     const spesifisertDato = data.spesifisert_varsel_sendes_na
       ? new Date().toISOString().split('T')[0]
@@ -261,6 +248,34 @@ export function SendFristModal({
           metode: spesifisertMetode,
         }
       : undefined;
+
+    // For varsel om fristforlengelse (§33.4):
+    // - If varsel_type is 'varsel': use frist_varsel_* fields
+    // - If varsel_type is 'spesifisert' AND har_tidligere_varslet: use frist_varsel_* fields
+    // - If varsel_type is 'spesifisert' AND NOT har_tidligere_varslet: use spesifisert_varsel as frist_varsel
+    //   (because the specified claim also counts as the §33.4 notice)
+    let fristVarsel: { dato_sendt: string; metode: string[] } | undefined;
+
+    if (data.varsel_type === 'spesifisert' && !data.har_tidligere_varslet) {
+      // Specified claim without prior notice: use spesifisert date as frist_varsel
+      fristVarsel = spesifisertVarsel;
+    } else {
+      // Neutral notice OR specified with prior notice: use frist_varsel_* fields
+      const fristVarselDato = data.frist_varsel_sendes_na
+        ? new Date().toISOString().split('T')[0]
+        : data.frist_varsel_dato;
+
+      const fristVarselMetode = data.frist_varsel_sendes_na
+        ? ['digital_oversendelse']
+        : (data.frist_varsel_metoder || []);
+
+      fristVarsel = fristVarselDato
+        ? {
+            dato_sendt: fristVarselDato,
+            metode: fristVarselMetode,
+          }
+        : undefined;
+    }
 
     mutation.mutate({
       eventType: 'frist_krav_sendt',
@@ -356,25 +371,7 @@ export function SendFristModal({
                           </span>
                         </div>
                       )}
-                      {/* Kontraktsregler for valgt type */}
-                      {field.value === 'varsel' && (
-                        <p className="text-sm text-pkt-text-body-subtle mb-3">
-                          <ExpandableText preview="Krav om fristforlengelse må varsles «uten ugrunnet opphold».">
-                            Oppstår forhold som gir rett til fristforlengelse etter §33.1, §33.2 eller §33.3,
-                            må parten varsle krav om fristforlengelse uten ugrunnet opphold (§33.4).
-                            Varsles det ikke i tide, tapes kravet på fristforlengelse.
-                          </ExpandableText>
-                        </p>
-                      )}
-                      {field.value === 'spesifisert' && (
-                        <p className="text-sm text-pkt-text-body-subtle mb-3">
-                          <ExpandableText preview="Antall dager må angis «uten ugrunnet opphold» når beregningsgrunnlag foreligger.">
-                            Når parten har grunnlag for å beregne omfanget av fristforlengelse, må han angi og
-                            begrunne antall dager uten ugrunnet opphold (§33.6.1). Fremsettes ikke kravet i tide,
-                            har parten bare krav på slik fristforlengelse som motparten måtte forstå at han hadde krav på.
-                          </ExpandableText>
-                        </p>
-                      )}
+                      {/* Kontraktsregel for §33.6.2 */}
                       {field.value === 'begrunnelse_utsatt' && (
                         <p className="text-sm text-pkt-text-body-subtle mb-3">
                           <ExpandableText preview="Byggherren kan etterspørre spesifisert krav.">
@@ -396,9 +393,16 @@ export function SendFristModal({
         {selectedVarselType === 'varsel' && (
           <SectionContainer
             title="Varsel om fristforlengelse (§33.4)"
-            description="Dokumenter når og hvordan varselet ble sendt"
           >
             <div className="space-y-4">
+              <p className="text-sm text-pkt-text-body-subtle">
+                <ExpandableText preview="Krav om fristforlengelse må varsles «uten ugrunnet opphold».">
+                  Oppstår forhold som gir rett til fristforlengelse etter §33.1, §33.2 eller §33.3,
+                  må parten varsle krav om fristforlengelse uten ugrunnet opphold (§33.4).
+                  Varsles det ikke i tide, tapes kravet på fristforlengelse.
+                </ExpandableText>
+              </p>
+
               {/* §33.4 Preklusjonsvarsel */}
               {erNoytraltVarselSent && (
                 <Alert
@@ -421,9 +425,9 @@ export function SendFristModal({
                     control={control}
                     render={({ field: datoField }) => (
                       <VarselSeksjon
-                        label="Når ble byggherren varslet?"
-                        sendesNa={sendesNaField.value ?? false}
-                        onSendesNaChange={sendesNaField.onChange}
+                        checkboxLabel="Varselet ble sendt tidligere"
+                        harTidligere={!sendesNaField.value}
+                        onHarTidligereChange={(v) => sendesNaField.onChange(!v)}
                         datoSendt={datoField.value}
                         onDatoSendtChange={datoField.onChange}
                         datoError={errors.frist_varsel_dato?.message}
@@ -439,48 +443,140 @@ export function SendFristModal({
           </SectionContainer>
         )}
 
+        {/* Varsel om fristforlengelse (§33.4) - kun for spesifisert krav */}
+        {selectedVarselType === 'spesifisert' && (
+          <SectionContainer title="Varsel om fristforlengelse (§33.4)">
+            <div className="space-y-4">
+              <p className="text-sm text-pkt-text-body-subtle">
+                <ExpandableText preview="Krav om fristforlengelse må varsles «uten ugrunnet opphold».">
+                  Oppstår forhold som gir rett til fristforlengelse etter §33.1, §33.2 eller §33.3,
+                  må parten varsle krav om fristforlengelse uten ugrunnet opphold (§33.4).
+                  Varsles det ikke i tide, tapes kravet på fristforlengelse.
+                </ExpandableText>
+              </p>
+
+              <Controller
+                name="har_tidligere_varslet"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="har_tidligere_varslet"
+                    label="Jeg har tidligere varslet om dette kravet"
+                    checked={field.value ?? false}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+
+              {harTidligereVarslet ? (
+                <>
+                  <FormField
+                    label="Dato varsel ble sendt"
+                    helpText="Skriftlig varsel, e-post til avtalt adresse, eller innført i referat (§5)."
+                    error={errors.frist_varsel_dato?.message}
+                  >
+                    <Controller
+                      name="frist_varsel_dato"
+                      control={control}
+                      render={({ field }) => (
+                        <DatePicker
+                          id="frist_varsel_dato"
+                          value={field.value}
+                          onChange={field.onChange}
+                          error={!!errors.frist_varsel_dato}
+                        />
+                      )}
+                    />
+                  </FormField>
+
+                  <FormField
+                    label="Varselmetode"
+                    helpText="Kun skriftlige varsler er gyldige iht. §5."
+                  >
+                    <div className="space-y-2">
+                      <Checkbox
+                        id="frist_varsel-epost"
+                        label="E-post"
+                        value="epost"
+                        {...register('frist_varsel_metoder')}
+                      />
+                      <Checkbox
+                        id="frist_varsel-brev"
+                        label="Brev"
+                        value="brev"
+                        {...register('frist_varsel_metoder')}
+                      />
+                      <Checkbox
+                        id="frist_varsel-byggemoete"
+                        label="Byggemøte (innført i referat)"
+                        value="byggemoete"
+                        {...register('frist_varsel_metoder')}
+                      />
+                    </div>
+                  </FormField>
+                </>
+              ) : (
+                <p className="text-sm text-pkt-text-body-subtle">
+                  Sendes i dag sammen med dette skjemaet.
+                </p>
+              )}
+            </div>
+          </SectionContainer>
+        )}
+
         {/* Varseldetaljer for krav om fristforlengelse */}
         {selectedVarselType === 'spesifisert' && (
           <SectionContainer
             title="Krav om fristforlengelse (§33.6.1)"
-            description="Dokumenter når og hvordan kravet ble sendt"
           >
-            {/* §33.4/§33.6.1 Preklusjonsvarsel når spesifisert krav sendes */}
-            {erNoytraltVarselSent && (
-              <Alert
-                variant={erNoytraltVarselKritisk ? 'danger' : 'warning'}
-                title={erNoytraltVarselKritisk ? 'Preklusjonsrisiko (§33.4)' : 'Sen innsending'}
-                className="mb-4"
-              >
-                Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden forholdet oppstod.
-                {erNoytraltVarselKritisk
-                  ? ' Hvis du ikke allerede har varslet i tide (§33.4), risikerer du at kravet tapes. Har du varslet tidligere, gjelder §33.6.1 (reduksjon til det motparten «måtte forstå»).'
-                  : ' Husk at varslingskravene i §33.4 og §33.6.1 gjelder.'}
-              </Alert>
-            )}
-            <Controller
-              name="spesifisert_varsel_sendes_na"
-              control={control}
-              render={({ field: sendesNaField }) => (
-                <Controller
-                  name="spesifisert_varsel_dato"
-                  control={control}
-                  render={({ field: datoField }) => (
-                    <VarselSeksjon
-                      label="Når ble kravet fremsatt?"
-                      sendesNa={sendesNaField.value ?? false}
-                      onSendesNaChange={sendesNaField.onChange}
-                      datoSendt={datoField.value}
-                      onDatoSendtChange={datoField.onChange}
-                      datoError={errors.spesifisert_varsel_dato?.message}
-                      registerMetoder={register('spesifisert_varsel_metoder')}
-                      idPrefix="spesifisert_varsel"
-                      testId="spesifisert-varsel-valg"
-                    />
-                  )}
-                />
+            <div className="space-y-4">
+              <p className="text-sm text-pkt-text-body-subtle">
+                <ExpandableText preview="Antall dager må angis «uten ugrunnet opphold» når beregningsgrunnlag foreligger.">
+                  Når parten har grunnlag for å beregne omfanget av fristforlengelse, må han angi og
+                  begrunne antall dager uten ugrunnet opphold (§33.6.1). Fremsettes ikke kravet i tide,
+                  har parten bare krav på slik fristforlengelse som motparten måtte forstå at han hadde krav på.
+                </ExpandableText>
+              </p>
+
+              {/* §33.4/§33.6.1 Preklusjonsvarsel når spesifisert krav sendes */}
+              {erNoytraltVarselSent && !harTidligereVarslet && (
+                <Alert
+                  variant={erNoytraltVarselKritisk ? 'danger' : 'warning'}
+                  title={erNoytraltVarselKritisk ? 'Preklusjonsrisiko (§33.4)' : 'Sen innsending'}
+                >
+                  Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden forholdet oppstod.
+                  {erNoytraltVarselKritisk
+                    ? ' Hvis kravet ikke er varslet i tide (§33.4), risikerer du at det tapes.'
+                    : ' Husk at varslingskravene i §33.4 og §33.6.1 gjelder.'}
+                </Alert>
               )}
-            />
+
+              {/* Når ble kravet fremsatt */}
+              <Controller
+                name="spesifisert_varsel_sendes_na"
+                control={control}
+                render={({ field: sendesNaField }) => (
+                  <Controller
+                    name="spesifisert_varsel_dato"
+                    control={control}
+                    render={({ field: datoField }) => (
+                      <VarselSeksjon
+                        checkboxLabel="Kravet ble fremsatt tidligere"
+                        harTidligere={!sendesNaField.value}
+                        onHarTidligereChange={(v) => sendesNaField.onChange(!v)}
+                        datoSendt={datoField.value}
+                        onDatoSendtChange={datoField.onChange}
+                        datoError={errors.spesifisert_varsel_dato?.message}
+                        registerMetoder={register('spesifisert_varsel_metoder')}
+                        idPrefix="spesifisert_varsel"
+                        testId="spesifisert-varsel-valg"
+                        datoLabel="Dato kravet ble fremsatt"
+                      />
+                    )}
+                  />
+                )}
+              />
+            </div>
           </SectionContainer>
         )}
 
@@ -502,53 +598,54 @@ export function SendFristModal({
         {selectedVarselType === 'spesifisert' && (
           <SectionContainer
             title="Beregning av fristforlengelse"
-            description="Angi omfanget av kravet basert på virkningen på fremdriften (§33.5)"
           >
             <div className="space-y-4">
               <p className="text-sm text-pkt-text-body-subtle mb-3">
-                <ExpandableText preview="Fristforlengelsen skal svare til den virkning hindringen har hatt.">
+                <ExpandableText preview="Fristforlengelsen skal svare til den virkning hindringen har hatt for fremdriften.">
                   Fristforlengelsen skal svare til den virkning hindringen har hatt for fremdriften (§33.5).
                   Ved beregningen skal det tas hensyn til nødvendig avbrudd og oppstart, årstidsforskyvning,
-                  den samlede virkning av tidligere fristforlengelser, og om entreprenøren har oppfylt sin tapsbegrensningsplikt.
+                  den samlede virkning av tidligere fristforlengelser, og om entreprenøren har oppfylt sin
+                  tapsbegrensningsplikt. Forlengelsen skal ikke overstige det som er nødvendig for å kompensere
+                  den reelle forsinkelsen.
                 </ExpandableText>
               </p>
 
-              <FormField
-                label="Antall kalenderdager"
-                required
-                error={errors.antall_dager?.message}
-                helpText="Beregningen skal reflektere den faktiske virkningen på fremdriften (§33.5). Ta hensyn til nødvendig avbrudd, årstidsforskyvning, og samlet virkning av tidligere varslede forhold. Husk tapsbegrensningsplikten."
-              >
-                <Input
-                  id="antall_dager"
-                  type="number"
-                  {...register('antall_dager', {
-                    setValueAs: (v) => (v === '' ? undefined : Number(v)),
-                  })}
-                  width="xs"
-                  min={0}
-                  error={!!errors.antall_dager}
-                />
-              </FormField>
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                <FormField
+                  label="Antall kalenderdager"
+                  required
+                  error={errors.antall_dager?.message}
+                >
+                  <Input
+                    id="antall_dager"
+                    type="number"
+                    {...register('antall_dager', {
+                      setValueAs: (v) => (v === '' ? undefined : Number(v)),
+                    })}
+                    width="xs"
+                    min={0}
+                    error={!!errors.antall_dager}
+                  />
+                </FormField>
 
-              <FormField
-                label="Beregnet ny sluttdato"
-                error={errors.ny_sluttdato?.message}
-                helpText="Ny sluttdato etter fristforlengelsen"
-              >
-                <Controller
-                  name="ny_sluttdato"
-                  control={control}
-                  render={({ field }) => (
-                    <DatePicker
-                      id="ny_sluttdato"
-                      value={field.value}
-                      onChange={field.onChange}
-                      error={!!errors.ny_sluttdato}
-                    />
-                  )}
-                />
-              </FormField>
+                <FormField
+                  label="Ny sluttdato"
+                  error={errors.ny_sluttdato?.message}
+                >
+                  <Controller
+                    name="ny_sluttdato"
+                    control={control}
+                    render={({ field }) => (
+                      <DatePicker
+                        id="ny_sluttdato"
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={!!errors.ny_sluttdato}
+                      />
+                    )}
+                  />
+                </FormField>
+              </div>
             </div>
           </SectionContainer>
         )}
@@ -556,22 +653,22 @@ export function SendFristModal({
         {/* Årsakssammenheng */}
         <SectionContainer
           title="Årsakssammenheng"
-          description="Beskriv hvordan forholdet har forårsaket forsinkelse (§33.5)"
         >
           <div className="space-y-4">
             {/* Vilkår: §33.3 for force majeure, §33.1 for andre forhold */}
             {grunnlagEvent?.hovedkategori && erForceMajeure(grunnlagEvent.hovedkategori) ? (
               <p className="text-sm text-pkt-text-body-subtle mb-3">
-                <ExpandableText preview="Totalentreprenøren har rett til fristforlengelse ved force majeure.">
-                  Blir fremdriften hindret på grunn av force majeure (ekstraordinære og upåregnelige
-                  forhold utenfor partens kontroll), har totalentreprenøren rett til fristforlengelse (§33.3).
+                <ExpandableText preview="Totalentreprenøren har krav på fristforlengelse ved force majeure.">
+                  Dersom fremdriften hindres av ekstraordinære og upåregnelige forhold utenfor partens
+                  kontroll (force majeure), har totalentreprenøren krav på fristforlengelse (§33.3).
                 </ExpandableText>
               </p>
             ) : (
               <p className="text-sm text-pkt-text-body-subtle mb-3">
-                <ExpandableText preview="Totalentreprenøren har rett til fristforlengelse dersom fremdriften hindres.">
-                  Totalentreprenøren har rett til fristforlengelse dersom fremdriften hindres av forhold
-                  som skyldes byggherren eller forhold byggherren bærer risikoen for etter §24 (§33.1).
+                <ExpandableText preview="Totalentreprenøren har krav på fristforlengelse når fremdriften hindres av byggherrens forhold.">
+                  Dersom fremdriften hindres på grunn av endringer, forsinkelse eller svikt i byggherrens
+                  medvirkning, eller andre forhold byggherren bærer risikoen for, har totalentreprenøren
+                  krav på fristforlengelse (§33.1).
                 </ExpandableText>
               </p>
             )}

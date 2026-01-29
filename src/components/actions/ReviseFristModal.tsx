@@ -372,9 +372,10 @@ export function ReviseFristModal({
             : 'Begrunn kravet med henvisning til årsakssammenheng'}
         >
           <p className="text-sm text-pkt-text-body-subtle mb-3">
-            <ExpandableText preview="Totalentreprenøren har rett til fristforlengelse dersom fremdriften hindres.">
-              Totalentreprenøren har rett til fristforlengelse dersom fremdriften hindres av forhold
-              som skyldes byggherren eller forhold byggherren bærer risikoen for etter §24 (§33.1).
+            <ExpandableText preview="Totalentreprenøren har krav på fristforlengelse når fremdriften hindres av byggherrens forhold.">
+              Dersom fremdriften hindres på grunn av endringer, forsinkelse eller svikt i byggherrens
+              medvirkning, eller andre forhold byggherren bærer risikoen for, har totalentreprenøren
+              krav på fristforlengelse (§33.1).
             </ExpandableText>
           </p>
 

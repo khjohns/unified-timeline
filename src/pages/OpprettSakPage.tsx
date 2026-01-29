@@ -518,9 +518,9 @@ export function OpprettSakPage() {
                 </FormField>
 
                 <VarselSeksjon
-                  label="Når ble byggherren varslet?"
-                  sendesNa={varselSendesNa ?? true}
-                  onSendesNaChange={(value) => setValue('varsel_sendes_na', value)}
+                  checkboxLabel="Varselet ble sendt tidligere"
+                  harTidligere={!(varselSendesNa ?? true)}
+                  onHarTidligereChange={(value) => setValue('varsel_sendes_na', !value)}
                   datoSendt={watch('dato_varsel_sendt')}
                   onDatoSendtChange={(value) => setValue('dato_varsel_sendt', value)}
                   datoError={errors.dato_varsel_sendt?.message}

@@ -615,9 +615,9 @@ export function SendGrunnlagModal({
                     control={control}
                     render={({ field: datoField }) => (
                       <VarselSeksjon
-                        label="Når ble byggherren varslet?"
-                        sendesNa={sendesNaField.value ?? true}
-                        onSendesNaChange={sendesNaField.onChange}
+                        checkboxLabel="Varselet ble sendt tidligere"
+                        harTidligere={!(sendesNaField.value ?? true)}
+                        onHarTidligereChange={(v) => sendesNaField.onChange(!v)}
                         datoSendt={datoField.value}
                         onDatoSendtChange={datoField.onChange}
                         registerMetoder={register('varsel_metode')}
