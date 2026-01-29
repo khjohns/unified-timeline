@@ -594,6 +594,45 @@ export function SendFristModal({
           </SectionContainer>
         )}
 
+        {/* Årsakssammenheng */}
+        <SectionContainer
+          title="Årsakssammenheng"
+        >
+          <div className="space-y-4">
+            {/* Vilkår: §33.3 for force majeure, §33.1 for andre forhold */}
+            {grunnlagEvent?.hovedkategori && erForceMajeure(grunnlagEvent.hovedkategori) ? (
+              <p className="text-sm text-pkt-text-body-subtle mb-3">
+                <ExpandableText preview="Totalentreprenøren har krav på fristforlengelse ved force majeure.">
+                  Dersom fremdriften hindres av ekstraordinære og upåregnelige forhold utenfor partens
+                  kontroll (force majeure), har totalentreprenøren krav på fristforlengelse (§33.3).
+                </ExpandableText>
+              </p>
+            ) : (
+              <p className="text-sm text-pkt-text-body-subtle mb-3">
+                <ExpandableText preview="Totalentreprenøren har krav på fristforlengelse når fremdriften hindres av byggherrens forhold.">
+                  Dersom fremdriften hindres på grunn av endringer, forsinkelse eller svikt i byggherrens
+                  medvirkning, eller andre forhold byggherren bærer risikoen for, har totalentreprenøren
+                  krav på fristforlengelse (§33.1).
+                </ExpandableText>
+              </p>
+            )}
+
+            <FormField
+              required
+              error={errors.begrunnelse?.message}
+            >
+              <Textarea
+                id="begrunnelse"
+                {...register('begrunnelse')}
+                rows={5}
+                fullWidth
+                error={!!errors.begrunnelse}
+                data-testid="frist-begrunnelse"
+              />
+            </FormField>
+          </div>
+        </SectionContainer>
+
         {/* Beregning av fristforlengelse (for spesifisert/FM) */}
         {selectedVarselType === 'spesifisert' && (
           <SectionContainer
@@ -649,45 +688,6 @@ export function SendFristModal({
             </div>
           </SectionContainer>
         )}
-
-        {/* Årsakssammenheng */}
-        <SectionContainer
-          title="Årsakssammenheng"
-        >
-          <div className="space-y-4">
-            {/* Vilkår: §33.3 for force majeure, §33.1 for andre forhold */}
-            {grunnlagEvent?.hovedkategori && erForceMajeure(grunnlagEvent.hovedkategori) ? (
-              <p className="text-sm text-pkt-text-body-subtle mb-3">
-                <ExpandableText preview="Totalentreprenøren har krav på fristforlengelse ved force majeure.">
-                  Dersom fremdriften hindres av ekstraordinære og upåregnelige forhold utenfor partens
-                  kontroll (force majeure), har totalentreprenøren krav på fristforlengelse (§33.3).
-                </ExpandableText>
-              </p>
-            ) : (
-              <p className="text-sm text-pkt-text-body-subtle mb-3">
-                <ExpandableText preview="Totalentreprenøren har krav på fristforlengelse når fremdriften hindres av byggherrens forhold.">
-                  Dersom fremdriften hindres på grunn av endringer, forsinkelse eller svikt i byggherrens
-                  medvirkning, eller andre forhold byggherren bærer risikoen for, har totalentreprenøren
-                  krav på fristforlengelse (§33.1).
-                </ExpandableText>
-              </p>
-            )}
-
-            <FormField
-              required
-              error={errors.begrunnelse?.message}
-            >
-              <Textarea
-                id="begrunnelse"
-                {...register('begrunnelse')}
-                rows={5}
-                fullWidth
-                error={!!errors.begrunnelse}
-                data-testid="frist-begrunnelse"
-              />
-            </FormField>
-          </div>
-        </SectionContainer>
 
         {/* Vedlegg */}
         <SectionContainer
