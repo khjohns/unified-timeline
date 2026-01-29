@@ -7,9 +7,12 @@ Reduces duplication across test_full_flow.py, catenda_menu.py, and similar scrip
 
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from dotenv import load_dotenv
+
+if TYPE_CHECKING:
+    from integrations.catenda.client import CatendaClient
 
 
 def setup_script_path() -> Path:

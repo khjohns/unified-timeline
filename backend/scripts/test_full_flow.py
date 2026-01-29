@@ -1970,7 +1970,7 @@ class ForseringFlowTester(BaseTester):
 
             # Send grunnlag
             _, version = self._get_state_and_version(sak_id, magic_token)
-            success, version, _ = self._send_event(
+            success, version, grunnlag_event_id = self._send_event(
                 sak_id=sak_id,
                 topic_guid=topic_guid,
                 magic_token=magic_token,
