@@ -300,7 +300,7 @@ export function SendFristModal({
       title="Krev fristforlengelse"
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
         {/* BH forespørsel warning (§33.6.2) - CRITICAL */}
         {harMottattForesporsel && (
           <Alert variant="danger" title="Svar på byggherrens forespørsel (§33.6.2)">
@@ -610,7 +610,7 @@ export function SendFristModal({
                 </ExpandableText>
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
                 <FormField
                   label="Antall kalenderdager"
                   required
