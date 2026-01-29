@@ -9,15 +9,12 @@ Design-prinsipper:
 2. State beregnes alltid fra scratch basert på events
 3. Godkjenningskjeden: Miljørådgiver → PL → Arbeidsgruppe → Eier
 """
-from typing import List, Optional, Dict, Any
-from datetime import datetime
+from typing import List
 
 from models.fravik_events import (
-    FravikEvent,
     FravikEventType,
     FravikStatus,
     FravikBeslutning,
-    FravikRolle,
     SoknadOpprettetEvent,
     SoknadOppdatertEvent,
     SoknadSendtInnEvent,
@@ -34,7 +31,6 @@ from models.fravik_events import (
     EierAvslattEvent,
     EierDelvisGodkjentEvent,
     AnyFravikEvent,
-    parse_fravik_event,
 )
 from models.fravik_state import (
     FravikState,
@@ -42,7 +38,6 @@ from models.fravik_state import (
     MaskinMiljoVurdering,
     MaskinArbeidsgruppeVurdering,
     MaskinEierBeslutning,
-    GodkjenningsKjedeTilstand,
     VurderingSteg,
     FravikListeItem,
 )

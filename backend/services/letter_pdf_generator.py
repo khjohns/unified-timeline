@@ -18,7 +18,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
 )
-from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_JUSTIFY
+from reportlab.lib.enums import TA_RIGHT, TA_JUSTIFY
 from pydantic import BaseModel
 
 from utils.logger import get_logger

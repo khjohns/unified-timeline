@@ -9,7 +9,7 @@ from typing import Optional, Any
 
 from models.sak_state import SakState
 from models.events import AnyEvent
-from services.catenda_service import CatendaService, map_status_to_catenda
+from services.catenda_service import CatendaService
 from services.catenda_comment_generator import CatendaCommentGenerator
 from lib.catenda_factory import get_catenda_client
 from lib.auth import get_magic_link_manager
@@ -83,8 +83,8 @@ class CatendaSyncService:
         old_status: Optional[str] = None,
         # Reservert for fremtidig PDF-støtte
         pdf_base64: Optional[str] = None,
-        pdf_filename: Optional[str] = None,
-        generate_pdf_on_server: bool = False
+        _pdf_filename: Optional[str] = None,
+        _generate_pdf_on_server: bool = False
     ) -> CatendaSyncResult:
         """
         Synkroniser et event til Catenda.

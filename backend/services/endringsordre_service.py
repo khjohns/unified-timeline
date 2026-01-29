@@ -13,7 +13,6 @@ from datetime import datetime, timezone
 from utils.logger import get_logger
 from models.sak_state import (
     SaksType,
-    EndringsordreData,
     EOStatus,
     SakState,
     SporStatus,

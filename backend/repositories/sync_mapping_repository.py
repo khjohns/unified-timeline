@@ -21,7 +21,6 @@ except ImportError:
 from models.sync_models import (
     DaluxCatendaSyncMapping,
     TaskSyncRecord,
-    AttachmentSyncRecord,
 )
 
 logger = get_logger(__name__)

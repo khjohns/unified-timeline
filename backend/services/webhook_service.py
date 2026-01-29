@@ -19,7 +19,6 @@ from threading import Thread
 from repositories.event_repository import JsonFileEventRepository
 from repositories import create_metadata_repository
 from models.events import SakOpprettetEvent
-from models.sak_state import SakState
 from models.sak_metadata import SakMetadata
 from services.timeline_service import TimelineService
 from services.catenda_comment_generator import CatendaCommentGenerator

@@ -5,7 +5,6 @@ All environment variables are loaded here using Pydantic Settings.
 This provides type validation and automatic .env file loading.
 """
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional
 
 
 class Settings(BaseSettings):

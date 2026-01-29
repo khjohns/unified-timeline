@@ -21,12 +21,11 @@ def _get_norwegian_time() -> str:
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import cm, mm
+from reportlab.lib.units import cm
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
     HRFlowable
 )
-from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
 from models.sak_state import SakState
 from utils.logger import get_logger
