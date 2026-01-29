@@ -1525,11 +1525,7 @@ export function RespondFristModal({
 
               <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                 <FormField
-                  label={
-                    port2ErSubsidiaer
-                      ? 'Subsidiært: Har forholdet hindret fremdriften?'
-                      : 'Har forholdet hindret fremdriften?'
-                  }
+                  label="Har forholdet hindret fremdriften?"
                   required
                   helpText="Vurder om det påberopte forholdet faktisk har forårsaket forsinkelse i prosjektet"
                 >
