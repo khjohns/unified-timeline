@@ -5,9 +5,11 @@
  * Allows navigating to individual søknader and creating new ones.
  */
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { LoadingState } from '../components/PageStateHelpers';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { Button, Card, Table, DropdownMenuItem, type Column } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { fetchFravikListe } from '../api/fravik';
@@ -138,12 +140,29 @@ const columns: Column<FravikListeItem>[] = [
   },
 ];
 
+/**
+ * FravikOversiktPage wrapper - handles Suspense boundary
+ */
 export function FravikOversiktPage() {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingState message="Laster fravik-oversikt..." />}>
+        <FravikOversiktContent />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+/**
+ * Inner component that uses Suspense-enabled query
+ */
+function FravikOversiktContent() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<StatusFilter>('aktive');
   const [showOpprettModal, setShowOpprettModal] = useState(false);
 
-  const { data: soknader = [], isLoading, error } = useQuery({
+  // Suspense query - data guaranteed to exist
+  const { data: soknader } = useSuspenseQuery({
     queryKey: ['fravik-liste'],
     queryFn: fetchFravikListe,
   });
@@ -187,32 +206,8 @@ export function FravikOversiktPage() {
           ))}
         </div>
 
-        {/* Loading State */}
-        {isLoading && (
-          <Card variant="outlined" padding="lg">
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-oslo-blue" />
-              <span className="ml-3 text-pkt-text-body-subtle">Laster søknader...</span>
-            </div>
-          </Card>
-        )}
-
-        {/* Error State */}
-        {error && !isLoading && (
-          <Card variant="outlined" padding="lg">
-            <div className="text-center py-12">
-              <p className="text-pkt-brand-red-1000 mb-4">
-                Kunne ikke laste søknader: {error instanceof Error ? error.message : 'Ukjent feil'}
-              </p>
-              <Button variant="secondary" onClick={() => window.location.reload()}>
-                Prøv igjen
-              </Button>
-            </div>
-          </Card>
-        )}
-
         {/* Empty State */}
-        {!isLoading && !error && filteredSoknader.length === 0 && (
+        {filteredSoknader.length === 0 && (
           <Card variant="outlined" padding="lg">
             <div className="text-center py-12">
               <p className="text-pkt-text-body-subtle mb-4">
@@ -227,7 +222,7 @@ export function FravikOversiktPage() {
         )}
 
         {/* Søknad List */}
-        {!isLoading && !error && filteredSoknader.length > 0 && (
+        {filteredSoknader.length > 0 && (
           <Card variant="outlined" padding="none">
             <Table
               columns={columns}

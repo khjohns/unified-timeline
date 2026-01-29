@@ -18,9 +18,11 @@
  * - Historikk: Tabell med ferdigbehandlede saker for sammenligning
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { LoadingState } from '../components/PageStateHelpers';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import { Card, Button, Tabs, Alert, Table, DropdownMenuItem, type Column } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
@@ -570,12 +572,29 @@ function HistorikkAnalyse({ data, onNavigate }: { data: FravikAnalyticsData; onN
 // Main Component
 // ============================================================
 
+/**
+ * FravikAnalysePage wrapper - handles Suspense boundary
+ */
 export function FravikAnalysePage() {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingState message="Laster fravik-analyse..." />}>
+        <FravikAnalyseContent />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+/**
+ * Inner component that uses Suspense-enabled query
+ */
+function FravikAnalyseContent() {
   const navigate = useNavigate();
   const { userRole, setUserRole } = useUserRole();
   const [activeTab, setActiveTab] = useState<AnalysisTab>('portefolje');
 
-  const { data: soknader = [], isLoading } = useQuery({
+  // Suspense query - data guaranteed to exist
+  const { data: soknader } = useSuspenseQuery({
     queryKey: ['fravik-liste'],
     queryFn: fetchFravikListe,
   });
@@ -626,51 +645,42 @@ export function FravikAnalysePage() {
 
       {/* Main Content */}
       <main className="max-w-3xl mx-auto px-2 pt-2 pb-4 sm:px-4 sm:pt-3 sm:pb-6 min-h-[calc(100vh-88px)] space-y-4">
-        {isLoading ? (
-          <Card variant="outlined" padding="lg">
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pkt-border-focus" />
-              <span className="ml-3 text-pkt-text-body-subtle">Laster analysedata...</span>
-            </div>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            {renderAnalysisContent()}
+        <div className="space-y-6">
+          {renderAnalysisContent()}
 
-            {/* Info Box */}
-            <section aria-labelledby="info-heading">
-              <Card variant="outlined" padding="md">
-                <h3 id="info-heading" className="text-base font-semibold text-pkt-text-body-dark mb-2">
-                  Om fravik-analyse
-                </h3>
-                <p className="text-sm text-pkt-text-body-default mb-3">
-                  Digitalisering av fravik-søknader gjør det mulig å enkelt sammenligne med tidligere og lignende saker.
-                  For eksempel kan du vurdere under hvilke situasjoner det har blitt godkjent fravik for bestemte
-                  maskintyper fra kravet om utslippsfri teknologi.
-                </p>
-                <div className="grid md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <strong className="text-pkt-text-body-dark">Analysemetoder:</strong>
-                    <ul className="list-disc list-inside mt-1 space-y-1 text-pkt-text-body-subtle">
-                      <li><strong>Portefølje:</strong> Overordnet KPI-er og statusfordeling</li>
-                      <li><strong>Søknadstyper:</strong> Maskin vs infrastruktur</li>
-                      <li><strong>Grunner:</strong> Statistikk per fravikgrunn</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <ul className="list-disc list-inside mt-1 space-y-1 text-pkt-text-body-subtle">
-                      <li><strong>Maskintyper:</strong> Godkjenningsrate per type</li>
-                      <li><strong>Historikk:</strong> Søkbare ferdigbehandlede saker</li>
-                    </ul>
-                    <p className="mt-2 text-xs text-pkt-text-body-subtle italic">
-                      Tips: Klikk på saker i Historikk-fanen for å se detaljer.
-                    </p>
-                  </div>
+          {/* Info Box */}
+          <section aria-labelledby="info-heading">
+            <Card variant="outlined" padding="md">
+              <h3 id="info-heading" className="text-base font-semibold text-pkt-text-body-dark mb-2">
+                Om fravik-analyse
+              </h3>
+              <p className="text-sm text-pkt-text-body-default mb-3">
+                Digitalisering av fravik-søknader gjør det mulig å enkelt sammenligne med tidligere og lignende saker.
+                For eksempel kan du vurdere under hvilke situasjoner det har blitt godkjent fravik for bestemte
+                maskintyper fra kravet om utslippsfri teknologi.
+              </p>
+              <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <strong className="text-pkt-text-body-dark">Analysemetoder:</strong>
+                  <ul className="list-disc list-inside mt-1 space-y-1 text-pkt-text-body-subtle">
+                    <li><strong>Portefølje:</strong> Overordnet KPI-er og statusfordeling</li>
+                    <li><strong>Søknadstyper:</strong> Maskin vs infrastruktur</li>
+                    <li><strong>Grunner:</strong> Statistikk per fravikgrunn</li>
+                  </ul>
                 </div>
-              </Card>
-            </section>
-          </div>
-        )}
+                <div>
+                  <ul className="list-disc list-inside mt-1 space-y-1 text-pkt-text-body-subtle">
+                    <li><strong>Maskintyper:</strong> Godkjenningsrate per type</li>
+                    <li><strong>Historikk:</strong> Søkbare ferdigbehandlede saker</li>
+                  </ul>
+                  <p className="mt-2 text-xs text-pkt-text-body-subtle italic">
+                    Tips: Klikk på saker i Historikk-fanen for å se detaljer.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </section>
+        </div>
       </main>
     </div>
   );
