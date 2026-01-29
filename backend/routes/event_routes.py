@@ -22,6 +22,7 @@ from services.timeline_service import TimelineService
 from services.business_rules import BusinessRuleValidator
 from repositories.event_repository import ConcurrencyError
 from repositories import create_event_repository
+from lib.helpers.version_control import handle_concurrency_error
 from repositories.supabase_sak_metadata_repository import create_metadata_repository
 from models.events import (
     parse_event_from_request,
@@ -433,13 +434,7 @@ def submit_event():
         try:
             new_version = event_repo.append(event, expected_version)
         except ConcurrencyError as e:
-            return jsonify({
-                "success": False,
-                "error": "VERSION_CONFLICT",
-                "expected_version": e.expected,
-                "current_version": e.actual,
-                "message": "Samtidig endring oppdaget. Vennligst last inn på nytt."
-            }), 409
+            return handle_concurrency_error(e)
 
         # 7. Compute new state
         all_events = existing_events + [event]
@@ -626,13 +621,7 @@ def submit_batch():
                     metadata_repo.delete(sak_id)
                 except Exception:
                     pass
-            return jsonify({
-                "success": False,
-                "error": "VERSION_CONFLICT",
-                "expected_version": e.expected,
-                "current_version": e.actual,
-                "message": "Samtidig endring oppdaget. Vennligst last inn på nytt."
-            }), 409
+            return handle_concurrency_error(e)
 
         # 6. Compute final state and update metadata cache
         all_events = existing_events + validated_events

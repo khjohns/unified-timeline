@@ -566,6 +566,11 @@ backend/lib/helpers/
 | Fil | Endring | Linjer fjernet |
 |-----|---------|----------------|
 | `fravik_routes.py` | Bruker nye hjelpere i 10 endpoints | ~50 linjer |
+| `event_routes.py` | Bruker `handle_concurrency_error()` i 2 endpoints | ~14 linjer |
+| `forsering_routes.py` | Bruker `handle_concurrency_error()` i 3 endpoints + standardisert feilkoder | ~21 linjer |
+
+**Viktig:** forsering_routes.py brukte tidligere inkonsistent feilkode `CONCURRENCY_CONFLICT` og felt `actual_version`.
+Nå bruker alle routes konsekvent `VERSION_CONFLICT` og `current_version`.
 
 #### Tester lagt til
 
@@ -576,7 +581,6 @@ backend/lib/helpers/
 | Oppgave | Status |
 |---------|--------|
 | `get_all_sak_ids()` | Ikke implementert |
-| Refaktorer forsering_routes.py | Bruker annet mønster (service-kall) |
 | Refaktorer endringsordre_routes.py | Ikke startet |
 | PDF-seksjon builder | Ikke startet |
 
