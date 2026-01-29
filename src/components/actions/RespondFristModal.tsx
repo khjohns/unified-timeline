@@ -1508,7 +1508,6 @@ export function RespondFristModal({
             <SectionContainer
               title="Årsakssammenheng (§33.1)"
               titleSuffix={port2ErSubsidiaer && <Badge variant="warning" size="sm">Subsidiært</Badge>}
-              description="Vurder om forholdet faktisk forårsaket forsinkelse i fremdriften."
             >
               {/* Etterlysning blocks further evaluation */}
               {sendForesporsel && (
