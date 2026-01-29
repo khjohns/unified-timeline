@@ -663,26 +663,24 @@ function generateFristPreklusjonSection(input: FristResponseInput): string {
 }
 
 /**
- * Generate the conditions section for frist response (§33.5)
+ * Generate the conditions section for frist response (§33.1)
  */
 function generateFristVilkarSection(input: FristResponseInput): string {
   const { vilkarOppfylt, erPrekludert } = input;
 
   // Vilkår is always evaluated, even when sending forespørsel
-  const prefix = erPrekludert ? 'Subsidiært, hva gjelder vilkårene (§33.5): ' : '';
+  const prefix = erPrekludert ? 'Subsidiært, hva gjelder vilkårene (§33.1): ' : '';
 
   if (vilkarOppfylt) {
     return (
       prefix +
-      'Det erkjennes at det påberopte forholdet har forårsaket faktisk hindring av fremdriften, ' +
-      'og at det foreligger årsakssammenheng mellom forholdet og forsinkelsen.'
+      'Det erkjennes at forholdet har hindret fremdriften, jf. §33.1.'
     );
   }
 
   return (
     prefix +
-    'Det bestrides at det påberopte forholdet har medført reell hindring av fremdriften. ' +
-    'Entreprenøren hadde tilstrekkelig slakk i fremdriftsplanen, eller forsinkelsen skyldes andre forhold.'
+    'Det bestrides at forholdet har hindret fremdriften, jf. §33.1.'
   );
 }
 
