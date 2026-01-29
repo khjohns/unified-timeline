@@ -36,6 +36,7 @@ import {
   DataList,
   DataListItem,
   DatePicker,
+  ExpandableText,
   FormField,
   InlineDataList,
   InlineDataListItem,
@@ -60,7 +61,6 @@ import {
   type FristResponseInput,
 } from '../../utils/begrunnelseGenerator';
 import { getResultatLabel, formatVarselMetode } from '../../utils/formatters';
-import { KontraktsregelInline } from '../shared';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -908,8 +908,7 @@ export function RespondFristModal({
         {/* §33.7 BH preclusion warning */}
         {bhPreklusjonsrisiko && (
           <>
-            <KontraktsregelInline hjemmel="§33.7" />
-            <Alert variant="danger" title="Svarplikt (§33.7)" className="mt-2">
+            <Alert variant="danger" title="Svarplikt (§33.7)">
               Du har brukt <strong>{dagerSidenKrav} dager</strong> på å svare. Du skal svare
               &ldquo;uten ugrunnet opphold&rdquo;. Passivitet medfører at du taper innsigelser mot
               kravet!
@@ -1098,55 +1097,24 @@ export function RespondFristModal({
                 <div className="space-y-4">
                   {/* §33.4 vurdering */}
                   <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                    <h4 className="font-medium mb-3">Foreløpig varsel (§33.4)</h4>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                      <h4 className="font-medium">Foreløpig varsel (§33.4)</h4>
+                      {fristEvent?.dato_oppdaget && (
+                        <span className="text-xs text-pkt-grays-gray-500">
+                          Entreprenør klar over: {format(parseISO(fristEvent.dato_oppdaget), 'd. MMM yyyy', { locale: nb })}
+                        </span>
+                      )}
+                    </div>
 
-                    <KontraktsregelInline hjemmel="§33.4" />
-
-                    {/* Datoberegning */}
-                    {(() => {
-                      const varselInfo = fristEvent?.frist_varsel || fristTilstand?.frist_varsel;
-                      const varselDato = varselInfo?.dato_sendt;
-                      const datoOppdaget = fristEvent?.dato_oppdaget;
-                      const dagerMellom = datoOppdaget && varselDato
-                        ? differenceInDays(parseISO(varselDato), parseISO(datoOppdaget))
-                        : null;
-                      const erKritisk = dagerMellom !== null && dagerMellom > 14;
-                      const erSen = dagerMellom !== null && dagerMellom > 7 && dagerMellom <= 14;
-
-                      return datoOppdaget && varselDato && dagerMellom !== null ? (
-                        <div className={`flex items-center gap-3 p-3 my-3 rounded-none border ${
-                          erKritisk
-                            ? 'bg-pkt-bg-danger-subtle border-pkt-border-danger'
-                            : erSen
-                              ? 'bg-pkt-bg-warning-subtle border-pkt-border-warning'
-                              : 'bg-white border-pkt-border-subtle'
-                        }`}>
-                          <span className="text-sm text-pkt-text-body">
-                            Forholdet oppstod{' '}
-                            <span className="font-medium">
-                              {format(parseISO(datoOppdaget), 'd. MMMM yyyy', { locale: nb })}
-                            </span>
-                            {' '}→ varslet{' '}
-                            <span className="font-medium">
-                              {format(parseISO(varselDato), 'd. MMMM yyyy', { locale: nb })}
-                            </span>
-                            {' '}={' '}
-                            <span className={`font-mono font-medium ${
-                              erKritisk ? 'text-pkt-text-danger' :
-                              erSen ? 'text-pkt-text-warning' :
-                              'text-pkt-text-success'
-                            }`}>
-                              {dagerMellom} {dagerMellom === 1 ? 'dag' : 'dager'}
-                            </span>
-                          </span>
-                        </div>
-                      ) : null;
-                    })()}
+                    <p className="text-sm text-pkt-text-body-subtle mb-3">
+                      <ExpandableText preview="Krav om fristforlengelse må varsles «uten ugrunnet opphold».">
+                        Oppstår forhold som gir rett til fristforlengelse etter §33.1, §33.2 eller §33.3, må parten varsle krav om fristforlengelse uten ugrunnet opphold (§33.4). Varsles det ikke i tide, tapes kravet på fristforlengelse. Byggherren må påberope sen varsling skriftlig uten ugrunnet opphold (§5).
+                      </ExpandableText>
+                    </p>
 
                     <FormField
                       label="Ble varselet sendt i tide?"
                       required
-                      className="mt-3"
                     >
                       <Controller
                         name="frist_varsel_ok"
@@ -1233,9 +1201,13 @@ export function RespondFristModal({
                     <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                       <h4 className="font-medium mb-3">Svar på forespørsel (§33.6.2)</h4>
 
-                      <KontraktsregelInline hjemmel="§33.6.2" />
+                      <p className="text-sm text-pkt-text-body-subtle mb-3">
+                        <ExpandableText preview="Entreprenøren må svare på forespørselen «uten ugrunnet opphold».">
+                          Mottar totalentreprenøren forespørsel per brev fra byggherren om å spesifisere fristkrav (§33.6.2), må han uten ugrunnet opphold enten angi og begrunne antall dager, eller begrunne hvorfor beregningsgrunnlag ikke foreligger. Gjør totalentreprenøren ingen av delene i tide, tapes kravet på fristforlengelse.
+                        </ExpandableText>
+                      </p>
 
-                      <Alert variant="info" className="my-3" size="sm">
+                      <Alert variant="info" className="mb-3" size="sm">
                         Dette kravet er svar på din forespørsel. Du kan ikke påberope §33.6.1.
                       </Alert>
 
@@ -1272,55 +1244,24 @@ export function RespondFristModal({
                       {/* §33.4: Vurder foreløpig varsel */}
                       {maaVurdereFristVarsel && (
                         <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                          <h4 className="font-medium mb-3">Foreløpig varsel (§33.4)</h4>
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                            <h4 className="font-medium">Foreløpig varsel (§33.4)</h4>
+                            {fristEvent?.dato_oppdaget && (
+                              <span className="text-xs text-pkt-grays-gray-500">
+                                Entreprenør klar over: {format(parseISO(fristEvent.dato_oppdaget), 'd. MMM yyyy', { locale: nb })}
+                              </span>
+                            )}
+                          </div>
 
-                          <KontraktsregelInline hjemmel="§33.4" />
-
-                          {/* Datoberegning for foreløpig varsel */}
-                          {(() => {
-                            const varselInfo = fristEvent?.frist_varsel || fristTilstand?.frist_varsel;
-                            const varselDato = varselInfo?.dato_sendt;
-                            const datoOppdaget = fristEvent?.dato_oppdaget;
-                            const dagerMellom = datoOppdaget && varselDato
-                              ? differenceInDays(parseISO(varselDato), parseISO(datoOppdaget))
-                              : null;
-                            const erKritisk = dagerMellom !== null && dagerMellom > 14;
-                            const erSen = dagerMellom !== null && dagerMellom > 7 && dagerMellom <= 14;
-
-                            return datoOppdaget && varselDato && dagerMellom !== null ? (
-                              <div className={`flex items-center gap-3 p-3 my-3 rounded-none border ${
-                                erKritisk
-                                  ? 'bg-pkt-bg-danger-subtle border-pkt-border-danger'
-                                  : erSen
-                                    ? 'bg-pkt-bg-warning-subtle border-pkt-border-warning'
-                                    : 'bg-white border-pkt-border-subtle'
-                              }`}>
-                                <span className="text-sm text-pkt-text-body">
-                                  Forholdet oppstod{' '}
-                                  <span className="font-medium">
-                                    {format(parseISO(datoOppdaget), 'd. MMMM yyyy', { locale: nb })}
-                                  </span>
-                                  {' '}→ varslet{' '}
-                                  <span className="font-medium">
-                                    {format(parseISO(varselDato), 'd. MMMM yyyy', { locale: nb })}
-                                  </span>
-                                  {' '}={' '}
-                                  <span className={`font-mono font-medium ${
-                                    erKritisk ? 'text-pkt-text-danger' :
-                                    erSen ? 'text-pkt-text-warning' :
-                                    'text-pkt-text-success'
-                                  }`}>
-                                    {dagerMellom} {dagerMellom === 1 ? 'dag' : 'dager'}
-                                  </span>
-                                </span>
-                              </div>
-                            ) : null;
-                          })()}
+                          <p className="text-sm text-pkt-text-body-subtle mb-3">
+                            <ExpandableText preview="Krav om fristforlengelse må varsles «uten ugrunnet opphold».">
+                              Oppstår forhold som gir rett til fristforlengelse etter §33.1, §33.2 eller §33.3, må parten varsle krav om fristforlengelse uten ugrunnet opphold (§33.4). Varsles det ikke i tide, tapes kravet på fristforlengelse. Byggherren må påberope sen varsling skriftlig uten ugrunnet opphold (§5).
+                            </ExpandableText>
+                          </p>
 
                           <FormField
                             label="Ble varselet sendt i tide?"
                             required
-                            className="mt-3"
                           >
                             <Controller
                               name="frist_varsel_ok"
@@ -1354,57 +1295,19 @@ export function RespondFristModal({
                           <h4 className="font-medium mb-3">
                             Spesifisert krav (§33.6.1)
                             {formValues.frist_varsel_ok === false && (
-                              <span className="text-pkt-text-body-subtle font-normal ml-2">– subsidiært</span>
+                              <Badge variant="warning" size="sm" className="ml-2">Subsidiært</Badge>
                             )}
                           </h4>
 
-                          <KontraktsregelInline hjemmel="§33.6.1" />
-
-                          {/* Datoberegning for spesifisert krav */}
-                          {(() => {
-                            const varselInfo = fristEvent?.spesifisert_varsel || fristTilstand?.spesifisert_varsel;
-                            const varselDato = varselInfo?.dato_sendt;
-                            const datoOppdaget = fristEvent?.dato_oppdaget;
-                            const dagerMellom = datoOppdaget && varselDato
-                              ? differenceInDays(parseISO(varselDato), parseISO(datoOppdaget))
-                              : null;
-                            const erKritisk = dagerMellom !== null && dagerMellom > 14;
-                            const erSen = dagerMellom !== null && dagerMellom > 7 && dagerMellom <= 14;
-
-                            return datoOppdaget && varselDato && dagerMellom !== null ? (
-                              <div className={`flex items-center gap-3 p-3 my-3 rounded-none border ${
-                                erKritisk
-                                  ? 'bg-pkt-bg-danger-subtle border-pkt-border-danger'
-                                  : erSen
-                                    ? 'bg-pkt-bg-warning-subtle border-pkt-border-warning'
-                                    : 'bg-white border-pkt-border-subtle'
-                              }`}>
-                                <span className="text-sm text-pkt-text-body">
-                                  Forholdet oppstod{' '}
-                                  <span className="font-medium">
-                                    {format(parseISO(datoOppdaget), 'd. MMMM yyyy', { locale: nb })}
-                                  </span>
-                                  {' '}→ spesifisert{' '}
-                                  <span className="font-medium">
-                                    {format(parseISO(varselDato), 'd. MMMM yyyy', { locale: nb })}
-                                  </span>
-                                  {' '}={' '}
-                                  <span className={`font-mono font-medium ${
-                                    erKritisk ? 'text-pkt-text-danger' :
-                                    erSen ? 'text-pkt-text-warning' :
-                                    'text-pkt-text-success'
-                                  }`}>
-                                    {dagerMellom} {dagerMellom === 1 ? 'dag' : 'dager'}
-                                  </span>
-                                </span>
-                              </div>
-                            ) : null;
-                          })()}
+                          <p className="text-sm text-pkt-text-body-subtle mb-3">
+                            <ExpandableText preview="Antall dager må angis «uten ugrunnet opphold» når beregningsgrunnlag foreligger.">
+                              Når parten har grunnlag for å beregne omfanget av fristforlengelse, må han angi og begrunne antall dager uten ugrunnet opphold (§33.6.1). Spesifiseres ikke kravet i tide, har parten bare krav på slik fristforlengelse som motparten måtte forstå at han hadde krav på.
+                            </ExpandableText>
+                          </p>
 
                           <FormField
                             label="Ble kravet spesifisert i tide?"
                             required
-                            className="mt-3"
                           >
                             <Controller
                               name="spesifisert_krav_ok"
@@ -1443,55 +1346,24 @@ export function RespondFristModal({
                     <>
                       {/* §33.4: Spesifisert krav som varsel */}
                       <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                        <h4 className="font-medium mb-3">Varsel (§33.4)</h4>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                          <h4 className="font-medium">Varsel (§33.4)</h4>
+                          {fristEvent?.dato_oppdaget && (
+                            <span className="text-xs text-pkt-grays-gray-500">
+                              Entreprenør klar over: {format(parseISO(fristEvent.dato_oppdaget), 'd. MMM yyyy', { locale: nb })}
+                            </span>
+                          )}
+                        </div>
 
-                        <KontraktsregelInline hjemmel="§33.4" />
-
-                        {/* Datoberegning */}
-                        {(() => {
-                          const varselInfo = fristEvent?.spesifisert_varsel || fristTilstand?.spesifisert_varsel;
-                          const varselDato = varselInfo?.dato_sendt;
-                          const datoOppdaget = fristEvent?.dato_oppdaget;
-                          const dagerMellom = datoOppdaget && varselDato
-                            ? differenceInDays(parseISO(varselDato), parseISO(datoOppdaget))
-                            : null;
-                          const erKritisk = dagerMellom !== null && dagerMellom > 14;
-                          const erSen = dagerMellom !== null && dagerMellom > 7 && dagerMellom <= 14;
-
-                          return datoOppdaget && varselDato && dagerMellom !== null ? (
-                            <div className={`flex items-center gap-3 p-3 my-3 rounded-none border ${
-                              erKritisk
-                                ? 'bg-pkt-bg-danger-subtle border-pkt-border-danger'
-                                : erSen
-                                  ? 'bg-pkt-bg-warning-subtle border-pkt-border-warning'
-                                  : 'bg-white border-pkt-border-subtle'
-                            }`}>
-                              <span className="text-sm text-pkt-text-body">
-                                Forholdet oppstod{' '}
-                                <span className="font-medium">
-                                  {format(parseISO(datoOppdaget), 'd. MMMM yyyy', { locale: nb })}
-                                </span>
-                                {' '}→ varslet{' '}
-                                <span className="font-medium">
-                                  {format(parseISO(varselDato), 'd. MMMM yyyy', { locale: nb })}
-                                </span>
-                                {' '}={' '}
-                                <span className={`font-mono font-medium ${
-                                  erKritisk ? 'text-pkt-text-danger' :
-                                  erSen ? 'text-pkt-text-warning' :
-                                  'text-pkt-text-success'
-                                }`}>
-                                  {dagerMellom} {dagerMellom === 1 ? 'dag' : 'dager'}
-                                </span>
-                              </span>
-                            </div>
-                          ) : null;
-                        })()}
+                        <p className="text-sm text-pkt-text-body-subtle mb-3">
+                          <ExpandableText preview="Krav om fristforlengelse må varsles «uten ugrunnet opphold».">
+                            Oppstår forhold som gir rett til fristforlengelse etter §33.1, §33.2 eller §33.3, må parten varsle krav om fristforlengelse uten ugrunnet opphold (§33.4). Varsles det ikke i tide, tapes kravet på fristforlengelse. Byggherren må påberope sen varsling skriftlig uten ugrunnet opphold (§5).
+                          </ExpandableText>
+                        </p>
 
                         <FormField
                           label="Ble kravet varslet i tide?"
                           required
-                          className="mt-3"
                         >
                           <Controller
                             name="frist_varsel_ok"
@@ -1524,16 +1396,19 @@ export function RespondFristModal({
                           <h4 className="font-medium mb-3">
                             Spesifisert krav (§33.6.1)
                             {formValues.frist_varsel_ok === false && (
-                              <span className="text-pkt-text-body-subtle font-normal ml-2">– subsidiært</span>
+                              <Badge variant="warning" size="sm" className="ml-2">Subsidiært</Badge>
                             )}
                           </h4>
 
-                          <KontraktsregelInline hjemmel="§33.6.1" />
+                          <p className="text-sm text-pkt-text-body-subtle mb-3">
+                            <ExpandableText preview="Antall dager må angis «uten ugrunnet opphold» når beregningsgrunnlag foreligger.">
+                              Når parten har grunnlag for å beregne omfanget av fristforlengelse, må han angi og begrunne antall dager uten ugrunnet opphold (§33.6.1). Spesifiseres ikke kravet i tide, har parten bare krav på slik fristforlengelse som motparten måtte forstå at han hadde krav på.
+                            </ExpandableText>
+                          </p>
 
                           <FormField
                             label="Ble kravet spesifisert i tide?"
                             required
-                            className="mt-3"
                           >
                             <Controller
                               name="spesifisert_krav_ok"
@@ -1650,8 +1525,12 @@ export function RespondFristModal({
                 </Alert>
               )}
 
-              {/* TODO: Legg til hovedkategori prop for å støtte §33.3 (force majeure) */}
-              <KontraktsregelInline hjemmel="§33.1" />
+              {/* Vilkår for fristforlengelse (§33.1) */}
+              <p className="text-sm text-pkt-text-body-subtle mb-3">
+                <ExpandableText preview="Totalentreprenøren har rett til fristforlengelse dersom fremdriften hindres av forhold som skyldes byggherren.">
+                  Totalentreprenøren har rett til fristforlengelse dersom fremdriften hindres av forhold som skyldes byggherren eller forhold byggherren bærer risikoen for etter §24 (§33.1). Dette omfatter endringer, manglende medvirkning, eller andre forhold på byggherrens side. Fristforlengelsen skal dekke den forsinkelsen som faktisk oppstår på grunn av hindringen.
+                </ExpandableText>
+              </p>
 
               <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                 <FormField
