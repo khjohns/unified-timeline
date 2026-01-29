@@ -18,6 +18,8 @@ type SectionSpacing = 'default' | 'compact' | 'none';
 export interface SectionContainerProps {
   /** Section title */
   title: string;
+  /** Optional suffix after title (e.g., Badge for subsidiary status) */
+  titleSuffix?: ReactNode;
   /** Optional description below the title */
   description?: string;
   /** Section content */
@@ -42,6 +44,7 @@ const SPACING_CLASSES: Record<SectionSpacing, string> = {
 
 export function SectionContainer({
   title,
+  titleSuffix,
   description,
   children,
   variant = 'default',
@@ -71,6 +74,7 @@ export function SectionContainer({
             {icon && <span className="text-oslo-blue">{icon}</span>}
             <h3 className="font-semibold text-base text-pkt-text-body-dark">
               {title}
+              {titleSuffix && <span className="ml-2">{titleSuffix}</span>}
               {optional && (
                 <span
                   className="ml-2 inline-flex items-center px-1.5 py-0.5 text-xs font-normal rounded bg-pkt-bg-subtle text-pkt-text-body-subtle border border-pkt-border-subtle"

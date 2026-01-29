@@ -1507,17 +1507,9 @@ export function RespondFristModal({
           {!erBegrunnelseUtsatt && currentStepType === 'vilkar' && (
             <SectionContainer
               title="Årsakssammenheng (§33.1)"
+              titleSuffix={port2ErSubsidiaer && <Badge variant="warning" size="sm">Subsidiært</Badge>}
               description="Vurder om forholdet faktisk forårsaket forsinkelse i fremdriften."
             >
-              {/* Subsidiary banner */}
-              {port2ErSubsidiaer && (
-                <Alert variant="warning" title="Subsidiær vurdering" className="mb-4">
-                  Du har prinsipalt avvist kravet pga. preklusjon. Ta nå{' '}
-                  <strong>subsidiært</strong> stilling til om forholdet medførte
-                  fremdriftshindring.
-                </Alert>
-              )}
-
               {/* Etterlysning blocks further evaluation */}
               {sendForesporsel && (
                 <Alert variant="info" title="Etterlysning sendes" className="mb-4">
@@ -1584,6 +1576,7 @@ export function RespondFristModal({
           {!erBegrunnelseUtsatt && currentStepType === 'beregning' && (
             <SectionContainer
               title="Beregning av fristforlengelse (§33.5)"
+              titleSuffix={port3ErSubsidiaer && <Badge variant="warning" size="sm">Subsidiært</Badge>}
             >
               {/* §33.5 ExpandableText */}
               <p className="text-sm text-pkt-text-body-subtle mb-3">
@@ -1599,17 +1592,6 @@ export function RespondFristModal({
                 </Alert>
               ) : (
                 <>
-                  {/* Subsidiary banner */}
-                  {port3ErSubsidiaer && (
-                    <Alert variant="warning" title="Subsidiær beregning" className="mb-4">
-                      {erPrekludert && !harHindring
-                        ? 'Du har prinsipalt avvist kravet pga. preklusjon og mener det ikke var hindring. Ta nå subsidiært stilling til hvor mange dager entreprenøren maksimalt kan ha krav på.'
-                        : erPrekludert
-                          ? 'Du har prinsipalt avvist kravet pga. preklusjon. Ta nå subsidiært stilling til hvor mange dager entreprenøren maksimalt kan ha krav på.'
-                          : 'Du mener det ikke var reell hindring. Ta nå subsidiært stilling til hvor mange dager entreprenøren maksimalt kan ha krav på.'}
-                    </Alert>
-                  )}
-
                   {/* §33.6.1 reduksjon påminnelse */}
                   {erRedusert_33_6_1 && !port3ErSubsidiaer && (
                     <Alert variant="warning" title="Begrenset godkjenning (§33.6.1)" className="mb-4">
