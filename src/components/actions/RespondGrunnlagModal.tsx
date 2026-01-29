@@ -458,7 +458,7 @@ export function RespondGrunnlagModal({
                 title="Preklusjon av grunnlagsvarsel (§32.2)"
                 description="Vurder om entreprenøren varslet om den påståtte endringen i tide."
               >
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <KontraktsregelInline hjemmel="§32.2" />
 
                   <FormField
@@ -523,7 +523,7 @@ export function RespondGrunnlagModal({
               title={erGrunnlagPrekludert ? "Vurdering (subsidiært)" : "Vurdering"}
               description="Vurder kun ansvarsgrunnlaget. Vederlag og frist behandles separat."
             >
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <FormField
                   label="Resultat (ansvarsgrunnlag)"
                   required
