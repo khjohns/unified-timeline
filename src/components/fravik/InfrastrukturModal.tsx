@@ -239,7 +239,7 @@ export function InfrastrukturModal({
       title={isEditMode ? 'Rediger infrastruktur-data' : 'Legg til infrastruktur-data'}
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
         {/* Info alert */}
         <Alert variant="info" title="Krav til fravik">
           Fravik innvilges kun dersom det <strong>ikke er mulig</strong> å etablere utslippsfri strømforsyning.
@@ -272,7 +272,7 @@ export function InfrastrukturModal({
           title="Strømtilgang på byggeplassen"
           description="Beskriv situasjonen for strømtilgang"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <FormField
               label="Status for strømtilgang"
               required
@@ -371,7 +371,7 @@ export function InfrastrukturModal({
           title="Vurderte alternativer"
           description="Hvilke alternative løsninger er vurdert?"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div className="space-y-2">
               <Controller
                 name="mobil_batteri_vurdert"
@@ -447,7 +447,7 @@ export function InfrastrukturModal({
           title="Prosjektspesifikke forhold"
           description="Forhold som påvirker muligheten for utslippsfri drift"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <FormField
               label="Velg relevante forhold"
               error={errors.prosjektforhold?.message}
@@ -499,7 +499,7 @@ export function InfrastrukturModal({
           title="Kostnadsvurdering"
           description="Sammenlign kostnader for utslippsfri og fossil løsning"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div className="flex flex-wrap gap-4">
               <FormField
                 label="Kostnad utslippsfri løsning"
@@ -592,7 +592,7 @@ export function InfrastrukturModal({
           title="Erstatningsløsning"
           description="Hvilken løsning skal brukes i stedet for utslippsfri drift?"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <FormField
               label="Type aggregat"
               required

@@ -94,7 +94,7 @@ export function SendInnModal({
       title="Send inn søknad"
       size="md"
     >
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Warning if not ready */}
         {!kanSendesInn && (
           <Alert variant="warning" title="Søknaden kan ikke sendes inn ennå">

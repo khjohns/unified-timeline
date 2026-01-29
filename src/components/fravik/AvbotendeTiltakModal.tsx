@@ -145,7 +145,7 @@ export function AvbotendeTiltakModal({
       title="Avbøtende tiltak og konsekvenser"
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
         {/* Avbøtende tiltak */}
         <SectionContainer
           title="Avbøtende tiltak"

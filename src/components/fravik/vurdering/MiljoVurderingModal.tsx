@@ -400,7 +400,7 @@ export function MiljoVurderingModal({
             ? infrastrukturForm.handleSubmit(onSubmitInfrastrukturVurdering)
             : vurderingForm.handleSubmit(onSubmitVurdering)
           }
-          className="space-y-4"
+          className="space-y-3 sm:space-y-4"
         >
           {/* Veiledning */}
           <Alert variant="info" title="Din rolle">
@@ -459,7 +459,7 @@ export function MiljoVurderingModal({
               title="Vurdering av infrastruktur-søknad"
               description="Vurder søknaden samlet."
             >
-              <div className="p-3 rounded-lg border border-pkt-border-default bg-pkt-bg-card space-y-4">
+              <div className="p-3 rounded-lg border border-pkt-border-default bg-pkt-bg-card space-y-3 sm:space-y-4">
                 {state.infrastruktur && (
                   <div className="mb-3">
                     <p className="text-sm text-pkt-text-body-muted">
@@ -558,7 +558,7 @@ export function MiljoVurderingModal({
           </div>
         </form>
       ) : (
-        <form onSubmit={sendTilbakeForm.handleSubmit(onSubmitSendTilbake)} className="space-y-4">
+        <form onSubmit={sendTilbakeForm.handleSubmit(onSubmitSendTilbake)} className="space-y-3 sm:space-y-4">
           {/* Toggle tilbake til vurdering */}
           <button
             type="button"
