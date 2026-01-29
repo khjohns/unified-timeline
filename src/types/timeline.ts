@@ -262,7 +262,6 @@ export interface FristTilstand {
 
   // BH respons - Port 2 (Vilkår/Årsakssammenheng)
   vilkar_oppfylt?: boolean;
-  begrunnelse_vilkar?: string;
 
   // BH respons - Port 3 (Beregning)
   bh_resultat?: FristBeregningResultat;
@@ -757,7 +756,6 @@ export interface ResponsFristEventData {
 
   // Port 2: Vilkår (Årsakssammenheng)
   vilkar_oppfylt?: boolean;
-  begrunnelse_vilkar?: string;
 
   // Port 3: Utmåling (Beregning)
   beregnings_resultat: FristBeregningResultat;
@@ -869,7 +867,6 @@ export interface ResponsFristOppdatertEventData {
   foresporsel_svar_ok?: boolean;
   // Port 3: Vilkår
   vilkar_oppfylt?: boolean;
-  begrunnelse_vilkar?: string;
   // Subsidiært standpunkt (hvis oppdateringen gjelder subsidiær)
   subsidiaer_resultat?: FristBeregningResultat;
   subsidiaer_godkjent_dager?: number;

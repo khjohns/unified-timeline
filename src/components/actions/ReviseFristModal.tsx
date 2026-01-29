@@ -18,6 +18,7 @@ import {
   AttachmentUpload,
   Button,
   DatePicker,
+  ExpandableText,
   FormField,
   Input,
   Modal,
@@ -33,7 +34,6 @@ import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
-import { KontraktsregelInline } from '../shared';
 import { FristTilstand, FristBeregningResultat, FristVarselType, SubsidiaerTrigger } from '../../types/timeline';
 
 // Modal operating modes
@@ -371,8 +371,12 @@ export function ReviseFristModal({
             ? 'Forklar hvorfor du endrer kravet'
             : 'Begrunn kravet med henvisning til årsakssammenheng'}
         >
-          {/* TODO: Legg til hovedkategori prop for å støtte §33.3 (force majeure) */}
-          <KontraktsregelInline hjemmel="§33.1" />
+          <p className="text-sm text-pkt-text-body-subtle mb-3">
+            <ExpandableText preview="Totalentreprenøren har rett til fristforlengelse dersom fremdriften hindres.">
+              Totalentreprenøren har rett til fristforlengelse dersom fremdriften hindres av forhold
+              som skyldes byggherren eller forhold byggherren bærer risikoen for etter §24 (§33.1).
+            </ExpandableText>
+          </p>
 
           <FormField
             label={modalMode === 'revider' ? 'Begrunnelse for endring' : 'Begrunnelse for kravet'}

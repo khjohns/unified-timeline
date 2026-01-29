@@ -48,7 +48,6 @@ export const mockTimelineEvents6: TimelineEntry[] = [
       spesifisert_krav_ok: true,
       begrunnelse_varsel: 'Varsler mottatt i tide.',
       vilkar_oppfylt: false,
-      begrunnelse_vilkar: 'BH mener forsinkelsen kan tas igjen med parallellarbeid.',
       beregnings_resultat: 'avslatt',
       godkjent_dager: 0,
       begrunnelse: 'Fristforlengelse avslås. Forsinkelsen kan hentes inn uten fristforlengelse.',

@@ -27,7 +27,6 @@ export const mockTimelineEvents3: TimelineEntry[] = [
       spesifisert_krav_ok: true,
       begrunnelse_varsel: 'Varsler mottatt i tide og korrekt utformet.',
       vilkar_oppfylt: true,
-      begrunnelse_vilkar: 'Fristforlengelse følger direkte av byggherres designendring.',
       beregnings_resultat: 'godkjent',
       godkjent_dager: 14,
       begrunnelse: 'Tid er i henhold til leverandørens spesifikasjoner.',

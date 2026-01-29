@@ -49,8 +49,6 @@ export const mockTimelineEvents11: TimelineEntry[] = [
 
       // Port 2: Vilkår
       vilkar_oppfylt: true,
-      begrunnelse_vilkar:
-        'Subsidiært: Årsakssammenheng dokumentert, gitt at ansvar hadde foreligget.',
 
       // Port 3: Prinsipal - Avslått pga grunnlag
       beregnings_resultat: 'avslatt',

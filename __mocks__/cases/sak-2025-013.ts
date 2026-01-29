@@ -74,7 +74,6 @@ export const mockSakState13: SakState = {
     frist_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: false,
-    begrunnelse_vilkar: 'BH mener arbeidet kan utføres parallelt med andre aktiviteter.',
     bh_resultat: 'avslatt',
     bh_begrunnelse:
       'Fristforlengelse avslås. Ventilasjonsarbeidet kan utføres parallelt med andre pågående arbeider.',

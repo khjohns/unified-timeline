@@ -41,7 +41,6 @@ export const mockTimelineEvents7: TimelineEntry[] = [
       spesifisert_krav_ok: true,
       begrunnelse_varsel: 'Varsler mottatt.',
       vilkar_oppfylt: true,
-      begrunnelse_vilkar: 'Endring er godkjent.',
       beregnings_resultat: 'godkjent',
       godkjent_dager: 7,
       begrunnelse: 'Dagene godkjennes.',

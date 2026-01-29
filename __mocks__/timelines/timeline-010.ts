@@ -106,7 +106,6 @@ export const mockTimelineEvents10: TimelineEntry[] = [
       begrunnelse_varsel: 'Spesifisert krav mottatt.',
       // Port 2: Vilkår
       vilkar_oppfylt: true,
-      begrunnelse_vilkar: 'Grunnlag godkjent, årsakssammenheng dokumentert.',
       // Port 3: Beregning
       beregnings_resultat: 'godkjent',
       godkjent_dager: 5,

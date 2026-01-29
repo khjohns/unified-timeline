@@ -79,7 +79,6 @@ export const mockSakState5: SakState = {
     frist_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: false,
-    begrunnelse_vilkar: 'Subsidiært: Grunnlaget bestrides, men dersom ansvar avklares godkjennes dagene.',
     bh_resultat: 'godkjent',
     bh_begrunnelse: 'Subsidiært: Dagene godkjennes dersom ansvar avklares.',
     godkjent_dager: 14,

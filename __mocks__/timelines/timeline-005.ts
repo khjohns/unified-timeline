@@ -45,7 +45,6 @@ export const mockTimelineEvents5: TimelineEntry[] = [
       begrunnelse_varsel: 'Varsler er mottatt i tide.',
       // Port 2: Vilkår - prinsipalt avslag pga grunnlag
       vilkar_oppfylt: false,
-      begrunnelse_vilkar: 'Grunnlaget bestrides - vilkår ikke oppfylt.',
       // Port 3: Beregning - prinsipalt avslag
       beregnings_resultat: 'avslatt',
       begrunnelse: 'Prinsipalt avslått da grunnlaget bestrides.',

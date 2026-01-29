@@ -22,6 +22,7 @@ import {
   Button,
   Checkbox,
   DatePicker,
+  ExpandableText,
   FormField,
   Input,
   Modal,
@@ -31,7 +32,6 @@ import {
   Textarea,
   useToast,
 } from '../primitives';
-import { KontraktsregelInline } from '../shared';
 import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -356,14 +356,34 @@ export function SendFristModal({
                           </span>
                         </div>
                       )}
-                      {/* Kontraktsregel med accordion for konsekvenser */}
-                      <KontraktsregelInline
-                        hjemmel={
-                          field.value === 'varsel' ? '§33.4' :
-                          field.value === 'spesifisert' ? '§33.6.1' :
-                          '§33.6.2'
-                        }
-                      />
+                      {/* Kontraktsregler for valgt type */}
+                      {field.value === 'varsel' && (
+                        <p className="text-sm text-pkt-text-body-subtle mb-3">
+                          <ExpandableText preview="Krav om fristforlengelse må varsles «uten ugrunnet opphold».">
+                            Oppstår forhold som gir rett til fristforlengelse etter §33.1, §33.2 eller §33.3,
+                            må parten varsle krav om fristforlengelse uten ugrunnet opphold (§33.4).
+                            Varsles det ikke i tide, tapes kravet på fristforlengelse.
+                          </ExpandableText>
+                        </p>
+                      )}
+                      {field.value === 'spesifisert' && (
+                        <p className="text-sm text-pkt-text-body-subtle mb-3">
+                          <ExpandableText preview="Antall dager må angis «uten ugrunnet opphold» når beregningsgrunnlag foreligger.">
+                            Når parten har grunnlag for å beregne omfanget av fristforlengelse, må han angi og
+                            begrunne antall dager uten ugrunnet opphold (§33.6.1). Fremsettes ikke kravet i tide,
+                            har parten bare krav på slik fristforlengelse som motparten måtte forstå at han hadde krav på.
+                          </ExpandableText>
+                        </p>
+                      )}
+                      {field.value === 'begrunnelse_utsatt' && (
+                        <p className="text-sm text-pkt-text-body-subtle mb-3">
+                          <ExpandableText preview="Byggherren kan etterspørre spesifisert krav.">
+                            Mottar totalentreprenøren forespørsel om å spesifisere fristkrav (§33.6.2), må han uten
+                            ugrunnet opphold enten angi og begrunne antall dager, eller begrunne hvorfor
+                            beregningsgrunnlag ikke foreligger. Gjør han ingen av delene i tide, tapes kravet.
+                          </ExpandableText>
+                        </p>
+                      )}
                     </div>
                   )}
                 </>
@@ -447,7 +467,7 @@ export function SendFristModal({
                   control={control}
                   render={({ field: datoField }) => (
                     <VarselSeksjon
-                      label="Når ble kravet sendt?"
+                      label="Når ble kravet fremsatt?"
                       sendesNa={sendesNaField.value ?? false}
                       onSendesNaChange={sendesNaField.onChange}
                       datoSendt={datoField.value}
@@ -485,6 +505,14 @@ export function SendFristModal({
             description="Angi omfanget av kravet basert på virkningen på fremdriften (§33.5)"
           >
             <div className="space-y-4">
+              <p className="text-sm text-pkt-text-body-subtle mb-3">
+                <ExpandableText preview="Fristforlengelsen skal svare til den virkning hindringen har hatt.">
+                  Fristforlengelsen skal svare til den virkning hindringen har hatt for fremdriften (§33.5).
+                  Ved beregningen skal det tas hensyn til nødvendig avbrudd og oppstart, årstidsforskyvning,
+                  den samlede virkning av tidligere fristforlengelser, og om entreprenøren har oppfylt sin tapsbegrensningsplikt.
+                </ExpandableText>
+              </p>
+
               <FormField
                 label="Antall kalenderdager"
                 required
@@ -532,9 +560,21 @@ export function SendFristModal({
         >
           <div className="space-y-4">
             {/* Vilkår: §33.3 for force majeure, §33.1 for andre forhold */}
-            <KontraktsregelInline
-              hjemmel={grunnlagEvent?.hovedkategori && erForceMajeure(grunnlagEvent.hovedkategori) ? '§33.3' : '§33.1'}
-            />
+            {grunnlagEvent?.hovedkategori && erForceMajeure(grunnlagEvent.hovedkategori) ? (
+              <p className="text-sm text-pkt-text-body-subtle mb-3">
+                <ExpandableText preview="Totalentreprenøren har rett til fristforlengelse ved force majeure.">
+                  Blir fremdriften hindret på grunn av force majeure (ekstraordinære og upåregnelige
+                  forhold utenfor partens kontroll), har totalentreprenøren rett til fristforlengelse (§33.3).
+                </ExpandableText>
+              </p>
+            ) : (
+              <p className="text-sm text-pkt-text-body-subtle mb-3">
+                <ExpandableText preview="Totalentreprenøren har rett til fristforlengelse dersom fremdriften hindres.">
+                  Totalentreprenøren har rett til fristforlengelse dersom fremdriften hindres av forhold
+                  som skyldes byggherren eller forhold byggherren bærer risikoen for etter §24 (§33.1).
+                </ExpandableText>
+              </p>
+            )}
 
             <FormField
               required

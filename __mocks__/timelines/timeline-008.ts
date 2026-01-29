@@ -24,7 +24,6 @@ export const mockTimelineEvents8: TimelineEntry[] = [
       frist_varsel_ok: true,
       spesifisert_krav_ok: true,
       vilkar_oppfylt: true,
-      begrunnelse_vilkar: 'Ekstraordinær flom bekreftet. Utenfor partenes kontroll.',
       beregnings_resultat: 'godkjent',
       godkjent_dager: 8,
       begrunnelse: 'Alle 8 dager godkjennes.',

@@ -28,7 +28,6 @@ export const mockTimelineEvents1: TimelineEntry[] = [
       spesifisert_krav_ok: false,
       begrunnelse_varsel: 'Nøytralt varsel mottatt i tide. Spesifisert krav mangler detaljert framdriftsanalyse.',
       vilkar_oppfylt: true,
-      begrunnelse_vilkar: 'Årsakssammenheng mellom uventet fjell og forsinkelse er dokumentert.',
       beregnings_resultat: 'delvis_godkjent',
       godkjent_dager: 30,
       begrunnelse: '30 dager godkjent. Omprosjektering kan gjøres parallelt med andre arbeider. Sprengningsarbeider påvirker kritisk linje.',

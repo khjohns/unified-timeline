@@ -26,7 +26,6 @@ export const mockTimelineEvents4: TimelineEntry[] = [
       spesifisert_krav_ok: false,
       begrunnelse_varsel: 'Nøytralt varsel mottatt i tide, men spesifisert krav mangler.',
       vilkar_oppfylt: true,
-      begrunnelse_vilkar: 'Grunnlag er akseptert, årsakssammenheng dokumentert.',
       beregnings_resultat: 'avslatt',
       begrunnelse: 'Fristkravet avslås da det mangler dokumentasjon av arbeidsoperasjoner og påvirkning på framdrift. TE oppfordres til å revidere kravet med detaljert framdriftsplan.',
     },

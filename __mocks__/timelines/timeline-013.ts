@@ -26,7 +26,6 @@ export const mockTimelineEvents13: TimelineEntry[] = [
       spesifisert_krav_ok: true,
       begrunnelse_varsel: 'Varsler mottatt i tide.',
       vilkar_oppfylt: false,
-      begrunnelse_vilkar: 'BH mener arbeidet kan utføres parallelt med andre aktiviteter.',
       beregnings_resultat: 'avslatt',
       godkjent_dager: 0,
       begrunnelse:
