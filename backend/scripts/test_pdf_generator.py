@@ -375,7 +375,7 @@ def main():
         try:
             output_file = test_fn()
             generated_files.append(output_file)
-            print(f"  ✓ Success\n")
+            print("  ✓ Success\n")
         except Exception as e:
             print(f"  ✗ Failed: {e}\n")
             import traceback

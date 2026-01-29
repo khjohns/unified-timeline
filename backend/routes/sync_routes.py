@@ -19,7 +19,7 @@ from models.sync_models import DaluxCatendaSyncMapping
 from repositories.sync_mapping_repository import SyncMappingRepository
 from lib.auth.magic_link import require_magic_link
 from lib.auth.csrf_protection import require_csrf
-from lib.dalux_factory import get_dalux_client, get_dalux_api_key
+from lib.dalux_factory import get_dalux_client
 from lib.catenda_factory import get_catenda_client
 from utils.logger import get_logger
 

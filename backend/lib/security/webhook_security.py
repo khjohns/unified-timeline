@@ -85,7 +85,7 @@ def _get_redis():
         # Test connection
         _redis_client.ping()
         _redis_available = True
-        logger.info(f"✅ Redis tilkoblet for idempotency tracking")
+        logger.info("✅ Redis tilkoblet for idempotency tracking")
         return _redis_client
     except ImportError:
         _redis_available = False

@@ -8,7 +8,6 @@ from datetime import datetime, timezone, timedelta
 
 from services.fravik_service import FravikService
 from models.fravik_events import (
-    FravikEventType,
     FravikStatus,
     FravikBeslutning,
     FravikRolle,
@@ -20,14 +19,12 @@ from models.fravik_events import (
     Drivstoff,
     MaskinData,
     SoknadOpprettetData,
-    SoknadOppdatertData,
     MaskinVurderingData,
     MiljoVurderingData,
     PLVurderingData,
     ArbeidsgruppeVurderingData,
     EierBeslutningData,
     SoknadOpprettetEvent,
-    SoknadOppdatertEvent,
     SoknadSendtInnEvent,
     MaskinLagtTilEvent,
     MaskinFjernetEvent,
@@ -74,7 +71,6 @@ def make_soknad_data(**kwargs) -> SoknadOpprettetData:
     defaults.update(kwargs)
     return SoknadOpprettetData(**defaults)
 from models.fravik_state import (
-    FravikState,
     MaskinVurderingStatus,
 )
 

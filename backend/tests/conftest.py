@@ -8,10 +8,7 @@ Provides:
 """
 import pytest
 import tempfile
-import json
-from pathlib import Path
-from unittest.mock import Mock, MagicMock
-from datetime import datetime
+from unittest.mock import MagicMock
 
 # Import Flask app
 import sys

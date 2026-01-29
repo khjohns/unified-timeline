@@ -10,7 +10,6 @@ from utils.filtering_config import (
     get_filter_summary,
     validate_config,
     custom_filter,
-    ALLOWED_BOARD_IDS,
 )
 
 

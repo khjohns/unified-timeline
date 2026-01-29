@@ -119,10 +119,10 @@ class DaluxClient:
 
             # Handle auth errors
             if response.status_code == 401:
-                logger.error(f"Dalux API key invalid or expired")
+                logger.error("Dalux API key invalid or expired")
                 raise DaluxAuthError("Invalid API key")
             elif response.status_code == 403:
-                logger.error(f"Dalux API key lacks permission for this resource")
+                logger.error("Dalux API key lacks permission for this resource")
                 raise DaluxAuthError("Insufficient permissions")
 
             response.raise_for_status()

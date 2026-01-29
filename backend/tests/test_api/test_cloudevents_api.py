@@ -6,7 +6,6 @@ Tests:
 - Accept header content negotiation
 - CloudEvents format output
 """
-import pytest
 import sys
 sys.path.insert(0, '.')
 

@@ -11,7 +11,6 @@ Se docs/FULL_FLOW_TEST_PLAN.md for detaljert plan.
 import os
 import sys
 import time
-import json
 import requests
 from pathlib import Path
 from datetime import datetime
@@ -1154,7 +1153,7 @@ class KOEFlowTester(BaseTester):
         self.topic_title = f"TEST-{timestamp} - Automatisk testcase"
 
         print_info(f"Oppretter topic: {self.topic_title}")
-        print_info(f"Type: Krav om endringsordre")
+        print_info("Type: Krav om endringsordre")
 
         # Finn forste tilgjengelige status
         extensions = self.client.get_topic_board_extensions()
@@ -1180,7 +1179,7 @@ class KOEFlowTester(BaseTester):
             return False
 
         self.topic_guid = result.get('guid')
-        print_ok(f"Topic opprettet!")
+        print_ok("Topic opprettet!")
         print_info(f"GUID: {self.topic_guid}")
 
         return True
@@ -1625,7 +1624,7 @@ class KOEFlowTester(BaseTester):
         # 4.1 Revider vederlag
         print_subheader("4.1: TE reviderer vederlagskrav")
         print_info(f"  Nytt beløp: {TEST_DATA['vederlag_revisjon']['belop_direkte']:,.0f} kr")
-        print_info(f"  (Justert ned fra 150.000 kr)")
+        print_info("  (Justert ned fra 150.000 kr)")
 
         if not vederlag_event_id:
             print_warn("Kunne ikke finne vederlag event ID, hopper over")
@@ -1668,7 +1667,7 @@ class KOEFlowTester(BaseTester):
         # 4.2 Revider frist
         print_subheader("4.2: TE reviderer fristkrav")
         print_info(f"  Nye dager: {TEST_DATA['frist_revisjon']['antall_dager']}")
-        print_info(f"  (Justert ned fra 14 dager)")
+        print_info("  (Justert ned fra 14 dager)")
 
         if not frist_event_id:
             print_warn("Kunne ikke finne frist event ID, hopper over")
@@ -2250,7 +2249,7 @@ class ForseringFlowTester(BaseTester):
             print()
             print(f"  Forsering-sak: {self.forsering_sak['sak_id']}")
             print(f"  Estimert kostnad: {FORSERING_TEST_DATA['forsering']['estimert_kostnad']:,.0f} kr")
-            print(f"  Status: Akseptert av BH")
+            print("  Status: Akseptert av BH")
 
         print()
         print("  Flyten testet:")
@@ -2648,7 +2647,7 @@ class EOFlowTester(BaseTester):
             print(f"  EO-nummer: {eo_config['eo_nummer']}")
             print(f"  Sum KOE-krav: {total_belop:,.0f} kr")
             print(f"  BH kompensasjon: {eo_config['vederlag']['belop_direkte']:,.0f} kr")
-            print(f"  Status: Akseptert av TE")
+            print("  Status: Akseptert av TE")
 
         print()
         print("  Flyten testet:")
@@ -2747,7 +2746,7 @@ def main(flow_type: str = "koe"):
 
         if AUTO_CONFIRM:
             choice = "1"
-            print(f"[auto-confirm: valg 1]")
+            print("[auto-confirm: valg 1]")
         else:
             choice = input("Valg [1]: ").strip() or "1"
 

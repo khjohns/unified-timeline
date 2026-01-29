@@ -161,7 +161,6 @@ GROUP BY sak_id;
 
 from typing import List, Tuple, Optional, Literal
 import os
-from datetime import datetime
 
 # Supabase Python client
 try:

@@ -10,10 +10,8 @@ Design-prinsipper:
 3. Parallelisme: Hvert spor kan behandles uavhengig
 """
 from typing import List, Optional, Dict, Any
-from datetime import datetime
 
 from models.events import (
-    SakEvent,
     GrunnlagEvent,
     VederlagEvent,
     FristEvent,
@@ -33,8 +31,6 @@ from models.events import (
     SporType,
     SporStatus,
     GrunnlagResponsResultat,
-    VederlagBeregningResultat,
-    FristBeregningResultat,
     AnyEvent,
 )
 from models.sak_state import (
@@ -868,7 +864,6 @@ class TimelineService:
         VIKTIG: Dette mapper KUN beregningsresultatet, ikke grunnlag.
         Kombinasjonen av grunnlag + beregning håndteres av computed fields i SakState.
         """
-        from models.events import VederlagBeregningResultat, FristBeregningResultat
 
         # Felles mapping for både vederlag og frist
         if hasattr(resultat, 'value'):
@@ -1538,7 +1533,7 @@ class MigrationHelper:
         """
         from models.events import (
             GrunnlagData, VederlagData, FristData,
-            GrunnlagResponsData, VederlagResponsData, FristResponsData,
+            VederlagResponsData, FristResponsData,
         )
 
         events: List[AnyEvent] = []

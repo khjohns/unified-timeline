@@ -112,7 +112,7 @@ class CatendaService:
                 logger.info(f"✅ Comment posted successfully: {result.get('guid', 'N/A')}")
                 return result
             else:
-                logger.error(f"❌ Failed to post comment (no result)")
+                logger.error("❌ Failed to post comment (no result)")
                 return None
 
         except Exception as e:
@@ -162,7 +162,7 @@ class CatendaService:
                 logger.info(f"✅ Document uploaded: {result.get('library_item_id', 'N/A')}")
                 return result
             else:
-                logger.error(f"❌ Failed to upload document")
+                logger.error("❌ Failed to upload document")
                 return None
 
         except Exception as e:
@@ -196,10 +196,10 @@ class CatendaService:
             result = self.client.create_document_reference(topic_guid, document_guid)
 
             if result:
-                logger.info(f"✅ Document reference created")
+                logger.info("✅ Document reference created")
                 return result
             else:
-                logger.error(f"❌ Failed to create document reference")
+                logger.error("❌ Failed to create document reference")
                 return None
 
         except Exception as e:
@@ -228,7 +228,7 @@ class CatendaService:
                 logger.info(f"✅ Topic details retrieved: {result.get('title', 'N/A')}")
                 return result
             else:
-                logger.error(f"❌ Failed to get topic details")
+                logger.error("❌ Failed to get topic details")
                 return None
 
         except Exception as e:
@@ -257,7 +257,7 @@ class CatendaService:
                 logger.info(f"✅ Project details retrieved: {result.get('name', 'N/A')}")
                 return result
             else:
-                logger.error(f"❌ Failed to get project details")
+                logger.error("❌ Failed to get project details")
                 return None
 
         except Exception as e:
@@ -324,7 +324,7 @@ class CatendaService:
                 logger.info(f"✅ Topic status updated to: {catenda_status}")
                 return result
             else:
-                logger.error(f"❌ Failed to update topic status")
+                logger.error("❌ Failed to update topic status")
                 return None
 
         except Exception as e:

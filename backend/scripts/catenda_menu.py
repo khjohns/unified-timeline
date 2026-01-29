@@ -9,7 +9,7 @@ import sys
 import json
 import logging
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional
 from datetime import datetime
 
 # Legg til parent directory i path for imports
@@ -160,7 +160,7 @@ class CatendaInteractiveMenu:
             else:
                 if self.tester.select_library(self.project_id, "Documents"):
                      self.library_id = self.tester.library_id
-                     print(f"✅ Bibliotek 'Documents' valgt automatisk.")
+                     print("✅ Bibliotek 'Documents' valgt automatisk.")
                 else:
                     print("⚠️ Kunne ikke velge bibliotek automatisk. Du kan sette det manuelt fra menyen.")
             
@@ -478,7 +478,7 @@ class CatendaInteractiveMenu:
             )
             
             if result and 'guid' in result:
-                print(f"\n✅ Topic opprettet!")
+                print("\n✅ Topic opprettet!")
                 print(f"   GUID: {result['guid']}")
                 print(f"   Tittel: {result.get('title')}")
                 
@@ -675,7 +675,7 @@ class CatendaInteractiveMenu:
                 return
 
         # Bekreftelse
-        print(f"\n⚠️  ADVARSEL: Dette vil permanent slette topic:")
+        print("\n⚠️  ADVARSEL: Dette vil permanent slette topic:")
         print(f"   GUID: {topic_id}")
         if topic_title:
             print(f"   Tittel: {topic_title}")
@@ -889,7 +889,7 @@ class CatendaInteractiveMenu:
             )
 
             if success:
-                print(f"✅ Relasjoner opprettet!")
+                print("✅ Relasjoner opprettet!")
                 for guid in target_guids:
                     print(f"   {source_topic} → {guid}")
             else:
@@ -962,7 +962,7 @@ class CatendaInteractiveMenu:
             )
 
             if success_a and success_b:
-                print(f"✅ Toveis-relasjon opprettet!")
+                print("✅ Toveis-relasjon opprettet!")
                 print(f"   {topic_a_title} → {topic_b_title}")
                 print(f"   {topic_b_title} → {topic_a_title}")
             else:
@@ -1289,7 +1289,7 @@ class CatendaInteractiveMenu:
                     name = field.get('name', 'Ukjent')
                     field_type = field.get('type', 'N/A')
                     archived = " (arkivert)" if field.get('archived') else ""
-                    active = f" ✓ på board" if field_id in active_ids else ""
+                    active = " ✓ på board" if field_id in active_ids else ""
 
                     print(f"  {i}. {name} [{field_type}]{archived}{active}")
                     print(f"      ID: {field_id}")
@@ -1462,7 +1462,7 @@ class CatendaInteractiveMenu:
                 return
 
             if result:
-                print(f"\n✅ Custom field oppdatert")
+                print("\n✅ Custom field oppdatert")
             else:
                 print("❌ Kunne ikke oppdatere custom field")
 
@@ -1651,7 +1651,7 @@ class CatendaInteractiveMenu:
             inst = instances[idx]
             field = fields.get(inst.get('id'), {})
 
-            print(f"\n⚠️  Dette fjerner feltet fra boardet.")
+            print("\n⚠️  Dette fjerner feltet fra boardet.")
             print("   Eksisterende data på topics beholdes, men feltet vises ikke.")
             confirm = input(f"\nFjern '{field.get('name')}'? (j/n): ").strip().lower()
             if confirm != 'j':
@@ -2360,7 +2360,7 @@ class CatendaInteractiveMenu:
             
             if result:
                 library_item_id = result.get('id')
-                print(f"✅ Opplasting vellykket!")
+                print("✅ Opplasting vellykket!")
                 print(f"   Library Item ID: {library_item_id}")
                 print(f"   Navn: {result.get('name', 'N/A')}")
                 
@@ -2619,7 +2619,7 @@ class CatendaInteractiveMenu:
             )
             
             if result:
-                print(f"\n✅ Webhook opprettet!")
+                print("\n✅ Webhook opprettet!")
                 print(f"   ID: {result.get('id')}")
                 print(f"   Navn: {result.get('name')}")
                 print(f"   Event: {result.get('event')}")
@@ -2806,7 +2806,7 @@ class CatendaInteractiveMenu:
                 self.pause()
                 return
             
-            print(f"✅ Kommentar lagt til")
+            print("✅ Kommentar lagt til")
             
             # Oppsummering
             print("\n" + "="*70)
@@ -2815,7 +2815,7 @@ class CatendaInteractiveMenu:
             print(f"\nTopic ID: {topic_id}")
             print(f"Tittel: {topic_title}")
             print(f"Dokument: {document_guid}")
-            print(f"\nGå til Catenda for å se resultatet!")
+            print("\nGå til Catenda for å se resultatet!")
             
         except Exception as e:
             print(f"\n❌ Feil under demonstrasjon: {e}")

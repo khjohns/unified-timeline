@@ -6,7 +6,6 @@ These tests verify that tokens can be used multiple times within their TTL
 """
 import pytest
 import tempfile
-from datetime import datetime, timedelta
 from lib.auth.magic_link import MagicLinkManager
 
 

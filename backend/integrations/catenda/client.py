@@ -510,7 +510,7 @@ class CatendaClient:
             response.raise_for_status()
 
             extensions = response.json()
-            logger.info(f"✅ Hentet extensions")
+            logger.info("✅ Hentet extensions")
             return extensions
 
         except requests.exceptions.RequestException as e:
@@ -542,7 +542,7 @@ class CatendaClient:
             logger.error("❌ Ingen project ID angitt")
             return None
 
-        logger.info(f"📋 Henter board med custom fields...")
+        logger.info("📋 Henter board med custom fields...")
         url = f"{self.base_url}/v2/projects/{project_id}/issues/boards/{board_id}"
         params = {"include": "customFields,customFieldInstances"}
 
@@ -639,7 +639,7 @@ class CatendaClient:
         result = self._update_custom_fields(board_id, project_id, payload)
 
         if result:
-            logger.info(f"✅ Custom field lagt til")
+            logger.info("✅ Custom field lagt til")
         return result
 
     def modify_custom_field_on_board(
@@ -686,7 +686,7 @@ class CatendaClient:
         result = self._update_custom_fields(board_id, project_id, payload)
 
         if result:
-            logger.info(f"✅ Custom field oppdatert")
+            logger.info("✅ Custom field oppdatert")
         return result
 
     def disable_custom_field_on_board(
@@ -719,7 +719,7 @@ class CatendaClient:
         result = self._update_custom_fields(board_id, project_id, payload)
 
         if result:
-            logger.info(f"✅ Custom field deaktivert")
+            logger.info("✅ Custom field deaktivert")
         return result
 
     def restore_custom_field_on_board(
@@ -752,7 +752,7 @@ class CatendaClient:
         result = self._update_custom_fields(board_id, project_id, payload)
 
         if result:
-            logger.info(f"✅ Custom field gjenopprettet")
+            logger.info("✅ Custom field gjenopprettet")
         return result
 
     def delete_custom_field_from_board(
@@ -785,7 +785,7 @@ class CatendaClient:
         result = self._update_custom_fields(board_id, project_id, payload)
 
         if result:
-            logger.info(f"✅ Custom field fjernet")
+            logger.info("✅ Custom field fjernet")
         return result
 
     def list_available_custom_fields(
@@ -1003,7 +1003,7 @@ class CatendaClient:
             response.raise_for_status()
 
             field = response.json()
-            logger.info(f"✅ Enumeration items lagt til")
+            logger.info("✅ Enumeration items lagt til")
             return field
 
         except requests.exceptions.RequestException as e:
@@ -1914,7 +1914,7 @@ class CatendaClient:
             
             library_item_id = library_item['id']
             
-            logger.info(f"✅ Dokument lastet opp!")
+            logger.info("✅ Dokument lastet opp!")
             logger.info(f"   📌 library-item-id: {library_item_id}")
             logger.info(f"   📌 Navn: {library_item['name']}")
             logger.info(f"   📌 Type: {library_item['type']}")
@@ -2142,7 +2142,7 @@ class CatendaClient:
             logger.error("❌ Ingen topic board valgt")
             return None
         
-        logger.info(f"🔗 Oppretter document reference...")
+        logger.info("🔗 Oppretter document reference...")
         logger.info(f"   Topic ID: {topic_id}")
         logger.info(f"   Document GUID: {document_guid}")
         
@@ -2162,7 +2162,7 @@ class CatendaClient:
             
             doc_ref = response.json()
             
-            logger.info(f"✅ Document reference opprettet!")
+            logger.info("✅ Document reference opprettet!")
             logger.info(f"   📌 Reference GUID: {doc_ref['guid']}")
             logger.info(f"   📌 Document GUID: {doc_ref.get('document_guid', 'N/A')}")
             
@@ -2252,7 +2252,7 @@ class CatendaClient:
 
             comment = response.json()
 
-            logger.info(f"✅ Kommentar opprettet!")
+            logger.info("✅ Kommentar opprettet!")
             logger.info(f"   📌 Comment GUID: {comment['guid']}")
             logger.info(f"   📌 Forfatter: {comment.get('author', 'N/A')}")
             
@@ -2622,7 +2622,7 @@ class CatendaClient:
             response = requests.put(url, headers=self.get_headers(), json=payload)
             response.raise_for_status()
 
-            logger.info(f"✅ Relasjoner opprettet!")
+            logger.info("✅ Relasjoner opprettet!")
             for guid in related_topic_guids:
                 logger.info(f"  - {topic_id} → {guid}")
 
@@ -2710,7 +2710,7 @@ class CatendaClient:
             
             webhook = response.json()
             
-            logger.info(f"✅ Webhook opprettet!")
+            logger.info("✅ Webhook opprettet!")
             logger.info(f"   📌 Webhook ID: {webhook['id']}")
             logger.info(f"   📌 State: {webhook['state']}")
             
@@ -2924,7 +2924,7 @@ def create_test_pdf(file_path: str = "test_document.pdf"):
         from reportlab.pdfgen import canvas
         
         c = canvas.Canvas(file_path, pagesize=letter)
-        c.drawString(100, 750, f"Catenda API Test Document")
+        c.drawString(100, 750, "Catenda API Test Document")
         c.drawString(100, 730, f"Generated: {datetime.now().isoformat()}")
         c.drawString(100, 710, "This is a test document for API verification.")
         c.save()
@@ -2938,7 +2938,7 @@ def create_test_pdf(file_path: str = "test_document.pdf"):
         # Fallback: opprett en tekstfil som kan brukes for testing
         dummy_path = file_path.replace('.pdf', '.txt')
         with open(dummy_path, 'w', encoding='utf-8') as f:
-            f.write(f"Catenda API Test Document\n")
+            f.write("Catenda API Test Document\n")
             f.write(f"Generated: {datetime.now().isoformat()}\n")
             f.write("This is a test document for API verification.\n")
         
@@ -3137,7 +3137,7 @@ def main():
     print("=" * 80)
     print("\nSe 'catenda_api_test.log' for komplett testlogg.")
     print("\nViktigste funn:")
-    print(f"  • Autentisering: ✅")
+    print("  • Autentisering: ✅")
     print(f"  • Topic Board valgt: {tester.topic_board_id}")
     print(f"  • Library valgt: {tester.library_id}")
     print(f"  • ID Mapping: {'✅' if success else '❌'} {message}")

@@ -7,9 +7,6 @@ Verifies that:
 3. Expired links are rejected
 4. Tampered links are rejected
 """
-import pytest
-import json
-from unittest.mock import patch, MagicMock
 
 
 class TestMagicLinkGeneration:

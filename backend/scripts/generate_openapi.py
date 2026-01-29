@@ -24,8 +24,7 @@ import sys
 import json
 import argparse
 from pathlib import Path
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+from typing import Dict, Any
 
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -50,19 +49,11 @@ from models.events import (
     GrunnlagResponsData,
     VederlagResponsData,
     FristResponsData,
-    # Event models
-    SakEvent,
-    GrunnlagEvent,
-    VederlagEvent,
-    FristEvent,
-    ResponsEvent,
-    SakOpprettetEvent,
 )
 
 # Import constants for documentation
 from constants import (
     get_alle_hovedkategorier,
-    get_underkategorier_for_hovedkategori,
 )
 
 

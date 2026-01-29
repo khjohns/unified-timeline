@@ -5,18 +5,14 @@ Validates event data against NS 8407 constants before persistence.
 These validators are called BEFORE parse_event_from_request() to ensure
 data integrity at the API boundary.
 """
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from models.events import (
-    GrunnlagData,
-    VederlagData,
-    FristData,
     VederlagsMetode,
     FristVarselType,
 )
 from constants import (
     validate_kategori_kombinasjon,
     get_vederlag_metode,
-    krever_forhåndsvarsel,
     get_underkategorier_for_hovedkategori,
     get_alle_hovedkategorier,
 )

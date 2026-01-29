@@ -5,7 +5,7 @@ These tests verify the Catenda API integration service
 without making actual API calls (using mocks).
 """
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import tempfile
 from pathlib import Path
 

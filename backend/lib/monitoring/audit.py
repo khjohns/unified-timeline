@@ -332,7 +332,6 @@ def _test_audit_logging():
     Kjør med: python -c "from audit import _test_audit_logging; _test_audit_logging()"
     """
     import tempfile
-    import os
 
     print("Testing audit logging...")
 

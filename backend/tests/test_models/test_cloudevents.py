@@ -24,7 +24,6 @@ from models.events import (
     FristVarselType,
 )
 from models.cloudevents import (
-    CloudEventMixin,
     validate_cloudevent,
     CLOUDEVENTS_NAMESPACE,
     CLOUDEVENTS_SPECVERSION,

@@ -327,7 +327,7 @@ if AZURE_FUNCTIONS_AVAILABLE:
             return create_error_response("Server configuration error", 500)
 
         if secret_path != expected_secret:
-            logger.warning(f"Ugyldig webhook secret path forsøk")
+            logger.warning("Ugyldig webhook secret path forsøk")
             return create_error_response("Not found", 404)
 
         from lib.security.webhook_security import (

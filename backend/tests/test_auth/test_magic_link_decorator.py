@@ -1,7 +1,6 @@
 """
 Tests for the require_magic_link decorator.
 """
-import os
 import pytest
 from flask import Flask, jsonify
 from lib.auth import require_magic_link, get_magic_link_manager

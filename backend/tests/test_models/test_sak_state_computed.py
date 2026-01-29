@@ -18,7 +18,6 @@ from models.sak_state import (
 )
 from models.events import (
     SporStatus,
-    GrunnlagResponsResultat,
     VederlagBeregningResultat,
     FristBeregningResultat,
 )

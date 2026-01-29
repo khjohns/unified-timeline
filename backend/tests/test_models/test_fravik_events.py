@@ -4,8 +4,6 @@ Tests for Fravik event models.
 Tests event creation, validation, and parsing.
 """
 import pytest
-from datetime import datetime, timezone
-from uuid import uuid4
 
 from models.fravik_events import (
     FravikEventType,
@@ -20,21 +18,13 @@ from models.fravik_events import (
     Drivstoff,
     MaskinData,
     SoknadOpprettetData,
-    SoknadOppdatertData,
     MaskinVurderingData,
     MiljoVurderingData,
-    PLVurderingData,
     ArbeidsgruppeVurderingData,
     EierBeslutningData,
     SoknadOpprettetEvent,
-    SoknadOppdatertEvent,
-    SoknadSendtInnEvent,
-    SoknadTrukketEvent,
     MaskinLagtTilEvent,
-    MaskinFjernetEvent,
     MiljoVurderingEvent,
-    MiljoReturnertEvent,
-    PLVurderingEvent,
     ArbeidsgruppeVurderingEvent,
     EierGodkjentEvent,
     EierAvslattEvent,

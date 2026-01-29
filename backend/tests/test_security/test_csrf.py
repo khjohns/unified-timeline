@@ -6,9 +6,6 @@ Verifies that:
 2. CSRF tokens are validated correctly
 3. Invalid/missing tokens are rejected
 """
-import pytest
-import json
-from unittest.mock import patch
 
 
 class TestCSRFProtection:

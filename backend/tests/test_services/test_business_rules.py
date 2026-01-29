@@ -5,7 +5,6 @@ These tests ensure that business logic is properly enforced
 before events can be persisted.
 """
 import pytest
-from datetime import datetime
 from services.business_rules import BusinessRuleValidator, ValidationResult
 from services.timeline_service import TimelineService
 from models.events import (
@@ -22,7 +21,6 @@ from models.events import (
     ResponsEvent,
     GrunnlagResponsData,
     VederlagResponsData,
-    FristResponsData,
     EOUtstedtEvent,
     EOUtstedtData,
     EventType,
@@ -30,7 +28,6 @@ from models.events import (
     GrunnlagResponsResultat,
     VederlagBeregningResultat
 )
-from models.sak_state import SakState, SporStatus
 
 
 class TestBusinessRuleValidator:

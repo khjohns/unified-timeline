@@ -223,7 +223,7 @@ def _test_csrf_protection():
     # Test 2: Validate valid token
     valid, error = validate_csrf_token(token)
     assert valid and not error, f"Valid token failed: {error}"
-    print(f"✓ Valid token accepted")
+    print("✓ Valid token accepted")
 
     # Test 3: Validate invalid token
     valid, error = validate_csrf_token("invalid:token:here")
@@ -231,7 +231,7 @@ def _test_csrf_protection():
     print(f"✓ Invalid token rejected: {error}")
 
     # Test 4: Validate expired token (simulate old token)
-    old_token = f"nonce123:1000000000:fakesig"
+    old_token = "nonce123:1000000000:fakesig"
     valid, error = validate_csrf_token(old_token)
     assert not valid and "expired" in error.lower(), "Expired token was accepted!"
     print(f"✓ Expired token rejected: {error}")

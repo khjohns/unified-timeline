@@ -5,7 +5,7 @@ This service provides shared functionality for fetching state and events
 from related cases, used by both ForseringService and EndringsordreService.
 """
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 
 from services.related_cases_service import RelatedCasesService
 from models.sak_state import SakState

@@ -4,8 +4,7 @@ Tests for ForseringService.
 This service handles forsering cases (§33.8 NS 8407).
 """
 import pytest
-from unittest.mock import Mock, MagicMock, patch
-from datetime import datetime
+from unittest.mock import Mock, patch
 
 from services.forsering_service import ForseringService
 from models.sak_state import SakState, SakRelasjon, ForseringData, FristTilstand

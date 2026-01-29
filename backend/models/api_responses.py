@@ -13,11 +13,11 @@ Frontend-fanene:
 
 Hver fane har sin egen respons-type optimert for det visningen trenger.
 """
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, computed_field
 from typing import Optional, List, Literal, Union
 from datetime import datetime
 
-from models.events import SporStatus, SporType, GrunnlagResponsResultat, VederlagBeregningResultat, FristBeregningResultat
+from models.events import SporType, GrunnlagResponsResultat, VederlagBeregningResultat, FristBeregningResultat
 
 
 # ============ COMMON TYPES ============

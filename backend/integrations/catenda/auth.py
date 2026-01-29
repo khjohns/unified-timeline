@@ -486,7 +486,7 @@ def require_project_access(f):
         if project_id not in user_projects:
             return jsonify({
                 "error": "Forbidden",
-                "detail": f"You don't have access to this project"
+                "detail": "You don't have access to this project"
             }), 403
 
         # OK - proceed
@@ -501,7 +501,6 @@ def _test_auth():
     Test authentication functions (requires valid token).
     Kjør med: CATENDA_TOKEN=<token> python -c "from catenda_auth import _test_auth; _test_auth()"
     """
-    import os
     token = os.getenv("CATENDA_TOKEN")
 
     if not token:

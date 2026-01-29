@@ -45,7 +45,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-from integrations.dalux import DaluxClient, DaluxAuthError, DaluxAPIError
+from integrations.dalux import DaluxAuthError, DaluxAPIError
 from services.dalux_sync_service import DaluxSyncService
 from repositories.sync_mapping_repository import create_sync_mapping_repository
 from models.sync_models import DaluxCatendaSyncMapping
@@ -106,7 +106,7 @@ def cmd_sync(args):
         print(f"  Attachments synced: {result.attachments_synced}")
 
         if result.errors:
-            print(f"\nErrors:")
+            print("\nErrors:")
             for error in result.errors[:10]:  # Show first 10 errors
                 print(f"  - {error}")
             if len(result.errors) > 10:
@@ -170,7 +170,7 @@ def cmd_status(args):
         print("Dalux Configuration:")
         print(f"  Project ID: {mapping.dalux_project_id}")
         print(f"  Base URL: {mapping.dalux_base_url}")
-        print(f"  API Key: (from DALUX_API_KEY env var)")
+        print("  API Key: (from DALUX_API_KEY env var)")
         print()
         print("Catenda Configuration:")
         print(f"  Project ID: {mapping.catenda_project_id}")
@@ -278,7 +278,7 @@ def cmd_create(args):
 
         mapping_id = sync_repo.create_sync_mapping(mapping)
         print(f"Created sync mapping: {mapping_id}")
-        print(f"Note: API key read from DALUX_API_KEY environment variable")
+        print("Note: API key read from DALUX_API_KEY environment variable")
         return 0
 
     except Exception as e:

@@ -5,14 +5,12 @@ This service handles endringsordre cases (§31.3 NS 8407).
 """
 import pytest
 from unittest.mock import Mock, patch
-from datetime import datetime
 
 from services.endringsordre_service import EndringsordreService
 from models.sak_state import (
     SakState,
     SakRelasjon,
     EndringsordreData,
-    EOKonsekvenser,
     VederlagTilstand,
     FristTilstand,
     GrunnlagTilstand,

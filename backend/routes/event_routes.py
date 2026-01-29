@@ -49,7 +49,6 @@ from api.validators import (
     ValidationError as ApiValidationError,
 )
 from lib.cloudevents import (
-    format_event_response,
     format_timeline_response,
 )
 
@@ -198,7 +197,7 @@ def submit_event():
         if client_pdf_base64:
             logger.info(f"✅ Client provided PDF: {client_pdf_filename}")
         else:
-            logger.info(f"⚠️ No client PDF, backend will generate as fallback if needed")
+            logger.info("⚠️ No client PDF, backend will generate as fallback if needed")
 
         # 1. Validate event data against constants BEFORE parsing
         event_type = event_data.get('event_type')
@@ -952,7 +951,7 @@ def _post_to_catenda(
             if result:
                 logger.info(f"✅ Topic status updated to: {catenda_status}")
             else:
-                logger.warning(f"⚠️ Topic status update failed or returned None")
+                logger.warning("⚠️ Topic status update failed or returned None")
         else:
             logger.debug(f"📊 Status unchanged ({new_status}), skipping Catenda update")
 

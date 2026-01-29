@@ -615,7 +615,7 @@ class DaluxSyncService:
 
         # Add location images (plan drawings with marker)
         if location_images:
-            parts.append(f"- Lokasjonsbilder:")
+            parts.append("- Lokasjonsbilder:")
             for img in location_images:
                 name = img.get("name", "ukjent")
                 url = img.get("fileDownload", "")

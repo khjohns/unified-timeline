@@ -16,13 +16,12 @@ Endpoints:
 from flask import Blueprint, jsonify, request
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
-from typing import Dict, List, Any, Optional
-import json
+from typing import Dict, List, Any
 
 from repositories import create_event_repository
 from repositories.supabase_sak_metadata_repository import create_metadata_repository
 from services.timeline_service import TimelineService
-from models.events import parse_event, EventType
+from models.events import parse_event
 from lib.auth.magic_link import require_magic_link
 from utils.logger import get_logger
 

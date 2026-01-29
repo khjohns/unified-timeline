@@ -15,8 +15,8 @@ Godkjenningsflyt:
 4. Arbeidsgruppe gir innstilling (per maskin for machine, samlet for infrastructure)
 5. Eier fatter endelig vedtak
 """
-from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import Optional, Literal, List, Dict
+from pydantic import BaseModel, Field, model_validator
+from typing import Optional, Literal, List
 from datetime import datetime, timezone
 from enum import Enum
 from uuid import uuid4

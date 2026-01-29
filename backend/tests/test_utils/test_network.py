@@ -3,7 +3,6 @@ Tests for utils/network.py
 
 Network utility function tests.
 """
-import pytest
 import socket
 from unittest.mock import patch, MagicMock
 from utils.network import get_local_ip

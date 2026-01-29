@@ -57,7 +57,7 @@ def main():
         print("❌ CATENDA_PROJECT_ID mangler i .env")
         return
 
-    print(f"\n📋 Konfigurasjon:")
+    print("\n📋 Konfigurasjon:")
     print(f"   Dalux prosjekt:  {dalux_project_id}")
     print(f"   Catenda prosjekt: {catenda_project_id}")
     print(f"   Catenda mappe:    {catenda_folder_id or 'Rot'}")
@@ -124,7 +124,7 @@ def main():
     file_name = test_file.get('fileName', 'test_file')
     file_size = test_file.get('fileSize', 0)
 
-    print(f"\n📎 Valgt fil for test:")
+    print("\n📎 Valgt fil for test:")
     print(f"   File ID:    {file_id}")
     print(f"   Filnavn:    {file_name}")
     print(f"   Størrelse:  {file_size:,} bytes")
@@ -185,7 +185,7 @@ def main():
         return
 
     document_id = upload_result.get('id')
-    print(f"✅ Dokument lastet opp!")
+    print("✅ Dokument lastet opp!")
     print(f"   Document ID: {document_id}")
     print(f"   Navn:        {upload_result.get('name', 'N/A')}")
 
@@ -239,7 +239,7 @@ def main():
                     )
 
                 if doc_ref:
-                    print(f"✅ Document reference opprettet!")
+                    print("✅ Document reference opprettet!")
                     print(f"   Reference GUID: {doc_ref.get('guid')}")
                 else:
                     print("⚠️ Document reference feilet (begge UUID-format)")

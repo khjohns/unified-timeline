@@ -17,12 +17,12 @@ Endpoints:
 - POST /api/fravik/<sak_id>/arbeidsgruppe-vurdering - Arbeidsgruppe vurdering
 - POST /api/fravik/<sak_id>/eier-beslutning - Eier beslutning
 """
-from typing import Optional, Dict, Any, List
+from typing import Any, List
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from services.fravik_service import FravikService, fravik_service
+from services.fravik_service import fravik_service
 from repositories import create_event_repository
 from repositories.event_repository import ConcurrencyError
 from lib.decorators import handle_service_errors
@@ -38,16 +38,12 @@ from models.fravik_events import (
     SoknadOppdatertEvent,
     SoknadOppdatertData,
     SoknadSendtInnEvent,
-    SoknadTrukketEvent,
     MaskinLagtTilEvent,
     MaskinData,
-    MaskinFjernetEvent,
     MiljoVurderingEvent,
     MiljoVurderingData,
-    MiljoReturnertEvent,
     PLVurderingEvent,
     PLVurderingData,
-    PLReturnertevent,
     ArbeidsgruppeVurderingEvent,
     ArbeidsgruppeVurderingData,
     EierGodkjentEvent,

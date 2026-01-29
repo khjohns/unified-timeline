@@ -5,7 +5,6 @@ Tests VarselInfo, GrunnlagData, VederlagData, FristData, and all event types.
 Ensures that validators work correctly and that the Port model logic is sound.
 """
 import pytest
-from datetime import datetime
 from models.events import (
     VarselInfo,
     GrunnlagData,

@@ -25,7 +25,6 @@ from routes.related_cases_utils import (
     build_relaterte_response,
     build_kontekst_response,
     build_kandidater_response,
-    build_success_message,
     validate_required_fields,
     safe_find_related,
 )

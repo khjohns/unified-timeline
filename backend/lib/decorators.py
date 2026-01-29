@@ -45,7 +45,7 @@ def handle_service_errors(f):
                 "error": "CATENDA_ERROR",
                 "message": str(e)
             }), 502
-        except Exception as e:
+        except Exception:
             logger.exception("Unexpected error in route handler")
             return jsonify({
                 "success": False,

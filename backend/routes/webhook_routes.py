@@ -67,7 +67,7 @@ def get_webhook_service() -> WebhookService:
     )
 
 
-@webhook_bp.route(f'/webhook/catenda/<secret_path>', methods=['POST'])
+@webhook_bp.route('/webhook/catenda/<secret_path>', methods=['POST'])
 @limit_webhook  # Rate limiting (100/min default)
 def webhook(secret_path):
     """

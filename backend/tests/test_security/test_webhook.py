@@ -7,10 +7,9 @@ Verifies that:
 3. Idempotency check works
 4. Event structure validation works
 """
-import pytest
 import json
 import os
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 
 class TestWebhookSecurity:

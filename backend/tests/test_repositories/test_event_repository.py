@@ -5,9 +5,6 @@ CRITICAL: These tests verify data integrity under concurrent access.
 """
 import pytest
 import tempfile
-import os
-from pathlib import Path
-from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from repositories.event_repository import (
     JsonFileEventRepository,
@@ -16,9 +13,7 @@ from repositories.event_repository import (
 from models.events import (
     SakOpprettetEvent,
     GrunnlagEvent,
-    GrunnlagData,
-    VederlagEvent,
-    VederlagData
+    GrunnlagData
 )
 
 

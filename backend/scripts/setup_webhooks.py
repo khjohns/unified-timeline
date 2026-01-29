@@ -5,7 +5,6 @@ Oppretter nødvendige webhooks for KOE Automation System
 """
 
 import sys
-import json
 import logging
 import requests
 import os
@@ -347,7 +346,7 @@ def setup_webhooks_interactive():
             created_webhooks.append(webhook)
             print(f"   ✅ OK (ID: {webhook.get('id')})\n")
         else:
-            print(f"   ❌ Feilet\n")
+            print("   ❌ Feilet\n")
     
     # Oppsummering
     print_header("✅ WEBHOOK-OPPSETT FULLFØRT!")

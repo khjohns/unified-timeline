@@ -9,7 +9,6 @@ from pathlib import Path
 import json
 import os
 import fcntl  # Unix-only - see platform requirements
-from datetime import datetime
 
 
 class ConcurrencyError(Exception):

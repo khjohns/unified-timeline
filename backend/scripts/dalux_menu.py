@@ -65,7 +65,7 @@ class DaluxInteractiveMenu:
     def print_status(self):
         """Vis tilkoblingsstatus"""
         if self.client:
-            print(f"[Tilkoblet] ", end="")
+            print("[Tilkoblet] ", end="")
             if self.current_project_name:
                 print(f"Prosjekt: {self.current_project_name} ({self.current_project_id})")
             else:
@@ -125,7 +125,7 @@ class DaluxInteractiveMenu:
             marker = " <-- valgt" if project_id == self.current_project_id else ""
             print(f"  {i}. {project_name} (ID: {project_id}){marker}")
 
-        print(f"\n  0. Tilbake")
+        print("\n  0. Tilbake")
 
         try:
             choice = input("\nVelg prosjekt: ").strip()
@@ -242,7 +242,7 @@ class DaluxInteractiveMenu:
             if udf:
                 items = udf.get("items", [])
                 if items:
-                    print(f"\nEgendefinerte felter:")
+                    print("\nEgendefinerte felter:")
                     for item in items[:10]:
                         name = item.get("name", "?")
                         values = item.get("values", [])
@@ -304,7 +304,7 @@ class DaluxInteractiveMenu:
         sorted_tasks = [t for _, t in ruh_tasks] + other_tasks
 
         # Vis de første sakene
-        print(f"Tilgjengelige saker (eldste RUH først):\n")
+        print("Tilgjengelige saker (eldste RUH først):\n")
         print(f"{'#':<4} {'Nummer':<10} {'Type':<12} {'Tittel':<40}")
         print("-" * 70)
 
@@ -500,7 +500,7 @@ class DaluxInteractiveMenu:
                     for line in desc_lines[:3]:
                         print(f"│       \"{line}\"")
                     if len(desc_lines) > 3:
-                        print(f"│       ...")
+                        print("│       ...")
 
                 # Show who made the change
                 modified_by = fields.get("modifiedBy", {})
@@ -555,7 +555,7 @@ class DaluxInteractiveMenu:
         has_udf = len(udf) > 0
 
         print("DATATILGJENGELIGHET:")
-        print(f"  Grunndata:        ✅")
+        print("  Grunndata:        ✅")
         print(f"  Lokasjon:         {'✅' if has_location else '❌'}")
         print(f"  Egendefinerte:    {'✅ ' + str(len(udf)) + ' felt' if has_udf else '❌'}")
         print(f"  Historikk:        {'✅ ' + str(len(task_changes)) + ' endringer' if has_changes else '⚠️  Ikke i API-respons'}")
@@ -797,11 +797,11 @@ class DaluxInteractiveMenu:
             if not mapping:
                 print(f"Ingen sync mapping funnet for prosjekt {self.current_project_id}")
                 print("\nOpprett en mapping først med:")
-                print(f"  python scripts/dalux_sync.py create \\")
-                print(f"    --project-id <intern_id> \\")
+                print("  python scripts/dalux_sync.py create \\")
+                print("    --project-id <intern_id> \\")
                 print(f"    --dalux-project-id {self.current_project_id} \\")
-                print(f"    --catenda-project-id <catenda_id> \\")
-                print(f"    --catenda-board-id <board_id>")
+                print("    --catenda-project-id <catenda_id> \\")
+                print("    --catenda-board-id <board_id>")
                 self.pause()
                 return
 
@@ -843,7 +843,7 @@ class DaluxInteractiveMenu:
             print(f"  Tasks feilet: {result.tasks_failed}")
 
             if result.errors:
-                print(f"\nFeil:")
+                print("\nFeil:")
                 for err in result.errors[:5]:
                     print(f"  - {err}")
 

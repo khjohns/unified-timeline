@@ -164,7 +164,7 @@ if __name__ == "__main__":
     print("\n" + "="*70)
     print("🚀 KOE Backend API - Event Sourcing Architecture")
     print("="*70)
-    print(f"\n📡 Server: http://localhost:8080")
+    print("\n📡 Server: http://localhost:8080")
     print(f"🔍 Environment: {'Development' if app.config['DEBUG'] else 'Production'}")
     print(f"🔗 CORS: {os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173')}")
     print("\n📋 Available Endpoints:")

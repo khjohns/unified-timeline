@@ -762,7 +762,7 @@ def create_forsering_sak_bh_snudd(sak_id: str, repo: EventRepository) -> tuple[s
     repo.append_batch(forsering_events, expected_version=0)
 
     # 3. BH snur - godkjenner fristkravet på KOE-saken
-    print(f"\n  BH snur og godkjenner frist på KOE-sak...")
+    print("\n  BH snur og godkjenner frist på KOE-sak...")
 
     # Versjonen er antall events vi la til (7 events i koe_events)
     koe_version = len(koe_events)
@@ -993,7 +993,7 @@ def interactive_mode():
             print(f"Ugyldig input. Skriv et tall 1-{max_choice}.")
 
     print()
-    sak_id_input = input(f"Sak-ID (Enter for auto-generert): ").strip()
+    sak_id_input = input("Sak-ID (Enter for auto-generert): ").strip()
     sak_id = sak_id_input if sak_id_input else None
 
     print()

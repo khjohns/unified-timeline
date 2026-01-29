@@ -18,7 +18,6 @@ from models.events import (
     VederlagBeregningResultat,
     FristBeregningResultat,
     VarselInfo,
-    AnyEvent,
 )
 
 
@@ -1003,7 +1002,7 @@ class SakState(BaseModel):
             elif self.vederlag.bh_resultat == VederlagBeregningResultat.DELVIS_GODKJENT:
                 return f"Avslått pga. ansvar (Subsidiært delvis enig om {belop})"
             else:
-                return f"Avslått pga. ansvar (Subsidiært)"
+                return "Avslått pga. ansvar (Subsidiært)"
 
         # Normal (prinsipal) status
         if self.vederlag.status == SporStatus.GODKJENT:

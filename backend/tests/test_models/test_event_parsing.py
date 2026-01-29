@@ -5,7 +5,6 @@ Tests both parse_event and parse_event_from_request, including
 security validation of server-controlled fields.
 """
 import pytest
-from datetime import datetime
 from models.events import (
     parse_event,
     parse_event_from_request,
@@ -14,7 +13,6 @@ from models.events import (
     VederlagEvent,
     FristEvent,
     ResponsEvent,
-    EventType,
     SporType,
     GrunnlagResponsResultat
 )

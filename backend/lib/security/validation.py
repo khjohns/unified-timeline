@@ -27,7 +27,7 @@ Dato: 2025-11-24
 """
 
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 
 class ValidationError(Exception):
@@ -312,7 +312,7 @@ def validate_sak_status(val: Any, field_name: str = "status") -> str:
     if val not in ALLOWED_STATUSES:
         raise ValidationError(
             field_name,
-            f"Invalid status code (must be one of the defined status codes)"
+            "Invalid status code (must be one of the defined status codes)"
         )
 
     return val
