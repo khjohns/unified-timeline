@@ -310,3 +310,37 @@ radon cc backend/ -a -s --min C  # Verifiser CC-reduksjon
 | `event_routes.py` gjennomsnitt | - | - | **B (6.7)** |
 | Kritiske funksjoner (F) | 3 | 1 | **0** |
 | Veldig høy kompleksitet (E) | 4 | 2 | **0** |
+
+---
+
+## Fase 3: Anbefalinger for videre arbeid (Valgfritt)
+
+Etter Fase 1 og 2 er de mest kritiske funksjonene refaktorert. Gjenstående funksjoner med CC ≥ C er:
+
+| Funksjon | Fil | CC | Anbefaling |
+|----------|-----|-----|------------|
+| `_handle_eo_utstedt` | `timeline_service.py` | D (24) | **Prioritet 1** - Kan bruke lignende mønster som respons-handlers |
+| `validate_frist_event` | `validators.py` | C (20) | Trekk ut `_validate_frist_fields()` og `_validate_specification_fields()` |
+| `get_vederlag_historikk` | `timeline_service.py` | C (19) | Kan vente - kun lesing |
+| `submit_batch` | `event_routes.py` | C (18) | Bruk eksisterende hjelpere fra submit_event |
+| `submit_event` | `event_routes.py` | C (17) | Akseptabel - videre splitting gir lite gevinst |
+| `_handle_respons_vederlag` | `timeline_service.py` | C (17) | Allerede forbedret i Fase 1 |
+
+### Vurdering
+
+**Anbefalt for Fase 3:**
+- `_handle_eo_utstedt` (CC 24) - Høyeste gjenstående, potensial for -10 CC
+- `validate_frist_event` (CC 20) - Kan nå < 12 med 2 hjelpefunksjoner
+
+**Kan vente:**
+- `submit_batch` - Følger samme mønster som submit_event, relativt isolert
+- Historikk-funksjoner - Read-only, lav risiko, kompleksitet er akseptabel
+
+**Akseptabel som-er:**
+- `submit_event` (CC 17) - Videre splitting ville fragmentere flyten for mye
+- `enrich_event_with_version` (CC 14) - Tydelig struktur med instanceof-sjekker
+
+### Hovedgevinst oppnådd
+
+De tre mest kritiske funksjonene (CC 50, 37, 25) er redusert til akseptable nivåer.
+Ingen funksjoner har lenger CC F eller E. Kodebasen er nå vedlikeholdbar.
