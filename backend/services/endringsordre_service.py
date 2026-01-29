@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
 
 from utils.logger import get_logger
+from lib.helpers import get_all_sak_ids
 from models.sak_state import (
     SaksType,
     EOStatus,
@@ -582,36 +583,12 @@ class EndringsordreService(BaseSakService):
             Liste med kandidat-saker (sak_id, tittel, status)
         """
         # Hent liste over sak-IDer å søke gjennom
-        sak_ids_to_search = []
-
-        # Prøv Catenda først hvis tilgjengelig
-        if self.client:
-            try:
-                topics = self.client.list_topics()
-                # Map Catenda topic GUIDs til sak_ids via metadata
-                for topic in topics:
-                    topic_guid = topic.get('guid')
-                    if not topic_guid:
-                        continue
-                    if self.metadata_repository:
-                        metadata = self.metadata_repository.get_by_topic_id(topic_guid)
-                        if metadata:
-                            sak_ids_to_search.append(metadata.sak_id)
-            except Exception as e:
-                logger.warning(f"Kunne ikke hente topics fra Catenda: {e}")
-
-        # Fallback til event repository hvis ingen saker fra Catenda
-        if not sak_ids_to_search and self.event_repository:
-            try:
-                # Prøv list_all_sak_ids (JsonFileEventRepository)
-                if hasattr(self.event_repository, 'list_all_sak_ids'):
-                    sak_ids_to_search = self.event_repository.list_all_sak_ids()
-                # Eller get_all_sak_ids (SupabaseEventRepository)
-                elif hasattr(self.event_repository, 'get_all_sak_ids'):
-                    sak_ids_to_search = self.event_repository.get_all_sak_ids()
-                logger.info(f"Bruker event repository fallback for kandidater, fant {len(sak_ids_to_search)} saker")
-            except Exception as e:
-                logger.warning(f"Kunne ikke liste saker fra event repository: {e}")
+        sak_ids_to_search = get_all_sak_ids(
+            catenda_client=self.client,
+            event_repository=self.event_repository,
+            metadata_repository=self.metadata_repository,
+            use_metadata_mapping=True
+        )
 
         if not sak_ids_to_search:
             logger.warning("Ingen saker å søke gjennom for kandidat-KOE-saker")
@@ -658,28 +635,10 @@ class EndringsordreService(BaseSakService):
         eoer = []
 
         # Hent liste over sak-IDer å søke gjennom
-        sak_ids_to_search = []
-
-        # Prøv Catenda først hvis tilgjengelig
-        if self.client:
-            try:
-                topics = self.client.list_topics()
-                sak_ids_to_search = [t.get('guid') for t in topics if t.get('guid')]
-            except Exception as e:
-                logger.warning(f"Kunne ikke hente topics fra Catenda: {e}")
-
-        # Fallback til event repository hvis ingen saker fra Catenda
-        if not sak_ids_to_search and self.event_repository:
-            try:
-                # Prøv list_all_sak_ids (JsonFileEventRepository)
-                if hasattr(self.event_repository, 'list_all_sak_ids'):
-                    sak_ids_to_search = self.event_repository.list_all_sak_ids()
-                # Eller get_all_sak_ids (SupabaseEventRepository)
-                elif hasattr(self.event_repository, 'get_all_sak_ids'):
-                    sak_ids_to_search = self.event_repository.get_all_sak_ids()
-                logger.info(f"Bruker event repository fallback, fant {len(sak_ids_to_search)} saker")
-            except Exception as e:
-                logger.warning(f"Kunne ikke liste saker fra event repository: {e}")
+        sak_ids_to_search = get_all_sak_ids(
+            catenda_client=self.client,
+            event_repository=self.event_repository
+        )
 
         if not sak_ids_to_search:
             logger.warning("Ingen saker å søke gjennom for EOer")

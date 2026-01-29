@@ -549,7 +549,7 @@ backend/lib/helpers/
 
 ---
 
-### Faktiske resultater (Fase 4 delvis implementert 2026-01-29)
+### Faktiske resultater (Fase 4 fullført 2026-01-29)
 
 #### Implementerte hjelpefunksjoner
 
@@ -560,6 +560,7 @@ backend/lib/helpers/
 | `version_conflict_response()` | `lib/helpers/version_control.py` | Standard 409-respons for versjonskonflikter |
 | `error_response()` | `lib/helpers/responses.py` | Generisk feilrespons-builder |
 | `success_response()` | `lib/helpers/responses.py` | Generisk suksess-respons-builder |
+| `get_all_sak_ids()` | `lib/helpers/sak_lookup.py` | Henter sak-IDer fra Catenda/repo med fallback |
 
 #### Refaktorerte filer
 
@@ -568,6 +569,8 @@ backend/lib/helpers/
 | `fravik_routes.py` | Bruker nye hjelpere i 10 endpoints | ~50 linjer |
 | `event_routes.py` | Bruker `handle_concurrency_error()` i 2 endpoints | ~14 linjer |
 | `forsering_routes.py` | Bruker `handle_concurrency_error()` i 3 endpoints + standardisert feilkoder | ~21 linjer |
+| `endringsordre_service.py` | Bruker `get_all_sak_ids()` i 2 metoder | ~40 linjer |
+| `forsering_service.py` | Bruker `get_all_sak_ids()` i 1 metode | ~20 linjer |
 
 **Viktig:** forsering_routes.py brukte tidligere inkonsistent feilkode `CONCURRENCY_CONFLICT` og felt `actual_version`.
 Nå bruker alle routes konsekvent `VERSION_CONFLICT` og `current_version`.
@@ -576,13 +579,21 @@ Nå bruker alle routes konsekvent `VERSION_CONFLICT` og `current_version`.
 
 - `tests/test_lib/test_helpers.py` - 20+ enhetstester for alle hjelpefunksjoner
 
-#### Gjenstående arbeid (Fase 4)
+#### Vurdering av gjenstående oppgaver
 
-| Oppgave | Status |
-|---------|--------|
-| `get_all_sak_ids()` | Ikke implementert |
-| Refaktorer endringsordre_routes.py | Ikke startet |
-| PDF-seksjon builder | Ikke startet |
+| Oppgave | Beslutning |
+|---------|------------|
+| `get_all_sak_ids()` | ✅ Implementert |
+| Refaktorer endringsordre_routes.py | ⏭️ Ikke nødvendig (kun 193 linjer, ingen duplisert feilhåndtering) |
+| PDF-seksjon builder | ⏸️ Lav prioritet - kan vurderes ved fremtidig PDF-arbeid |
+
+#### Total reduksjon Fase 4
+
+| Metrikk | Verdi |
+|---------|-------|
+| Linjer duplisert kode fjernet | ~145 linjer |
+| Filer refaktorert | 5 routes + 2 services |
+| Nye hjelpefunksjoner | 6 |
 
 ---
 
