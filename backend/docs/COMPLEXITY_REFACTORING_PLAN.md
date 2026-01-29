@@ -344,3 +344,223 @@ Etter Fase 1 og 2 er de mest kritiske funksjonene refaktorert. Gjenstående funk
 
 De tre mest kritiske funksjonene (CC 50, 37, 25) er redusert til akseptable nivåer.
 Ingen funksjoner har lenger CC F eller E. Kodebasen er nå vedlikeholdbar.
+
+---
+
+## Fase 4: Analyse av duplisert kode (2026-01-29)
+
+Analyse utført med `jscpd`, `pylint --enable=similarities`, `radon cc` og `vulture`.
+
+### Verktøy brukt
+
+| Verktøy | Formål | Kommando |
+|---------|--------|----------|
+| jscpd | Copy-paste deteksjon | `jscpd backend/ --min-lines 5 --min-tokens 40` |
+| pylint | Similarity-sjekk | `pylint --disable=all --enable=similarities` |
+| radon | Cyclomatic Complexity | `radon cc backend/ -a -s --min C` |
+| vulture | Ubrukt kode | `vulture backend/ --min-confidence 80` |
+
+### Overordnet statistikk (jscpd)
+
+| Metrikk | Verdi |
+|---------|-------|
+| Filer analysert | 111 |
+| Totalt linjer | 35 666 |
+| Kloner funnet | 95 |
+| Dupliserte linjer | 1 048 (2.94%) |
+| Dupliserte tokens | 9 151 (4.25%) |
+
+### Prioriterte funn i produksjonskode
+
+#### 4.1 Duplisert kode mellom services (HØY PRIORITET)
+
+| Kilde | Destinasjon | Linjer | Beskrivelse |
+|-------|-------------|--------|-------------|
+| `endringsordre_service.py:658-685` | `forsering_service.py:340-367` | 27 | Sak-ID henting fra Catenda/repo |
+| `endringsordre_service.py:600-612` | `forsering_service.py:350-362` | 12 | Catenda topic-listing |
+| `endringsordre_service.py:51-66` | `forsering_service.py:30-45` | 15 | Service-initialisering |
+| `fravik_service.py:248-267` | `fravik_service.py:214-233` | 19 | Event-håndtering |
+
+**Forslag til felles hjelpefunksjon:**
+
+```python
+# backend/lib/helpers/sak_lookup.py
+def get_all_sak_ids(
+    catenda_client: Optional[CatendaClient],
+    event_repo: EventRepository,
+    metadata_repo: Optional[SakMetadataRepository] = None
+) -> List[str]:
+    """
+    Henter alle sak-IDs fra Catenda eller event repository.
+    Prøver Catenda først, faller tilbake til lokal repo.
+    """
+    sak_ids = []
+    if catenda_client:
+        try:
+            topics = catenda_client.list_topics()
+            sak_ids = [t.get('guid') for t in topics if t.get('guid')]
+        except Exception as e:
+            logger.warning(f"Kunne ikke hente fra Catenda: {e}")
+
+    if not sak_ids and event_repo:
+        if hasattr(event_repo, 'list_all_sak_ids'):
+            sak_ids = event_repo.list_all_sak_ids()
+        elif hasattr(event_repo, 'get_all_sak_ids'):
+            sak_ids = event_repo.get_all_sak_ids()
+
+    return sak_ids
+```
+
+**Estimert reduksjon:** -50 linjer duplisert kode
+
+---
+
+#### 4.2 Duplisert kode i fravik_routes.py (HØY PRIORITET)
+
+| Kilde | Destinasjon | Linjer | Beskrivelse |
+|-------|-------------|--------|-------------|
+| `fravik_routes.py:366-387` | `fravik_routes.py:272-293` | 21 | Versjonskontroll + event henting |
+| `fravik_routes.py:527-538` | `fravik_routes.py:451-462` | 11 | Validering før append |
+| `fravik_routes.py:555-569` | `fravik_routes.py:476-490` | 14 | State-beregning etter append |
+| `fravik_routes.py:685-708` | `fravik_routes.py:618-641` | 23 | ConcurrencyError-håndtering |
+
+**Forslag til felles hjelpefunksjoner:**
+
+```python
+# backend/lib/helpers/version_control.py
+def validate_version_and_get_events(
+    event_repo: EventRepository,
+    sak_id: str,
+    expected_version: int
+) -> tuple[Optional[list], Optional[int], Optional[tuple]]:
+    """
+    Henter events og validerer versjon.
+
+    Returns:
+        (events, current_version, error_response)
+        error_response er tuple (jsonify_response, status_code) hvis feil, ellers None.
+    """
+    events, current_version = event_repo.get_events(sak_id)
+    if not events:
+        return None, None, (jsonify({
+            "success": False,
+            "error": "NOT_FOUND",
+            "message": f"Sak {sak_id} ikke funnet"
+        }), 404)
+
+    if expected_version != current_version:
+        return events, current_version, (jsonify({
+            "success": False,
+            "error": "VERSION_CONFLICT",
+            "expected_version": expected_version,
+            "current_version": current_version,
+            "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
+        }), 409)
+
+    return events, current_version, None
+
+
+def handle_concurrency_error(error: ConcurrencyError) -> tuple:
+    """Bygger standard 409 respons for versjonskonflikter."""
+    return jsonify({
+        "success": False,
+        "error": "VERSION_CONFLICT",
+        "expected_version": error.expected,
+        "current_version": error.actual,
+        "message": "Samtidig endring oppdaget. Vennligst last inn på nytt."
+    }), 409
+```
+
+**Estimert reduksjon:** -70 linjer duplisert kode, brukes i 8+ endepunkter
+
+---
+
+#### 4.3 Duplisert kode i sync_routes.py
+
+| Kilde | Destinasjon | Linjer |
+|-------|-------------|--------|
+| `sync_routes.py:602-613` | `sync_routes.py:550-561` | 11 |
+| `sync_routes.py:645-658` | `sync_routes.py:550-615` | 13 |
+
+**Forslag:** Trekk ut felles sync-operasjon til `_perform_sync_operation()`.
+
+---
+
+#### 4.4 Duplisert PDF-generering (MEDIUM PRIORITET)
+
+| Kilde | Destinasjon | Linjer | Beskrivelse |
+|-------|-------------|--------|-------------|
+| `reportlab_pdf_generator.py:477-491` | `reportlab_pdf_generator.py:410-424` | 14 | Vederlag-seksjon |
+| `reportlab_pdf_generator.py:503-517` | `reportlab_pdf_generator.py:433-447` | 14 | Frist-seksjon |
+| `letter_pdf_generator.py:106-112` | `reportlab_pdf_generator.py:207-213` | 6 | Font-setup |
+
+**Forslag:** Trekk ut `_build_spor_section()` som generisk seksjon-builder.
+
+---
+
+#### 4.5 Duplisert modell-definisjon (LAV PRIORITET)
+
+| Kilde | Destinasjon | Linjer | Beskrivelse |
+|-------|-------------|--------|-------------|
+| `fravik_events.py:298-331` | `fravik_state.py:370-403` | 33 | Strømtilgang-felter |
+| `fravik_events.py:351-382` | `fravik_state.py:420-450` | 31 | Aggregat-felter |
+| `events.py:1292-1317` | `sak_state.py:332-357` | 25 | Forsering-felter |
+
+**Forslag:** Vurder Pydantic mixins eller felles base-klasser for delte felter.
+
+---
+
+#### 4.6 Repository-duplikasjon (LAV PRIORITET)
+
+| Kilde | Destinasjon | Linjer |
+|-------|-------------|--------|
+| `sak_metadata_repository.py:73-88` | `supabase_sak_metadata_repository.py:153-168` | 15 |
+| `sak_metadata_repository.py:116-138` | Samme fil, flere metoder | 15+ |
+
+**Forslag:** Trekk ut felles CRUD-operasjoner til base repository.
+
+---
+
+### Foreslått ny hjelpefunksjon-struktur
+
+```
+backend/lib/helpers/
+├── __init__.py
+├── version_control.py      # validate_version_and_get_events, handle_concurrency_error
+├── error_responses.py      # error_response, not_found_response, validation_error_response
+├── success_responses.py    # success_response (utvide existing)
+├── sak_lookup.py           # get_all_sak_ids, get_state_from_repository
+└── event_operations.py     # append_event_and_compute_state
+```
+
+---
+
+### Fase 4 prioritert rekkefølge
+
+| Prioritet | Oppgave | Filer | Estimert reduksjon |
+|-----------|---------|-------|-------------------|
+| 1 | `validate_version_and_get_events()` | fravik_routes, forsering_routes | -70 linjer |
+| 2 | `handle_concurrency_error()` | Alle routes | -40 linjer |
+| 3 | `get_all_sak_ids()` | endringsordre_service, forsering_service | -50 linjer |
+| 4 | `error_response()` + varianter | Alle routes | -100+ linjer |
+| 5 | PDF-seksjon builder | reportlab_pdf_generator | -40 linjer |
+
+**Total estimert reduksjon:** ~300 linjer duplisert kode
+
+---
+
+### Kommandoer for fremtidig analyse
+
+```bash
+# Copy-paste deteksjon
+jscpd backend/ --min-lines 5 --min-tokens 40 --format python --reporters console
+
+# Similarity-sjekk
+pylint backend/ --disable=all --enable=similarities --min-similarity-lines=5
+
+# Cyclomatic Complexity
+radon cc backend/ -a -s --min C
+
+# Ubrukt kode
+vulture backend/ --min-confidence 80
+```
