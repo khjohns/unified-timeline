@@ -931,13 +931,15 @@ class SakState(BaseModel):
         Sjekker om vederlag er vurdert subsidiært.
 
         Returns True hvis:
-        - Grunnlag er AVSLATT av BH, MEN
+        - Grunnlag er AVSLATT av BH, ELLER
+        - Grunnlag er prekludert pga §32.2 (grunnlag_varslet_i_tide == False)
+        OG
         - Vederlag-beregningen er godkjent (fullt/delvis/annen metode)
 
         NB: Gjelder IKKE ved frafall (da lukkes saken).
 
-        Dette betyr: "BH mener TE har ansvar, men erkjenner at
-        beløpet ville vært riktig hvis BH hadde hatt ansvar."
+        Dette betyr: "BH mener TE ikke har krav (enten pga avslag eller preklusjon),
+        men erkjenner at beløpet ville vært riktig hvis BH hadde tatt feil."
 
         FRONTEND: Bruk dette for å vise subsidiær status.
         Ikke implementer denne logikken selv i frontend.
@@ -946,12 +948,16 @@ class SakState(BaseModel):
         if self.er_frafalt:
             return False
 
+        # Grunnlag er subsidiært hvis avslått ELLER prekludert (§32.2)
         grunnlag_avslatt = self.grunnlag.status == SporStatus.AVSLATT
+        grunnlag_prekludert = self.grunnlag.grunnlag_varslet_i_tide is False
+        grunnlag_er_subsidiaer = grunnlag_avslatt or grunnlag_prekludert
+
         beregning_godkjent = self.vederlag.bh_resultat in {
             VederlagBeregningResultat.GODKJENT,
             VederlagBeregningResultat.DELVIS_GODKJENT,
         }
-        return grunnlag_avslatt and beregning_godkjent
+        return grunnlag_er_subsidiaer and beregning_godkjent
 
     @computed_field
     @property
@@ -960,21 +966,27 @@ class SakState(BaseModel):
         Sjekker om frist er vurdert subsidiært.
 
         Returns True hvis:
-        - Grunnlag er AVSLATT av BH, MEN
+        - Grunnlag er AVSLATT av BH, ELLER
+        - Grunnlag er prekludert pga §32.2 (grunnlag_varslet_i_tide == False)
+        OG
         - Frist-beregningen er godkjent (fullt/delvis)
 
-        Dette betyr: "BH mener TE har ansvar, men erkjenner at
-        dagene ville vært riktige hvis BH hadde hatt ansvar."
+        Dette betyr: "BH mener TE ikke har krav (enten pga avslag eller preklusjon),
+        men erkjenner at dagene ville vært riktige hvis BH hadde tatt feil."
 
         FRONTEND: Bruk dette for å vise subsidiær status.
         Ikke implementer denne logikken selv i frontend.
         """
+        # Grunnlag er subsidiært hvis avslått ELLER prekludert (§32.2)
         grunnlag_avslatt = self.grunnlag.status == SporStatus.AVSLATT
+        grunnlag_prekludert = self.grunnlag.grunnlag_varslet_i_tide is False
+        grunnlag_er_subsidiaer = grunnlag_avslatt or grunnlag_prekludert
+
         beregning_godkjent = self.frist.bh_resultat in {
             FristBeregningResultat.GODKJENT,
             FristBeregningResultat.DELVIS_GODKJENT,
         }
-        return grunnlag_avslatt and beregning_godkjent
+        return grunnlag_er_subsidiaer and beregning_godkjent
 
     @computed_field
     @property
@@ -996,12 +1008,14 @@ class SakState(BaseModel):
 
         if self.er_subsidiaert_vederlag:
             belop = f"{self.vederlag.godkjent_belop:,.0f} kr" if self.vederlag.godkjent_belop else "beløp"
+            # Skille mellom preklusjon (§32.2) og avslag
+            grunn = "Prekludert" if self.grunnlag.grunnlag_varslet_i_tide is False else "Avslått pga. ansvar"
             if self.vederlag.bh_resultat == VederlagBeregningResultat.GODKJENT:
-                return f"Avslått pga. ansvar (Subsidiært enighet om {belop})"
+                return f"{grunn} (Subsidiært enighet om {belop})"
             elif self.vederlag.bh_resultat == VederlagBeregningResultat.DELVIS_GODKJENT:
-                return f"Avslått pga. ansvar (Subsidiært delvis enig om {belop})"
+                return f"{grunn} (Subsidiært delvis enig om {belop})"
             else:
-                return "Avslått pga. ansvar (Subsidiært)"
+                return f"{grunn} (Subsidiært)"
 
         # Normal (prinsipal) status
         if self.vederlag.status == SporStatus.GODKJENT:
@@ -1035,10 +1049,12 @@ class SakState(BaseModel):
 
         if self.er_subsidiaert_frist:
             dager = f"{self.frist.godkjent_dager} dager" if self.frist.godkjent_dager else "dager"
+            # Skille mellom preklusjon (§32.2) og avslag
+            grunn = "Prekludert" if self.grunnlag.grunnlag_varslet_i_tide is False else "Avslått pga. ansvar"
             if self.frist.bh_resultat == FristBeregningResultat.GODKJENT:
-                return f"Avslått pga. ansvar (Subsidiært enighet om {dager})"
+                return f"{grunn} (Subsidiært enighet om {dager})"
             elif self.frist.bh_resultat == FristBeregningResultat.DELVIS_GODKJENT:
-                return f"Avslått pga. ansvar (Subsidiært delvis enig om {dager})"
+                return f"{grunn} (Subsidiært delvis enig om {dager})"
 
         # Normal (prinsipal) status
         if self.frist.status == SporStatus.GODKJENT:
