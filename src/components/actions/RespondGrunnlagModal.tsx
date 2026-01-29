@@ -368,7 +368,7 @@ export function RespondGrunnlagModal({
       title={isUpdateMode ? "Oppdater svar på ansvarsgrunnlag" : "Svar på ansvarsgrunnlag"}
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit, handleValidationError)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit, handleValidationError)} className="space-y-4 sm:space-y-6">
         {/* UPDATE MODE: Nåværende svar - always visible above tabs */}
         {isUpdateMode && lastResponseEvent && (
           <SectionContainer title="Nåværende svar" variant="subtle">

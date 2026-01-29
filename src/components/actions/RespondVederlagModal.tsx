@@ -1060,7 +1060,7 @@ export function RespondVederlagModal({
               e.preventDefault();
             }
           }}
-          className="space-y-6"
+          className="space-y-4 sm:space-y-6"
         >
           {/* ================================================================
               STEG 1: OVERSIKT

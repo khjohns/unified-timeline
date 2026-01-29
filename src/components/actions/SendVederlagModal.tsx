@@ -278,7 +278,7 @@ export function SendVederlagModal({
       title="Krev vederlagsjustering"
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
         {/* Subsidiary treatment info */}
         {erSubsidiaer && (
           <Alert variant="info" title="Subsidiær behandling">

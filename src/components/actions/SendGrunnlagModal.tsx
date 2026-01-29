@@ -364,7 +364,7 @@ export function SendGrunnlagModal({
       title={isUpdateMode ? "Oppdater ansvarsgrunnlag" : "Varsle ansvarsgrunnlag"}
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
         {/* UPDATE MODE: Current grunnlag summary */}
         {isUpdateMode && grunnlag && (
           <SectionContainer

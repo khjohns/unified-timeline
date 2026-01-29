@@ -460,7 +460,7 @@ export function UtstEndringsordreModal({
               e.preventDefault();
             }
           }}
-          className="space-y-6"
+          className="space-y-4 sm:space-y-6"
         >
           {/* ================================================================
               STEP 1: GRUNNLAG (Info + KOE-saker)

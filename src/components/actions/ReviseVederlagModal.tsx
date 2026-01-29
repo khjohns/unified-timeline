@@ -412,7 +412,7 @@ export function ReviseVederlagModal({
       title={`Oppdater vederlagskrav (${currentVersion === 0 ? 'original' : `v${currentVersion}`} → v${nextVersion})`}
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
 
         {/* Hold tilbake alert */}
         {erHoldTilbake && (

@@ -942,7 +942,7 @@ export function RespondFristModal({
               e.preventDefault();
             }
           }}
-          className="space-y-6"
+          className="space-y-4 sm:space-y-6"
         >
           {/* ================================================================
               SPESIALHÅNDTERING: BEGRUNNELSE FOR UTSETTELSE (§33.6.2 bokstav b)

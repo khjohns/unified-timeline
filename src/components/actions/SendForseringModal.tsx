@@ -261,7 +261,7 @@ export function SendForseringModal({
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
           {/* Seksjon 2: Kostnadsberegning */}
           <SectionContainer
             title="Kostnadsberegning"
