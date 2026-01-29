@@ -210,6 +210,172 @@ class TestNormalizeToUpper:
 
 
 # ============================================================================
+# _validate_hovedkategori tests (shared helper)
+# ============================================================================
+
+class TestValidateHovedkategori:
+    """Tests for _validate_hovedkategori helper function."""
+
+    def test_valid_hovedkategori(self):
+        """Valid hovedkategori passes."""
+        from api.validators import _validate_hovedkategori
+        # Should not raise
+        _validate_hovedkategori('ENDRING')
+
+    def test_invalid_hovedkategori(self):
+        """Invalid hovedkategori raises ValidationError."""
+        from api.validators import _validate_hovedkategori
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_hovedkategori('INVALID_KATEGORI')
+        assert 'Ugyldig hovedkategori' in str(exc_info.value)
+        assert exc_info.value.field == 'hovedkategori'
+
+    def test_missing_hovedkategori_required(self):
+        """Missing hovedkategori raises error when required=True."""
+        from api.validators import _validate_hovedkategori
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_hovedkategori(None, required=True)
+        assert 'hovedkategori er påkrevd' in str(exc_info.value)
+
+    def test_missing_hovedkategori_not_required(self):
+        """Missing hovedkategori passes when required=False."""
+        from api.validators import _validate_hovedkategori
+        # Should not raise
+        _validate_hovedkategori(None, required=False)
+
+    def test_empty_string_hovedkategori_required(self):
+        """Empty string hovedkategori raises error when required=True."""
+        from api.validators import _validate_hovedkategori
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_hovedkategori('', required=True)
+        assert 'hovedkategori er påkrevd' in str(exc_info.value)
+
+
+# ============================================================================
+# _validate_underkategori tests (shared helper)
+# ============================================================================
+
+class TestValidateUnderkategori:
+    """Tests for _validate_underkategori helper function."""
+
+    def test_valid_single_underkategori(self):
+        """Valid single underkategori passes."""
+        from api.validators import _validate_underkategori
+        # Should not raise
+        _validate_underkategori('ENDRING', 'EO')
+
+    def test_valid_list_underkategori(self):
+        """Valid list of underkategorier passes."""
+        from api.validators import _validate_underkategori
+        # Should not raise
+        _validate_underkategori('ENDRING', ['EO', 'IRREG'])
+
+    def test_invalid_underkategori(self):
+        """Invalid underkategori raises ValidationError."""
+        from api.validators import _validate_underkategori
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_underkategori('ENDRING', 'INVALID')
+        assert 'Ugyldig underkategori' in str(exc_info.value)
+        assert exc_info.value.field == 'underkategori'
+
+    def test_invalid_underkategori_in_list(self):
+        """Invalid underkategori in list raises ValidationError."""
+        from api.validators import _validate_underkategori
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_underkategori('ENDRING', ['EO', 'INVALID'])
+        assert 'Ugyldig underkategori' in str(exc_info.value)
+
+    def test_missing_underkategori_required(self):
+        """Missing underkategori raises error when required=True."""
+        from api.validators import _validate_underkategori
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_underkategori('ENDRING', None, required=True)
+        assert 'underkategori er påkrevd' in str(exc_info.value)
+
+    def test_missing_underkategori_not_required(self):
+        """Missing underkategori passes when required=False."""
+        from api.validators import _validate_underkategori
+        # Should not raise
+        _validate_underkategori('ENDRING', None, required=False)
+
+    def test_hovedkategori_without_underkategorier(self):
+        """Hovedkategori without underkategorier (e.g., Force Majeure) always passes."""
+        from api.validators import _validate_underkategori
+        # FORCE_MAJEURE has no underkategorier, so this should pass
+        _validate_underkategori('FORCE_MAJEURE', None, required=True)
+
+
+# ============================================================================
+# _validate_required_text_fields tests (shared helper)
+# ============================================================================
+
+class TestValidateRequiredTextFields:
+    """Tests for _validate_required_text_fields helper function."""
+
+    def test_valid_text_fields(self):
+        """Valid text fields pass."""
+        from api.validators import _validate_required_text_fields
+        # Should not raise
+        _validate_required_text_fields({
+            'tittel': 'Valid title',
+            'beskrivelse': 'Valid description',
+            'dato_oppdaget': '2025-01-15'
+        })
+
+    def test_missing_tittel(self):
+        """Missing tittel raises ValidationError."""
+        from api.validators import _validate_required_text_fields
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_required_text_fields({
+                'beskrivelse': 'Description',
+                'dato_oppdaget': '2025-01-15'
+            })
+        assert 'tittel er påkrevd' in str(exc_info.value)
+
+    def test_tittel_too_short(self):
+        """Tittel < 3 characters raises ValidationError."""
+        from api.validators import _validate_required_text_fields
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_required_text_fields({
+                'tittel': 'AB',
+                'beskrivelse': 'Description',
+                'dato_oppdaget': '2025-01-15'
+            })
+        assert 'minst 3 tegn' in str(exc_info.value)
+
+    def test_tittel_too_long(self):
+        """Tittel > 100 characters raises ValidationError."""
+        from api.validators import _validate_required_text_fields
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_required_text_fields({
+                'tittel': 'A' * 101,
+                'beskrivelse': 'Description',
+                'dato_oppdaget': '2025-01-15'
+            })
+        assert 'lengre enn 100 tegn' in str(exc_info.value)
+
+    def test_missing_beskrivelse(self):
+        """Missing beskrivelse raises ValidationError."""
+        from api.validators import _validate_required_text_fields
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_required_text_fields({
+                'tittel': 'Valid title',
+                'dato_oppdaget': '2025-01-15'
+            })
+        assert 'beskrivelse er påkrevd' in str(exc_info.value)
+
+    def test_missing_dato_oppdaget(self):
+        """Missing dato_oppdaget raises ValidationError."""
+        from api.validators import _validate_required_text_fields
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_required_text_fields({
+                'tittel': 'Valid title',
+                'beskrivelse': 'Description'
+            })
+        assert 'dato_oppdaget er påkrevd' in str(exc_info.value)
+
+
+# ============================================================================
 # validate_grunnlag_event tests
 # ============================================================================
 
