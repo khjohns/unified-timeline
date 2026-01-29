@@ -633,10 +633,10 @@ function generateFristPreklusjonSection(input: FristResponseInput): string {
     return prinsipaltTekst;
   }
 
-  // Redusert (§33.6.1 - spesifisert krav for sent = reduksjon, ikke preklusjon)
+  // Redusert (§33.6.1 - krav om fristforlengelse for sent = reduksjon, ikke preklusjon)
   if (input.erRedusert_33_6_1) {
     return (
-      'Spesifisert krav ble ikke fremsatt «uten ugrunnet opphold» etter at grunnlaget ' +
+      'Kravet om fristforlengelse ble ikke fremsatt «uten ugrunnet opphold» etter at grunnlaget ' +
       'for å beregne kravet forelå (§33.6.1). Entreprenøren har dermed bare krav på slik ' +
       'fristforlengelse som byggherren måtte forstå at han hadde krav på.'
     );

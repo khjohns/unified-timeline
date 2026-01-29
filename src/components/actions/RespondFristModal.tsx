@@ -1705,17 +1705,17 @@ export function RespondFristModal({
                   {(varselType === 'spesifisert' || formValues.spesifisert_krav_ok !== undefined) && !sendForesporsel && !erForesporselSvarForSent && (
                     <div>
                       <h5 className="font-medium text-sm mb-1">
-                        Spesifisert krav (§33.6.1){erPrekludert && formValues.spesifisert_krav_ok === false && ' – subsidiært'}
+                        Krav om fristforlengelse (§33.6.1){erPrekludert && formValues.spesifisert_krav_ok === false && ' – subsidiært'}
                       </h5>
                       <p className="text-sm">
                         {erRedusert_33_6_1 || (erPrekludert && formValues.spesifisert_krav_ok === false) ? (
                           erPrekludert
-                            ? 'Subsidiært: Spesifisert krav ble ikke sendt uten ugrunnet opphold. Fristforlengelsen reduseres til det byggherren måtte forstå.'
-                            : 'Spesifisert krav ble ikke sendt uten ugrunnet opphold. Fristforlengelsen reduseres til det byggherren måtte forstå.'
+                            ? 'Subsidiært: Kravet ble ikke fremsatt uten ugrunnet opphold. Fristforlengelsen reduseres til det byggherren måtte forstå.'
+                            : 'Kravet ble ikke fremsatt uten ugrunnet opphold. Fristforlengelsen reduseres til det byggherren måtte forstå.'
                         ) : erSvarPaForesporsel ? (
                           'Svaret på forespørselen kom i tide. Byggherren kan ikke påberope §33.6.1.'
                         ) : (
-                          'Spesifisert krav sendt uten ugrunnet opphold.'
+                          'Kravet ble fremsatt uten ugrunnet opphold.'
                         )}
                       </p>
                     </div>
