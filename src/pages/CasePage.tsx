@@ -713,6 +713,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
             fristKravId={`frist-${sakId}`}
             krevdDager={state.frist.krevd_dager}
             grunnlagStatus={grunnlagStatus}
+            grunnlagVarsletForSent={grunnlagVarsletForSent}
             varselType={state.frist.varsel_type}
             fristEvent={{
               antall_dager: state.frist.krevd_dager,
@@ -851,6 +852,8 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
             open={updateFristResponseOpen}
             onOpenChange={setUpdateFristResponseOpen}
             sakId={sakId}
+            grunnlagStatus={grunnlagStatus}
+            grunnlagVarsletForSent={grunnlagVarsletForSent}
             lastResponseEvent={{
               event_id: `frist-response-${sakId}`,
               resultat: state.frist.bh_resultat || 'godkjent',

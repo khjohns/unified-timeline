@@ -106,6 +106,9 @@ interface RespondFristModalProps {
   fristEvent?: FristEventInfo;
   /** Status of the grunnlag response (for subsidiary treatment) */
   grunnlagStatus?: 'godkjent' | 'avslatt' | 'delvis_godkjent';
+  /** §32.2: Har BH påberopt at grunnlagsvarselet kom for sent? (kun ENDRING)
+   * Når true: Hele fristkravet behandles subsidiært (ikke bare varslingen) */
+  grunnlagVarsletForSent?: boolean;
   /** Type of varsel TE sent - determines which checks to show */
   varselType?: 'varsel' | 'spesifisert' | 'begrunnelse_utsatt';
   /** Callback when Catenda sync was skipped or failed */
@@ -248,6 +251,7 @@ export function RespondFristModal({
   krevdDager,
   fristEvent,
   grunnlagStatus,
+  grunnlagVarsletForSent,
   varselType,
   onCatendaWarning,
   approvalEnabled = false,
@@ -401,8 +405,14 @@ export function RespondFristModal({
   // Watch all form values
   const formValues = watch();
 
-  // Derived state from grunnlag
-  const erGrunnlagSubsidiaer = grunnlagStatus === 'avslatt';
+  // §32.2: Når BH har påberopt at grunnlagsvarselet kom for sent (ENDRING-kategori),
+  // er hele fristkravet automatisk subsidiært - ikke bare varslingen.
+  const erHelFristSubsidiaerPgaGrunnlag = grunnlagVarsletForSent === true;
+
+  // Derived state from grunnlag - frist behandles subsidiært når:
+  // 1. Grunnlag er avslått av BH, ELLER
+  // 2. Grunnlag er prekludert pga §32.2
+  const erGrunnlagSubsidiaer = grunnlagStatus === 'avslatt' || erHelFristSubsidiaerPgaGrunnlag;
 
   // §33.7: Calculate BH response time for preclusion warning
   // BH skal svare "uten ugrunnet opphold" - varsler etter 5 dager for å gi margin
@@ -1020,11 +1030,17 @@ export function RespondFristModal({
               </div>
 
               {/* Subsidiær behandling info */}
-              {erGrunnlagSubsidiaer && (
+              {erHelFristSubsidiaerPgaGrunnlag && (
+                <Alert variant="warning" title="Subsidiær behandling (§32.2)">
+                  Du har påberopt at grunnlagsvarselet kom for sent (§32.2-preklusjon). Hele fristkravet
+                  behandles derfor <strong>subsidiært</strong> – for det tilfellet at preklusjonen ikke holder
+                  eller forholdet likevel anses å utgjøre en endring.
+                </Alert>
+              )}
+              {grunnlagStatus === 'avslatt' && !erHelFristSubsidiaerPgaGrunnlag && (
                 <Alert variant="warning" title="Subsidiær behandling">
                   Du har avvist ansvarsgrunnlaget. Dine vurderinger i dette skjemaet gjelder derfor{' '}
-                  <strong>subsidiært</strong> - det vil si for det tilfellet at du ikke får medhold i
-                  avvisningen.
+                  <strong>subsidiært</strong> – for det tilfellet at du ikke får medhold i avvisningen.
                 </Alert>
               )}
 

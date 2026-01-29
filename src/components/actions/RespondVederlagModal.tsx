@@ -304,17 +304,15 @@ export function RespondVederlagModal({
   const harProduktivitetKrav = (vederlagEvent?.saerskilt_krav?.produktivitet?.belop ?? 0) > 0;
   const harSaerskiltKrav = harRiggKrav || harProduktivitetKrav;
 
-  // §34.1.2 preklusjon gjelder for:
-  // - SVIKT/ANDRE: Alltid (prinsipalt)
-  // - ENDRING/IRREG + §32.2 påberopt: Prinsipalt, fordi BH hevder forholdet er SVIKT/ANDRE
-  //   (Når BH påberoper §32.2 sier BH: "Dette er IKKE en ENDRING" → ergo SVIKT/ANDRE)
-  const har34_1_2_Preklusjon =
-    hovedkategori === 'SVIKT' ||
-    hovedkategori === 'ANDRE' ||
-    (hovedkategori === 'ENDRING' && grunnlagVarsletForSent === true);
+  // §34.1.2 preklusjon gjelder KUN for SVIKT/ANDRE kategorier
+  // IKKE for ENDRING med §32.2-preklusjon - da er hele vederlagskravet automatisk subsidiært
+  const har34_1_2_Preklusjon = hovedkategori === 'SVIKT' || hovedkategori === 'ANDRE';
 
-  // Vises §34.1.2 fordi BH påberoper §32.2? (for kontekstforklaring i UI)
-  const erFra32_2_Paaberopelse = hovedkategori === 'ENDRING' && grunnlagVarsletForSent === true;
+  // §32.2: Når BH har påberopt at grunnlagsvarselet kom for sent (ENDRING-kategori),
+  // er hele vederlagskravet automatisk subsidiært - ikke bare varslingen.
+  // BH tar da stilling til beløpet subsidiært (for tilfellet at preklusjonen ikke holder).
+  const erHelVederlagSubsidiaerPgaGrunnlag =
+    hovedkategori === 'ENDRING' && grunnlagVarsletForSent === true;
 
   // Calculate total ports (5 with preklusjon-steg, 4 without)
   // Preklusjon-steg vises når: harSaerskiltKrav ELLER har34_1_2_Preklusjon
@@ -456,11 +454,11 @@ export function RespondVederlagModal({
   const formValues = watch();
 
   // Derived state
-  // NB: Variabelen heter erSubsidiaer men sjekker kun om grunnlag er avslått.
-  // Den faktiske er_subsidiaert_vederlag beregnes i backend (krever også at vederlag er godkjent).
-  // Her brukes den som prosess-flagg for å vise "subsidiær behandling"-veiledning i UI.
-  // Se: backend/models/sak_state.py:931-956 for fullstendig beregning.
-  const erSubsidiaer = grunnlagStatus === 'avslatt';
+  // Vederlag behandles subsidiært når:
+  // 1. Grunnlag er avslått av BH (grunnlagStatus === 'avslatt'), ELLER
+  // 2. Grunnlag er prekludert pga §32.2 (erHelVederlagSubsidiaerPgaGrunnlag)
+  // Se: backend/models/sak_state.py for fullstendig beregning.
+  const erSubsidiaer = grunnlagStatus === 'avslatt' || erHelVederlagSubsidiaerPgaGrunnlag;
   const kanHoldeTilbake =
     vederlagEvent?.metode === 'REGNINGSARBEID' && !vederlagEvent?.kostnads_overslag;
   const maSvarePaJustering =
@@ -1088,11 +1086,17 @@ export function RespondVederlagModal({
               </InlineDataList>
 
               {/* Subsidiær behandling info */}
-              {erSubsidiaer && (
+              {erHelVederlagSubsidiaerPgaGrunnlag && (
+                <Alert variant="warning" title="Subsidiær behandling (§32.2)">
+                  Du har påberopt at grunnlagsvarselet kom for sent (§32.2-preklusjon). Hele vederlagskravet
+                  behandles derfor <strong>subsidiært</strong> – for det tilfellet at preklusjonen ikke holder
+                  eller forholdet likevel anses å utgjøre en endring.
+                </Alert>
+              )}
+              {grunnlagStatus === 'avslatt' && !erHelVederlagSubsidiaerPgaGrunnlag && (
                 <Alert variant="warning" title="Subsidiær behandling">
                   Du har avvist ansvarsgrunnlaget. Dine vurderinger i dette skjemaet gjelder derfor{' '}
-                  <strong>subsidiært</strong> - det vil si for det tilfellet at du ikke får medhold i
-                  avvisningen.
+                  <strong>subsidiært</strong> – for det tilfellet at du ikke får medhold i avvisningen.
                 </Alert>
               )}
 
@@ -1155,17 +1159,9 @@ export function RespondVederlagModal({
               title="Preklusjon"
               description="Vurder om kravene ble varslet i tide. Ved manglende varsel tapes kravet."
             >
-              {/* §34.1.2: Hovedkrav preklusjon (SVIKT/ANDRE, eller ENDRING der BH påberoper §32.2) */}
+              {/* §34.1.2: Hovedkrav preklusjon (kun SVIKT/ANDRE kategorier) */}
               {har34_1_2_Preklusjon && (
                 <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle mb-4">
-                  {/* Forklaring når preklusjon vises pga §32.2 påberopelse */}
-                  {erFra32_2_Paaberopelse && (
-                    <Alert variant="info" size="sm" className="mb-3">
-                      Du har påberopt at forholdet ikke er en endring. Dermed må du også vurdere
-                      om vederlagskravet ble varslet i tide.
-                    </Alert>
-                  )}
-
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                     <div className="flex items-center gap-2">
                       <h4 className="font-medium">Hovedkrav</h4>
