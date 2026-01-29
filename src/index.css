@@ -263,8 +263,8 @@
     --text-4xl: 2.25rem;     /* 36px */
 
     /* ============================================
-       BORDER RADIUS - SKARPE KANTER
-       Using Tailwind's rounded-none for sharp corners
+       BORDER RADIUS
+       Bruk Tailwind-klasser: rounded-lg (kort), rounded-sm (badges), rounded-full (pills)
        ============================================ */
     --radius-none: 0;
 

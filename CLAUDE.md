@@ -92,6 +92,31 @@ python scripts/security_scan.py     # Sikkerhetsscan
 | `src/constants/categories.ts` | Grunnlag-kategorier |
 | `docs/ARCHITECTURE_AND_DATAMODEL.md` | Detaljert arkitektur |
 
+## Designsystem
+
+Prosjektet bruker **Punkt-designsystemet** fra Oslo kommune med Tailwind CSS v4.
+
+### Styling-konvensjoner
+
+| Element | Tailwind-klasse | Eksempel |
+|---------|-----------------|----------|
+| Kort/containere | `rounded-lg` | Modaler, error-bokser, cards |
+| Mindre elementer | `rounded-sm` | Badges, inputs, alerts |
+| Pills/indikatorer | `rounded-full` | Status-dots, tags |
+| Knapper | `rounded-md` | Primær/sekundær buttons |
+
+### Farger
+
+Bruk semantiske CSS-variabler fra `src/index.css`:
+- Bakgrunn: `bg-pkt-bg-default`, `bg-pkt-bg-card`, `bg-pkt-bg-subtle`
+- Tekst: `text-pkt-text-body-default`, `text-pkt-text-body-subtle`
+- Border: `border-pkt-border-default`, `border-pkt-grays-gray-200`
+- Alerts: `bg-alert-{info|success|warning|danger}-bg`
+
+### Font
+
+**Oslo Sans** - lastes fra `/fonts/`. Ikke bruk andre fonter.
+
 ## Eksterne API-integrasjoner
 
 | API | Dokumentasjon | Kode |
