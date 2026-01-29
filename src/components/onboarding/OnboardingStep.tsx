@@ -6,7 +6,6 @@
  */
 
 import { useEffect, useState, useCallback, type ReactNode } from 'react';
-import * as Popover from '@radix-ui/react-popover';
 import { clsx } from 'clsx';
 import { Button } from '../primitives';
 import {
@@ -54,79 +53,90 @@ export function OnboardingStep({
   onSkip,
   onComplete,
 }: OnboardingStepProps) {
-  const [targetElement, setTargetElement] = useState<HTMLElement | null>(null);
-  const [popoverPosition, setPopoverPosition] = useState<{ x: number; y: number } | null>(null);
+  const [popoverPosition, setPopoverPosition] = useState<{
+    x: number;
+    y: number;
+    actualSide: 'top' | 'bottom';
+  } | null>(null);
 
   const isFirstStep = stepNumber === 1;
   const isLastStep = stepNumber === totalSteps;
 
-  // Find the target element and calculate position
-  const findTargetAndPosition = useCallback(() => {
+  // Calculate optimal position for popover
+  const calculatePosition = useCallback(() => {
     const element = document.querySelector(targetSelector) as HTMLElement;
     if (!element) return;
-
-    setTargetElement(element);
 
     const rect = element.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
-    const popoverHeight = 280; // Approximate popover height
-    const popoverWidth = 320;
+    const popoverHeight = 280;
+    const popoverWidth = Math.min(320, viewportWidth - 32);
     const padding = 16;
+    const arrowOffset = 12;
 
-    // Calculate optimal position for popover
+    // Calculate horizontal center
     let x = rect.left + rect.width / 2;
-    let y: number;
+    // Keep within viewport
+    x = Math.max(
+      popoverWidth / 2 + padding,
+      Math.min(viewportWidth - popoverWidth / 2 - padding, x)
+    );
 
-    // Determine if we should show above or below
+    // Determine vertical position
     const spaceBelow = viewportHeight - rect.bottom;
     const spaceAbove = rect.top;
 
-    if (side === 'bottom' || (side !== 'top' && spaceBelow >= popoverHeight + padding)) {
-      // Position below the element
-      y = rect.bottom + padding;
-    } else if (side === 'top' || spaceAbove >= popoverHeight + padding) {
-      // Position above the element
-      y = rect.top - popoverHeight - padding;
+    let y: number;
+    let actualSide: 'top' | 'bottom';
+
+    // Prefer showing below the element
+    if (spaceBelow >= popoverHeight + arrowOffset + padding) {
+      y = rect.bottom + arrowOffset;
+      actualSide = 'bottom';
+    } else if (spaceAbove >= popoverHeight + arrowOffset + padding) {
+      y = rect.top - popoverHeight - arrowOffset;
+      actualSide = 'top';
     } else {
-      // Not enough space above or below - position in the visible area
-      y = Math.max(padding, Math.min(viewportHeight - popoverHeight - padding, rect.top));
+      // Not enough space - show at bottom of viewport
+      y = viewportHeight - popoverHeight - padding;
+      actualSide = 'bottom';
     }
 
-    // Keep popover horizontally within viewport
-    x = Math.max(popoverWidth / 2 + padding, Math.min(viewportWidth - popoverWidth / 2 - padding, x));
+    // Ensure y is not negative
+    y = Math.max(padding, y);
 
-    setPopoverPosition({ x, y });
-  }, [targetSelector, side]);
+    setPopoverPosition({ x, y, actualSide });
+  }, [targetSelector]);
 
-  // Find target when step becomes active
+  // Calculate position when active
   useEffect(() => {
-    if (isActive) {
-      // Small delay to ensure DOM is ready
-      const timer = setTimeout(findTargetAndPosition, 100);
-      return () => clearTimeout(timer);
+    if (!isActive) {
+      setPopoverPosition(null);
+      return;
     }
-  }, [isActive, findTargetAndPosition]);
 
-  // Update position on resize
-  useEffect(() => {
-    if (!isActive) return;
+    // Initial calculation with delay
+    const timer = setTimeout(calculatePosition, 150);
 
-    const handleResize = () => {
-      requestAnimationFrame(findTargetAndPosition);
+    // Update on scroll/resize
+    const handleUpdate = () => {
+      requestAnimationFrame(calculatePosition);
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [isActive, findTargetAndPosition]);
+    window.addEventListener('scroll', handleUpdate, true);
+    window.addEventListener('resize', handleUpdate);
 
-  if (!isActive || !targetElement || !popoverPosition) {
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('scroll', handleUpdate, true);
+      window.removeEventListener('resize', handleUpdate);
+    };
+  }, [isActive, calculatePosition]);
+
+  if (!isActive || !popoverPosition) {
     return null;
   }
-
-  // Calculate actual side based on position relative to target
-  const targetRect = targetElement.getBoundingClientRect();
-  const actualSide = popoverPosition.y > targetRect.bottom ? 'bottom' : 'top';
 
   return (
     <div
@@ -136,7 +146,9 @@ export function OnboardingStep({
         'bg-pkt-bg-card rounded-lg shadow-xl',
         'border-2 border-pkt-border-default',
         'animate-in fade-in-0 duration-200',
-        actualSide === 'bottom' ? 'slide-in-from-top-2' : 'slide-in-from-bottom-2'
+        popoverPosition.actualSide === 'bottom'
+          ? 'slide-in-from-top-2'
+          : 'slide-in-from-bottom-2'
       )}
       style={{
         left: popoverPosition.x,
@@ -149,7 +161,7 @@ export function OnboardingStep({
       <div
         className={clsx(
           'absolute w-3 h-3 bg-pkt-bg-card border-pkt-border-default rotate-45',
-          actualSide === 'bottom'
+          popoverPosition.actualSide === 'bottom'
             ? '-top-1.5 left-1/2 -translate-x-1/2 border-l-2 border-t-2'
             : '-bottom-1.5 left-1/2 -translate-x-1/2 border-r-2 border-b-2'
         )}
