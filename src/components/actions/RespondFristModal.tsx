@@ -44,7 +44,6 @@ import {
   RadioGroup,
   RadioItem,
   SectionContainer,
-  StatusSummary,
   StepIndicator,
   Textarea,
   useToast,
@@ -413,20 +412,38 @@ export function RespondFristModal({
     : 0;
   const bhPreklusjonsrisiko = dagerSidenKrav > 5;
 
-  // Sjekk om det finnes tidligere nøytralt varsel som ble akseptert som i tide
-  // Dette er viktig for å skille mellom §33.4 preklusjon og §33.6.1 reduksjon
-  const harTidligereVarselITide = useMemo(() => {
-    // Tidligere vurdert og akseptert av BH
+  // Sjekk om det finnes tidligere nøytralt varsel
+  const harTidligereFristVarsel = useMemo(() => {
+    return !!(fristEvent?.frist_varsel || fristTilstand?.frist_varsel);
+  }, [fristEvent?.frist_varsel, fristTilstand?.frist_varsel]);
+
+  // Sjekk om §33.4 allerede er vurdert og akseptert av BH (enten tidligere eller i dette skjemaet)
+  const erFristVarselVurdertOk = useMemo(() => {
+    // Tidligere eksplisitt vurdert og akseptert av BH
     if (fristTilstand?.frist_varsel_ok === true) {
       return true;
     }
-    // Finnes nøytralt varsel (fra event eller tilstand) og BH har ikke avslått det
-    const harFristVarsel = !!(fristEvent?.frist_varsel || fristTilstand?.frist_varsel);
-    if (harFristVarsel && formValues.frist_varsel_ok !== false) {
+    // Akseptert i dette skjemaet
+    if (formValues.frist_varsel_ok === true) {
       return true;
     }
     return false;
-  }, [fristTilstand?.frist_varsel_ok, fristTilstand?.frist_varsel, fristEvent?.frist_varsel, formValues.frist_varsel_ok]);
+  }, [fristTilstand?.frist_varsel_ok, formValues.frist_varsel_ok]);
+
+  // For bakoverkompatibilitet - brukes i oppsummeringslogikk
+  const harTidligereVarselITide = useMemo(() => {
+    return harTidligereFristVarsel && erFristVarselVurdertOk;
+  }, [harTidligereFristVarsel, erFristVarselVurdertOk]);
+
+  // Må BH vurdere §33.4 for første gang? (finnes foreløpig varsel, men ikke vurdert ennå)
+  const maaVurdereFristVarsel = useMemo(() => {
+    if (!harTidligereFristVarsel) return false;
+    // Ikke vurdert tidligere
+    if (fristTilstand?.frist_varsel_ok === undefined || fristTilstand?.frist_varsel_ok === null) {
+      return true;
+    }
+    return false;
+  }, [harTidligereFristVarsel, fristTilstand?.frist_varsel_ok]);
 
   // §33.6.2 fjerde ledd: Hvis kravet er svar på forespørsel, kan byggherren
   // IKKE påberope at fristen i §33.6.1 er oversittet
@@ -1073,108 +1090,63 @@ export function RespondFristModal({
               ================================================================ */}
           {!erBegrunnelseUtsatt && currentStepType === 'preklusjon' && (
             <SectionContainer
-              title="Preklusjon (§33.4, §33.6)"
-              description="Vurder om entreprenøren har varslet i tide. Hvis ikke, kan kravet avvises pga preklusjon."
+              title="Varsling"
+              description="Vurder om entreprenøren har varslet i tide. Ved manglende varsel tapes eller reduseres kravet."
             >
-              {/* Varslingsregel info - viser relevant regel basert på varseltype */}
+              {/* ===== FORELØPIG VARSEL (varselType === 'varsel') ===== */}
               {varselType === 'varsel' && (
-                <div className="mb-4">
-                  <KontraktsregelInline hjemmel="§33.4" />
-                </div>
-              )}
-              {varselType === 'spesifisert' && !erSvarPaForesporsel && harTidligereVarselITide && (
-                <div className="mb-4">
-                  <KontraktsregelInline hjemmel="§33.6.1" />
-                </div>
-              )}
-              {varselType === 'spesifisert' && !erSvarPaForesporsel && !harTidligereVarselITide && (
-                <div className="mb-4 space-y-2">
-                  <KontraktsregelInline hjemmel="§33.4" />
-                  <KontraktsregelInline hjemmel="§33.6.1" />
-                </div>
-              )}
-              {erSvarPaForesporsel && (
-                <div className="mb-4">
-                  <KontraktsregelInline hjemmel="§33.6.2" />
-                </div>
-              )}
-
-              {/* Show varsel info */}
-              {varselType && (() => {
-                const varselInfo = varselType === 'varsel'
-                  ? (fristEvent?.frist_varsel || fristTilstand?.frist_varsel)
-                  : (fristEvent?.spesifisert_varsel || fristTilstand?.spesifisert_varsel);
-                const varselDato = varselInfo?.dato_sendt;
-                const varselMetode = varselInfo?.metode;
-                const datoOppdaget = fristEvent?.dato_oppdaget;
-                const dagerMellom = datoOppdaget && varselDato
-                  ? differenceInDays(parseISO(varselDato), parseISO(datoOppdaget))
-                  : null;
-
-                // Vurdering: over 14 dager er kritisk, over 7 dager er sen
-                const erKritisk = dagerMellom !== null && dagerMellom > 14;
-                const erSen = dagerMellom !== null && dagerMellom > 7 && dagerMellom <= 14;
-
-                return (
-                  <>
-                    {/* Fremtredende dager-beregning */}
-                    {datoOppdaget && varselDato && dagerMellom !== null && (
-                      <div className={`flex items-center gap-3 p-3 mb-4 rounded-none border ${
-                        erKritisk
-                          ? 'bg-pkt-bg-danger-subtle border-pkt-border-danger'
-                          : erSen
-                            ? 'bg-pkt-bg-warning-subtle border-pkt-border-warning'
-                            : 'bg-pkt-surface-subtle border-pkt-border-subtle'
-                      }`}>
-                        <span className="text-sm text-pkt-text-body">
-                          Forholdet oppstod{' '}
-                          <span className="font-medium">
-                            {format(parseISO(datoOppdaget), 'd. MMMM yyyy', { locale: nb })}
-                          </span>
-                          {' '}→ varslet{' '}
-                          <span className="font-medium">
-                            {format(parseISO(varselDato), 'd. MMMM yyyy', { locale: nb })}
-                          </span>
-                          {' '}={' '}
-                          <span className={`font-mono font-medium ${
-                            erKritisk ? 'text-pkt-text-danger' :
-                            erSen ? 'text-pkt-text-warning' :
-                            'text-pkt-text-success'
-                          }`}>
-                            {dagerMellom} {dagerMellom === 1 ? 'dag' : 'dager'}
-                          </span>
-                        </span>
-                      </div>
-                    )}
-                    <DataList variant="grid" className="mb-4">
-                      {datoOppdaget && !varselDato && (
-                        <DataListItem label="Dato oppdaget">
-                          {format(parseISO(datoOppdaget), 'd. MMM yyyy', { locale: nb })}
-                        </DataListItem>
-                      )}
-                      {varselDato && !datoOppdaget && (
-                        <DataListItem label="Dato varslet">
-                          {format(parseISO(varselDato), 'd. MMM yyyy', { locale: nb })}
-                        </DataListItem>
-                      )}
-                      {varselMetode && varselMetode.length > 0 && (
-                        <DataListItem label="Varslingsmetode">
-                          {formatVarselMetode(varselMetode)}
-                        </DataListItem>
-                      )}
-                    </DataList>
-                  </>
-                );
-              })()}
-
-              {/* Foreløpig varsel */}
-              {varselType === 'varsel' && (
-                <>
+                <div className="space-y-4">
+                  {/* §33.4 vurdering */}
                   <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                    <h4 className="font-medium mb-3">Foreløpig varsel (§33.4)</h4>
+
+                    <KontraktsregelInline hjemmel="§33.4" />
+
+                    {/* Datoberegning */}
+                    {(() => {
+                      const varselInfo = fristEvent?.frist_varsel || fristTilstand?.frist_varsel;
+                      const varselDato = varselInfo?.dato_sendt;
+                      const datoOppdaget = fristEvent?.dato_oppdaget;
+                      const dagerMellom = datoOppdaget && varselDato
+                        ? differenceInDays(parseISO(varselDato), parseISO(datoOppdaget))
+                        : null;
+                      const erKritisk = dagerMellom !== null && dagerMellom > 14;
+                      const erSen = dagerMellom !== null && dagerMellom > 7 && dagerMellom <= 14;
+
+                      return datoOppdaget && varselDato && dagerMellom !== null ? (
+                        <div className={`flex items-center gap-3 p-3 my-3 rounded-none border ${
+                          erKritisk
+                            ? 'bg-pkt-bg-danger-subtle border-pkt-border-danger'
+                            : erSen
+                              ? 'bg-pkt-bg-warning-subtle border-pkt-border-warning'
+                              : 'bg-white border-pkt-border-subtle'
+                        }`}>
+                          <span className="text-sm text-pkt-text-body">
+                            Forholdet oppstod{' '}
+                            <span className="font-medium">
+                              {format(parseISO(datoOppdaget), 'd. MMMM yyyy', { locale: nb })}
+                            </span>
+                            {' '}→ varslet{' '}
+                            <span className="font-medium">
+                              {format(parseISO(varselDato), 'd. MMMM yyyy', { locale: nb })}
+                            </span>
+                            {' '}={' '}
+                            <span className={`font-mono font-medium ${
+                              erKritisk ? 'text-pkt-text-danger' :
+                              erSen ? 'text-pkt-text-warning' :
+                              'text-pkt-text-success'
+                            }`}>
+                              {dagerMellom} {dagerMellom === 1 ? 'dag' : 'dager'}
+                            </span>
+                          </span>
+                        </div>
+                      ) : null;
+                    })()}
+
                     <FormField
-                      label="Foreløpig varsel sendt i tide? (§33.4)"
+                      label="Ble varselet sendt i tide?"
                       required
-                      helpText="Entreprenøren skal varsle 'uten ugrunnet opphold' når han blir klar over at det kan oppstå forsinkelse."
+                      className="mt-3"
                     >
                       <Controller
                         name="frist_varsel_ok"
@@ -1187,33 +1159,30 @@ export function RespondFristModal({
                             onValueChange={(val: string) => field.onChange(val === 'ja')}
                           >
                             <RadioItem value="ja" label="Ja - varslet i tide" />
-                            <RadioItem
-                              value="nei"
-                              label="Nei - prekludert (varslet for sent)"
-                            />
+                            <RadioItem value="nei" label="Nei - prekludert (kravet tapes)" />
                           </RadioGroup>
                         )}
                       />
                     </FormField>
 
-                    {/* §5 innsigelse - når BH påberoper for sent varsel */}
                     {formValues.frist_varsel_ok === false && (
-                      <Alert variant="danger" title="Preklusjon etter §33.4" className="mt-3">
-                        Entreprenøren varslet ikke «uten ugrunnet opphold». Du påberoper at kravet
-                        er tapt. Husk at du må gjøre denne innsigelsen skriftlig «uten ugrunnet
-                        opphold» etter å ha mottatt varselet, jf. §5.
+                      <Alert variant="danger" title="Preklusjon" className="mt-3" size="sm">
+                        Kravet tapes. Husk skriftlig innsigelse (§5).
                       </Alert>
                     )}
                   </div>
 
-                  {/* Etterlysning option - only if varsel was OK */}
+                  {/* Etterlysning - kun hvis varsel var OK */}
                   {formValues.frist_varsel_ok && (
-                    <div className="space-y-3">
-                      <Alert variant="warning" title="Etterlysning (§33.6.2)">
+                    <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                      <h4 className="font-medium mb-3">Etterlysning (§33.6.2)</h4>
+
+                      <p className="text-sm text-pkt-text-body-subtle mb-3">
                         Entreprenøren har kun sendt foreløpig varsel uten antall dager. Du kan
-                        etterspørre et spesifisert krav. Hvis entreprenøren ikke svarer «uten ugrunnet
+                        etterspørre et spesifisert krav. Svarer ikke entreprenøren «uten ugrunnet
                         opphold», tapes kravet.
-                      </Alert>
+                      </p>
+
                       <FormField label="Vil du sende forespørsel?">
                         <Controller
                           name="send_foresporsel"
@@ -1225,7 +1194,7 @@ export function RespondFristModal({
                               }
                               onValueChange={(val: string) => field.onChange(val === 'ja')}
                             >
-                              <RadioItem value="ja" label="Ja - send forespørsel nå" />
+                              <RadioItem value="ja" label="Ja - send forespørsel" />
                               <RadioItem value="nei" label="Nei - fortsett behandling" />
                             </RadioGroup>
                           )}
@@ -1236,6 +1205,7 @@ export function RespondFristModal({
                         <FormField
                           label="Frist for svar"
                           helpText="Angi fristen innen hvilken entreprenøren må levere spesifisert krav"
+                          className="mt-3"
                         >
                           <Controller
                             name="frist_for_spesifisering"
@@ -1252,24 +1222,26 @@ export function RespondFristModal({
                       )}
                     </div>
                   )}
-                </>
+                </div>
               )}
 
-              {/* Spesifisert krav */}
+              {/* ===== SPESIFISERT KRAV (varselType === 'spesifisert') ===== */}
               {varselType === 'spesifisert' && (
-                <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                <div className="space-y-4">
                   {/* §33.6.2: Svar på forespørsel */}
                   {erSvarPaForesporsel ? (
-                    <>
-                      <Alert variant="info" title="Svar på forespørsel (§33.6.2)" className="mb-4">
-                        Dette kravet er et svar på din forespørsel. Du kan ikke påberope at fristen
-                        i §33.6.1 er oversittet. Du kan imidlertid vurdere om svaret kom i tide iht.
-                        §33.6.2 annet ledd.
+                    <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                      <h4 className="font-medium mb-3">Svar på forespørsel (§33.6.2)</h4>
+
+                      <KontraktsregelInline hjemmel="§33.6.2" />
+
+                      <Alert variant="info" className="my-3" size="sm">
+                        Dette kravet er svar på din forespørsel. Du kan ikke påberope §33.6.1.
                       </Alert>
+
                       <FormField
-                        label="Kom svaret på forespørselen i tide? (§33.6.2/§5)"
+                        label="Kom svaret i tide?"
                         required
-                        helpText="Entreprenøren skal svare «uten ugrunnet opphold» på forespørselen. Hvis ikke, må du påberope dette skriftlig (§5)."
                       >
                         <Controller
                           name="foresporsel_svar_ok"
@@ -1282,112 +1254,157 @@ export function RespondFristModal({
                               onValueChange={(val: string) => field.onChange(val === 'ja')}
                             >
                               <RadioItem value="ja" label="Ja - svaret kom i tide" />
-                              <RadioItem
-                                value="nei"
-                                label="Nei - for sent (prekludert - kravet tapes)"
-                              />
+                              <RadioItem value="nei" label="Nei - prekludert (kravet tapes)" />
                             </RadioGroup>
                           )}
                         />
                       </FormField>
-                      {/* Info om §5 innsigelse */}
+
                       {erForesporselSvarForSent && (
-                        <Alert variant="danger" title="Preklusjon etter §33.6.2 tredje ledd" className="mt-3">
-                          Entreprenøren svarte ikke «uten ugrunnet opphold» på forespørselen.
-                          Du påberoper nå at kravet er tapt iht. §33.6.2 tredje ledd, jf. §5.
-                          Systemet vil generere en skriftlig innsigelse.
+                        <Alert variant="danger" title="Preklusjon" className="mt-3" size="sm">
+                          Kravet tapes (§33.6.2 tredje ledd). Husk skriftlig innsigelse (§5).
                         </Alert>
                       )}
-                    </>
-                  ) : harTidligereVarselITide ? (
-                    /* Case: TE sendte nøytralt varsel i tide først - kun §33.6.1 vurdering */
+                    </div>
+                  ) : harTidligereFristVarsel ? (
+                    /* Case: TE sendte nøytralt varsel først - vurder §33.4, deretter §33.6.1 */
                     <>
-                      <FormField
-                        label="Spesifisert krav sendt i tide? (§33.6.1)"
-                        required
-                        helpText="Entreprenøren skal «uten ugrunnet opphold» angi og begrunne antall dager når han har grunnlag for å beregne omfanget."
-                      >
-                        <Controller
-                          name="spesifisert_krav_ok"
-                          control={control}
-                          render={({ field }) => (
-                            <RadioGroup
-                              value={
-                                field.value === undefined ? undefined : field.value ? 'ja' : 'nei'
-                              }
-                              onValueChange={(val: string) => field.onChange(val === 'ja')}
-                            >
-                              <RadioItem value="ja" label="Ja - kravet kom i tide" />
-                              <RadioItem
-                                value="nei"
-                                label="Nei - for sent (reduseres til det byggherren måtte forstå)"
-                              />
-                            </RadioGroup>
-                          )}
-                        />
-                      </FormField>
-                      {/* Info om §33.6.1 reduksjon */}
-                      {erRedusert_33_6_1 && (
-                        <Alert variant="warning" title="Reduksjon etter §33.6.1" className="mt-3">
-                          Entreprenøren har kun krav på den fristforlengelsen byggherren måtte forstå
-                          at han hadde krav på. I beregningssteget angir du hvor mange dager du mener
-                          var forståelig ut fra omstendighetene. Husk at du må gjøre denne innsigelsen
-                          skriftlig «uten ugrunnet opphold» etter å ha mottatt kravet, jf. §5.
-                        </Alert>
-                      )}
-                    </>
-                  ) : (
-                    /* Case: TE sendte kun spesifisert krav (ingen tidligere nøytralt varsel)
-                       Må vurdere BÅDE §33.4 OG §33.6.1 */
-                    <div className="space-y-4">
-                      <Alert variant="info" title="Dobbelt vurdering kreves" className="mb-2">
-                        Entreprenøren sendte spesifisert krav direkte uten forutgående varsel.
-                        Du må vurdere både (1) om det ble varslet i tide etter §33.4, og
-                        (2) om det spesifiserte kravet kom i tide etter §33.6.1.
-                      </Alert>
+                      {/* §33.4: Vurder foreløpig varsel */}
+                      {maaVurdereFristVarsel && (
+                        <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                          <h4 className="font-medium mb-3">Foreløpig varsel (§33.4)</h4>
 
-                      {/* 1. §33.4: Spesifisert krav som varsel */}
-                      <div className="p-3 border border-pkt-border-subtle rounded-none">
-                        <FormField
-                          label="1. Sendt i tide som varsel? (§33.4)"
-                          required
-                          helpText="Vurder om kravet ble sendt «uten ugrunnet opphold» etter at forholdet oppstod. Skjæringstidspunktet er dato oppdaget."
-                        >
-                          <Controller
-                            name="frist_varsel_ok"
-                            control={control}
-                            render={({ field }) => (
-                              <RadioGroup
-                                value={
-                                  field.value === undefined ? undefined : field.value ? 'ja' : 'nei'
-                                }
-                                onValueChange={(val: string) => field.onChange(val === 'ja')}
-                              >
-                                <RadioItem value="ja" label="Ja - varslet i tide (§33.4 oppfylt)" />
-                                <RadioItem
-                                  value="nei"
-                                  label="Nei - for sent (prekludert - kravet tapes)"
-                                />
-                              </RadioGroup>
-                            )}
-                          />
-                        </FormField>
-                        {formValues.frist_varsel_ok === false && (
-                          <Alert variant="danger" title="Preklusjon etter §33.4" className="mt-3">
-                            Kravet ble ikke varslet «uten ugrunnet opphold» etter at forholdet oppstod.
-                            Kravet er prekludert. Husk at du må gjøre denne innsigelsen skriftlig
-                            «uten ugrunnet opphold» etter å ha mottatt kravet, jf. §5.
-                          </Alert>
-                        )}
-                      </div>
+                          <KontraktsregelInline hjemmel="§33.4" />
 
-                      {/* 2. §33.6.1: Spesifisert krav - kun hvis §33.4 OK */}
-                      {formValues.frist_varsel_ok === true && (
-                        <div className="p-3 border border-pkt-border-subtle rounded-none">
+                          {/* Datoberegning for foreløpig varsel */}
+                          {(() => {
+                            const varselInfo = fristEvent?.frist_varsel || fristTilstand?.frist_varsel;
+                            const varselDato = varselInfo?.dato_sendt;
+                            const datoOppdaget = fristEvent?.dato_oppdaget;
+                            const dagerMellom = datoOppdaget && varselDato
+                              ? differenceInDays(parseISO(varselDato), parseISO(datoOppdaget))
+                              : null;
+                            const erKritisk = dagerMellom !== null && dagerMellom > 14;
+                            const erSen = dagerMellom !== null && dagerMellom > 7 && dagerMellom <= 14;
+
+                            return datoOppdaget && varselDato && dagerMellom !== null ? (
+                              <div className={`flex items-center gap-3 p-3 my-3 rounded-none border ${
+                                erKritisk
+                                  ? 'bg-pkt-bg-danger-subtle border-pkt-border-danger'
+                                  : erSen
+                                    ? 'bg-pkt-bg-warning-subtle border-pkt-border-warning'
+                                    : 'bg-white border-pkt-border-subtle'
+                              }`}>
+                                <span className="text-sm text-pkt-text-body">
+                                  Forholdet oppstod{' '}
+                                  <span className="font-medium">
+                                    {format(parseISO(datoOppdaget), 'd. MMMM yyyy', { locale: nb })}
+                                  </span>
+                                  {' '}→ varslet{' '}
+                                  <span className="font-medium">
+                                    {format(parseISO(varselDato), 'd. MMMM yyyy', { locale: nb })}
+                                  </span>
+                                  {' '}={' '}
+                                  <span className={`font-mono font-medium ${
+                                    erKritisk ? 'text-pkt-text-danger' :
+                                    erSen ? 'text-pkt-text-warning' :
+                                    'text-pkt-text-success'
+                                  }`}>
+                                    {dagerMellom} {dagerMellom === 1 ? 'dag' : 'dager'}
+                                  </span>
+                                </span>
+                              </div>
+                            ) : null;
+                          })()}
+
                           <FormField
-                            label="2. Spesifisert i tide? (§33.6.1)"
+                            label="Ble varselet sendt i tide?"
                             required
-                            helpText="Vurder om kravet ble spesifisert «uten ugrunnet opphold» etter at entreprenøren hadde grunnlag for å beregne omfanget."
+                            className="mt-3"
+                          >
+                            <Controller
+                              name="frist_varsel_ok"
+                              control={control}
+                              render={({ field }) => (
+                                <RadioGroup
+                                  value={
+                                    field.value === undefined ? undefined : field.value ? 'ja' : 'nei'
+                                  }
+                                  onValueChange={(val: string) => field.onChange(val === 'ja')}
+                                >
+                                  <RadioItem value="ja" label="Ja - varslet i tide" />
+                                  <RadioItem value="nei" label="Nei - prekludert (kravet tapes)" />
+                                </RadioGroup>
+                              )}
+                            />
+                          </FormField>
+
+                          {formValues.frist_varsel_ok === false && (
+                            <Alert variant="danger" title="Preklusjon" className="mt-3" size="sm">
+                              Prinsipalt tapes kravet. Du tar subsidiært stilling til §33.6.1 under.
+                              Husk skriftlig innsigelse (§5).
+                            </Alert>
+                          )}
+                        </div>
+                      )}
+
+                      {/* §33.6.1: Vurder spesifisert krav */}
+                      {(erFristVarselVurdertOk || formValues.frist_varsel_ok === false) && (
+                        <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                          <h4 className="font-medium mb-3">
+                            Spesifisert krav (§33.6.1)
+                            {formValues.frist_varsel_ok === false && (
+                              <span className="text-pkt-text-body-subtle font-normal ml-2">– subsidiært</span>
+                            )}
+                          </h4>
+
+                          <KontraktsregelInline hjemmel="§33.6.1" />
+
+                          {/* Datoberegning for spesifisert krav */}
+                          {(() => {
+                            const varselInfo = fristEvent?.spesifisert_varsel || fristTilstand?.spesifisert_varsel;
+                            const varselDato = varselInfo?.dato_sendt;
+                            const datoOppdaget = fristEvent?.dato_oppdaget;
+                            const dagerMellom = datoOppdaget && varselDato
+                              ? differenceInDays(parseISO(varselDato), parseISO(datoOppdaget))
+                              : null;
+                            const erKritisk = dagerMellom !== null && dagerMellom > 14;
+                            const erSen = dagerMellom !== null && dagerMellom > 7 && dagerMellom <= 14;
+
+                            return datoOppdaget && varselDato && dagerMellom !== null ? (
+                              <div className={`flex items-center gap-3 p-3 my-3 rounded-none border ${
+                                erKritisk
+                                  ? 'bg-pkt-bg-danger-subtle border-pkt-border-danger'
+                                  : erSen
+                                    ? 'bg-pkt-bg-warning-subtle border-pkt-border-warning'
+                                    : 'bg-white border-pkt-border-subtle'
+                              }`}>
+                                <span className="text-sm text-pkt-text-body">
+                                  Forholdet oppstod{' '}
+                                  <span className="font-medium">
+                                    {format(parseISO(datoOppdaget), 'd. MMMM yyyy', { locale: nb })}
+                                  </span>
+                                  {' '}→ spesifisert{' '}
+                                  <span className="font-medium">
+                                    {format(parseISO(varselDato), 'd. MMMM yyyy', { locale: nb })}
+                                  </span>
+                                  {' '}={' '}
+                                  <span className={`font-mono font-medium ${
+                                    erKritisk ? 'text-pkt-text-danger' :
+                                    erSen ? 'text-pkt-text-warning' :
+                                    'text-pkt-text-success'
+                                  }`}>
+                                    {dagerMellom} {dagerMellom === 1 ? 'dag' : 'dager'}
+                                  </span>
+                                </span>
+                              </div>
+                            ) : null;
+                          })()}
+
+                          <FormField
+                            label="Ble kravet spesifisert i tide?"
+                            required
+                            className="mt-3"
                           >
                             <Controller
                               name="spesifisert_krav_ok"
@@ -1399,25 +1416,156 @@ export function RespondFristModal({
                                   }
                                   onValueChange={(val: string) => field.onChange(val === 'ja')}
                                 >
-                                  <RadioItem value="ja" label="Ja - spesifisert i tide (§33.6.1 oppfylt)" />
-                                  <RadioItem
-                                    value="nei"
-                                    label="Nei - for sent (reduseres til det byggherren måtte forstå)"
-                                  />
+                                  <RadioItem value="ja" label="Ja - kravet kom i tide" />
+                                  <RadioItem value="nei" label="Nei - reduseres til det du måtte forstå" />
                                 </RadioGroup>
                               )}
                             />
                           </FormField>
+
                           {formValues.spesifisert_krav_ok === false && (
-                            <Alert variant="warning" title="Reduksjon etter §33.6.1" className="mt-3">
-                              Varselet (§33.4) kom i tide, men det spesifiserte kravet kom for sent.
-                              Entreprenøren har kun krav på den fristforlengelsen du måtte forstå.
-                              Husk at du må gjøre denne innsigelsen skriftlig «uten ugrunnet opphold», jf. §5.
+                            <Alert
+                              variant={formValues.frist_varsel_ok === false ? "info" : "warning"}
+                              title={formValues.frist_varsel_ok === false ? "Subsidiær reduksjon" : "Reduksjon"}
+                              className="mt-3"
+                              size="sm"
+                            >
+                              Entreprenøren har kun krav på det du måtte forstå.
+                              {formValues.frist_varsel_ok !== false && ' Husk skriftlig innsigelse (§5).'}
                             </Alert>
                           )}
                         </div>
                       )}
-                    </div>
+                    </>
+                  ) : (
+                    /* Case: TE sendte kun spesifisert krav (ingen tidligere nøytralt varsel)
+                       Må vurdere BÅDE §33.4 OG §33.6.1 */
+                    <>
+                      {/* §33.4: Spesifisert krav som varsel */}
+                      <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                        <h4 className="font-medium mb-3">Varsel (§33.4)</h4>
+
+                        <KontraktsregelInline hjemmel="§33.4" />
+
+                        {/* Datoberegning */}
+                        {(() => {
+                          const varselInfo = fristEvent?.spesifisert_varsel || fristTilstand?.spesifisert_varsel;
+                          const varselDato = varselInfo?.dato_sendt;
+                          const datoOppdaget = fristEvent?.dato_oppdaget;
+                          const dagerMellom = datoOppdaget && varselDato
+                            ? differenceInDays(parseISO(varselDato), parseISO(datoOppdaget))
+                            : null;
+                          const erKritisk = dagerMellom !== null && dagerMellom > 14;
+                          const erSen = dagerMellom !== null && dagerMellom > 7 && dagerMellom <= 14;
+
+                          return datoOppdaget && varselDato && dagerMellom !== null ? (
+                            <div className={`flex items-center gap-3 p-3 my-3 rounded-none border ${
+                              erKritisk
+                                ? 'bg-pkt-bg-danger-subtle border-pkt-border-danger'
+                                : erSen
+                                  ? 'bg-pkt-bg-warning-subtle border-pkt-border-warning'
+                                  : 'bg-white border-pkt-border-subtle'
+                            }`}>
+                              <span className="text-sm text-pkt-text-body">
+                                Forholdet oppstod{' '}
+                                <span className="font-medium">
+                                  {format(parseISO(datoOppdaget), 'd. MMMM yyyy', { locale: nb })}
+                                </span>
+                                {' '}→ varslet{' '}
+                                <span className="font-medium">
+                                  {format(parseISO(varselDato), 'd. MMMM yyyy', { locale: nb })}
+                                </span>
+                                {' '}={' '}
+                                <span className={`font-mono font-medium ${
+                                  erKritisk ? 'text-pkt-text-danger' :
+                                  erSen ? 'text-pkt-text-warning' :
+                                  'text-pkt-text-success'
+                                }`}>
+                                  {dagerMellom} {dagerMellom === 1 ? 'dag' : 'dager'}
+                                </span>
+                              </span>
+                            </div>
+                          ) : null;
+                        })()}
+
+                        <FormField
+                          label="Ble kravet varslet i tide?"
+                          required
+                          className="mt-3"
+                        >
+                          <Controller
+                            name="frist_varsel_ok"
+                            control={control}
+                            render={({ field }) => (
+                              <RadioGroup
+                                value={
+                                  field.value === undefined ? undefined : field.value ? 'ja' : 'nei'
+                                }
+                                onValueChange={(val: string) => field.onChange(val === 'ja')}
+                              >
+                                <RadioItem value="ja" label="Ja - varslet i tide" />
+                                <RadioItem value="nei" label="Nei - prekludert (kravet tapes)" />
+                              </RadioGroup>
+                            )}
+                          />
+                        </FormField>
+
+                        {formValues.frist_varsel_ok === false && (
+                          <Alert variant="danger" title="Preklusjon" className="mt-3" size="sm">
+                            Prinsipalt tapes kravet. Du tar subsidiært stilling til §33.6.1 under.
+                            Husk skriftlig innsigelse (§5).
+                          </Alert>
+                        )}
+                      </div>
+
+                      {/* §33.6.1: Spesifisert krav - prinsipalt eller subsidiært */}
+                      {(formValues.frist_varsel_ok === true || formValues.frist_varsel_ok === false) && (
+                        <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                          <h4 className="font-medium mb-3">
+                            Spesifisert krav (§33.6.1)
+                            {formValues.frist_varsel_ok === false && (
+                              <span className="text-pkt-text-body-subtle font-normal ml-2">– subsidiært</span>
+                            )}
+                          </h4>
+
+                          <KontraktsregelInline hjemmel="§33.6.1" />
+
+                          <FormField
+                            label="Ble kravet spesifisert i tide?"
+                            required
+                            className="mt-3"
+                          >
+                            <Controller
+                              name="spesifisert_krav_ok"
+                              control={control}
+                              render={({ field }) => (
+                                <RadioGroup
+                                  value={
+                                    field.value === undefined ? undefined : field.value ? 'ja' : 'nei'
+                                  }
+                                  onValueChange={(val: string) => field.onChange(val === 'ja')}
+                                >
+                                  <RadioItem value="ja" label="Ja - kravet kom i tide" />
+                                  <RadioItem value="nei" label="Nei - reduseres til det du måtte forstå" />
+                                </RadioGroup>
+                              )}
+                            />
+                          </FormField>
+
+                          {formValues.spesifisert_krav_ok === false && (
+                            <Alert
+                              variant={formValues.frist_varsel_ok === false ? "info" : "warning"}
+                              title={formValues.frist_varsel_ok === false ? "Subsidiær reduksjon" : "Reduksjon"}
+                              className="mt-3"
+                              size="sm"
+                            >
+                              Entreprenøren har kun krav på det du måtte forstå.
+                              {formValues.frist_varsel_ok !== false && ' Husk skriftlig innsigelse (§5).'}
+                            </Alert>
+                          )}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -1676,197 +1824,112 @@ export function RespondFristModal({
             <SectionContainer title="Oppsummering">
               {/* Sammendrag av valg */}
               <div className="space-y-4">
-                {/* Grunnlagsstatus - vises kun hvis avslått */}
-                {erGrunnlagSubsidiaer && (
-                  <StatusSummary title="Ansvarsgrunnlag">
-                    <Badge variant="danger">Avslått</Badge>
-                    <span className="text-sm">Fristkrav behandles subsidiært</span>
-                  </StatusSummary>
-                )}
-
-                {/* Varslingsvurdering (§33.4 / §33.6.1 / §33.6.2) */}
-                <StatusSummary title="Varsling">
-                  {sendForesporsel ? (
-                    <>
-                      <Badge variant="warning">Etterlysning sendt</Badge>
-                      <span className="text-sm">Avventer spesifisert krav fra entreprenøren</span>
-                    </>
-                  ) : erForesporselSvarForSent ? (
-                    <>
-                      <Badge variant="danger">Prekludert (§33.6.2/§5)</Badge>
-                      <span className="text-sm">Svar på forespørsel kom for sent - kravet tapes</span>
-                    </>
-                  ) : erPrekludert ? (
-                    <>
-                      <Badge variant="danger">Prekludert (§33.4)</Badge>
-                      <span className="text-sm">
-                        {varselType === 'varsel'
-                          ? 'Foreløpig varsel kom for sent - kravet tapes'
-                          : 'Spesifisert krav (uten forutgående varsel) kom for sent - kravet tapes'}
-                      </span>
-                    </>
-                  ) : erRedusert_33_6_1 ? (
-                    <>
-                      <Badge variant="warning">Redusert (§33.6.1)</Badge>
-                      <span className="text-sm">Spesifisert krav kom for sent - reduseres til det byggherren måtte forstå</span>
-                    </>
-                  ) : erSvarPaForesporsel ? (
-                    <>
-                      <Badge variant="success">Svar på forespørsel (i tide)</Badge>
-                      <span className="text-sm">Svaret kom i tide - §33.6.1 kan ikke påberopes</span>
-                    </>
-                  ) : (
-                    <>
-                      <Badge variant="success">OK</Badge>
-                      <span className="text-sm">Varslet i tide</span>
-                    </>
-                  )}
-                </StatusSummary>
-
-                {/* Årsakssammenheng */}
-                <StatusSummary title={`Årsakssammenheng${port2ErSubsidiaer ? ' (subsidiært)' : ''}`}>
-                  {harHindring ? (
-                    <>
-                      <Badge variant="success">
-                        {port2ErSubsidiaer ? 'Subsidiært: ' : ''}Hindring erkjent
-                      </Badge>
-                      <span className="text-sm">Forholdet forårsaket forsinkelse</span>
-                    </>
-                  ) : (
-                    <>
-                      <Badge variant="warning">
-                        {port2ErSubsidiaer ? 'Subsidiært: ' : ''}Ingen hindring
-                      </Badge>
-                      <span className="text-sm">Entreprenøren hadde slakk / ikke reell forsinkelse</span>
-                    </>
-                  )}
-                </StatusSummary>
-
-                {/* Beregning */}
-                <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  <h5 className="font-medium text-sm mb-3">
-                    Beregning {port3ErSubsidiaer && '(subsidiært)'}
-                  </h5>
-                  {sendForesporsel ? (
-                    <span className="text-sm text-pkt-text-body-subtle">(Avventer)</span>
-                  ) : erVarselUtenDager ? (
-                    <div className="text-sm text-pkt-text-body-subtle italic">
-                      Antall dager er ikke spesifisert i kravet. Beregning gjøres når entreprenøren sender spesifisert krav.
+                {/* Vurdering - samlet boks som i VederlagModal */}
+                <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle space-y-3">
+                  {/* Grunnlagsstatus - vises kun hvis avslått */}
+                  {erGrunnlagSubsidiaer && (
+                    <div>
+                      <h5 className="font-medium text-sm mb-1">Ansvarsgrunnlag</h5>
+                      <p className="text-sm">
+                        Grunnlagskravet er avslått. Fristkravet behandles subsidiært.
+                      </p>
                     </div>
-                  ) : (
-                    <>
-                      {/* Desktop: tabell */}
-                      <table className="hidden sm:table w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-pkt-border-subtle">
-                            <th className="text-left py-1">Krav</th>
-                            <th className="text-right py-1">Krevd</th>
-                            <th className="text-right py-1">
-                              {port3ErSubsidiaer ? 'Maks. subs.' : 'Godkjent'}
-                            </th>
-                            <th className="text-right py-1">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr className="border-b border-pkt-border-subtle">
-                            <td className="py-2">Fristforlengelse</td>
-                            <td className="text-right font-mono">{effektivKrevdDager} dager</td>
-                            <td className="text-right font-mono">{godkjentDager} dager</td>
-                            <td className="text-right">
-                              {godkjentDager >= effektivKrevdDager ? (
-                                <Badge variant="success">
-                                  {port3ErSubsidiaer ? 'Subs. godkj.' : 'Godkjent'}
-                                </Badge>
-                              ) : godkjentDager > 0 ? (
-                                <Badge variant="warning">
-                                  {port3ErSubsidiaer ? 'Subs. delvis' : 'Delvis'}
-                                </Badge>
-                              ) : (
-                                <Badge variant="danger">
-                                  {port3ErSubsidiaer ? 'Subs. avsl.' : 'Avslått'}
-                                </Badge>
-                              )}
-                            </td>
-                          </tr>
-                          <tr className="font-bold">
-                            <td className="py-2">DIFFERANSE</td>
-                            <td className="text-right font-mono"></td>
-                            <td className="text-right font-mono">{avslatteDager} dager</td>
-                            <td className="text-right">
-                              {effektivKrevdDager > 0 && (
-                                <span className="text-sm">
-                                  {((godkjentDager / effektivKrevdDager) * 100).toFixed(1)}%
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-
-                      {/* Mobil: card-liste */}
-                      <div className="sm:hidden space-y-3">
-                        {/* Fristforlengelse card */}
-                        <div className="p-3 border border-pkt-border-subtle rounded-none">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="font-medium">Fristforlengelse</span>
-                            {godkjentDager >= effektivKrevdDager ? (
-                              <Badge variant="success">
-                                {port3ErSubsidiaer ? 'Subs. godkj.' : 'Godkjent'}
-                              </Badge>
-                            ) : godkjentDager > 0 ? (
-                              <Badge variant="warning">
-                                {port3ErSubsidiaer ? 'Subs. delvis' : 'Delvis'}
-                              </Badge>
-                            ) : (
-                              <Badge variant="danger">
-                                {port3ErSubsidiaer ? 'Subs. avsl.' : 'Avslått'}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-pkt-text-body-subtle">Krevd:</span>
-                            <span className="font-mono">{effektivKrevdDager} dager</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-pkt-text-body-subtle">
-                              {port3ErSubsidiaer ? 'Maks. subs.:' : 'Godkjent:'}
-                            </span>
-                            <span className="font-mono">{godkjentDager} dager</span>
-                          </div>
-                        </div>
-
-                        {/* Differanse card */}
-                        <div className="p-3 border border-pkt-border-default rounded-none bg-pkt-surface-subtle">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="font-bold">DIFFERANSE</span>
-                            {effektivKrevdDager > 0 && (
-                              <span className="text-sm font-medium">
-                                {((godkjentDager / effektivKrevdDager) * 100).toFixed(1)}%
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-pkt-text-body-subtle">Avslått:</span>
-                            <span className="font-mono font-bold">{avslatteDager} dager</span>
-                          </div>
-                        </div>
-                      </div>
-                    </>
                   )}
+
+                  {/* Varslingsvurdering (§33.4 / §33.6.1 / §33.6.2) */}
+                  <div>
+                    <h5 className="font-medium text-sm mb-1">Varsling (§33.4)</h5>
+                    <p className="text-sm">
+                      {sendForesporsel ? (
+                        'Byggherren etterspør spesifisert krav. Avventer respons fra entreprenøren.'
+                      ) : erForesporselSvarForSent ? (
+                        'Svar på forespørsel kom ikke uten ugrunnet opphold (§33.6.2/§5). Kravet tapes.'
+                      ) : erPrekludert ? (
+                        varselType === 'varsel'
+                          ? 'Foreløpig varsel ble ikke sendt uten ugrunnet opphold. Kravet tapes (§33.4).'
+                          : 'Spesifisert krav ble ikke sendt uten ugrunnet opphold. Kravet tapes (§33.4).'
+                      ) : erRedusert_33_6_1 ? (
+                        'Spesifisert krav ble ikke sendt uten ugrunnet opphold (§33.6.1). Fristforlengelsen reduseres til det byggherren måtte forstå.'
+                      ) : erSvarPaForesporsel ? (
+                        'Svaret på forespørselen kom i tide. Byggherren kan ikke påberope §33.6.1.'
+                      ) : (
+                        'Kravet ble varslet uten ugrunnet opphold.'
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Årsakssammenheng (§33.1) */}
+                  <div>
+                    <h5 className="font-medium text-sm mb-1">
+                      Vilkår for fristforlengelse (§33.1){port2ErSubsidiaer ? ' – subsidiært' : ''}
+                    </h5>
+                    <p className="text-sm">
+                      {harHindring ? (
+                        port2ErSubsidiaer
+                          ? 'Subsidiært: Fremdriften ble hindret av forholdet. Vilkårene i §33.1 er oppfylt.'
+                          : 'Byggherren erkjenner at fremdriften ble hindret av forholdet. Vilkårene i §33.1 er oppfylt.'
+                      ) : (
+                        port2ErSubsidiaer
+                          ? 'Subsidiært: Fremdriften ble ikke hindret av forholdet. Vilkårene i §33.1 er ikke oppfylt.'
+                          : 'Fremdriften ble ikke hindret av forholdet. Vilkårene i §33.1 er ikke oppfylt.'
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Beregning (§33.5) */}
+                  <div>
+                    <h5 className="font-medium text-sm mb-1">
+                      Beregning av fristforlengelse (§33.5){port3ErSubsidiaer ? ' – subsidiært' : ''}
+                    </h5>
+                    <p className="text-sm">
+                      {sendForesporsel ? (
+                        'Avventer spesifisert krav fra entreprenøren.'
+                      ) : erVarselUtenDager ? (
+                        'Antall dager er ikke spesifisert i kravet. Beregning gjøres når entreprenøren sender spesifisert krav.'
+                      ) : godkjentDager >= effektivKrevdDager ? (
+                        port3ErSubsidiaer
+                          ? `Subsidiært: Byggherren godkjenner de krevde ${effektivKrevdDager} dagene.`
+                          : `Fristforlengelsen skal svare til virkningen på fremdriften. Byggherren godkjenner de krevde ${effektivKrevdDager} dagene.`
+                      ) : godkjentDager > 0 ? (
+                        port3ErSubsidiaer
+                          ? `Subsidiært: Entreprenøren krever ${effektivKrevdDager} dager. Byggherren godkjenner ${godkjentDager} dager.`
+                          : `Fristforlengelsen skal svare til virkningen på fremdriften. Entreprenøren krever ${effektivKrevdDager} dager. Byggherren godkjenner ${godkjentDager} dager.`
+                      ) : (
+                        port3ErSubsidiaer
+                          ? `Subsidiært: Entreprenøren krever ${effektivKrevdDager} dager. Byggherren godkjenner ingen dager.`
+                          : `Fristforlengelsen skal svare til virkningen på fremdriften. Entreprenøren krever ${effektivKrevdDager} dager. Byggherren godkjenner ingen dager.`
+                      )}
+                    </p>
+                  </div>
                 </div>
 
-                {/* Prinsipalt resultat */}
-                <div className="p-4 bg-pkt-surface-strong-dark-blue text-white rounded-none">
-                  <h5 className="font-medium text-sm mb-2 opacity-80">PRINSIPALT RESULTAT</h5>
-                  <div className="text-xl font-bold">{getResultatLabel(prinsipaltResultat)}</div>
-                  {!sendForesporsel && prinsipaltResultat !== 'avslatt' && effektivKrevdDager > 0 && (
-                    <div className="mt-2 text-lg font-mono">
-                      Godkjent: {godkjentDager} av {effektivKrevdDager} dager
+                {/* Resultatoppsummering - enkel tekst (som VederlagModal) */}
+                <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="font-medium">Resultat:</span>
+                    <span className="font-bold">{getResultatLabel(prinsipaltResultat)}</span>
+                    {!sendForesporsel && !erVarselUtenDager && effektivKrevdDager > 0 && (
+                      <>
+                        <span className="text-pkt-text-body-subtle">–</span>
+                        <span className="font-mono">
+                          {godkjentDager} av {effektivKrevdDager} dager
+                        </span>
+                        <span className="text-pkt-text-body-subtle">
+                          ({((godkjentDager / effektivKrevdDager) * 100).toFixed(0)}%)
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  {!sendForesporsel && prinsipaltResultat !== 'avslatt' && erVarselUtenDager && (
+                    <div className="mt-2 text-sm text-pkt-text-body-subtle">
+                      Grunnlag og vilkår er vurdert. Antall dager kan først vurderes når entreprenøren spesifiserer kravet.
                     </div>
                   )}
-                  {!sendForesporsel && prinsipaltResultat !== 'avslatt' && erVarselUtenDager && (
-                    <div className="mt-2 text-sm italic opacity-80">
-                      Grunnlag og vilkår er vurdert. Antall dager kan først vurderes når entreprenøren spesifiserer kravet.
+                  {visSubsidiaertResultat && !sendForesporsel && (
+                    <div className="mt-2 text-pkt-text-body-subtle">
+                      <span>↳ Subsidiært: </span>
+                      <span className="font-mono">{godkjentDager} dager</span>
+                      <span> dersom kravet hadde vært varslet i tide</span>
                     </div>
                   )}
                 </div>
