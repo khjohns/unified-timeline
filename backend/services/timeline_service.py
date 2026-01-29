@@ -52,6 +52,44 @@ from utils.logger import get_logger
 logger = get_logger(__name__)
 
 
+# ============================================================================
+# Shared helper functions (reduces cyclomatic complexity)
+# ============================================================================
+
+def _copy_fields_if_present(
+    source: Any,
+    target: Any,
+    fields: List[str],
+    require_truthy: bool = False
+) -> None:
+    """
+    Copy fields from source to target if they exist on source.
+
+    This helper reduces repetitive hasattr/setattr patterns in event handlers.
+
+    Args:
+        source: Source object to copy from (e.g., event.data)
+        target: Target object to copy to (e.g., state.vederlag)
+        fields: List of field names to copy
+        require_truthy: If True, only copy if value is truthy (not None/empty)
+
+    Example:
+        _copy_fields_if_present(event.data, vederlag, [
+            'saerskilt_varsel_rigg_drift_ok',
+            'varsel_justert_ep_ok',
+        ])
+    """
+    for field in fields:
+        if hasattr(source, field):
+            value = getattr(source, field)
+            if require_truthy:
+                if value:
+                    setattr(target, field, value)
+            else:
+                if value is not None:
+                    setattr(target, field, value)
+
+
 class TimelineService:
     """
     Service for å beregne SakState fra events.
@@ -395,43 +433,46 @@ class TimelineService:
         """
         vederlag = state.vederlag
 
-        # Port 1: Varselvurderinger
-        if hasattr(event.data, 'saerskilt_varsel_rigg_drift_ok'):
-            vederlag.saerskilt_varsel_rigg_drift_ok = event.data.saerskilt_varsel_rigg_drift_ok
-        if hasattr(event.data, 'varsel_justert_ep_ok'):
-            vederlag.varsel_justert_ep_ok = event.data.varsel_justert_ep_ok
-        if hasattr(event.data, 'varsel_start_regning_ok'):
-            vederlag.varsel_start_regning_ok = event.data.varsel_start_regning_ok
-        if hasattr(event.data, 'krav_fremmet_i_tide'):
-            vederlag.krav_fremmet_i_tide = event.data.krav_fremmet_i_tide
-        if hasattr(event.data, 'begrunnelse_varsel'):
-            vederlag.begrunnelse_varsel = event.data.begrunnelse_varsel
+        # Port 1: Varselvurderinger (copy boolean fields)
+        _copy_fields_if_present(event.data, vederlag, [
+            'saerskilt_varsel_rigg_drift_ok',
+            'varsel_justert_ep_ok',
+            'varsel_start_regning_ok',
+            'krav_fremmet_i_tide',
+            'begrunnelse_varsel',
+        ])
 
         # Port 2: Beregning
-        if hasattr(event.data, 'beregnings_resultat'):
+        _copy_fields_if_present(event.data, vederlag, [
+            'beregnings_resultat',
+        ], require_truthy=False)
+        if hasattr(event.data, 'beregnings_resultat') and event.data.beregnings_resultat:
             vederlag.bh_resultat = event.data.beregnings_resultat
+
         if hasattr(event.data, 'begrunnelse') and event.data.begrunnelse:
             vederlag.bh_begrunnelse = event.data.begrunnelse
-        if hasattr(event.data, 'vederlagsmetode'):
+
+        # vederlagsmetode needs special handling for .value extraction
+        if hasattr(event.data, 'vederlagsmetode') and event.data.vederlagsmetode:
             vederlag.bh_metode = event.data.vederlagsmetode.value if hasattr(event.data.vederlagsmetode, 'value') else event.data.vederlagsmetode
-        # total_godkjent_belop er summen av alle vederlagstyper (hovedkrav + særskilte krav)
+
+        # total_godkjent_belop maps to godkjent_belop
         if hasattr(event.data, 'total_godkjent_belop') and event.data.total_godkjent_belop is not None:
             vederlag.godkjent_belop = event.data.total_godkjent_belop
 
-        # Subsidiært standpunkt (NYE linjer)
+        # Subsidiært standpunkt - triggers needs .value extraction
         if hasattr(event.data, 'subsidiaer_triggers') and event.data.subsidiaer_triggers:
             vederlag.subsidiaer_triggers = [t.value if hasattr(t, 'value') else t for t in event.data.subsidiaer_triggers]
-        if hasattr(event.data, 'subsidiaer_resultat') and event.data.subsidiaer_resultat:
-            vederlag.subsidiaer_resultat = event.data.subsidiaer_resultat
-        if hasattr(event.data, 'subsidiaer_godkjent_belop') and event.data.subsidiaer_godkjent_belop is not None:
-            vederlag.subsidiaer_godkjent_belop = event.data.subsidiaer_godkjent_belop
-        if hasattr(event.data, 'subsidiaer_begrunnelse') and event.data.subsidiaer_begrunnelse:
-            vederlag.subsidiaer_begrunnelse = event.data.subsidiaer_begrunnelse
+
+        _copy_fields_if_present(event.data, vederlag, [
+            'subsidiaer_resultat',
+            'subsidiaer_godkjent_belop',
+            'subsidiaer_begrunnelse',
+        ], require_truthy=True)
 
         # Map beregnings_resultat til status
-        if hasattr(event.data, 'beregnings_resultat'):
+        if hasattr(event.data, 'beregnings_resultat') and event.data.beregnings_resultat:
             vederlag.status = self._beregnings_resultat_til_status(event.data.beregnings_resultat)
-        # Fallback for backward compatibility
         elif hasattr(event.data, 'resultat'):
             vederlag.status = self._respons_til_status(event.data.resultat)
 
@@ -454,49 +495,44 @@ class TimelineService:
         frist = state.frist
 
         # Port 1: Varselvurderinger
-        if hasattr(event.data, 'frist_varsel_ok'):
-            frist.frist_varsel_ok = event.data.frist_varsel_ok
-        if hasattr(event.data, 'spesifisert_krav_ok'):
-            frist.spesifisert_krav_ok = event.data.spesifisert_krav_ok
-        if hasattr(event.data, 'foresporsel_svar_ok'):
-            frist.foresporsel_svar_ok = event.data.foresporsel_svar_ok
-        if hasattr(event.data, 'har_bh_foresporsel'):
-            frist.har_bh_foresporsel = event.data.har_bh_foresporsel
-        if hasattr(event.data, 'dato_bh_foresporsel'):
-            frist.dato_bh_foresporsel = event.data.dato_bh_foresporsel
-        if hasattr(event.data, 'begrunnelse_varsel'):
-            frist.begrunnelse_varsel = event.data.begrunnelse_varsel
+        _copy_fields_if_present(event.data, frist, [
+            'frist_varsel_ok',
+            'spesifisert_krav_ok',
+            'foresporsel_svar_ok',
+            'har_bh_foresporsel',
+            'dato_bh_foresporsel',
+            'begrunnelse_varsel',
+        ])
 
         # Port 2: Vilkår (Årsakssammenheng)
-        if hasattr(event.data, 'vilkar_oppfylt'):
-            frist.vilkar_oppfylt = event.data.vilkar_oppfylt
+        _copy_fields_if_present(event.data, frist, ['vilkar_oppfylt'])
 
         # Port 3: Beregning
-        if hasattr(event.data, 'beregnings_resultat'):
+        if hasattr(event.data, 'beregnings_resultat') and event.data.beregnings_resultat:
             frist.bh_resultat = event.data.beregnings_resultat
+
         if hasattr(event.data, 'begrunnelse') and event.data.begrunnelse:
             frist.bh_begrunnelse = event.data.begrunnelse
-        if hasattr(event.data, 'godkjent_dager'):
-            frist.godkjent_dager = event.data.godkjent_dager
-        if hasattr(event.data, 'ny_sluttdato'):
-            frist.ny_sluttdato = event.data.ny_sluttdato
-        if hasattr(event.data, 'frist_for_spesifisering'):
-            frist.frist_for_spesifisering = event.data.frist_for_spesifisering
 
-        # Subsidiært standpunkt
+        _copy_fields_if_present(event.data, frist, [
+            'godkjent_dager',
+            'ny_sluttdato',
+            'frist_for_spesifisering',
+        ])
+
+        # Subsidiært standpunkt - triggers needs .value extraction
         if hasattr(event.data, 'subsidiaer_triggers') and event.data.subsidiaer_triggers:
             frist.subsidiaer_triggers = [t.value if hasattr(t, 'value') else t for t in event.data.subsidiaer_triggers]
-        if hasattr(event.data, 'subsidiaer_resultat') and event.data.subsidiaer_resultat:
-            frist.subsidiaer_resultat = event.data.subsidiaer_resultat
-        if hasattr(event.data, 'subsidiaer_godkjent_dager') and event.data.subsidiaer_godkjent_dager is not None:
-            frist.subsidiaer_godkjent_dager = event.data.subsidiaer_godkjent_dager
-        if hasattr(event.data, 'subsidiaer_begrunnelse') and event.data.subsidiaer_begrunnelse:
-            frist.subsidiaer_begrunnelse = event.data.subsidiaer_begrunnelse
+
+        _copy_fields_if_present(event.data, frist, [
+            'subsidiaer_resultat',
+            'subsidiaer_godkjent_dager',
+            'subsidiaer_begrunnelse',
+        ], require_truthy=True)
 
         # Map beregnings_resultat til status
-        if hasattr(event.data, 'beregnings_resultat'):
+        if hasattr(event.data, 'beregnings_resultat') and event.data.beregnings_resultat:
             frist.status = self._beregnings_resultat_til_status(event.data.beregnings_resultat)
-        # Fallback for backward compatibility
         elif hasattr(event.data, 'resultat'):
             frist.status = self._respons_til_status(event.data.resultat)
 

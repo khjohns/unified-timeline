@@ -16,6 +16,8 @@ from api.validators import (
     validate_vederlag_event,
     validate_frist_event,
     validate_respons_event,
+    _validate_varsel_requirement,
+    _normalize_to_upper,
 )
 
 
@@ -61,6 +63,150 @@ class TestValidationError:
         assert result == {"message": "Simple error"}
         assert "valid_options" not in result
         assert "field" not in result
+
+
+# ============================================================================
+# _validate_varsel_requirement tests (shared helper)
+# ============================================================================
+
+class TestValidateVarselRequirement:
+    """Tests for _validate_varsel_requirement helper function."""
+
+    def test_no_flag_set_passes(self):
+        """When flag is not set, validation passes without checking varsel."""
+        data = {"other_field": "value"}
+        # Should not raise
+        _validate_varsel_requirement(
+            data, 'krever_regningsarbeid', 'regningsarbeid_varsel',
+            "Error message"
+        )
+
+    def test_flag_false_passes(self):
+        """When flag is explicitly False, validation passes."""
+        data = {"krever_regningsarbeid": False}
+        _validate_varsel_requirement(
+            data, 'krever_regningsarbeid', 'regningsarbeid_varsel',
+            "Error message"
+        )
+
+    def test_flag_set_without_varsel_raises(self):
+        """When flag is set but varsel missing, raises ValidationError."""
+        data = {"krever_regningsarbeid": True}
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_varsel_requirement(
+                data, 'krever_regningsarbeid', 'regningsarbeid_varsel',
+                "Regningsarbeid krever varsel (§30.1)"
+            )
+        assert "Regningsarbeid krever varsel" in str(exc_info.value)
+
+    def test_flag_set_with_empty_varsel_raises(self):
+        """When flag is set but varsel is empty dict, raises ValidationError."""
+        data = {"krever_regningsarbeid": True, "regningsarbeid_varsel": {}}
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_varsel_requirement(
+                data, 'krever_regningsarbeid', 'regningsarbeid_varsel',
+                "Error message"
+            )
+        assert "dato_sendt" in str(exc_info.value)
+
+    def test_flag_set_varsel_missing_dato_sendt_raises(self):
+        """When varsel lacks dato_sendt, raises ValidationError."""
+        data = {
+            "krever_regningsarbeid": True,
+            "regningsarbeid_varsel": {"other_field": "value"}
+        }
+        with pytest.raises(ValidationError) as exc_info:
+            _validate_varsel_requirement(
+                data, 'krever_regningsarbeid', 'regningsarbeid_varsel',
+                "Error message"
+            )
+        assert "regningsarbeid_varsel må ha dato_sendt" in str(exc_info.value)
+
+    def test_flag_set_with_valid_varsel_passes(self):
+        """When flag is set and varsel has dato_sendt, passes."""
+        data = {
+            "krever_regningsarbeid": True,
+            "regningsarbeid_varsel": {"dato_sendt": "2025-01-15"}
+        }
+        # Should not raise
+        _validate_varsel_requirement(
+            data, 'krever_regningsarbeid', 'regningsarbeid_varsel',
+            "Error message"
+        )
+
+    def test_works_with_different_field_names(self):
+        """Helper works with any flag/varsel field combination."""
+        data = {
+            "inkluderer_rigg_drift": True,
+            "rigg_drift_varsel": {"dato_sendt": "2025-01-20"}
+        }
+        # Should not raise
+        _validate_varsel_requirement(
+            data, 'inkluderer_rigg_drift', 'rigg_drift_varsel',
+            "Rigg/drift krever varsel (§34.1.3)"
+        )
+
+
+# ============================================================================
+# _normalize_to_upper tests (shared helper)
+# ============================================================================
+
+class TestNormalizeToUpper:
+    """Tests for _normalize_to_upper helper function."""
+
+    def test_normalizes_string_to_upper(self):
+        """Converts lowercase string to uppercase."""
+        data = {"kategori": "endring"}
+        _normalize_to_upper(data, 'kategori')
+        assert data["kategori"] == "ENDRING"
+
+    def test_normalizes_mixed_case_string(self):
+        """Converts mixed case string to uppercase."""
+        data = {"metode": "Enhetspriser"}
+        _normalize_to_upper(data, 'metode')
+        assert data["metode"] == "ENHETSPRISER"
+
+    def test_handles_already_uppercase(self):
+        """Leaves uppercase strings unchanged."""
+        data = {"kategori": "ENDRING"}
+        _normalize_to_upper(data, 'kategori')
+        assert data["kategori"] == "ENDRING"
+
+    def test_handles_missing_key(self):
+        """Does nothing if key doesn't exist."""
+        data = {"other": "value"}
+        _normalize_to_upper(data, 'kategori')
+        assert "kategori" not in data
+
+    def test_handles_none_value(self):
+        """Does nothing if value is None."""
+        data = {"kategori": None}
+        _normalize_to_upper(data, 'kategori')
+        assert data["kategori"] is None
+
+    def test_normalizes_list_of_strings(self):
+        """Converts list of lowercase strings to uppercase."""
+        data = {"underkategorier": ["eo", "irreg"]}
+        _normalize_to_upper(data, 'underkategorier')
+        assert data["underkategorier"] == ["EO", "IRREG"]
+
+    def test_handles_mixed_list(self):
+        """Handles list with mixed types (only converts strings)."""
+        data = {"items": ["lower", 123, "UPPER"]}
+        _normalize_to_upper(data, 'items')
+        assert data["items"] == ["LOWER", 123, "UPPER"]
+
+    def test_normalizes_multiple_keys(self):
+        """Can normalize multiple keys in one call."""
+        data = {"a": "foo", "b": "bar", "c": "baz"}
+        _normalize_to_upper(data, 'a', 'b', 'c')
+        assert data == {"a": "FOO", "b": "BAR", "c": "BAZ"}
+
+    def test_handles_empty_string(self):
+        """Handles empty string (returns empty string)."""
+        data = {"kategori": ""}
+        _normalize_to_upper(data, 'kategori')
+        assert data["kategori"] == ""
 
 
 # ============================================================================
