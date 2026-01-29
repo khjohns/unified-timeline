@@ -1527,7 +1527,6 @@ export function RespondFristModal({
                 <FormField
                   label="Har forholdet hindret fremdriften?"
                   required
-                  helpText="Vurder om det påberopte forholdet faktisk har forårsaket forsinkelse i prosjektet"
                 >
                   <Controller
                     name="vilkar_oppfylt"
@@ -1539,11 +1538,11 @@ export function RespondFristModal({
                       >
                         <RadioItem
                           value="ja"
-                          label="Ja - forholdet har forårsaket faktisk forsinkelse"
+                          label="Ja – forholdet har hindret fremdriften"
                         />
                         <RadioItem
                           value="nei"
-                          label="Nei - ingen reell forsinkelse (f.eks. slakk i planen, eller forsinkelsen skyldes andre forhold)"
+                          label="Nei – forholdet har ikke hindret fremdriften"
                         />
                       </RadioGroup>
                     )}
@@ -1554,7 +1553,7 @@ export function RespondFristModal({
               {/* Begrunnelse vilkår - viktig at dette fylles ut */}
               <FormField
                 label="Begrunnelse for vurderingen"
-                helpText="Beskriv hvorfor forholdet medførte/ikke medførte forsinkelse"
+                helpText="Beskriv hvorfor forholdet hindret/ikke hindret fremdriften"
               >
                 <Textarea
                   {...register('begrunnelse_vilkar')}
