@@ -300,7 +300,7 @@ export function SendFristModal({
       title="Krev fristforlengelse"
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
         {/* BH forespørsel warning (§33.6.2) - CRITICAL */}
         {harMottattForesporsel && (
           <Alert variant="danger" title="Svar på byggherrens forespørsel (§33.6.2)">
@@ -389,11 +389,9 @@ export function SendFristModal({
           </FormField>
         </SectionContainer>
 
-        {/* Varseldetaljer for varsel om fristforlengelse */}
-        {selectedVarselType === 'varsel' && (
-          <SectionContainer
-            title="Varsel om fristforlengelse (§33.4)"
-          >
+        {/* Varsel om fristforlengelse (§33.4) - for både varsel og spesifisert */}
+        {(selectedVarselType === 'varsel' || selectedVarselType === 'spesifisert') && (
+          <SectionContainer title="Varsel om fristforlengelse (§33.4)">
             <div className="space-y-4">
               <p className="text-sm text-pkt-text-body-subtle">
                 <ExpandableText preview="Krav om fristforlengelse må varsles «uten ugrunnet opphold».">
@@ -403,8 +401,8 @@ export function SendFristModal({
                 </ExpandableText>
               </p>
 
-              {/* §33.4 Preklusjonsvarsel */}
-              {erNoytraltVarselSent && (
+              {/* §33.4 Preklusjonsvarsel - kun for nøytralt varsel */}
+              {selectedVarselType === 'varsel' && erNoytraltVarselSent && (
                 <Alert
                   variant={erNoytraltVarselKritisk ? 'danger' : 'warning'}
                   title={erNoytraltVarselKritisk ? 'Preklusjonsrisiko (§33.4)' : 'Sen varsling (§33.4)'}
@@ -416,109 +414,98 @@ export function SendFristModal({
                 </Alert>
               )}
 
-              <Controller
-                name="frist_varsel_sendes_na"
-                control={control}
-                render={({ field: sendesNaField }) => (
-                  <Controller
-                    name="frist_varsel_dato"
-                    control={control}
-                    render={({ field: datoField }) => (
-                      <VarselSeksjon
-                        checkboxLabel="Varselet ble sendt tidligere"
-                        harTidligere={!sendesNaField.value}
-                        onHarTidligereChange={(v) => sendesNaField.onChange(!v)}
-                        datoSendt={datoField.value}
-                        onDatoSendtChange={datoField.onChange}
-                        datoError={errors.frist_varsel_dato?.message}
-                        registerMetoder={register('frist_varsel_metoder')}
-                        idPrefix="frist_varsel"
-                        testId="frist-varsel-valg"
-                      />
-                    )}
-                  />
-                )}
-              />
-            </div>
-          </SectionContainer>
-        )}
-
-        {/* Varsel om fristforlengelse (§33.4) - kun for spesifisert krav */}
-        {selectedVarselType === 'spesifisert' && (
-          <SectionContainer title="Varsel om fristforlengelse (§33.4)">
-            <div className="space-y-4">
-              <p className="text-sm text-pkt-text-body-subtle">
-                <ExpandableText preview="Krav om fristforlengelse må varsles «uten ugrunnet opphold».">
-                  Oppstår forhold som gir rett til fristforlengelse etter §33.1, §33.2 eller §33.3,
-                  må parten varsle krav om fristforlengelse uten ugrunnet opphold (§33.4).
-                  Varsles det ikke i tide, tapes kravet på fristforlengelse.
-                </ExpandableText>
-              </p>
-
-              <Controller
-                name="har_tidligere_varslet"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="har_tidligere_varslet"
-                    label="Jeg har tidligere varslet om dette kravet"
-                    checked={field.value ?? false}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-
-              {harTidligereVarslet ? (
-                <>
-                  <FormField
-                    label="Dato varsel ble sendt"
-                    helpText="Skriftlig varsel, e-post til avtalt adresse, eller innført i referat (§5)."
-                    error={errors.frist_varsel_dato?.message}
-                  >
+              {selectedVarselType === 'varsel' ? (
+                <Controller
+                  name="frist_varsel_sendes_na"
+                  control={control}
+                  render={({ field: sendesNaField }) => (
                     <Controller
                       name="frist_varsel_dato"
                       control={control}
-                      render={({ field }) => (
-                        <DatePicker
-                          id="frist_varsel_dato"
-                          value={field.value}
-                          onChange={field.onChange}
-                          error={!!errors.frist_varsel_dato}
+                      render={({ field: datoField }) => (
+                        <VarselSeksjon
+                          checkboxLabel="Varselet ble sendt tidligere"
+                          harTidligere={!sendesNaField.value}
+                          onHarTidligereChange={(v) => sendesNaField.onChange(!v)}
+                          datoSendt={datoField.value}
+                          onDatoSendtChange={datoField.onChange}
+                          datoError={errors.frist_varsel_dato?.message}
+                          registerMetoder={register('frist_varsel_metoder')}
+                          idPrefix="frist_varsel"
+                          testId="frist-varsel-valg"
                         />
                       )}
                     />
-                  </FormField>
-
-                  <FormField
-                    label="Varselmetode"
-                    helpText="Kun skriftlige varsler er gyldige iht. §5."
-                  >
-                    <div className="space-y-2">
-                      <Checkbox
-                        id="frist_varsel-epost"
-                        label="E-post"
-                        value="epost"
-                        {...register('frist_varsel_metoder')}
-                      />
-                      <Checkbox
-                        id="frist_varsel-brev"
-                        label="Brev"
-                        value="brev"
-                        {...register('frist_varsel_metoder')}
-                      />
-                      <Checkbox
-                        id="frist_varsel-byggemoete"
-                        label="Byggemøte (innført i referat)"
-                        value="byggemoete"
-                        {...register('frist_varsel_metoder')}
-                      />
-                    </div>
-                  </FormField>
-                </>
+                  )}
+                />
               ) : (
-                <p className="text-sm text-pkt-text-body-subtle">
-                  Sendes i dag sammen med dette skjemaet.
-                </p>
+                <>
+                  <Controller
+                    name="har_tidligere_varslet"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox
+                        id="har_tidligere_varslet"
+                        label="Jeg har tidligere varslet om dette kravet"
+                        checked={field.value ?? false}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+
+                  {harTidligereVarslet ? (
+                    <>
+                      <FormField
+                        label="Dato varsel ble sendt"
+                        helpText="Skriftlig varsel, e-post til avtalt adresse, eller innført i referat (§5)."
+                        error={errors.frist_varsel_dato?.message}
+                      >
+                        <Controller
+                          name="frist_varsel_dato"
+                          control={control}
+                          render={({ field }) => (
+                            <DatePicker
+                              id="frist_varsel_dato"
+                              value={field.value}
+                              onChange={field.onChange}
+                              error={!!errors.frist_varsel_dato}
+                            />
+                          )}
+                        />
+                      </FormField>
+
+                      <FormField
+                        label="Varselmetode"
+                        helpText="Kun skriftlige varsler er gyldige iht. §5."
+                      >
+                        <div className="space-y-2">
+                          <Checkbox
+                            id="frist_varsel-epost"
+                            label="E-post"
+                            value="epost"
+                            {...register('frist_varsel_metoder')}
+                          />
+                          <Checkbox
+                            id="frist_varsel-brev"
+                            label="Brev"
+                            value="brev"
+                            {...register('frist_varsel_metoder')}
+                          />
+                          <Checkbox
+                            id="frist_varsel-byggemoete"
+                            label="Byggemøte (innført i referat)"
+                            value="byggemoete"
+                            {...register('frist_varsel_metoder')}
+                          />
+                        </div>
+                      </FormField>
+                    </>
+                  ) : (
+                    <p className="text-sm text-pkt-text-body-subtle">
+                      Sendes i dag sammen med dette skjemaet.
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </SectionContainer>
@@ -594,62 +581,6 @@ export function SendFristModal({
           </SectionContainer>
         )}
 
-        {/* Beregning av fristforlengelse (for spesifisert/FM) */}
-        {selectedVarselType === 'spesifisert' && (
-          <SectionContainer
-            title="Beregning av fristforlengelse"
-          >
-            <div className="space-y-4">
-              <p className="text-sm text-pkt-text-body-subtle mb-3">
-                <ExpandableText preview="Fristforlengelsen skal svare til den virkning hindringen har hatt for fremdriften.">
-                  Fristforlengelsen skal svare til den virkning hindringen har hatt for fremdriften (§33.5).
-                  Ved beregningen skal det tas hensyn til nødvendig avbrudd og oppstart, årstidsforskyvning,
-                  den samlede virkning av tidligere fristforlengelser, og om entreprenøren har oppfylt sin
-                  tapsbegrensningsplikt. Forlengelsen skal ikke overstige det som er nødvendig for å kompensere
-                  den reelle forsinkelsen.
-                </ExpandableText>
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-                <FormField
-                  label="Antall kalenderdager"
-                  required
-                  error={errors.antall_dager?.message}
-                >
-                  <Input
-                    id="antall_dager"
-                    type="number"
-                    {...register('antall_dager', {
-                      setValueAs: (v) => (v === '' ? undefined : Number(v)),
-                    })}
-                    width="xs"
-                    min={0}
-                    error={!!errors.antall_dager}
-                  />
-                </FormField>
-
-                <FormField
-                  label="Ny sluttdato"
-                  error={errors.ny_sluttdato?.message}
-                >
-                  <Controller
-                    name="ny_sluttdato"
-                    control={control}
-                    render={({ field }) => (
-                      <DatePicker
-                        id="ny_sluttdato"
-                        value={field.value}
-                        onChange={field.onChange}
-                        error={!!errors.ny_sluttdato}
-                      />
-                    )}
-                  />
-                </FormField>
-              </div>
-            </div>
-          </SectionContainer>
-        )}
-
         {/* Årsakssammenheng */}
         <SectionContainer
           title="Årsakssammenheng"
@@ -688,6 +619,62 @@ export function SendFristModal({
             </FormField>
           </div>
         </SectionContainer>
+
+        {/* Beregning av fristforlengelse (for spesifisert/FM) */}
+        {selectedVarselType === 'spesifisert' && (
+          <SectionContainer
+            title="Beregning av fristforlengelse"
+          >
+            <div className="space-y-4">
+              <p className="text-sm text-pkt-text-body-subtle mb-3">
+                <ExpandableText preview="Fristforlengelsen skal svare til den virkning hindringen har hatt for fremdriften.">
+                  Fristforlengelsen skal svare til den virkning hindringen har hatt for fremdriften (§33.5).
+                  Ved beregningen skal det tas hensyn til nødvendig avbrudd og oppstart, årstidsforskyvning,
+                  den samlede virkning av tidligere fristforlengelser, og om entreprenøren har oppfylt sin
+                  tapsbegrensningsplikt. Forlengelsen skal ikke overstige det som er nødvendig for å kompensere
+                  den reelle forsinkelsen.
+                </ExpandableText>
+              </p>
+
+              <div className="flex flex-col min-[420px]:flex-row gap-3 min-[420px]:gap-6">
+                <FormField
+                  label="Antall kalenderdager"
+                  required
+                  error={errors.antall_dager?.message}
+                >
+                  <Input
+                    id="antall_dager"
+                    type="number"
+                    {...register('antall_dager', {
+                      setValueAs: (v) => (v === '' ? undefined : Number(v)),
+                    })}
+                    width="xs"
+                    min={0}
+                    error={!!errors.antall_dager}
+                  />
+                </FormField>
+
+                <FormField
+                  label="Ny sluttdato"
+                  error={errors.ny_sluttdato?.message}
+                >
+                  <Controller
+                    name="ny_sluttdato"
+                    control={control}
+                    render={({ field }) => (
+                      <DatePicker
+                        id="ny_sluttdato"
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={!!errors.ny_sluttdato}
+                      />
+                    )}
+                  />
+                </FormField>
+              </div>
+            </div>
+          </SectionContainer>
+        )}
 
         {/* Vedlegg */}
         <SectionContainer
