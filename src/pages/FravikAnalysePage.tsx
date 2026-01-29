@@ -21,7 +21,7 @@
 import { useState, useMemo, Suspense } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { LoadingState } from '../components/PageStateHelpers';
+import { PageLoadingFallback } from '../components/PageLoadingFallback';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import { Card, Button, Tabs, Alert, Table, DropdownMenuItem, type Column } from '../components/primitives';
@@ -578,7 +578,7 @@ function HistorikkAnalyse({ data, onNavigate }: { data: FravikAnalyticsData; onN
 export function FravikAnalysePage() {
   return (
     <ErrorBoundary>
-      <Suspense fallback={<LoadingState message="Laster fravik-analyse..." />}>
+      <Suspense fallback={<PageLoadingFallback />}>
         <FravikAnalyseContent />
       </Suspense>
     </ErrorBoundary>

@@ -40,7 +40,7 @@ import {
 } from '../types/fravik';
 import { formatDateShort } from '../utils/formatters';
 import { downloadFravikExcel } from '../utils/excelExport';
-import { LoadingState } from '../components/PageStateHelpers';
+import { PageLoadingFallback } from '../components/PageLoadingFallback';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
 // ============================================================================
@@ -117,7 +117,7 @@ export function FravikPage() {
 
   return (
     <ErrorBoundary>
-      <Suspense fallback={<LoadingState message="Laster fravik-søknad..." />}>
+      <Suspense fallback={<PageLoadingFallback />}>
         <FravikPageContent sakId={sakId || ''} />
       </Suspense>
     </ErrorBoundary>

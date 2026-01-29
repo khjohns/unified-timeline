@@ -3,7 +3,7 @@ import { ReloadIcon } from '@radix-ui/react-icons';
 
 /**
  * Roterende folkelige meldinger for å gjøre ventetiden mer engasjerende.
- * Bytter melding hvert 2. sekund.
+ * Bytter melding hvert 750ms i tilfeldig rekkefølge.
  */
 const LOADING_MESSAGES = [
   'Henter kaffe …',
@@ -14,17 +14,27 @@ const LOADING_MESSAGES = [
   'Nesten der …',
 ];
 
+function getRandomIndex(currentIndex: number): number {
+  let newIndex: number;
+  do {
+    newIndex = Math.floor(Math.random() * LOADING_MESSAGES.length);
+  } while (newIndex === currentIndex && LOADING_MESSAGES.length > 1);
+  return newIndex;
+}
+
 /**
  * Loading fallback for lazy-loaded pages.
  * Shows a centered spinner with rotating friendly messages.
  */
 export function PageLoadingFallback() {
-  const [messageIndex, setMessageIndex] = useState(0);
+  const [messageIndex, setMessageIndex] = useState(() =>
+    Math.floor(Math.random() * LOADING_MESSAGES.length)
+  );
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
-    }, 2000);
+      setMessageIndex((prev) => getRandomIndex(prev));
+    }, 750);
 
     return () => clearInterval(interval);
   }, []);

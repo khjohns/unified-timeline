@@ -10,9 +10,36 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
         .loading-fallback {
-            padding: 20px;
-            text-align: center;
-            font-family: system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            background: #f8f8fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .loading-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+        .loading-spinner {
+            width: 32px;
+            height: 32px;
+            color: #6b21a8;
+            animation: spin 1s linear infinite;
+        }
+        .loading-text {
+            font-size: 14px;
+            color: #374151;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
     </style>
 </head>
@@ -24,17 +51,45 @@
     </noscript>
     <div id="root">
         <div class="loading-fallback">
-            <h2>Laster skjema...</h2>
-            <p>Hvis denne meldingen vedvarer, kan det være et problem med å laste siden.</p>
+            <div class="loading-content">
+                <svg class="loading-spinner" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1.90321 7.29677C1.90321 10.341 4.11041 12.4147 6.58893 12.8439C6.87255 12.893 7.06266 13.1627 7.01355 13.4464C6.96444 13.73 6.69471 13.9201 6.41109 13.871C3.49942 13.3668 0.86084 10.9127 0.86084 7.29677C0.860839 5.76009 1.55996 4.55245 2.37639 3.63377C2.96124 2.97568 3.63034 2.44135 4.16846 2.03202L2.53205 2.03202C2.25591 2.03202 2.03205 1.80816 2.03205 1.53202C2.03205 1.25588 2.25591 1.03202 2.53205 1.03202L5.53205 1.03202C5.80819 1.03202 6.03205 1.25588 6.03205 1.53202L6.03205 4.53202C6.03205 4.80816 5.80819 5.03202 5.53205 5.03202C5.25591 5.03202 5.03205 4.80816 5.03205 4.53202L5.03205 2.68645L5.03054 2.68759L5.03045 2.68766L5.02703 2.69048C4.98519 2.72311 4.92593 2.77065 4.85218 2.83149C4.70853 2.94992 4.50575 3.12084 4.27501 3.33679C3.81661 3.7662 3.2725 4.38487 2.83577 5.14697C2.40126 5.90476 2.08849 6.77785 2.08849 7.73677C2.08849 7.7456 2.08856 7.75765 2.08897 7.77271L1.90321 7.29677Z" fill="currentColor"/>
+                </svg>
+                <p class="loading-text" id="loading-message">Henter kaffe …</p>
+            </div>
         </div>
     </div>
     <script type="module" src="src/main.tsx"></script>
     <script>
+        (function() {
+            var messages = [
+                'Henter kaffe …',
+                'Leter i arkivet …',
+                'Finner frem papirene …',
+                'Støvsuger mappene …',
+                'Sorterer bunken …',
+                'Nesten der …'
+            ];
+            var el = document.getElementById('loading-message');
+            var currentIndex = Math.floor(Math.random() * messages.length);
+            if (el) el.textContent = messages[currentIndex];
+
+            setInterval(function() {
+                if (!el || !document.getElementById('loading-message')) return;
+                var newIndex;
+                do {
+                    newIndex = Math.floor(Math.random() * messages.length);
+                } while (newIndex === currentIndex && messages.length > 1);
+                currentIndex = newIndex;
+                el.textContent = messages[currentIndex];
+            }, 750);
+        })();
+
         // Error handler for load failures
         window.addEventListener('error', function(e) {
             console.error('Global error:', e.error || e.message);
             var root = document.getElementById('root');
-            if (root && root.innerHTML.indexOf('Laster skjema') !== -1) {
+            if (root && root.querySelector('.loading-fallback')) {
                 root.innerHTML = '<div style="padding: 20px; background: #f8d7da; border: 2px solid #721c24; margin: 20px; border-radius: 8px;"><strong>Feil ved lasting:</strong> ' + (e.message || 'Ukjent feil') + '</div>';
             }
         });

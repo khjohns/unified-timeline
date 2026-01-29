@@ -35,8 +35,8 @@ import {
 import {
   VerifyingState,
   AuthErrorState,
-  LoadingState,
 } from '../components/PageStateHelpers';
+import { PageLoadingFallback } from '../components/PageLoadingFallback';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import type { ForseringData } from '../types/timeline';
 import {
@@ -120,7 +120,7 @@ export function ForseringPage() {
   // Auth OK - render with Suspense
   return (
     <ErrorBoundary>
-      <Suspense fallback={<LoadingState message="Laster forseringssak..." />}>
+      <Suspense fallback={<PageLoadingFallback />}>
         <ForseringPageContent sakId={sakId || ''} />
       </Suspense>
     </ErrorBoundary>

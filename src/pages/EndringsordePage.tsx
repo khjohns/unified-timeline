@@ -28,8 +28,8 @@ import {
 import {
   VerifyingState,
   AuthErrorState,
-  LoadingState,
 } from '../components/PageStateHelpers';
+import { PageLoadingFallback } from '../components/PageLoadingFallback';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import type {
   EndringsordreData,
@@ -120,7 +120,7 @@ export function EndringsordePage() {
   // Auth OK - render with Suspense
   return (
     <ErrorBoundary>
-      <Suspense fallback={<LoadingState message="Laster endringsordre..." />}>
+      <Suspense fallback={<PageLoadingFallback />}>
         <EndringsordrePageContent sakId={sakId || ''} />
       </Suspense>
     </ErrorBoundary>
