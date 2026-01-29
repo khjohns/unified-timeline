@@ -35,6 +35,7 @@ import {
   Button,
   DataList,
   DataListItem,
+  ExpandableText,
   FormField,
   RichTextEditor,
   Modal,
@@ -432,11 +433,6 @@ export function RespondGrunnlagModal({
               <KontraktsregelInline hjemmel="§33.3" />
             )}
 
-            {/* §32.3: Byggherrens svarplikt ved varsel etter §32.2 */}
-            {erEndringMed32_2 && (
-              <KontraktsregelInline hjemmel="§32.3" />
-            )}
-
             {/* BH Passivity warning (§32.3) */}
             {erPassiv && (
               <Alert variant="danger" title="Passivitetsrisiko (§32.3)">
@@ -455,11 +451,18 @@ export function RespondGrunnlagModal({
             {/* §32.2 Preklusjon (kun ENDRING) */}
             {erEndringMed32_2 && (
               <SectionContainer
-                title="Preklusjon av grunnlagsvarsel (§32.2)"
+                title="Varselsystemet (§32.2 / §32.3)"
                 description="Vurder om entreprenøren varslet om den påståtte endringen i tide."
               >
                 <div className="space-y-3 sm:space-y-4">
-                  <KontraktsregelInline hjemmel="§32.2" />
+                  {/* Expandable kontraktsregler: §32.2 og §32.3 */}
+                  <div className="rounded-md border border-pkt-border-subtle bg-pkt-bg-subtle p-4 space-y-2">
+                    <p className="text-sm text-pkt-text-body">
+                      <ExpandableText preview="Entreprenøren må varsle om påståtte endringer «uten ugrunnet opphold» (§32.2). Byggherren må svare uten ugrunnet opphold (§32.3).">
+                        §32.2 – Entreprenørens varslingsplikt: Mottar totalentreprenøren pålegg uten endringsordre og mener det utgjør en endring, må han varsle byggherren skriftlig uten ugrunnet opphold. Varsles det ikke i tide, tapes retten til å påberope at pålegget innebærer en endring. §32.3 – Byggherrens svarplikt: Mottar byggherren varsel etter §32.2, skal han besvare det uten ugrunnet opphold ved å (a) utstede endringsordre, (b) avslå kravet, eller (c) frafalle pålegget. Svarer ikke byggherren i tide, anses pålegget å innebære en endring. §5 – Påberopelse: Byggherren må påberope at varselet er for sent skriftlig uten ugrunnet opphold.
+                      </ExpandableText>
+                    </p>
+                  </div>
 
                   <FormField
                     label="Varslet entreprenøren uten ugrunnet opphold?"

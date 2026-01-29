@@ -44,13 +44,13 @@ export function ExpandableText({
       onClick={() => setIsExpanded(!isExpanded)}
       className={clsx('inline-flex items-start gap-1.5 text-left', className)}
     >
+      <span>{isExpanded ? children : previewText}</span>
       <ChevronDownIcon
         className={clsx(
           'w-4 h-4 shrink-0 mt-0.5 text-pkt-text-body-muted transition-transform duration-200',
           isExpanded && 'rotate-180'
         )}
       />
-      <span>{isExpanded ? children : previewText}</span>
     </button>
   );
 }
