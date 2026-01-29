@@ -23,7 +23,6 @@ import { EODashboard, RelatertKOEListe, LeggTilKOEModal } from '../components/en
 import {
   ArrowLeftIcon,
   PlusIcon,
-  ReloadIcon,
 } from '@radix-ui/react-icons';
 import {
   VerifyingState,
@@ -253,9 +252,6 @@ function EndringsordrePageContent({ sakId }: { sakId: string }) {
             <Card variant="outlined" padding="md">
               <h2 id="koe-heading" className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
                 Relaterte KOE-saker
-                {kontekstLoading && (
-                  <ReloadIcon className="w-4 h-4 animate-spin inline ml-2" />
-                )}
               </h2>
               <RelatertKOEListe
                 koeOversikt={kontekstData?.oppsummering?.koe_oversikt || []}
