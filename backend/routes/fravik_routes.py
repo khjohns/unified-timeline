@@ -26,6 +26,11 @@ from services.fravik_service import fravik_service
 from repositories import create_event_repository
 from repositories.event_repository import ConcurrencyError
 from lib.decorators import handle_service_errors
+from lib.helpers.version_control import (
+    handle_concurrency_error,
+    not_found_response,
+    version_conflict_response,
+)
 from lib.auth.magic_link import require_magic_link
 from lib.auth.csrf_protection import require_csrf
 from utils.logger import get_logger
@@ -192,11 +197,7 @@ def get_fravik_state(sak_id: str):
     events, version = _get_events_for_sak(sak_id)
 
     if not events:
-        return jsonify({
-            "success": False,
-            "error": "NOT_FOUND",
-            "message": f"Søknad {sak_id} ikke funnet"
-        }), 404
+        return not_found_response("Søknad", sak_id)
 
     state = fravik_service.compute_state(events)
 
@@ -229,11 +230,7 @@ def get_fravik_events(sak_id: str):
     events, version = _get_events_for_sak(sak_id)
 
     if not events:
-        return jsonify({
-            "success": False,
-            "error": "NOT_FOUND",
-            "message": f"Søknad {sak_id} ikke funnet"
-        }), 404
+        return not_found_response("Søknad", sak_id)
 
     events_json = [e.model_dump(mode='json') for e in events]
 
@@ -274,21 +271,11 @@ def oppdater_soknad(sak_id: str):
     # Valider at søknaden finnes
     events, current_version = _get_events_for_sak(sak_id)
     if not events:
-        return jsonify({
-            "success": False,
-            "error": "NOT_FOUND",
-            "message": f"Søknad {sak_id} ikke funnet"
-        }), 404
+        return not_found_response("Søknad", sak_id)
 
     # Versjonskontroll
     if expected_version != current_version:
-        return jsonify({
-            "success": False,
-            "error": "VERSION_CONFLICT",
-            "expected_version": expected_version,
-            "current_version": current_version,
-            "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
-        }), 409
+        return version_conflict_response(expected_version, current_version)
 
     # Bygg oppdateringsdata (kun inkluder felter som er satt)
     update_fields = {}
@@ -322,13 +309,7 @@ def oppdater_soknad(sak_id: str):
     try:
         new_version = _append_event(sak_id, event, expected_version)
     except ConcurrencyError as e:
-        return jsonify({
-            "success": False,
-            "error": "VERSION_CONFLICT",
-            "expected_version": expected_version,
-            "current_version": e.current_version,
-            "message": str(e)
-        }), 409
+        return handle_concurrency_error(e)
 
     logger.info(f"Søknad oppdatert: {sak_id}, versjon {new_version}")
 
@@ -368,21 +349,11 @@ def legg_til_maskin(sak_id: str):
     # Valider at søknaden finnes
     events, current_version = _get_events_for_sak(sak_id)
     if not events:
-        return jsonify({
-            "success": False,
-            "error": "NOT_FOUND",
-            "message": f"Søknad {sak_id} ikke funnet"
-        }), 404
+        return not_found_response("Søknad", sak_id)
 
     # Versjonskontroll
     if expected_version != current_version:
-        return jsonify({
-            "success": False,
-            "error": "VERSION_CONFLICT",
-            "expected_version": expected_version,
-            "current_version": current_version,
-            "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
-        }), 409
+        return version_conflict_response(expected_version, current_version)
 
     # Opprett event
     maskin_id = str(uuid4())
@@ -411,12 +382,8 @@ def legg_til_maskin(sak_id: str):
 
     try:
         new_version = _append_event(sak_id, event, expected_version)
-    except ConcurrencyError:
-        return jsonify({
-            "success": False,
-            "error": "VERSION_CONFLICT",
-            "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
-        }), 409
+    except ConcurrencyError as e:
+        return handle_concurrency_error(e)
 
     # Beregn ny state
     events, _ = _get_events_for_sak(sak_id)
@@ -453,11 +420,7 @@ def send_inn_soknad(sak_id: str):
 
     events, current_version = _get_events_for_sak(sak_id)
     if not events:
-        return jsonify({
-            "success": False,
-            "error": "NOT_FOUND",
-            "message": f"Søknad {sak_id} ikke funnet"
-        }), 404
+        return not_found_response("Søknad", sak_id)
 
     # Sjekk at søknaden kan sendes inn
     state = fravik_service.compute_state(events)
@@ -477,12 +440,8 @@ def send_inn_soknad(sak_id: str):
 
     try:
         new_version = _append_event(sak_id, event, expected_version)
-    except ConcurrencyError:
-        return jsonify({
-            "success": False,
-            "error": "VERSION_CONFLICT",
-            "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
-        }), 409
+    except ConcurrencyError as e:
+        return handle_concurrency_error(e)
 
     events, _ = _get_events_for_sak(sak_id)
     state = fravik_service.compute_state(events)
@@ -529,11 +488,7 @@ def miljo_vurdering(sak_id: str):
 
     events, current_version = _get_events_for_sak(sak_id)
     if not events:
-        return jsonify({
-            "success": False,
-            "error": "NOT_FOUND",
-            "message": f"Søknad {sak_id} ikke funnet"
-        }), 404
+        return not_found_response("Søknad", sak_id)
 
     # Parse maskin-vurderinger
     maskin_vurderinger = [
@@ -556,12 +511,8 @@ def miljo_vurdering(sak_id: str):
 
     try:
         new_version = _append_event(sak_id, event, expected_version)
-    except ConcurrencyError:
-        return jsonify({
-            "success": False,
-            "error": "VERSION_CONFLICT",
-            "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
-        }), 409
+    except ConcurrencyError as e:
+        return handle_concurrency_error(e)
 
     events, _ = _get_events_for_sak(sak_id)
     state = fravik_service.compute_state(events)
@@ -601,10 +552,7 @@ def pl_vurdering(sak_id: str):
 
     events, current_version = _get_events_for_sak(sak_id)
     if not events:
-        return jsonify({
-            "success": False,
-            "error": "NOT_FOUND"
-        }), 404
+        return not_found_response("Søknad", sak_id)
 
     event = PLVurderingEvent(
         sak_id=sak_id,
@@ -621,11 +569,8 @@ def pl_vurdering(sak_id: str):
 
     try:
         new_version = _append_event(sak_id, event, expected_version)
-    except ConcurrencyError:
-        return jsonify({
-            "success": False,
-            "error": "VERSION_CONFLICT"
-        }), 409
+    except ConcurrencyError as e:
+        return handle_concurrency_error(e)
 
     events, _ = _get_events_for_sak(sak_id)
     state = fravik_service.compute_state(events)
@@ -664,10 +609,7 @@ def arbeidsgruppe_vurdering(sak_id: str):
 
     events, current_version = _get_events_for_sak(sak_id)
     if not events:
-        return jsonify({
-            "success": False,
-            "error": "NOT_FOUND"
-        }), 404
+        return not_found_response("Søknad", sak_id)
 
     maskin_vurderinger = [
         MaskinVurderingData(**mv) for mv in payload.get('maskin_vurderinger', [])
@@ -688,11 +630,8 @@ def arbeidsgruppe_vurdering(sak_id: str):
 
     try:
         new_version = _append_event(sak_id, event, expected_version)
-    except ConcurrencyError:
-        return jsonify({
-            "success": False,
-            "error": "VERSION_CONFLICT"
-        }), 409
+    except ConcurrencyError as e:
+        return handle_concurrency_error(e)
 
     events, _ = _get_events_for_sak(sak_id)
     state = fravik_service.compute_state(events)
@@ -731,10 +670,7 @@ def eier_beslutning(sak_id: str):
 
     events, current_version = _get_events_for_sak(sak_id)
     if not events:
-        return jsonify({
-            "success": False,
-            "error": "NOT_FOUND"
-        }), 404
+        return not_found_response("Søknad", sak_id)
 
     beslutning = payload['beslutning']
     maskin_beslutninger = None
@@ -778,11 +714,8 @@ def eier_beslutning(sak_id: str):
 
     try:
         new_version = _append_event(sak_id, event, expected_version)
-    except ConcurrencyError:
-        return jsonify({
-            "success": False,
-            "error": "VERSION_CONFLICT"
-        }), 409
+    except ConcurrencyError as e:
+        return handle_concurrency_error(e)
 
     events, _ = _get_events_for_sak(sak_id)
     state = fravik_service.compute_state(events)

@@ -24,6 +24,7 @@ from services.timeline_service import TimelineService
 from services.catenda_sync_service import CatendaSyncService, CatendaSyncResult
 from repositories import create_event_repository, create_metadata_repository
 from repositories.event_repository import ConcurrencyError
+from lib.helpers.version_control import handle_concurrency_error
 from lib.catenda_factory import get_catenda_client
 from lib.decorators import handle_service_errors
 from lib.auth.magic_link import require_magic_link
@@ -384,13 +385,7 @@ def registrer_bh_respons(sak_id: str):
             subsidiaer_begrunnelse=payload.get('subsidiaer_begrunnelse'),
         )
     except ConcurrencyError as e:
-        return jsonify({
-            "success": False,
-            "error": "CONCURRENCY_CONFLICT",
-            "message": f"Versjonskonflikt: forventet {e.expected}, fikk {e.actual}",
-            "expected_version": e.expected,
-            "actual_version": e.actual
-        }), 409
+        return handle_concurrency_error(e)
 
     status = "akseptert" if payload['aksepterer'] else "avslått"
     logger.info(f"BH respons på forsering {sak_id}: {status}")
@@ -466,13 +461,7 @@ def stopp_forsering(sak_id: str):
             expected_version=expected_version
         )
     except ConcurrencyError as e:
-        return jsonify({
-            "success": False,
-            "error": "CONCURRENCY_CONFLICT",
-            "message": f"Versjonskonflikt: forventet {e.expected}, fikk {e.actual}",
-            "expected_version": e.expected,
-            "actual_version": e.actual
-        }), 409
+        return handle_concurrency_error(e)
 
     logger.info(f"Forsering {sak_id} stoppet")
 
@@ -520,13 +509,7 @@ def oppdater_kostnader(sak_id: str):
             expected_version=expected_version
         )
     except ConcurrencyError as e:
-        return jsonify({
-            "success": False,
-            "error": "CONCURRENCY_CONFLICT",
-            "message": f"Versjonskonflikt: forventet {e.expected}, fikk {e.actual}",
-            "expected_version": e.expected,
-            "actual_version": e.actual
-        }), 409
+        return handle_concurrency_error(e)
 
     logger.info(f"Forseringskostnader for {sak_id} oppdatert til {payload['paalopte_kostnader']}")
 
