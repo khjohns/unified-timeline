@@ -292,6 +292,187 @@ python scripts/security_scan.py --include-low
 - 4 Math.random() brukt for SAK-ID generering
 - 1 false positive (SQL-lignende streng som ikke er SQL)
 
+### Category Drift Checker
+
+**Status:** Implementert
+
+**Plassering:** `scripts/category_drift.py`
+
+**Bruk:**
+```bash
+# Standard output
+python scripts/category_drift.py
+
+# Verbose (vis detaljer)
+python scripts/category_drift.py --verbose
+
+# JSON output
+python scripts/category_drift.py --format json
+
+# CI-modus (exit 1 ved drift)
+python scripts/category_drift.py --ci
+```
+
+**Hva den sjekker:**
+- Hovedkategorier (koder og labels) mellom frontend og backend
+- Underkategorier per hovedkategori
+- Manglende eller ekstra kategorier på hver side
+
+**Kritisk for:** NS 8407-kategorier som brukes i grunnlag-spor.
+
+### Validation Drift Detector
+
+**Status:** Implementert
+
+**Plassering:** `scripts/validation_drift.py`
+
+**Bruk:**
+```bash
+# Standard output
+python scripts/validation_drift.py
+
+# JSON output
+python scripts/validation_drift.py --format json
+
+# Markdown output
+python scripts/validation_drift.py --format markdown
+
+# CI-modus (exit 1 ved drift)
+python scripts/validation_drift.py --ci
+```
+
+**Hva den sjekker:**
+- Sammenligner frontend Zod-skjemaer med backend validators
+- Required/optional felt-mismatches
+- Min/max length og value constraints
+- Pattern-validering
+
+**Kritisk for:** Sikre at frontend og backend validerer likt.
+
+### OpenAPI Generator Drift Checker
+
+**Status:** Implementert
+
+**Plassering:** `scripts/check_openapi_generator_drift.py`
+
+**Bruk:**
+```bash
+# Standard output
+python scripts/check_openapi_generator_drift.py
+
+# Verbose
+python scripts/check_openapi_generator_drift.py --verbose
+
+# CI-modus
+python scripts/check_openapi_generator_drift.py --ci
+```
+
+**Hva den sjekker:**
+- Hvilke enums i `events.py` som IKKE er importert i OpenAPI-generatoren
+- Om importerte enums matcher faktiske verdier
+- Om Pydantic-modeller som brukes i API-en er inkludert
+
+**Kritisk for:** Sikre at generert OpenAPI-spec er komplett.
+
+### OpenAPI Freshness Checker
+
+**Status:** Implementert
+
+**Plassering:** `scripts/check_openapi_freshness.py`
+
+**Bruk:**
+```bash
+# Standard output
+python scripts/check_openapi_freshness.py
+
+# CI-modus
+python scripts/check_openapi_freshness.py --ci
+```
+
+**Hva den sjekker:**
+- Om generert OpenAPI-spec er utdatert i forhold til kildekoden
+- Sammenligner tidsstempler og innhold
+
+### Dead Code Detection (Vulture + Pylint)
+
+**Status:** Anbefalt (eksterne verktøy)
+
+**Verktøy:**
+- **vulture** - Finner ubrukt Python-kode
+- **Pylint** - Generell kodekvalitet og ubrukte imports/variabler
+
+**Installasjon:**
+```bash
+pip install vulture pylint
+```
+
+**Bruk:**
+```bash
+# Vulture - finn ubrukt kode i backend
+vulture backend/ --min-confidence 80
+
+# Vulture - med whitelist for false positives
+vulture backend/ scripts/vulture_whitelist.py --min-confidence 80
+
+# Pylint - full analyse
+pylint backend/
+
+# Pylint - kun ubrukt kode
+pylint backend/ --disable=all --enable=unused-import,unused-variable,unused-argument
+
+# Pylint - med score
+pylint backend/ --exit-zero
+```
+
+**Hva de sjekker:**
+- Ubrukte funksjoner, klasser og metoder
+- Ubrukte variabler og imports
+- Ubrukte argumenter
+- Unreachable code
+
+**Typiske funn:**
+- Repository-metoder som ikke lenger brukes
+- Helper-funksjoner etter refaktorering
+- Imports som ble igjen etter endringer
+
+**CI-integrasjon:**
+```bash
+# Vulture med terskel (80% confidence reduserer false positives)
+vulture backend/ --min-confidence 80 || echo "Dead code found"
+
+# Pylint med exit-zero (rapporterer men feiler ikke)
+pylint backend/ --exit-zero --output-format=json > pylint-report.json
+```
+
+**Anbefaling:** Kjør periodisk (ukentlig) for å holde kodebasen ren.
+
+### Documentation Drift Checker
+
+**Status:** Implementert
+
+**Plassering:** `scripts/docs_drift.py`
+
+**Bruk:**
+```bash
+# Standard output
+python scripts/docs_drift.py
+
+# Verbose (vis alle funn inkludert info-nivå)
+python scripts/docs_drift.py --verbose
+
+# JSON/Markdown output
+python scripts/docs_drift.py --format json
+python scripts/docs_drift.py --format markdown
+
+# CI-modus
+python scripts/docs_drift.py --ci
+```
+
+**Hva den sjekker:**
+- Dokumenterte filer som ikke lenger eksisterer
+- Dokumenterte kommandoer som ikke fungerer
+- Utdaterte kodeeksempler
+
 ---
 
 ## Bakgrunn
@@ -468,11 +649,25 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install analysis tools
+        run: pip install vulture pylint
+
       - name: Contract & State Drift Check
         run: python scripts/check_drift.py --ci
 
+      - name: Category Drift Check
+        run: python scripts/category_drift.py --ci
+
+      - name: Validation Drift Check
+        run: python scripts/validation_drift.py --ci
+
       - name: Label Coverage Check
         run: python scripts/label_coverage.py --ci
+
+      - name: OpenAPI Drift Check
+        run: |
+          python scripts/check_openapi_generator_drift.py --ci
+          python scripts/check_openapi_freshness.py --ci
 
       - name: Hardcoded Constants Check
         run: python scripts/constant_drift.py --ci --min 5
@@ -485,6 +680,17 @@ jobs:
       - name: Security Scan
         run: python scripts/security_scan.py --ci
         # Blokkerer ved kritiske sikkerhetsfunn
+
+      - name: Documentation Drift Check
+        run: python scripts/docs_drift.py --ci
+
+      - name: Dead Code Detection (Vulture)
+        run: vulture backend/ --min-confidence 80
+        continue-on-error: true  # Advarsel, ikke blokkerende
+
+      - name: Code Quality (Pylint)
+        run: pylint backend/ --exit-zero --output-format=json > pylint-report.json
+        continue-on-error: true  # Rapporterer, men blokkerer ikke
 ```
 
 ## Konklusjon

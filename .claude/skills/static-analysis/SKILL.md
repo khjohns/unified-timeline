@@ -17,11 +17,22 @@ Prosjektet har flere statiske analyse-verktøy i `/scripts` som hjelper med å o
 | `check_drift.py` | Samlet drift-sjekk | Før commit, etter større endringer |
 | `contract_drift.py` | Enum/union synk | Etter endring av event-typer |
 | `state_drift.py` | State-modell synk | Etter endring av state-strukturer |
+| `category_drift.py` | Kategori-synk | Etter endring av NS 8407-kategorier |
+| `validation_drift.py` | Validering-synk | Etter endring av Zod/validators |
 | `constant_drift.py` | Hardkodede verdier | Ved mistanke om duplikater |
 | `label_coverage.py` | Label-dekning | Etter nye enum-verdier |
 | `todo_tracker.py` | TODO/FIXME-sporing | Jevnlig, før release |
 | `security_scan.py` | Sikkerhetssårbarheter | Før commit, før release |
 | `docs_drift.py` | Dokumentasjon vs kode | Før release, etter refaktorering |
+| `check_openapi_generator_drift.py` | OpenAPI generator-synk | Etter endring av enums/modeller |
+| `check_openapi_freshness.py` | OpenAPI spec freshness | Før release |
+
+### Eksterne verktøy
+
+| Verktøy | Formål | Bruk |
+|---------|--------|------|
+| `vulture` | Ubrukt Python-kode | `vulture backend/ --min-confidence 80` |
+| `pylint` | Kodekvalitet + ubrukt kode | `pylint backend/ --disable=all --enable=unused-import,unused-variable` |
 
 ### Avanserte flagg
 
@@ -30,8 +41,11 @@ Prosjektet har flere statiske analyse-verktøy i `/scripts` som hjelper med å o
 | `security_scan.py` | `--include-low` | Inkluder low-severity funn (ekskludert som default) |
 | `contract_drift.py` | `--verbose`, `-v` | Vis hvilke unions/enums som ble funnet |
 | `state_drift.py` | `--verbose`, `-v` | Vis hvilke interfaces/models som ble funnet |
+| `category_drift.py` | `--verbose`, `-v` | Vis detaljer om kategorier |
 | `constant_drift.py` | `--min N` | Minimum forekomster for å rapportere (default: 3) |
 | `docs_drift.py` | `--verbose`, `-v` | Vis alle funn inkludert info-nivå |
+| `check_openapi_generator_drift.py` | `--verbose`, `-v` | Vis detaljer om enums |
+| `vulture` | `--min-confidence N` | Minimum confidence (80 anbefalt) |
 
 ## Bruksmønster
 
@@ -80,10 +94,24 @@ python scripts/label_coverage.py
 python scripts/state_drift.py
 ```
 
+### Etter endring av kategorier
+
+```bash
+python scripts/category_drift.py
+```
+
+### Etter endring av validering
+
+```bash
+python scripts/validation_drift.py
+```
+
 ### Før PR / code review
 
 ```bash
 python scripts/check_drift.py
+python scripts/category_drift.py
+python scripts/validation_drift.py
 python scripts/docs_drift.py
 python scripts/todo_tracker.py
 python scripts/security_scan.py
@@ -94,6 +122,8 @@ python scripts/security_scan.py
 ```bash
 python scripts/constant_drift.py     # Finn dupliserte verdier
 python scripts/todo_tracker.py       # Spor teknisk gjeld
+vulture backend/ --min-confidence 80 # Finn ubrukt kode
+pylint backend/ --exit-zero          # Kodekvalitetsrapport
 ```
 
 ## Tolke output
