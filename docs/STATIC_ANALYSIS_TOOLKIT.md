@@ -188,6 +188,73 @@ python scripts/todo_tracker.py --severity critical
 - 16 kritiske (Azure Service Bus TODO, auth TODO, security notes)
 - 4 høy-prioritet
 
+### Cyclomatic Complexity Analysis
+
+**Status:** Implementert
+
+**Verktøy:**
+- Backend (Python): `radon`
+- Frontend (TypeScript): Custom script
+
+**Bruk:**
+```bash
+# Python backend - alle filer med score
+radon cc backend/ -a -s
+
+# Python backend - kun komplekse funksjoner (C eller verre)
+radon cc backend/ -a -s --min C
+
+# Frontend - custom analyse
+node scripts/analyze-frontend-complexity.js
+```
+
+**Hva det måler:**
+Syklomatisk kompleksitet teller antall uavhengige stier gjennom koden. Beslutningspunkter som `if`, `for`, `while`, `switch`, `&&`, `||` øker kompleksiteten.
+
+**Score-skala:**
+
+| Grad | Kompleksitet | Vurdering |
+|------|--------------|-----------|
+| A | 1-5 | Enkel, lav risiko |
+| B | 6-10 | Moderat |
+| C | 11-20 | Kompleks, bør vurderes |
+| D | 21-30 | Høy kompleksitet |
+| E | 31-40 | Svært høy |
+| F | 41+ | Utestbar, må refaktoreres |
+
+**Baseline-måling (januar 2025):**
+
+*Backend (Python):*
+- Blokker analysert: 1 946
+- Gjennomsnitt: A (3.9) ✅
+
+Kritiske funksjoner (F/E):
+| Fil | Funksjon | Score |
+|-----|----------|-------|
+| `routes/event_routes.py:135` | `submit_event` | F (50) |
+| `scripts/dalux_menu.py:264` | `view_full_task_info` | F (64) |
+| `services/dalux_sync_service.py:436` | `_map_task_to_topic` | E (37) |
+| `routes/event_routes.py:742` | `_post_to_catenda` | E (37) |
+
+*Frontend (TypeScript):*
+- Filer analysert: 236
+- Total kompleksitet: 6 097
+- Gjennomsnitt per fil: 25.8
+
+Mest komplekse filer:
+| Fil | Kompleksitet | Linjer |
+|-----|--------------|--------|
+| `components/actions/RespondVederlagModal.tsx` | 432 | 2387 |
+| `components/actions/RespondFristModal.tsx` | 301 | 2062 |
+| `components/forsering/BHResponsForseringModal.tsx` | 210 | 1478 |
+| `utils/begrunnelseGenerator.ts` | 210 | 1386 |
+| `components/StatusAlert/statusAlertGenerator.ts` | 139 | 564 |
+
+**Anbefalinger:**
+1. Refaktorer F-graderte funksjoner (`submit_event`, `view_full_task_info`) - disse er utestbare
+2. Vurder å splitte store modal-komponenter (>300 kompleksitet)
+3. Kjør kompleksitetsanalyse før PR-merge for nye filer
+
 ### Security Pattern Scanner
 
 **Status:** Implementert
