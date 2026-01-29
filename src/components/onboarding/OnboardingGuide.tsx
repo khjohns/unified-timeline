@@ -6,7 +6,7 @@
  * with a popover explaining each step.
  */
 
-import { useEffect, useState, useCallback, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { clsx } from 'clsx';
 import { OnboardingStep } from './OnboardingStep';
@@ -20,7 +20,7 @@ export interface OnboardingStepConfig {
   description: ReactNode;
   /** CSS selector for the target element */
   targetSelector: string;
-  /** Preferred side for the popover */
+  /** Preferred side for the popover (will be overridden on mobile) */
   side?: 'top' | 'right' | 'bottom' | 'left';
 }
 
@@ -58,6 +58,7 @@ export function OnboardingGuide({
   onComplete,
 }: OnboardingGuideProps) {
   const [spotlight, setSpotlight] = useState<SpotlightPosition | null>(null);
+  const scrollPositionRef = useRef(0);
 
   const currentStepConfig = steps[currentStep];
 
@@ -136,21 +137,47 @@ export function OnboardingGuide({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isActive, currentStep, steps.length, onNext, onPrevious, onSkip, onComplete]);
 
-  // Prevent body scroll when active
+  // Prevent body scroll when active - iOS compatible
   useEffect(() => {
     if (isActive) {
+      // Save current scroll position
+      scrollPositionRef.current = window.scrollY;
+
+      // Lock body scroll - works on iOS
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollPositionRef.current}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
     } else {
+      // Restore scroll position
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      window.scrollTo(0, scrollPositionRef.current);
     }
+
     return () => {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
     };
   }, [isActive]);
 
   if (!isActive || !currentStepConfig) {
     return null;
   }
+
+  // Determine side based on screen size - always use bottom/top on mobile
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  const effectiveSide = isMobile ? 'bottom' : currentStepConfig.side;
 
   const overlayContent = (
     <>
@@ -212,7 +239,7 @@ export function OnboardingGuide({
         title={currentStepConfig.title}
         description={currentStepConfig.description}
         targetSelector={currentStepConfig.targetSelector}
-        side={currentStepConfig.side}
+        side={effectiveSide}
         stepNumber={currentStep + 1}
         totalSteps={steps.length}
         isActive={isActive}

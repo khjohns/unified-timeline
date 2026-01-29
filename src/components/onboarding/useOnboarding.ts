@@ -10,6 +10,7 @@
 import { useState, useCallback, useEffect } from 'react';
 
 const STORAGE_KEY = 'koe-onboarding-completed';
+const DISMISSED_KEY = 'koe-onboarding-dismissed';
 
 export interface OnboardingState {
   /** Whether the onboarding guide is currently active */
@@ -18,7 +19,7 @@ export interface OnboardingState {
   currentStep: number;
   /** Total number of steps */
   totalSteps: number;
-  /** Whether the user has completed the guide before */
+  /** Whether the user has completed or dismissed the guide before */
   hasCompletedBefore: boolean;
 }
 
@@ -29,13 +30,13 @@ export interface OnboardingActions {
   next: () => void;
   /** Move to the previous step */
   previous: () => void;
-  /** Skip/close the guide without marking as complete */
+  /** Skip/close the guide - won't auto-start again */
   skip: () => void;
   /** Complete the guide and optionally save preference */
   complete: (dontShowAgain?: boolean) => void;
   /** Go to a specific step */
   goToStep: (step: number) => void;
-  /** Reset the completed state (for testing) */
+  /** Reset the completed/dismissed state (for testing) */
   reset: () => void;
 }
 
@@ -49,7 +50,9 @@ export function useOnboarding(totalSteps: number): UseOnboardingReturn {
   // Check localStorage on mount
   useEffect(() => {
     const completed = localStorage.getItem(STORAGE_KEY);
-    setHasCompletedBefore(completed === 'true');
+    const dismissed = localStorage.getItem(DISMISSED_KEY);
+    // Treat both completed and dismissed as "don't auto-start"
+    setHasCompletedBefore(completed === 'true' || dismissed === 'true');
   }, []);
 
   const start = useCallback(() => {
@@ -65,9 +68,12 @@ export function useOnboarding(totalSteps: number): UseOnboardingReturn {
     setCurrentStep((prev) => Math.max(prev - 1, 0));
   }, []);
 
+  // Skip/close - mark as dismissed so it won't auto-start again
   const skip = useCallback(() => {
     setIsActive(false);
     setCurrentStep(0);
+    localStorage.setItem(DISMISSED_KEY, 'true');
+    setHasCompletedBefore(true);
   }, []);
 
   const complete = useCallback((dontShowAgain = true) => {
@@ -90,6 +96,7 @@ export function useOnboarding(totalSteps: number): UseOnboardingReturn {
 
   const reset = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(DISMISSED_KEY);
     setHasCompletedBefore(false);
     setIsActive(false);
     setCurrentStep(0);
