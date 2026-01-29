@@ -912,7 +912,7 @@ def _post_to_catenda(
             # Cleanup temp file
             try:
                 os.remove(pdf_path)
-            except:
+            except OSError:
                 pass
 
         # Generate and post comment (ALWAYS try, regardless of PDF status)

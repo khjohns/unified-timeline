@@ -1766,7 +1766,7 @@ class KOEFlowTester(BaseTester):
                     event_type = event.get('event_type', 'ukjent')
                     aktor_rolle = event.get('aktor_rolle', '?')
                     print(f"    [{aktor_rolle}] {event_type}")
-        except:
+        except requests.exceptions.RequestException:
             pass
 
         # Catenda-verifikasjon

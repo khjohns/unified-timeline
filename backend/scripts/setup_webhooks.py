@@ -474,7 +474,7 @@ def delete_webhooks_command():
     else:
         try:
             to_delete = [int(x.strip()) - 1 for x in choice.split(',')]
-        except:
+        except ValueError:
             print("❌ Ugyldig input")
             return
     

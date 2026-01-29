@@ -164,7 +164,7 @@ def get_summary():
                 if isinstance(ts, str):
                     try:
                         ts = datetime.fromisoformat(ts.replace('Z', '+00:00').replace(' ', 'T'))
-                    except:
+                    except ValueError:
                         continue
                 if last_activity is None or ts > last_activity:
                     last_activity = ts
@@ -298,7 +298,7 @@ def get_activity_timeline():
             if isinstance(ts, str):
                 try:
                     ts = datetime.fromisoformat(ts.replace('Z', '+00:00').replace(' ', 'T'))
-                except:
+                except ValueError:
                     continue
 
             if ts < cutoff:
