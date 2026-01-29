@@ -141,7 +141,6 @@ const respondFristSchema = z.object({
 
   // Port 2: Vilkår (alltid vurderes, evt. subsidiært)
   vilkar_oppfylt: z.boolean(),
-  begrunnelse_vilkar: z.string().optional(),
 
   // Port 3: Beregning (alltid vurderes, evt. subsidiært)
   godkjent_dager: z.number().min(0, 'Antall dager kan ikke være negativt'),
@@ -820,7 +819,6 @@ export function RespondFristModal({
 
         // Port 2: Vilkår
         vilkar_oppfylt: data.vilkar_oppfylt,
-        begrunnelse_vilkar: data.begrunnelse_vilkar,
 
         // Port 3: Beregning
         godkjent_dager: godkjentDager,

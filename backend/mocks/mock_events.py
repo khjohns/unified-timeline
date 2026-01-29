@@ -202,10 +202,6 @@ MOCK_EVENTS_SCENARIO_1 = [
             ),
             # Port 2: Vilkår (årsakssammenheng)
             vilkar_oppfylt=True,
-            begrunnelse_vilkar=(
-                "BH bekrefter at fundamentarbeider ligger på kritisk linje. "
-                "Forsinkelsen i prosjektering har medført faktisk fremdriftshindring."
-            ),
             # Port 3: Beregning
             beregnings_resultat=FristBeregningResultat.GODKJENT,
             godkjent_dager=10,

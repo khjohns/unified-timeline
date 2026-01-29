@@ -2144,13 +2144,6 @@ components:
           description: Har forholdet medført en faktisk fremdriftshindring? (§33.1)
           title: Vilkar Oppfylt
           type: boolean
-        begrunnelse_vilkar:
-          anyOf:
-          - type: string
-          - type: 'null'
-          default: null
-          description: BHs begrunnelse for vurdering av årsakssammenheng
-          title: Begrunnelse Vilkar
         beregnings_resultat:
           anyOf:
           - $ref: '#/$defs/FristBeregningResultat'

@@ -748,7 +748,6 @@ class FristTilstand(BaseModel):
 
     # BH respons - Port 2 (Vilkår/Årsakssammenheng)
     vilkar_oppfylt: Optional[bool] = Field(default=None)
-    begrunnelse_vilkar: Optional[str] = Field(default=None)
 
     # BH respons - Port 3 (Beregning)
     bh_resultat: Optional[FristBeregningResultat] = Field(

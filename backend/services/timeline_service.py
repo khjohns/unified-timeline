@@ -470,8 +470,6 @@ class TimelineService:
         # Port 2: Vilkår (Årsakssammenheng)
         if hasattr(event.data, 'vilkar_oppfylt'):
             frist.vilkar_oppfylt = event.data.vilkar_oppfylt
-        if hasattr(event.data, 'begrunnelse_vilkar'):
-            frist.begrunnelse_vilkar = event.data.begrunnelse_vilkar
 
         # Port 3: Beregning
         if hasattr(event.data, 'beregnings_resultat'):
@@ -1318,7 +1316,7 @@ class TimelineService:
                     bh_resultat=event.data.beregnings_resultat.value if event.data.beregnings_resultat else None,
                     bh_resultat_label=self._get_frist_resultat_label(event.data.beregnings_resultat),
                     godkjent_dager=event.data.godkjent_dager,
-                    bh_begrunnelse=event.data.begrunnelse_vilkar,
+                    bh_begrunnelse=getattr(event.data, 'begrunnelse', None),
                 )
                 historikk.append(entry.model_dump(mode='json'))
 
@@ -1332,7 +1330,7 @@ class TimelineService:
                     bh_resultat=event.data.beregnings_resultat.value if event.data.beregnings_resultat else None,
                     bh_resultat_label=self._get_frist_resultat_label(event.data.beregnings_resultat),
                     godkjent_dager=event.data.godkjent_dager,
-                    bh_begrunnelse=event.data.begrunnelse_vilkar,
+                    bh_begrunnelse=getattr(event.data, 'begrunnelse', None),
                 )
                 historikk.append(entry.model_dump(mode='json'))
 

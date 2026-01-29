@@ -1064,11 +1064,6 @@ class FristResponsData(BaseModel):
         description="Har forholdet medført en faktisk fremdriftshindring? (§33.1)"
     )
 
-    begrunnelse_vilkar: Optional[str] = Field(
-        default=None,
-        description="BHs begrunnelse for vurdering av årsakssammenheng"
-    )
-
     # ============ PORT 3: UTMÅLING (Beregning av dager) ============
     # Den "rene" dagberegningen - vurderes prinsipalt eller subsidiært.
 
