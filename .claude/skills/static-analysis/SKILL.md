@@ -1,6 +1,6 @@
 ---
 name: static-analysis
-description: Statiske analyseverktøy for drift-sjekk, sikkerhetsscan og kodekvalitet. Bruk før commit eller for å finne synkroniseringsproblemer.
+description: Statiske analyseverktøy for drift-sjekk, sikkerhetsscan og kodekvalitet. Bruk før commit, for å finne synkroniseringsproblemer, eller proaktivt ved jevne mellomrom for full gjennomgang.
 allowed-tools: Bash, Read, Grep
 ---
 
@@ -27,12 +27,25 @@ Prosjektet har flere statiske analyse-verktøy i `/scripts` som hjelper med å o
 | `check_openapi_generator_drift.py` | OpenAPI generator-synk | Etter endring av enums/modeller |
 | `check_openapi_freshness.py` | OpenAPI spec freshness | Før release |
 
-### Eksterne verktøy
+### Eksterne verktøy (Backend)
+
+| Verktøy | Formål | Installasjon | Bruk |
+|---------|--------|--------------|------|
+| `vulture` | Ubrukt Python-kode | `pip install vulture` | `vulture backend/ --min-confidence 80 --exclude venv` |
+| `pylint` | Kodekvalitet + ubrukt kode | `pip install pylint` | `pylint backend/ --disable=all --enable=unused-import,unused-variable` |
+| `ruff` | Rask linting (erstatter flake8) | `pip install ruff` | `ruff check backend/ --exclude venv --fix` |
+| `bandit` | Sikkerhetsskanning | `pip install bandit` | `bandit -r backend/ -x venv --severity-level medium` |
+| `pip-audit` | Avhengighets-sårbarheter | `pip install pip-audit` | `pip-audit` |
+| `pyright` | Type-sjekking | `pip install pyright` | `pyright backend/` |
+
+### Eksterne verktøy (Frontend)
 
 | Verktøy | Formål | Bruk |
 |---------|--------|------|
-| `vulture` | Ubrukt Python-kode | `vulture backend/ --min-confidence 80` |
-| `pylint` | Kodekvalitet + ubrukt kode | `pylint backend/ --disable=all --enable=unused-import,unused-variable` |
+| `eslint` | Linting | `npm run lint` / `npm run lint:fix` |
+| `tsc` | Type-sjekking | `npx tsc --noEmit` |
+| `npm audit` | Avhengighets-sårbarheter | `npm audit` |
+| `depcheck` | Ubrukte dependencies | `npx depcheck` |
 
 ### Avanserte flagg
 
@@ -122,9 +135,43 @@ python scripts/security_scan.py
 ```bash
 python scripts/constant_drift.py     # Finn dupliserte verdier
 python scripts/todo_tracker.py       # Spor teknisk gjeld
-vulture backend/ --min-confidence 80 # Finn ubrukt kode
+vulture backend/ --min-confidence 80 --exclude venv  # Finn ubrukt kode
 pylint backend/ --exit-zero          # Kodekvalitetsrapport
 ```
+
+### Full gjennomgang (månedlig eller ved større milepæler)
+
+Kjør alle verktøy for å fange opp akkumulert teknisk gjeld:
+
+```bash
+# Backend - Python
+vulture backend/ --min-confidence 80 --exclude venv
+ruff check backend/ --exclude venv --select F401,F541,F841,F821,E722
+bandit -r backend/ -x venv --severity-level medium
+pip-audit
+
+# Frontend - TypeScript
+npm run lint
+npx tsc --noEmit
+npm audit
+npx depcheck
+
+# Prosjekt-spesifikke
+python scripts/check_drift.py
+python scripts/category_drift.py
+python scripts/validation_drift.py
+python scripts/docs_drift.py
+python scripts/security_scan.py
+```
+
+**Viktige ruff-koder:**
+- `F821` - undefined name (potensielle bugs!)
+- `E722` - bare except (dårlig praksis)
+- `F401` - unused import
+- `F541` - f-string uten placeholders
+- `F841` - unused variable
+
+**Tips:** Sett av tid til dette jevnlig. Små problemer akkumuleres over tid og blir vanskeligere å fikse senere.
 
 ## Tolke output
 
