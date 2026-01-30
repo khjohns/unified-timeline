@@ -18,6 +18,7 @@ import { useHistorikk } from '../hooks/useRevisionHistory';
 import { useActionPermissions } from '../hooks/useActionPermissions';
 import { useUserRole } from '../hooks/useUserRole';
 import { useApprovalWorkflow } from '../hooks/useApprovalWorkflow';
+import { useCasePageModals } from '../hooks/useCasePageModals';
 import { CaseDashboard } from '../components/views/CaseDashboard';
 import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
 import { Alert, Button, AlertDialog, Card, DropdownMenuItem } from '../components/primitives';
@@ -140,32 +141,8 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
     staleTime: STALE_TIME.EXTENDED,
   });
 
-  // Modal state management - Initial submissions
-  const [sendGrunnlagOpen, setSendGrunnlagOpen] = useState(false);
-  const [sendVederlagOpen, setSendVederlagOpen] = useState(false);
-  const [sendFristOpen, setSendFristOpen] = useState(false);
-  const [respondGrunnlagOpen, setRespondGrunnlagOpen] = useState(false);
-  const [respondVederlagOpen, setRespondVederlagOpen] = useState(false);
-  const [respondFristOpen, setRespondFristOpen] = useState(false);
-
-  // Modal state management - Updates (TE)
-  const [updateGrunnlagOpen, setUpdateGrunnlagOpen] = useState(false);
-  const [reviseVederlagOpen, setReviseVederlagOpen] = useState(false);
-  const [reviseFristOpen, setReviseFristOpen] = useState(false);
-
-  // Modal state management - Update responses (BH)
-  const [updateGrunnlagResponseOpen, setUpdateGrunnlagResponseOpen] = useState(false);
-  const [updateVederlagResponseOpen, setUpdateVederlagResponseOpen] = useState(false);
-  const [updateFristResponseOpen, setUpdateFristResponseOpen] = useState(false);
-
-  // Modal state management - Special actions (TE)
-  const [sendForseringOpen, setSendForseringOpen] = useState(false);
-
-  // Modal state management - Special actions (BH)
-  const [utstEOOpen, setUtstEOOpen] = useState(false);
-
-  // Catenda sync warning state
-  const [showCatendaWarning, setShowCatendaWarning] = useState(false);
+  // All modal states managed by dedicated hook
+  const modals = useCasePageModals();
 
   // User role management for testing different modes
   const { userRole, setUserRole, bhApprovalRole, currentMockUser, currentMockManager } = useUserRole();
@@ -173,13 +150,6 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
   // Approval workflow (mock) - must be called unconditionally
   const approvalWorkflow = useApprovalWorkflow(sakId);
 
-  // Approval modal states (combined package only)
-  const [sendResponsPakkeOpen, setSendResponsPakkeOpen] = useState(false);
-  const [approvePakkeOpen, setApprovePakkeOpen] = useState(false);
-  const [discardPakkeConfirmOpen, setDiscardPakkeConfirmOpen] = useState(false);
-
-  // PDF preview modal state (for testing - opened from header)
-  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
 
   // Onboarding guide state
   const onboarding = useOnboarding(casePageSteps.length);
@@ -251,7 +221,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               <QuestionMarkCircledIcon className="w-4 h-4 mr-2" />
               Vis veiviser
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setPdfPreviewOpen(true)}>
+            <DropdownMenuItem onClick={() => modals.pdfPreview.setOpen(true)}>
               Forhåndsvis PDF
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -312,7 +282,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => setSendResponsPakkeOpen(true)}
+                  onClick={() => modals.sendResponsPakke.setOpen(true)}
                 >
                   <PaperPlaneIcon className="w-4 h-4 mr-2" />
                   Send til godkjenning
@@ -340,13 +310,13 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
             <ApprovalDashboardCard
               pakke={approvalWorkflow.bhResponsPakke}
               canApprove={approvalWorkflow.canApprovePakke}
-              onOpenDetails={() => setApprovePakkeOpen(true)}
+              onOpenDetails={() => modals.approvePakke.setOpen(true)}
               onDownloadPdf={() => downloadApprovedPdf(state, approvalWorkflow.bhResponsPakke!)}
               onRestoreAndEdit={() => {
                 approvalWorkflow.restoreDraftsFromPakke();
               }}
               onDiscard={() => {
-                setDiscardPakkeConfirmOpen(true);
+                modals.discardPakkeConfirm.setOpen(true);
               }}
             />
           </section>
@@ -376,7 +346,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => setSendGrunnlagOpen(true)}
+                  onClick={() => modals.sendGrunnlag.setOpen(true)}
                 >
                   <PaperPlaneIcon className="w-4 h-4 mr-2" />
                   Varsle endringsforhold
@@ -394,7 +364,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                       : 'secondary'
                   }
                   size="sm"
-                  onClick={() => setUpdateGrunnlagOpen(true)}
+                  onClick={() => modals.updateGrunnlag.setOpen(true)}
                 >
                   <Pencil1Icon className="w-4 h-4 mr-2" />
                   Oppdater
@@ -405,7 +375,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => setRespondGrunnlagOpen(true)}
+                  onClick={() => modals.respondGrunnlag.setOpen(true)}
                 >
                   <ChatBubbleIcon className="w-4 h-4 mr-2" />
                   Svar
@@ -416,7 +386,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => setUpdateGrunnlagResponseOpen(true)}
+                  onClick={() => modals.updateGrunnlagResponse.setOpen(true)}
                 >
                   <Pencil2Icon className="w-4 h-4 mr-2" />
                   Endre svar
@@ -427,7 +397,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => setUtstEOOpen(true)}
+                  onClick={() => modals.utstEO.setOpen(true)}
                 >
                   <FileTextIcon className="w-4 h-4 mr-2" />
                   Utsted endringsordre
@@ -448,7 +418,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => setSendVederlagOpen(true)}
+                  onClick={() => modals.sendVederlag.setOpen(true)}
                 >
                   <PaperPlaneIcon className="w-4 h-4 mr-2" />
                   Send krav
@@ -460,7 +430,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => setRespondVederlagOpen(true)}
+                  onClick={() => modals.respondVederlag.setOpen(true)}
                 >
                   <ChatBubbleIcon className="w-4 h-4 mr-2" />
                   Svar
@@ -471,7 +441,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => setUpdateVederlagResponseOpen(true)}
+                  onClick={() => modals.updateVederlagResponse.setOpen(true)}
                 >
                   <Pencil2Icon className="w-4 h-4 mr-2" />
                   Endre svar
@@ -497,7 +467,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                     bh_metode: state.vederlag.bh_metode,
                   },
                   currentVersion: Math.max(0, (state.vederlag.antall_versjoner ?? 1) - 1),
-                  onOpenFullModal: () => setReviseVederlagOpen(true),
+                  onOpenFullModal: () => modals.reviseVederlag.setOpen(true),
                   canRevise: userRole === 'TE' && actions.canUpdateVederlag,
                   // Primary: BH har avvist/delvis godkjent OG TE har ikke sendt ny versjon etter
                   // bh_respondert_versjon er 0-indeksert, antall_versjoner teller fra 1
@@ -515,7 +485,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => setSendFristOpen(true)}
+                  onClick={() => modals.sendFrist.setOpen(true)}
                 >
                   <PaperPlaneIcon className="w-4 h-4 mr-2" />
                   Send krav
@@ -527,7 +497,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                 <Button
                   variant="danger"
                   size="sm"
-                  onClick={() => setReviseFristOpen(true)}
+                  onClick={() => modals.reviseFrist.setOpen(true)}
                 >
                   <Pencil1Icon className="w-4 h-4 mr-2" />
                   Svar på forespørsel
@@ -538,7 +508,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => setSendForseringOpen(true)}
+                  onClick={() => modals.sendForsering.setOpen(true)}
                   className="border-action-danger-border text-action-danger-text hover:bg-action-danger-hover-bg"
                 >
                   <RocketIcon className="w-4 h-4 mr-2" />
@@ -550,7 +520,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => setRespondFristOpen(true)}
+                  onClick={() => modals.respondFrist.setOpen(true)}
                 >
                   <ChatBubbleIcon className="w-4 h-4 mr-2" />
                   Svar
@@ -561,7 +531,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => setUpdateFristResponseOpen(true)}
+                  onClick={() => modals.updateFristResponse.setOpen(true)}
                 >
                   <Pencil2Icon className="w-4 h-4 mr-2" />
                   Endre svar
@@ -581,7 +551,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                     begrunnelse: state.frist.begrunnelse,
                   },
                   originalVarselType: state.frist.varsel_type,
-                  onOpenFullModal: () => setReviseFristOpen(true),
+                  onOpenFullModal: () => modals.reviseFrist.setOpen(true),
                   canRevise: userRole === 'TE' && actions.canUpdateFrist,
                   // Primary: BH har avvist/delvis godkjent OG TE har ikke sendt ny versjon etter
                   // bh_respondert_versjon er 0-indeksert, antall_versjoner teller fra 1
@@ -643,14 +613,14 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
       {sakId && (
         <>
           <SendGrunnlagModal
-            open={sendGrunnlagOpen}
-            onOpenChange={setSendGrunnlagOpen}
+            open={modals.sendGrunnlag.open}
+            onOpenChange={modals.sendGrunnlag.setOpen}
             sakId={sakId}
-            onCatendaWarning={() => setShowCatendaWarning(true)}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
           />
           <SendVederlagModal
-            open={sendVederlagOpen}
-            onOpenChange={setSendVederlagOpen}
+            open={modals.sendVederlag.open}
+            onOpenChange={modals.sendVederlag.setOpen}
             sakId={sakId}
             grunnlagEventId={`grunnlag-${sakId}`}
             grunnlagEvent={{
@@ -659,11 +629,11 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               dato_oppdaget: state.grunnlag.dato_oppdaget,
               hovedkategori: state.grunnlag.hovedkategori as 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE' | undefined,
             }}
-            onCatendaWarning={() => setShowCatendaWarning(true)}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
           />
           <SendFristModal
-            open={sendFristOpen}
-            onOpenChange={setSendFristOpen}
+            open={modals.sendFrist.open}
+            onOpenChange={modals.sendFrist.setOpen}
             sakId={sakId}
             grunnlagEventId={`grunnlag-${sakId}`}
             grunnlagEvent={{
@@ -672,11 +642,11 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,
             }}
             harMottattForesporsel={state.frist.har_bh_foresporsel}
-            onCatendaWarning={() => setShowCatendaWarning(true)}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
           />
           <RespondGrunnlagModal
-            open={respondGrunnlagOpen}
-            onOpenChange={setRespondGrunnlagOpen}
+            open={modals.respondGrunnlag.open}
+            onOpenChange={modals.respondGrunnlag.setOpen}
             sakId={sakId}
             grunnlagEventId={`grunnlag-${sakId}`}
             grunnlagEvent={{
@@ -686,7 +656,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               dato_oppdaget: state.grunnlag.dato_oppdaget,
               dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,
             }}
-            onCatendaWarning={() => setShowCatendaWarning(true)}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
             approvalEnabled={approvalWorkflow.approvalEnabled}
             onSaveDraft={(draftData) => {
               approvalWorkflow.saveDraft({
@@ -698,8 +668,8 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
             }}
           />
           <RespondVederlagModal
-            open={respondVederlagOpen}
-            onOpenChange={setRespondVederlagOpen}
+            open={modals.respondVederlag.open}
+            onOpenChange={modals.respondVederlag.setOpen}
             sakId={sakId}
             vederlagKravId={`vederlag-${sakId}`}
             grunnlagStatus={grunnlagStatus}
@@ -715,7 +685,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               dato_oppdaget: state.grunnlag.dato_oppdaget,
               dato_krav_mottatt: state.vederlag.krav_fremmet_dato,
             }}
-            onCatendaWarning={() => setShowCatendaWarning(true)}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
             approvalEnabled={approvalWorkflow.approvalEnabled}
             onSaveDraft={(draftData) => {
               approvalWorkflow.saveDraft({
@@ -728,8 +698,8 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
             }}
           />
           <RespondFristModal
-            open={respondFristOpen}
-            onOpenChange={setRespondFristOpen}
+            open={modals.respondFrist.open}
+            onOpenChange={modals.respondFrist.setOpen}
             sakId={sakId}
             fristKravId={`frist-${sakId}`}
             krevdDager={state.frist.krevd_dager}
@@ -744,7 +714,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               frist_varsel: state.frist.frist_varsel,
               spesifisert_varsel: state.frist.spesifisert_varsel,
             }}
-            onCatendaWarning={() => setShowCatendaWarning(true)}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
             approvalEnabled={approvalWorkflow.approvalEnabled}
             onSaveDraft={(draftData) => {
               approvalWorkflow.saveDraft({
@@ -759,19 +729,19 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
 
           {/* Update Modals (TE) */}
           <SendGrunnlagModal
-            open={updateGrunnlagOpen}
-            onOpenChange={setUpdateGrunnlagOpen}
+            open={modals.updateGrunnlag.open}
+            onOpenChange={modals.updateGrunnlag.setOpen}
             sakId={sakId}
             originalEvent={{
               // Use actual CloudEvents ID from state (populated by backend)
               event_id: state.grunnlag.siste_event_id || `grunnlag-${sakId}`,
               grunnlag: state.grunnlag,
             }}
-            onCatendaWarning={() => setShowCatendaWarning(true)}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
           />
           <ReviseVederlagModal
-            open={reviseVederlagOpen}
-            onOpenChange={setReviseVederlagOpen}
+            open={modals.reviseVederlag.open}
+            onOpenChange={modals.reviseVederlag.setOpen}
             sakId={sakId}
             lastVederlagEvent={{
               // Use actual CloudEvents ID from state (populated by backend)
@@ -797,11 +767,11 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                   }
                 : undefined
             }
-            onCatendaWarning={() => setShowCatendaWarning(true)}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
           />
           <ReviseFristModal
-            open={reviseFristOpen}
-            onOpenChange={setReviseFristOpen}
+            open={modals.reviseFrist.open}
+            onOpenChange={modals.reviseFrist.setOpen}
             sakId={sakId}
             lastFristEvent={{
               // Use actual CloudEvents ID from state (populated by backend)
@@ -820,14 +790,14 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
             originalVarselType={state.frist.varsel_type}
             harMottattForesporsel={state.frist.har_bh_foresporsel}
             fristForSpesifisering={state.frist.frist_for_spesifisering}
-            onCatendaWarning={() => setShowCatendaWarning(true)}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
             subsidiaerTriggers={state.frist.subsidiaer_triggers}
           />
 
           {/* Update Response Modals (BH) */}
           <RespondGrunnlagModal
-            open={updateGrunnlagResponseOpen}
-            onOpenChange={setUpdateGrunnlagResponseOpen}
+            open={modals.updateGrunnlagResponse.open}
+            onOpenChange={modals.updateGrunnlagResponse.setOpen}
             sakId={sakId}
             grunnlagEventId={`grunnlag-${sakId}`}
             lastResponseEvent={{
@@ -835,12 +805,12 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               resultat: state.grunnlag.bh_resultat || 'godkjent',
             }}
             sakState={state}
-            onCatendaWarning={() => setShowCatendaWarning(true)}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
           />
           {/* Update mode: RespondVederlagModal with lastResponseEvent */}
           <RespondVederlagModal
-            open={updateVederlagResponseOpen}
-            onOpenChange={setUpdateVederlagResponseOpen}
+            open={modals.updateVederlagResponse.open}
+            onOpenChange={modals.updateVederlagResponse.setOpen}
             sakId={sakId}
             vederlagKravId={`vederlag-${sakId}`}
             grunnlagStatus={grunnlagStatus}
@@ -867,11 +837,11 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               aksepterer_metode: state.vederlag.bh_metode === state.vederlag.metode,
             }}
             vederlagTilstand={state.vederlag}
-            onCatendaWarning={() => setShowCatendaWarning(true)}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
           />
           <RespondFristModal
-            open={updateFristResponseOpen}
-            onOpenChange={setUpdateFristResponseOpen}
+            open={modals.updateFristResponse.open}
+            onOpenChange={modals.updateFristResponse.setOpen}
             sakId={sakId}
             grunnlagStatus={grunnlagStatus}
             grunnlagVarsletForSent={grunnlagVarsletForSent}
@@ -881,13 +851,13 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               godkjent_dager: state.frist.godkjent_dager,
             }}
             fristTilstand={state.frist}
-            onCatendaWarning={() => setShowCatendaWarning(true)}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
           />
 
           {/* Special Action Modals (TE) */}
           <SendForseringModal
-            open={sendForseringOpen}
-            onOpenChange={setSendForseringOpen}
+            open={modals.sendForsering.open}
+            onOpenChange={modals.sendForsering.setOpen}
             sakId={sakId}
             fristKravId={`frist-${sakId}`}
             responsFristId={`frist-response-${sakId}`}
@@ -900,21 +870,21 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
             }}
             dagmulktsats={50000}  // TODO: Get from contract config
             subsidiaerTriggers={state.frist.subsidiaer_triggers}
-            onCatendaWarning={() => setShowCatendaWarning(true)}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
           />
 
           {/* BH Special Action Modals */}
           <UtstEndringsordreModal
-            open={utstEOOpen}
-            onOpenChange={setUtstEOOpen}
+            open={modals.utstEO.open}
+            onOpenChange={modals.utstEO.setOpen}
             sakId={sakId}
             preselectedKoeIds={[sakId]}  // Pre-select current case if it's a valid KOE
           />
 
           {/* Combined Package Modal */}
           <SendResponsPakkeModal
-            open={sendResponsPakkeOpen}
-            onOpenChange={setSendResponsPakkeOpen}
+            open={modals.sendResponsPakke.open}
+            onOpenChange={modals.sendResponsPakke.setOpen}
             grunnlagDraft={approvalWorkflow.grunnlagDraft}
             vederlagDraft={approvalWorkflow.vederlagDraft}
             fristDraft={approvalWorkflow.fristDraft}
@@ -929,8 +899,8 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
           {/* Approve Package Modal */}
           {approvalWorkflow.bhResponsPakke && (
             <ApprovePakkeModal
-              open={approvePakkeOpen}
-              onOpenChange={setApprovePakkeOpen}
+              open={modals.approvePakke.open}
+              onOpenChange={modals.approvePakke.setOpen}
               pakke={approvalWorkflow.bhResponsPakke}
               currentMockUser={currentMockUser}
               onApprove={(comment) => approvalWorkflow.approvePakkeStep(comment)}
@@ -942,8 +912,8 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
 
           {/* Discard Package Confirmation Dialog */}
           <AlertDialog
-            open={discardPakkeConfirmOpen}
-            onOpenChange={setDiscardPakkeConfirmOpen}
+            open={modals.discardPakkeConfirm.open}
+            onOpenChange={modals.discardPakkeConfirm.setOpen}
             title="Forkast avvist svar?"
             description="Dette vil slette det avviste svaret permanent. Du må starte på nytt hvis du vil sende et nytt svar."
             confirmLabel="Forkast svar"
@@ -956,15 +926,15 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
 
           {/* PDF Preview Modal (standalone - for testing outside modal-in-modal) */}
           <PdfPreviewModal
-            open={pdfPreviewOpen}
-            onOpenChange={setPdfPreviewOpen}
+            open={modals.pdfPreview.open}
+            onOpenChange={modals.pdfPreview.setOpen}
             sakState={state}
           />
         </>
       )}
 
       {/* Catenda sync warning */}
-      {showCatendaWarning && (
+      {modals.catendaWarning.open && (
         <div className="fixed bottom-4 right-4 max-w-md z-50">
           <Alert variant="info" title="Ikke synkronisert til Catenda">
             Endringen er lagret lokalt, men ble ikke synkronisert til Catenda.
@@ -973,7 +943,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               variant="ghost"
               size="sm"
               className="mt-2"
-              onClick={() => setShowCatendaWarning(false)}
+              onClick={() => modals.catendaWarning.setOpen(false)}
             >
               Lukk
             </Button>
