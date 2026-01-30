@@ -2,7 +2,7 @@
  * ThemeToggle Component
  *
  * A simple toggle button for switching between light and dark themes.
- * Shows sun icon in dark mode, moon icon in light mode.
+ * Shows sun icon in light mode, moon icon in dark mode (current state).
  * Defaults to system preference on first load.
  */
 
@@ -26,9 +26,9 @@ export function ThemeToggle() {
       aria-label={resolvedTheme === 'dark' ? 'Bytt til lys modus' : 'Bytt til mørk modus'}
     >
       {resolvedTheme === 'dark' ? (
-        <SunIcon className="w-4 h-4 text-pkt-brand-yellow-1000" />
+        <MoonIcon className="w-4 h-4 text-pkt-brand-dark-blue-300" />
       ) : (
-        <MoonIcon className="w-4 h-4 text-pkt-brand-dark-blue-1000" />
+        <SunIcon className="w-4 h-4 text-pkt-brand-yellow-1000" />
       )}
     </button>
   );
