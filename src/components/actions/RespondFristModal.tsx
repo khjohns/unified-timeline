@@ -1046,57 +1046,15 @@ export function RespondFristModal({
                 </Alert>
               )}
 
-              {/* Veiviser */}
-              <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                <h4 className="font-medium text-sm mb-3">Hva du skal vurdere</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex gap-3">
-                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 2</span>
-                    <div>
-                      <span className="font-medium">Preklusjon</span>
-                      <span className="text-pkt-text-body-subtle">
-                        {' '}
-                        — Ble kravet varslet i tide? (§33.4/§33.6)
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 3</span>
-                    <div>
-                      <span className="font-medium">Årsakssammenheng</span>
-                      <span className="text-pkt-text-body-subtle">
-                        {' '}
-                        — Forårsaket forholdet faktisk forsinkelse? (§33.1)
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 4</span>
-                    <div>
-                      <span className="font-medium">Beregning</span>
-                      <span className="text-pkt-text-body-subtle">
-                        {' '}
-                        — Hvor mange kalenderdager? (§33.5)
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 5</span>
-                    <div>
-                      <span className="font-medium">Oppsummering</span>
-                      <span className="text-pkt-text-body-subtle"> — Se resultat og send svar</span>
-                    </div>
-                  </div>
-                </div>
+              {/* Veiviser fjernet - se _wizard-guidance-backup.tsx for gjeninnføring */}
 
-                {/* Etterlysning-info for foreløpig varsel */}
-                {varselType === 'varsel' && (
-                  <div className="mt-4 pt-3 border-t border-pkt-border-subtle text-sm text-pkt-text-body-subtle">
-                    <strong>Merk:</strong> Ved foreløpig varsel kan du etterspørre et spesifisert krav
-                    (§33.6.2). Hvis entreprenøren ikke svarer i tide, tapes kravet.
-                  </div>
-                )}
-              </div>
+              {/* Etterlysning-info for foreløpig varsel */}
+              {varselType === 'varsel' && (
+                <Alert variant="info" size="sm">
+                  Ved foreløpig varsel kan du etterspørre et spesifisert krav (§33.6.2).
+                  Hvis entreprenøren ikke svarer i tide, tapes kravet.
+                </Alert>
+              )}
             </div>
           )}
 
