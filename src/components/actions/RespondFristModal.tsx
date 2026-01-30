@@ -629,24 +629,22 @@ export function RespondFristModal({
   // Avslåtte dager for forsering warning
   const avslatteDager = effektivKrevdDager - godkjentDager;
 
-  // Steps configuration - 5 steps
+  // Steps configuration - 4 steps (Oversikt fjernet)
   const steps = [
-    { label: 'Oversikt' },
-    { label: 'Preklusjon' },
+    { label: 'Varsling' },
     { label: 'Årsakssammenheng' },
     { label: 'Beregning' },
     { label: 'Oppsummering' },
   ];
 
-  const totalPorts = 5;
+  const totalPorts = 4;
 
-  // Determine which step type we're on based on currentPort
+  // Determine which step type we're on based on currentPort (Oversikt fjernet)
   const getStepType = useCallback(
-    (port: number): 'oversikt' | 'preklusjon' | 'vilkar' | 'beregning' | 'oppsummering' => {
-      if (port === 1) return 'oversikt';
-      if (port === 2) return 'preklusjon';
-      if (port === 3) return 'vilkar';
-      if (port === 4) return 'beregning';
+    (port: number): 'preklusjon' | 'vilkar' | 'beregning' | 'oppsummering' => {
+      if (port === 1) return 'preklusjon';
+      if (port === 2) return 'vilkar';
+      if (port === 3) return 'beregning';
       return 'oppsummering';
     },
     []
@@ -1009,57 +1007,7 @@ export function RespondFristModal({
           )}
 
           {/* ================================================================
-              STEG 1: OVERSIKT (normal flyt - ikke for begrunnelse_utsatt)
-              Shows claim summary and explains what will be evaluated
-              ================================================================ */}
-          {!erBegrunnelseUtsatt && currentStepType === 'oversikt' && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold">Oversikt</h3>
-
-              {/* Kompakt kravlinje - detaljer tilgjengelig i EventDetailModal */}
-              <div className="flex items-center gap-2 text-sm py-2 px-3 bg-pkt-surface-subtle border-l-2 border-pkt-border-subtle">
-                <span className="text-pkt-text-body-subtle">Krav:</span>
-                {erVarselUtenDager ? (
-                  <Badge variant="warning" size="sm">Ikke spesifisert</Badge>
-                ) : (
-                  <span className="font-mono font-medium text-pkt-text-body">{effektivKrevdDager} dager</span>
-                )}
-                {varselType && (
-                  <span className="text-pkt-text-body-subtle">
-                    ({varselType === 'varsel' ? '§33.4 varsel' : '§33.6 spesifisert'})
-                  </span>
-                )}
-              </div>
-
-              {/* Subsidiær behandling info */}
-              {erHelFristSubsidiaerPgaGrunnlag && (
-                <Alert variant="warning" title="Subsidiær behandling (§32.2)">
-                  Du har påberopt at grunnlagsvarselet kom for sent (§32.2-preklusjon). Hele fristkravet
-                  behandles derfor <strong>subsidiært</strong> – for det tilfellet at preklusjonen ikke holder
-                  eller forholdet likevel anses å utgjøre en endring.
-                </Alert>
-              )}
-              {grunnlagStatus === 'avslatt' && !erHelFristSubsidiaerPgaGrunnlag && (
-                <Alert variant="warning" title="Subsidiær behandling">
-                  Du har avvist ansvarsgrunnlaget. Dine vurderinger i dette skjemaet gjelder derfor{' '}
-                  <strong>subsidiært</strong> – for det tilfellet at du ikke får medhold i avvisningen.
-                </Alert>
-              )}
-
-              {/* Veiviser fjernet - se _wizard-guidance-backup.tsx for gjeninnføring */}
-
-              {/* Etterlysning-info for foreløpig varsel */}
-              {varselType === 'varsel' && (
-                <Alert variant="info" size="sm">
-                  Ved foreløpig varsel kan du etterspørre et spesifisert krav (§33.6.2).
-                  Hvis entreprenøren ikke svarer i tide, tapes kravet.
-                </Alert>
-              )}
-            </div>
-          )}
-
-          {/* ================================================================
-              STEG 2: PREKLUSJON (§33.4, §33.6)
+              STEG 1: VARSLING/PREKLUSJON (§33.4, §33.6)
               ================================================================ */}
           {!erBegrunnelseUtsatt && currentStepType === 'preklusjon' && (
             <SectionContainer

@@ -360,7 +360,7 @@ export function RespondVederlagModal({
   // Preklusjon-steg vises når: harSaerskiltKrav ELLER har34_1_2_Preklusjon
   const harPreklusjonsSteg = harSaerskiltKrav || har34_1_2_Preklusjon;
   const startPort = 1;
-  const totalPorts = harPreklusjonsSteg ? 5 : 4;
+  const totalPorts = harPreklusjonsSteg ? 4 : 3;
 
   // Compute defaultValues based on mode
   const computedDefaultValues = useMemo((): Partial<RespondVederlagFormData> => {
@@ -771,11 +771,10 @@ export function RespondVederlagModal({
     computed,
   ]);
 
-  // Steps configuration - 5 steps with optional preklusjon
+  // Steps configuration - 4 steps with optional preklusjon (Oversikt fjernet)
   const steps = useMemo(() => {
     if (harPreklusjonsSteg) {
       return [
-        { label: 'Oversikt' },
         { label: 'Preklusjon' },
         { label: 'Beregningsmetode' },
         { label: 'Beløp' },
@@ -783,25 +782,23 @@ export function RespondVederlagModal({
       ];
     }
     return [
-      { label: 'Oversikt' },
       { label: 'Beregningsmetode' },
       { label: 'Beløp' },
       { label: 'Oppsummering' },
     ];
   }, [harPreklusjonsSteg]);
 
-  // Determine which step type we're on based on currentPort
+  // Determine which step type we're on based on currentPort (Oversikt fjernet)
   const getStepType = useCallback(
-    (port: number): 'oversikt' | 'preklusjon' | 'metode' | 'belop' | 'oppsummering' => {
-      if (port === 1) return 'oversikt';
+    (port: number): 'preklusjon' | 'metode' | 'belop' | 'oppsummering' => {
       if (harPreklusjonsSteg) {
-        if (port === 2) return 'preklusjon';
-        if (port === 3) return 'metode';
-        if (port === 4) return 'belop';
-        return 'oppsummering';
-      } else {
+        if (port === 1) return 'preklusjon';
         if (port === 2) return 'metode';
         if (port === 3) return 'belop';
+        return 'oppsummering';
+      } else {
+        if (port === 1) return 'metode';
+        if (port === 2) return 'belop';
         return 'oppsummering';
       }
     },
@@ -1110,51 +1107,7 @@ export function RespondVederlagModal({
           className="space-y-4 sm:space-y-6"
         >
           {/* ================================================================
-              STEG 1: OVERSIKT
-              Shows claim summary and explains what will be evaluated
-              ================================================================ */}
-          {currentStepType === 'oversikt' && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold">Oversikt</h3>
-
-              {/* Kravsammendrag */}
-              <InlineDataList stackOnMobile>
-                <InlineDataListItem label="Hovedkrav" mono>
-                  kr {(hovedkravBelop || 0).toLocaleString('nb-NO')},-
-                </InlineDataListItem>
-                {harRiggKrav && (
-                  <InlineDataListItem label="Rigg/drift" mono>
-                    kr {(riggBelop || 0).toLocaleString('nb-NO')},-
-                  </InlineDataListItem>
-                )}
-                {harProduktivitetKrav && (
-                  <InlineDataListItem label="Produktivitet" mono>
-                    kr {(produktivitetBelop || 0).toLocaleString('nb-NO')},-
-                  </InlineDataListItem>
-                )}
-              </InlineDataList>
-
-              {/* Subsidiær behandling info */}
-              {erHelVederlagSubsidiaerPgaGrunnlag && (
-                <Alert variant="warning" title="Subsidiær behandling (§32.2)">
-                  Du har påberopt at grunnlagsvarselet kom for sent (§32.2-preklusjon). Hele vederlagskravet
-                  behandles derfor <strong>subsidiært</strong> – for det tilfellet at preklusjonen ikke holder
-                  eller forholdet likevel anses å utgjøre en endring.
-                </Alert>
-              )}
-              {grunnlagStatus === 'avslatt' && !erHelVederlagSubsidiaerPgaGrunnlag && (
-                <Alert variant="warning" title="Subsidiær behandling">
-                  Du har avvist ansvarsgrunnlaget. Dine vurderinger i dette skjemaet gjelder derfor{' '}
-                  <strong>subsidiært</strong> – for det tilfellet at du ikke får medhold i avvisningen.
-                </Alert>
-              )}
-
-              {/* Veiviser fjernet - se _wizard-guidance-backup.tsx for gjeninnføring */}
-            </div>
-          )}
-
-          {/* ================================================================
-              STEG 2 (med særskilte krav): PREKLUSJON (§34.1.2 og §34.1.3)
+              STEG 1 (med særskilte krav): PREKLUSJON (§34.1.2 og §34.1.3)
               ================================================================ */}
           {currentStepType === 'preklusjon' && (
             <SectionContainer
