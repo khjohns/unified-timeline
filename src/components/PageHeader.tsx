@@ -3,10 +3,21 @@
  *
  * Shared header component for case pages.
  * Provides consistent styling and layout across CasePage and ForseringPage.
+ *
+ * Mobile layout (2 rows):
+ * - Row 1: Title + Status + Menu
+ * - Row 2: Subtitle + Theme/Mode toggles
  */
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  HomeIcon,
+  FileTextIcon,
+  BarChartIcon,
+  MixerHorizontalIcon,
+  ChatBubbleIcon,
+} from '@radix-ui/react-icons';
 import { ThemeToggle } from './ThemeToggle';
 import { ModeToggle } from './ModeToggle';
 import { ConnectionStatusIndicator } from './ConnectionStatusIndicator';
@@ -44,6 +55,8 @@ export function PageHeader({
   menuActions,
   maxWidth = 'narrow',
 }: PageHeaderProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   const maxWidthClass = {
     narrow: 'max-w-3xl',
     medium: 'max-w-5xl',
@@ -54,38 +67,41 @@ export function PageHeader({
     <header className="bg-pkt-bg-card border-b border-pkt-grays-gray-200">
       <div className={`${maxWidthClass} mx-auto px-4 py-4 sm:px-6 sm:py-6`}>
         <div className="flex flex-col gap-1 sm:gap-4">
-          {/* Row 1: Title + Actions */}
+          {/* Row 1: Title + Status + Menu */}
           <div className="flex items-center justify-between gap-2">
             <h1 className="text-lg sm:text-xl font-semibold text-pkt-text-body-dark min-w-0 truncate">
               {title}
             </h1>
             <div className="flex items-center gap-2 shrink-0">
-              {/* Desktop: Status + Feedback */}
+              {/* Mobile: Status only */}
+              <div className="sm:hidden">
+                <ConnectionStatusIndicator />
+              </div>
+              {/* Desktop: Status + Feedback + Toggles + Actions */}
               <div className="hidden sm:flex items-center gap-2">
                 <ConnectionStatusIndicator />
                 <div className="h-5 w-px bg-pkt-border-subtle" />
                 <FeedbackButton />
+                <ThemeToggle />
+                {userRole && onToggleRole && (
+                  <ModeToggle userRole={userRole} onToggle={onToggleRole} />
+                )}
+                {actions && (
+                  <>
+                    <div className="h-5 w-px bg-pkt-border-subtle" />
+                    {actions}
+                  </>
+                )}
+                <div className="h-5 w-px bg-pkt-border-subtle" />
               </div>
-              <ThemeToggle />
-              {userRole && onToggleRole && (
-                <ModeToggle userRole={userRole} onToggle={onToggleRole} />
-              )}
-              {/* Page-specific actions - desktop only */}
-              {actions && (
-                <div className="hidden sm:flex items-center gap-2">
-                  <div className="h-5 w-px bg-pkt-border-subtle" />
-                  {actions}
-                </div>
-              )}
-              {/* Main menu */}
-              <div className="hidden sm:block h-5 w-px bg-pkt-border-subtle" />
-              <DropdownMenu>
+              {/* Menu */}
+              <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="p-2 rounded-lg bg-pkt-bg-subtle border border-pkt-grays-gray-200
-                               hover:bg-pkt-bg-card hover:border-pkt-border-default
+                    className="p-1.5 rounded-md text-pkt-text-body-subtle
+                               hover:text-pkt-text-body-default hover:bg-pkt-bg-subtle
                                focus:outline-none focus:ring-2 focus:ring-pkt-brand-warm-blue-1000/30
-                               transition-all duration-200 text-pkt-text-body-dark"
+                               transition-colors duration-200"
                     aria-label="Meny"
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
@@ -95,14 +111,19 @@ export function PageHeader({
                     </svg>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="min-w-[180px]">
+                <DropdownMenuContent align="end" className="min-w-[200px]">
                   {/* Feedback - mobile only */}
                   <div className="sm:hidden">
-                    <DropdownMenuGroup label="Tilbakemelding">
-                      <div className="px-2 py-1">
-                        <FeedbackButton />
-                      </div>
-                    </DropdownMenuGroup>
+                    <DropdownMenuItem
+                      icon={<ChatBubbleIcon />}
+                      onSelect={() => {
+                        setMenuOpen(false);
+                        // Trigger feedback modal via custom event
+                        window.dispatchEvent(new CustomEvent('open-feedback-modal'));
+                      }}
+                    >
+                      Gi tilbakemelding
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </div>
                   {/* Page-specific menu actions */}
@@ -115,20 +136,26 @@ export function PageHeader({
                     </>
                   )}
                   {/* Navigation */}
-                  <DropdownMenuGroup label="Sider">
-                    <DropdownMenuItem asChild>
+                  <DropdownMenuGroup label="Navigasjon">
+                    <DropdownMenuItem icon={<HomeIcon />} asChild>
                       <Link to="/saker">Saksoversikt</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
+                    <DropdownMenuItem icon={<FileTextIcon />} asChild>
                       <Link to="/fravik">Fravik-søknader</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/analyse">Analyse</Link>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup label="Analyse">
+                    <DropdownMenuItem icon={<BarChartIcon />} asChild>
+                      <Link to="/analyse">Saksanalyse</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
+                    <DropdownMenuItem icon={<BarChartIcon />} asChild>
                       <Link to="/fravik-analyse">Fravikanalyse</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup label="Innstillinger">
+                    <DropdownMenuItem icon={<MixerHorizontalIcon />} asChild>
                       <Link to="/integrasjoner">Integrasjoner</Link>
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
@@ -137,11 +164,14 @@ export function PageHeader({
             </div>
           </div>
 
-          {/* Row 2: Subtitle + Status (mobile) */}
+          {/* Row 2: Subtitle + Toggles (mobile) */}
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm text-pkt-grays-gray-500">{subtitle}</p>
-            <div className="sm:hidden">
-              <ConnectionStatusIndicator />
+            <div className="sm:hidden flex items-center gap-1.5">
+              <ThemeToggle />
+              {userRole && onToggleRole && (
+                <ModeToggle userRole={userRole} onToggle={onToggleRole} />
+              )}
             </div>
           </div>
         </div>
