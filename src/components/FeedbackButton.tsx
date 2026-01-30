@@ -5,7 +5,7 @@
  * to submit feedback about the application.
  */
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { ChatBubbleIcon } from '@radix-ui/react-icons';
 import { clsx } from 'clsx';
 import { Modal, Button, Textarea, Input, useToast } from './primitives';
@@ -34,6 +34,13 @@ export function FeedbackButton() {
     email: '',
   });
   const { success, error: showError } = useToast();
+
+  // Listen for custom event to open modal (from menu)
+  React.useEffect(() => {
+    const handleOpenFeedback = () => setIsOpen(true);
+    window.addEventListener('open-feedback-modal', handleOpenFeedback);
+    return () => window.removeEventListener('open-feedback-modal', handleOpenFeedback);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
