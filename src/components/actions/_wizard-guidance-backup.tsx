@@ -1,5 +1,5 @@
 /**
- * BACKUP: Veiviser-innhold fra RespondVederlagModal og RespondFristModal
+ * BACKUP: Veiviser-innhold fra RespondVederlagModal, RespondFristModal og BHResponsForseringModal
  *
  * Fjernet fra oversikts-steget for å forenkle modalene.
  * Kan gjeninnføres hvis brukertesting viser behov.
@@ -126,5 +126,59 @@ export const FristVeiviser = `
       (§33.6.2). Hvis entreprenøren ikke svarer i tide, tapes kravet.
     </div>
   )}
+</div>
+`;
+
+
+// ============================================================================
+// FORSERING MODAL - Veiviser (lå i Oversikt-steget)
+// ============================================================================
+
+/**
+ * Fil: src/components/forsering/BHResponsForseringModal.tsx
+ * Ingen props kreves
+ */
+export const ForseringVeiviser = `
+{/* Veiviser */}
+<div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+  <h4 className="font-medium text-sm mb-3">Hva du skal vurdere</h4>
+  <div className="space-y-2 text-sm">
+    <div className="flex gap-3">
+      <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 2</span>
+      <div>
+        <span className="font-medium">Forseringsrett</span>
+        <span className="text-pkt-text-body-subtle">
+          {' '}— Var avslagene på fristforlengelse berettiget? (§33.8)
+        </span>
+      </div>
+    </div>
+    <div className="flex gap-3">
+      <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 3</span>
+      <div>
+        <span className="font-medium">30%-regel</span>
+        <span className="text-pkt-text-body-subtle">
+          {' '}— Er kostnadene innenfor dagmulkt + 30%?
+        </span>
+      </div>
+    </div>
+    <div className="flex gap-3">
+      <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 4</span>
+      <div>
+        <span className="font-medium">Beløpsvurdering</span>
+        <span className="text-pkt-text-body-subtle">
+          {' '}— Vurder forseringskostnadene
+        </span>
+      </div>
+    </div>
+    <div className="flex gap-3">
+      <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 5</span>
+      <div>
+        <span className="font-medium">Oppsummering</span>
+        <span className="text-pkt-text-body-subtle">
+          {' '}— Se resultat og send standpunkt
+        </span>
+      </div>
+    </div>
+  </div>
 </div>
 `;

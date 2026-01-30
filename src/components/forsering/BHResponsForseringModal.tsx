@@ -145,6 +145,47 @@ function formatDate(dateString?: string): string {
 }
 
 /**
+ * Get status badge variant and label for a vurdering
+ */
+function getVurderingBadge(
+  vurdering: BelopVurdering | undefined,
+  prekludert?: boolean
+): { variant: 'success' | 'warning' | 'danger'; label: string } {
+  if (prekludert) {
+    return { variant: 'danger', label: 'Prekludert' };
+  }
+  switch (vurdering) {
+    case 'godkjent':
+      return { variant: 'success', label: 'Godkjent' };
+    case 'delvis':
+      return { variant: 'warning', label: 'Delvis' };
+    case 'avslatt':
+    default:
+      return { variant: 'danger', label: 'Avvist' };
+  }
+}
+
+/**
+ * Calculate approved amount for a krav based on vurdering
+ */
+function beregnGodkjentBelopForKrav(
+  vurdering: BelopVurdering | undefined,
+  krevdBelop: number,
+  delvisGodkjentBelop: number | undefined,
+  prekludert?: boolean
+): number {
+  if (prekludert) return 0;
+  switch (vurdering) {
+    case 'godkjent':
+      return krevdBelop;
+    case 'delvis':
+      return delvisGodkjentBelop ?? 0;
+    default:
+      return 0;
+  }
+}
+
+/**
  * Calculate total krevd amount from forsering data
  */
 function beregnTotalKrevd(forseringData: ForseringData): number {
@@ -658,48 +699,7 @@ export function BHResponsForseringModal({
                 </DataList>
               </SectionContainer>
 
-              {/* Veiviser */}
-              <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                <h4 className="font-medium text-sm mb-3">Hva du skal vurdere</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex gap-3">
-                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 2</span>
-                    <div>
-                      <span className="font-medium">Forseringsrett</span>
-                      <span className="text-pkt-text-body-subtle">
-                        {' '}— Var avslagene på fristforlengelse berettiget? (§33.8)
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 3</span>
-                    <div>
-                      <span className="font-medium">30%-regel</span>
-                      <span className="text-pkt-text-body-subtle">
-                        {' '}— Er kostnadene innenfor dagmulkt + 30%?
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 4</span>
-                    <div>
-                      <span className="font-medium">Beløpsvurdering</span>
-                      <span className="text-pkt-text-body-subtle">
-                        {' '}— Vurder forseringskostnadene
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 5</span>
-                    <div>
-                      <span className="font-medium">Oppsummering</span>
-                      <span className="text-pkt-text-body-subtle">
-                        {' '}— Se resultat og send standpunkt
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Veiviser fjernet - se _wizard-guidance-backup.tsx for gjeninnføring */}
             </div>
           )}
 
@@ -1293,91 +1293,70 @@ export function BHResponsForseringModal({
                   </tbody>
                 </table>
 
-                {/* Mobile: kort-layout */}
-                <div className="sm:hidden space-y-3">
+                {/* Mobile: kompakt liste */}
+                <div className="sm:hidden space-y-2 text-sm">
                   {/* Hovedkrav */}
-                  <div className="p-2 border border-pkt-border-subtle rounded-none">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-medium">Forseringskostnader</span>
-                      {formData.hovedkrav_vurdering === 'godkjent' && <Badge variant="success">Godkjent</Badge>}
-                      {formData.hovedkrav_vurdering === 'delvis' && <Badge variant="warning">Delvis</Badge>}
-                      {formData.hovedkrav_vurdering === 'avslatt' && <Badge variant="danger">Avvist</Badge>}
-                    </div>
-                    <div className="text-sm text-pkt-text-body-subtle">
-                      Krevd: {formatCurrency(forseringData.estimert_kostnad)} →{' '}
-                      Godkjent: {formData.hovedkrav_vurdering === 'godkjent'
-                        ? formatCurrency(forseringData.estimert_kostnad)
-                        : formData.hovedkrav_vurdering === 'delvis'
-                          ? formatCurrency(formData.godkjent_belop)
-                          : formatCurrency(0)}
-                    </div>
-                  </div>
+                  {(() => {
+                    const badge = getVurderingBadge(formData.hovedkrav_vurdering);
+                    const godkjent = beregnGodkjentBelopForKrav(
+                      formData.hovedkrav_vurdering,
+                      forseringData.estimert_kostnad ?? 0,
+                      formData.godkjent_belop
+                    );
+                    return (
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="font-medium min-w-[100px]">Forsering:</span>
+                        <span className="font-mono">{formatCurrency(godkjent)}</span>
+                        <Badge variant={badge.variant} size="sm">{badge.label}</Badge>
+                      </div>
+                    );
+                  })()}
 
                   {/* Rigg/Drift */}
-                  {harRiggKrav && (
-                    <div className="p-2 border border-pkt-border-subtle rounded-none">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="font-medium">Rigg/Drift</span>
-                        {formData.rigg_varslet_i_tide === false ? (
-                          <Badge variant="danger">Prekludert</Badge>
-                        ) : formData.rigg_vurdering === 'godkjent' ? (
-                          <Badge variant="success">Godkjent</Badge>
-                        ) : formData.rigg_vurdering === 'delvis' ? (
-                          <Badge variant="warning">Delvis</Badge>
-                        ) : (
-                          <Badge variant="danger">Avvist</Badge>
-                        )}
+                  {harRiggKrav && (() => {
+                    const riggPrekludert = formData.rigg_varslet_i_tide === false;
+                    const badge = getVurderingBadge(formData.rigg_vurdering, riggPrekludert);
+                    const godkjent = beregnGodkjentBelopForKrav(
+                      formData.rigg_vurdering,
+                      forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop ?? 0,
+                      formData.godkjent_rigg_drift,
+                      riggPrekludert
+                    );
+                    return (
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="font-medium min-w-[100px]">Rigg/drift:</span>
+                        <span className="font-mono">{formatCurrency(godkjent)}</span>
+                        <Badge variant={badge.variant} size="sm">{badge.label}</Badge>
                       </div>
-                      <div className="text-sm text-pkt-text-body-subtle">
-                        Krevd: {formatCurrency(forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop)} →{' '}
-                        Godkjent: {formData.rigg_varslet_i_tide === false
-                          ? formatCurrency(0)
-                          : formData.rigg_vurdering === 'godkjent'
-                            ? formatCurrency(forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop)
-                            : formData.rigg_vurdering === 'delvis'
-                              ? formatCurrency(formData.godkjent_rigg_drift)
-                              : formatCurrency(0)}
-                      </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Produktivitet */}
-                  {harProduktivitetKrav && (
-                    <div className="p-2 border border-pkt-border-subtle rounded-none">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="font-medium">Produktivitet</span>
-                        {formData.produktivitet_varslet_i_tide === false ? (
-                          <Badge variant="danger">Prekludert</Badge>
-                        ) : formData.produktivitet_vurdering === 'godkjent' ? (
-                          <Badge variant="success">Godkjent</Badge>
-                        ) : formData.produktivitet_vurdering === 'delvis' ? (
-                          <Badge variant="warning">Delvis</Badge>
-                        ) : (
-                          <Badge variant="danger">Avvist</Badge>
-                        )}
+                  {harProduktivitetKrav && (() => {
+                    const produktivitetPrekludert = formData.produktivitet_varslet_i_tide === false;
+                    const badge = getVurderingBadge(formData.produktivitet_vurdering, produktivitetPrekludert);
+                    const godkjent = beregnGodkjentBelopForKrav(
+                      formData.produktivitet_vurdering,
+                      forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop ?? 0,
+                      formData.godkjent_produktivitet,
+                      produktivitetPrekludert
+                    );
+                    return (
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="font-medium min-w-[100px]">Produktivitet:</span>
+                        <span className="font-mono">{formatCurrency(godkjent)}</span>
+                        <Badge variant={badge.variant} size="sm">{badge.label}</Badge>
                       </div>
-                      <div className="text-sm text-pkt-text-body-subtle">
-                        Krevd: {formatCurrency(forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop)} →{' '}
-                        Godkjent: {formData.produktivitet_varslet_i_tide === false
-                          ? formatCurrency(0)
-                          : formData.produktivitet_vurdering === 'godkjent'
-                            ? formatCurrency(forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop)
-                            : formData.produktivitet_vurdering === 'delvis'
-                              ? formatCurrency(formData.godkjent_produktivitet)
-                              : formatCurrency(0)}
-                      </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Totalt */}
-                  <div className="p-2 bg-pkt-surface-gray border border-pkt-border-subtle rounded-none">
-                    <div className="flex justify-between font-bold">
-                      <span>TOTALT</span>
-                      <span>{formatCurrency(computed.totalGodkjent)}</span>
-                    </div>
-                    <div className="text-sm text-pkt-text-body-subtle">
-                      av {formatCurrency(computed.totalKrevd)} krevd
-                    </div>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-2 border-t border-pkt-border-subtle font-bold">
+                    <span className="min-w-[100px]">TOTALT:</span>
+                    <span className="font-mono">{formatCurrency(computed.totalGodkjent)}</span>
+                    <span className="text-pkt-text-body-subtle font-normal text-xs">
+                      av {formatCurrency(computed.totalKrevd)}
+                    </span>
                   </div>
                 </div>
               </div>
