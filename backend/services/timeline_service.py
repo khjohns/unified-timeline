@@ -90,6 +90,94 @@ def _copy_fields_if_present(
                     setattr(target, field, value)
 
 
+def _build_state_konsekvenser(data_konsekvenser: Any) -> 'EOKonsekvenser':
+    """
+    Build EOKonsekvenser for state from event data.
+
+    Safely extracts konsekvenser fields with None-safe access.
+    Returns a new EOKonsekvenser with all fields defaulting to False
+    if the source is None.
+
+    Args:
+        data_konsekvenser: EOKonsekvenser from event data, may be None
+
+    Returns:
+        EOKonsekvenser instance for state
+    """
+    if not data_konsekvenser:
+        return EOKonsekvenser()
+
+    return EOKonsekvenser(
+        sha=getattr(data_konsekvenser, 'sha', False),
+        kvalitet=getattr(data_konsekvenser, 'kvalitet', False),
+        fremdrift=getattr(data_konsekvenser, 'fremdrift', False),
+        pris=getattr(data_konsekvenser, 'pris', False),
+        annet=getattr(data_konsekvenser, 'annet', False),
+    )
+
+
+def _extract_vederlag_from_eo_data(vederlag: Any) -> tuple:
+    """
+    Extract vederlag fields from EOUtstedtData.vederlag.
+
+    Safely extracts oppgjørsform, beløp, fradrag, and er_estimat
+    with None-safe access.
+
+    Args:
+        vederlag: VederlagKompensasjon from event data, may be None
+
+    Returns:
+        Tuple of (oppgjorsform, kompensasjon_belop, fradrag_belop, er_estimat)
+    """
+    if not vederlag:
+        return (None, None, None, False)
+
+    oppgjorsform = vederlag.metode.value if vederlag.metode else None
+    kompensasjon_belop = getattr(vederlag, 'belop_direkte', None)
+    fradrag_belop = getattr(vederlag, 'fradrag_belop', None)
+    er_estimat = getattr(vederlag, 'er_estimat', False)
+
+    return (oppgjorsform, kompensasjon_belop, fradrag_belop, er_estimat)
+
+
+def _close_spor_for_reactive_eo(
+    state: 'SakState',
+    data: Any,
+    event: 'EOUtstedtEvent'
+) -> None:
+    """
+    Close all spor for reactive EO from KOE (STANDARD sakstype).
+
+    When an EO is issued reactively based on a KOE, all three tracks
+    are closed:
+    - Grunnlag: Set to LAAST (unless already IKKE_RELEVANT or TRUKKET)
+    - Vederlag: Set to GODKJENT with godkjent_belop
+    - Frist: Set to GODKJENT with godkjent_dager
+
+    Args:
+        state: Current SakState to modify
+        data: EOUtstedtData from the event
+        event: The EOUtstedtEvent (for legacy field fallback)
+    """
+    # Close grunnlag
+    if state.grunnlag.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
+        state.grunnlag.status = SporStatus.LAAST
+        state.grunnlag.laast = True
+
+    # Close vederlag with godkjent_belop
+    if state.vederlag.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
+        state.vederlag.status = SporStatus.GODKJENT
+        godkjent_belop = data.vederlag.netto_belop if data.vederlag else None
+        state.vederlag.godkjent_belop = godkjent_belop or event.endelig_vederlag
+
+    # Close frist with godkjent_dager
+    if state.frist.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
+        state.frist.status = SporStatus.GODKJENT
+        godkjent_dager = data.frist_dager or event.endelig_frist_dager
+        if godkjent_dager:
+            state.frist.godkjent_dager = godkjent_dager
+
+
 class TimelineService:
     """
     Service for å beregne SakState fra events.
@@ -702,25 +790,14 @@ class TimelineService:
         """
         data = event.data
 
-        # For ENDRINGSORDRE sakstype: Sett endringsordre_data
         if state.sakstype == SaksType.ENDRINGSORDRE:
-            # Map EOKonsekvenser from event to state
-            konsekvenser = EOKonsekvenser(
-                sha=data.konsekvenser.sha if data.konsekvenser else False,
-                kvalitet=data.konsekvenser.kvalitet if data.konsekvenser else False,
-                fremdrift=data.konsekvenser.fremdrift if data.konsekvenser else False,
-                pris=data.konsekvenser.pris if data.konsekvenser else False,
-                annet=data.konsekvenser.annet if data.konsekvenser else False,
-            )
+            # Build state from event data using helpers
+            konsekvenser = _build_state_konsekvenser(data.konsekvenser)
+            oppgjorsform, kompensasjon_belop, fradrag_belop, er_estimat = \
+                _extract_vederlag_from_eo_data(data.vederlag)
 
             # Handle both relaterte_sak_ids and relaterte_koe_saker
             relaterte = data.relaterte_sak_ids or data.relaterte_koe_saker or []
-
-            # Hent oppgjørsdata fra vederlag-struktur
-            oppgjorsform = data.vederlag.metode.value if data.vederlag and data.vederlag.metode else None
-            kompensasjon_belop = data.vederlag.belop_direkte if data.vederlag else None
-            fradrag_belop = data.vederlag.fradrag_belop if data.vederlag else None
-            er_estimat = data.vederlag.er_estimat if data.vederlag else False
 
             state.endringsordre_data = EndringsordreData(
                 eo_nummer=data.eo_nummer,
@@ -742,20 +819,7 @@ class TimelineService:
             logger.info(f"EO {data.eo_nummer} utstedt med status UTSTEDT")
         else:
             # For STANDARD sakstype (reaktiv EO fra KOE): Lukk alle spor
-            if state.grunnlag.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
-                state.grunnlag.status = SporStatus.LAAST
-                state.grunnlag.laast = True
-
-            if state.vederlag.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
-                state.vederlag.status = SporStatus.GODKJENT
-                # Bruk vederlag.netto_belop fra event, fallback til endelig_vederlag
-                godkjent_belop = data.vederlag.netto_belop if data.vederlag else None
-                state.vederlag.godkjent_belop = godkjent_belop or event.endelig_vederlag
-
-            if state.frist.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
-                state.frist.status = SporStatus.GODKJENT
-                if data.frist_dager or event.endelig_frist_dager:
-                    state.frist.godkjent_dager = data.frist_dager or event.endelig_frist_dager
+            _close_spor_for_reactive_eo(state, data, event)
 
         return state
 

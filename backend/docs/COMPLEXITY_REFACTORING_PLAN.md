@@ -347,6 +347,59 @@ Ingen funksjoner har lenger CC F eller E. Kodebasen er nå vedlikeholdbar.
 
 ---
 
+## Faktiske resultater (Fase 3 fullført 2026-01-29)
+
+### Implementerte hjelpefunksjoner
+
+| Hjelpefunksjon | Fil | CC |
+|----------------|-----|-----|
+| `_build_state_konsekvenser()` | `services/timeline_service.py` | A (3) |
+| `_extract_vederlag_from_eo_data()` | `services/timeline_service.py` | A (4) |
+| `_close_spor_for_reactive_eo()` | `services/timeline_service.py` | B (8) |
+| `_validate_begrunnelse()` | `api/validators.py` | A (2) |
+| `_validate_antall_dager()` | `api/validators.py` | B (8) |
+| `_validate_varsel_type_field()` | `api/validators.py` | A (3) |
+| `_validate_frist_varsel_info()` | `api/validators.py` | A (5) |
+
+### CC-forbedringer etter Fase 3
+
+| Funksjon | Før | Etter | Endring |
+|----------|-----|-------|---------|
+| `_handle_eo_utstedt` | 24 (D) | **6 (B)** | -18 ✅ |
+| `validate_frist_event` | 20 (C) | **5 (A)** | -15 ✅ |
+
+### Nye tester lagt til (Fase 3)
+
+- `TestValidateBegrunnelse` (4 tester)
+- `TestValidateAntallDager` (9 tester)
+- `TestValidateVarselTypeField` (4 tester)
+- `TestValidateFristVarselInfo` (6 tester)
+
+### Refaktoreringsstrategier brukt
+
+**`_handle_eo_utstedt` (CC 24 → 6):**
+- Trekk ut `_build_state_konsekvenser()` for EOKonsekvenser-mapping
+- Trekk ut `_extract_vederlag_from_eo_data()` for vederlag-felt ekstraksjon
+- Trekk ut `_close_spor_for_reactive_eo()` for STANDARD sakstype-logikk
+
+**`validate_frist_event` (CC 20 → 5):**
+- Trekk ut `_validate_begrunnelse()` for gjenbrukt begrunnelse-validering
+- Trekk ut `_validate_antall_dager()` med konfigurerbare krav
+- Trekk ut `_validate_varsel_type_field()` for varsel_type-validering
+- Trekk ut `_validate_frist_varsel_info()` for varsel-type-spesifikk validering
+
+### Sammendrag
+
+| Metrikk | Før Fase 3 | Etter Fase 3 |
+|---------|------------|--------------|
+| `validators.py` gjennomsnitt | B | **A** |
+| `timeline_service.py` høyeste CC | D (24) | **C (19)** |
+| Funksjoner med CC ≥ D | 1 | **0** |
+| Nye hjelpefunksjoner | - | **7** |
+| Nye enhetstester | - | **23** |
+
+---
+
 ## Fase 4: Analyse av duplisert kode (2026-01-29)
 
 Analyse utført med `jscpd`, `pylint --enable=similarities`, `radon cc` og `vulture`.

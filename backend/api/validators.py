@@ -186,6 +186,117 @@ def _validate_underkategori(
             )
 
 
+def _validate_begrunnelse(data: Dict[str, Any]) -> None:
+    """
+    Validate that begrunnelse field is present and non-empty.
+
+    Args:
+        data: Event data dict
+
+    Raises:
+        ValidationError: If begrunnelse is missing or empty
+    """
+    if not data.get('begrunnelse'):
+        raise ValidationError("begrunnelse er påkrevd")
+
+
+def _validate_antall_dager(
+    data: Dict[str, Any],
+    required: bool = True,
+    allow_zero: bool = True,
+    context: str = ""
+) -> None:
+    """
+    Validate antall_dager field with configurable constraints.
+
+    Args:
+        data: Event data dict
+        required: If True, antall_dager must be present
+        allow_zero: If True, allows antall_dager = 0; if False, must be > 0
+        context: Optional context for error messages (e.g., "for spesifisering")
+
+    Raises:
+        ValidationError: If validation fails
+    """
+    antall_dager = data.get('antall_dager')
+
+    if antall_dager is None:
+        if required:
+            suffix = f" {context}" if context else ""
+            raise ValidationError(f"antall_dager er påkrevd{suffix}")
+        return  # Not required and not present - OK
+
+    if allow_zero:
+        if antall_dager < 0:
+            raise ValidationError("antall_dager må være >= 0")
+    else:
+        if antall_dager <= 0:
+            suffix = f" {context}" if context else ""
+            raise ValidationError(f"antall_dager må være > 0{suffix}")
+
+
+def _validate_varsel_type_field(
+    data: Dict[str, Any],
+    valid_varsel_types: list
+) -> str:
+    """
+    Validate varsel_type field and return its value.
+
+    Args:
+        data: Event data dict
+        valid_varsel_types: List of valid varsel type values
+
+    Returns:
+        The validated varsel_type value
+
+    Raises:
+        ValidationError: If varsel_type is missing or invalid
+    """
+    varsel_type = data.get('varsel_type')
+
+    if not varsel_type:
+        raise ValidationError(
+            "varsel_type er påkrevd",
+            valid_options={"varsel_typer": valid_varsel_types},
+            field="varsel_type"
+        )
+
+    if varsel_type not in valid_varsel_types:
+        raise ValidationError(
+            f"Ugyldig varsel_type: {varsel_type}",
+            valid_options={"varsel_typer": valid_varsel_types},
+            field="varsel_type"
+        )
+
+    return varsel_type
+
+
+def _validate_frist_varsel_info(data: Dict[str, Any], varsel_type: str) -> None:
+    """
+    Validate required varsel info based on varsel_type.
+
+    Args:
+        data: Event data dict
+        varsel_type: The validated varsel type ('varsel' or 'spesifisert')
+
+    Raises:
+        ValidationError: If required varsel info is missing
+    """
+    if varsel_type == FristVarselType.VARSEL.value:
+        if not data.get('frist_varsel'):
+            raise ValidationError(
+                "frist_varsel er påkrevd når varsel_type er 'varsel'"
+            )
+
+    elif varsel_type == FristVarselType.SPESIFISERT.value:
+        if not data.get('spesifisert_varsel'):
+            raise ValidationError(
+                "spesifisert_varsel er påkrevd når varsel_type er 'spesifisert'"
+            )
+        # Must have antall_dager for spesifisert
+        _validate_antall_dager(data, required=True, context="for spesifisert fristkrav")
+
+
 def _validate_required_text_fields(data: Dict[str, Any]) -> None:
     """
     Validate required text fields for grunnlag create events.
@@ -341,83 +452,23 @@ def validate_frist_event(data: Dict[str, Any], is_update: bool = False, is_speci
     if not data:
         raise ValidationError("Frist data mangler")
 
-    valid_varsel_types = [vt.value for vt in FristVarselType]
-
     # Specification events: TE specifies days for neutral notice (§33.6.1/§33.6.2)
     if is_specification:
-        # Must have begrunnelse
-        if not data.get('begrunnelse'):
-            raise ValidationError("begrunnelse er påkrevd")
+        _validate_begrunnelse(data)
+        _validate_antall_dager(data, required=True, allow_zero=False, context="for spesifisering")
+        return
 
-        # Must have antall_dager > 0 (actually specifying days)
-        antall_dager = data.get('antall_dager')
-        if antall_dager is None:
-            raise ValidationError("antall_dager er påkrevd for spesifisering")
-
-        if antall_dager <= 0:
-            raise ValidationError("antall_dager må være > 0 for spesifisering")
-
-        return  # Skip other validations
-
-    # Update events have simplified validation (same field names as initial)
+    # Update events have simplified validation
     if is_update:
-        # Must have begrunnelse
-        if not data.get('begrunnelse'):
-            raise ValidationError("begrunnelse er påkrevd")
-
-        # Must have antall_dager
-        antall_dager = data.get('antall_dager')
-        if antall_dager is None:
-            raise ValidationError("antall_dager er påkrevd for oppdatering")
-
-        # Validate non-negative
-        if antall_dager < 0:
-            raise ValidationError("antall_dager må være >= 0")
-
-        return  # Skip initial claim validation for updates
+        _validate_begrunnelse(data)
+        _validate_antall_dager(data, required=True, allow_zero=True, context="for oppdatering")
+        return
 
     # Initial claim validation
-    varsel_type = data.get('varsel_type')
-    if not varsel_type:
-        raise ValidationError(
-            "varsel_type er påkrevd",
-            valid_options={"varsel_typer": valid_varsel_types},
-            field="varsel_type"
-        )
-
-    # Validate varsel type
-    if varsel_type not in valid_varsel_types:
-        raise ValidationError(
-            f"Ugyldig varsel_type: {varsel_type}",
-            valid_options={"varsel_typer": valid_varsel_types},
-            field="varsel_type"
-        )
-
-    # Validate begrunnelse
-    if not data.get('begrunnelse'):
-        raise ValidationError("begrunnelse er påkrevd")
-
-    # Validate required varsel info based on type
-    if varsel_type == FristVarselType.VARSEL.value:
-        if not data.get('frist_varsel'):
-            raise ValidationError(
-                "frist_varsel er påkrevd når varsel_type er 'varsel'"
-            )
-
-    elif varsel_type == FristVarselType.SPESIFISERT.value:
-        if not data.get('spesifisert_varsel'):
-            raise ValidationError(
-                "spesifisert_varsel er påkrevd når varsel_type er 'spesifisert'"
-            )
-
-        # Must have antall_dager for spesifisert
-        if data.get('antall_dager') is None:
-            raise ValidationError(
-                "antall_dager er påkrevd for spesifisert fristkrav"
-            )
-
-        if data.get('antall_dager', 0) < 0:
-            raise ValidationError("antall_dager må være >= 0")
+    valid_varsel_types = [vt.value for vt in FristVarselType]
+    varsel_type = _validate_varsel_type_field(data, valid_varsel_types)
+    _validate_begrunnelse(data)
+    _validate_frist_varsel_info(data, varsel_type)
 
 
 def validate_respons_event(data: Dict[str, Any], spor_type: str) -> None:
