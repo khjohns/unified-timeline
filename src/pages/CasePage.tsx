@@ -6,7 +6,7 @@
  * Shows a banner if the case is part of a forsering case or an endringsordre.
  */
 
-import { useState, useMemo, Suspense, useEffect } from 'react';
+import { useMemo, Suspense, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { STALE_TIME } from '../constants/queryConfig';
@@ -20,6 +20,11 @@ import { useUserRole } from '../hooks/useUserRole';
 import { useApprovalWorkflow } from '../hooks/useApprovalWorkflow';
 import { useCasePageModals } from '../hooks/useCasePageModals';
 import { CaseDashboard } from '../components/views/CaseDashboard';
+import {
+  GrunnlagActionButtons,
+  VederlagActionButtons,
+  FristActionButtons,
+} from '../components/TrackActionButtons';
 import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
 import { Alert, Button, AlertDialog, Card, DropdownMenuItem } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
@@ -57,13 +62,7 @@ import { findEOerForSak, type FindEOerResponse } from '../api/endringsordre';
 import type { SakState, TimelineEvent } from '../types/timeline';
 import {
   DownloadIcon,
-  EyeOpenIcon,
   PaperPlaneIcon,
-  Pencil1Icon,
-  ChatBubbleIcon,
-  Pencil2Icon,
-  RocketIcon,
-  FileTextIcon,
   QuestionMarkCircledIcon,
 } from '@radix-ui/react-icons';
 import { OnboardingGuide, useOnboarding, casePageSteps } from '../components/onboarding';
@@ -338,116 +337,26 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
           vederlagHistorikk={vederlagHistorikk}
           fristHistorikk={fristHistorikk}
           grunnlagActions={
-            <>
-              {/* TE Actions: "Send" and "Oppdater" are mutually exclusive */}
-              {/* - Send: Only available when status is 'utkast' (not yet sent) */}
-              {/* - Oppdater: Only available after sent (sendt/under_behandling/avvist) */}
-              {userRole === 'TE' && actions.canSendGrunnlag && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => modals.sendGrunnlag.setOpen(true)}
-                >
-                  <PaperPlaneIcon className="w-4 h-4 mr-2" />
-                  Varsle endringsforhold
-                </Button>
-              )}
-              {userRole === 'TE' && actions.canUpdateGrunnlag && (
-                <Button
-                  variant={
-                    // Primary: BH har avvist/delvis godkjent OG TE har ikke sendt ny versjon etter
-                    // bh_respondert_versjon er 0-indeksert, antall_versjoner teller fra 1
-                    state.grunnlag.bh_resultat &&
-                    state.grunnlag.bh_resultat !== 'godkjent' &&
-                    state.grunnlag.antall_versjoner - 1 === state.grunnlag.bh_respondert_versjon
-                      ? 'primary'
-                      : 'secondary'
-                  }
-                  size="sm"
-                  onClick={() => modals.updateGrunnlag.setOpen(true)}
-                >
-                  <Pencil1Icon className="w-4 h-4 mr-2" />
-                  Oppdater
-                </Button>
-              )}
-              {/* BH Actions: Respond to TE's submission */}
-              {userRole === 'BH' && actions.canRespondToGrunnlag && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => modals.respondGrunnlag.setOpen(true)}
-                >
-                  <ChatBubbleIcon className="w-4 h-4 mr-2" />
-                  Svar
-                </Button>
-              )}
-              {/* BH Actions: Update existing response (snuoperasjon) */}
-              {userRole === 'BH' && actions.canUpdateGrunnlagResponse && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => modals.updateGrunnlagResponse.setOpen(true)}
-                >
-                  <Pencil2Icon className="w-4 h-4 mr-2" />
-                  Endre svar
-                </Button>
-              )}
-              {/* BH Actions: Issue endringsordre when grunnlag is approved */}
-              {userRole === 'BH' && actions.canIssueEO && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => modals.utstEO.setOpen(true)}
-                >
-                  <FileTextIcon className="w-4 h-4 mr-2" />
-                  Utsted endringsordre
-                </Button>
-              )}
-            </>
+            <GrunnlagActionButtons
+              userRole={userRole}
+              actions={actions}
+              grunnlagState={state.grunnlag}
+              onSendGrunnlag={() => modals.sendGrunnlag.setOpen(true)}
+              onUpdateGrunnlag={() => modals.updateGrunnlag.setOpen(true)}
+              onRespondGrunnlag={() => modals.respondGrunnlag.setOpen(true)}
+              onUpdateGrunnlagResponse={() => modals.updateGrunnlagResponse.setOpen(true)}
+              onUtstEO={() => modals.utstEO.setOpen(true)}
+            />
           }
           vederlagActions={
-            <>
-              {/* Force Majeure info - vederlag ikke aktuelt */}
-              {state.grunnlag.hovedkategori === 'FORCE_MAJEURE' && (
-                <Alert variant="info" size="sm">
-                  Force majeure (§33.3) gir kun rett til fristforlengelse, ikke vederlagsjustering.
-                </Alert>
-              )}
-              {/* TE Actions: Send initial claim (before inline revision is available) */}
-              {userRole === 'TE' && actions.canSendVederlag && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => modals.sendVederlag.setOpen(true)}
-                >
-                  <PaperPlaneIcon className="w-4 h-4 mr-2" />
-                  Send krav
-                </Button>
-              )}
-              {/* TE "Oppdater" now handled by inlineVederlagRevision prop below */}
-              {/* BH Actions: Respond to TE's submission */}
-              {userRole === 'BH' && actions.canRespondToVederlag && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => modals.respondVederlag.setOpen(true)}
-                >
-                  <ChatBubbleIcon className="w-4 h-4 mr-2" />
-                  Svar
-                </Button>
-              )}
-              {/* BH Actions: Update existing response */}
-              {userRole === 'BH' && actions.canUpdateVederlagResponse && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => modals.updateVederlagResponse.setOpen(true)}
-                >
-                  <Pencil2Icon className="w-4 h-4 mr-2" />
-                  Endre svar
-                </Button>
-              )}
-            </>
+            <VederlagActionButtons
+              userRole={userRole}
+              actions={actions}
+              isForceMajeure={state.grunnlag.hovedkategori === 'FORCE_MAJEURE'}
+              onSendVederlag={() => modals.sendVederlag.setOpen(true)}
+              onRespondVederlag={() => modals.respondVederlag.setOpen(true)}
+              onUpdateVederlagResponse={() => modals.updateVederlagResponse.setOpen(true)}
+            />
           }
           inlineVederlagRevision={
             sakId && state.vederlag.metode
@@ -479,65 +388,16 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               : undefined
           }
           fristActions={
-            <>
-              {/* TE Actions: "Send" (before inline revision is available) */}
-              {userRole === 'TE' && actions.canSendFrist && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => modals.sendFrist.setOpen(true)}
-                >
-                  <PaperPlaneIcon className="w-4 h-4 mr-2" />
-                  Send krav
-                </Button>
-              )}
-              {/* TE "Oppdater" now handled by inlineFristRevision prop below */}
-              {/* Exception: When BH has sent forespørsel, use full modal for critical warnings */}
-              {userRole === 'TE' && actions.canUpdateFrist && state.frist.har_bh_foresporsel && (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => modals.reviseFrist.setOpen(true)}
-                >
-                  <Pencil1Icon className="w-4 h-4 mr-2" />
-                  Svar på forespørsel
-                </Button>
-              )}
-              {/* TE Actions: Forsering (§33.8) - available when BH has rejected */}
-              {userRole === 'TE' && actions.canSendForsering && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => modals.sendForsering.setOpen(true)}
-                  className="border-action-danger-border text-action-danger-text hover:bg-action-danger-hover-bg"
-                >
-                  <RocketIcon className="w-4 h-4 mr-2" />
-                  Forsering (§33.8)
-                </Button>
-              )}
-              {/* BH Actions: Respond to TE's submission */}
-              {userRole === 'BH' && actions.canRespondToFrist && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => modals.respondFrist.setOpen(true)}
-                >
-                  <ChatBubbleIcon className="w-4 h-4 mr-2" />
-                  Svar
-                </Button>
-              )}
-              {/* BH Actions: Update existing response */}
-              {userRole === 'BH' && actions.canUpdateFristResponse && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => modals.updateFristResponse.setOpen(true)}
-                >
-                  <Pencil2Icon className="w-4 h-4 mr-2" />
-                  Endre svar
-                </Button>
-              )}
-            </>
+            <FristActionButtons
+              userRole={userRole}
+              actions={actions}
+              fristState={state.frist}
+              onSendFrist={() => modals.sendFrist.setOpen(true)}
+              onReviseFrist={() => modals.reviseFrist.setOpen(true)}
+              onSendForsering={() => modals.sendForsering.setOpen(true)}
+              onRespondFrist={() => modals.respondFrist.setOpen(true)}
+              onUpdateFristResponse={() => modals.updateFristResponse.setOpen(true)}
+            />
           }
           inlineFristRevision={
             // Only use inline revision when NOT in forespørsel situation
