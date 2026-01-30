@@ -6,5 +6,3 @@
  */
 
 export { CaseDashboard } from './CaseDashboard';
-export { TimelineItem } from './TimelineItem';
-export { Timeline } from './Timeline';
