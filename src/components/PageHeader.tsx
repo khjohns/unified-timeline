@@ -18,7 +18,6 @@ import {
   DropdownMenuItem,
   DropdownMenuGroup,
   DropdownMenuSeparator,
-  Button,
 } from './primitives';
 
 interface PageHeaderProps {
@@ -88,9 +87,19 @@ export function PageHeader({
             <div className="hidden sm:block h-5 w-px bg-pkt-border-subtle" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="sm" aria-label="Meny">
-                  ⋮
-                </Button>
+                <button
+                  className="p-2 rounded-lg bg-pkt-bg-subtle border border-pkt-grays-gray-200
+                             hover:bg-pkt-bg-card hover:border-pkt-border-default
+                             focus:outline-none focus:ring-2 focus:ring-pkt-brand-warm-blue-1000/30
+                             transition-all duration-200 text-pkt-text-body-dark"
+                  aria-label="Meny"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                    <circle cx="8" cy="3" r="1.5" />
+                    <circle cx="8" cy="8" r="1.5" />
+                    <circle cx="8" cy="13" r="1.5" />
+                  </svg>
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[180px]">
                 {/* Page-specific menu actions */}
