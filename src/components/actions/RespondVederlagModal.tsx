@@ -200,6 +200,48 @@ type RespondVederlagFormData = z.infer<typeof respondVederlagSchema>;
 // ============================================================================
 
 /**
+ * Get status badge variant and label for a vurdering
+ * Centralizes the repeated badge logic used throughout the component
+ */
+function getVurderingBadge(
+  vurdering: BelopVurdering | undefined,
+  prekludert?: boolean
+): { variant: 'success' | 'warning' | 'danger'; label: string } {
+  if (prekludert) {
+    return { variant: 'danger', label: 'Prekludert' };
+  }
+  switch (vurdering) {
+    case 'godkjent':
+      return { variant: 'success', label: 'Godkjent' };
+    case 'delvis':
+      return { variant: 'warning', label: 'Delvis' };
+    case 'avslatt':
+    default:
+      return { variant: 'danger', label: 'Avvist' };
+  }
+}
+
+/**
+ * Calculate approved amount for a krav based on vurdering
+ */
+function beregnGodkjentBelop(
+  vurdering: BelopVurdering | undefined,
+  krevdBelop: number,
+  delvisGodkjentBelop: number | undefined,
+  prekludert?: boolean
+): number {
+  if (prekludert) return 0;
+  switch (vurdering) {
+    case 'godkjent':
+      return krevdBelop;
+    case 'delvis':
+      return delvisGodkjentBelop ?? 0;
+    default:
+      return 0;
+  }
+}
+
+/**
  * Calculate principal result based on wizard inputs (respects preclusion)
  * Following NS 8407 logic from Datasett_varslingsregler_8407.py
  */
@@ -1107,54 +1149,7 @@ export function RespondVederlagModal({
                 </Alert>
               )}
 
-              {/* Veiviser */}
-              <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                <h4 className="font-medium text-sm mb-3">Hva du skal vurdere</h4>
-                <div className="space-y-2 text-sm">
-                  {harPreklusjonsSteg && (
-                    <div className="flex gap-3">
-                      <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 2</span>
-                      <div>
-                        <span className="font-medium">Preklusjon</span>
-                        <span className="text-pkt-text-body-subtle">
-                          {' '}
-                          — Ta stilling til om kravene ble varslet i tide
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex gap-3">
-                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">
-                      Steg {harPreklusjonsSteg ? 3 : 2}
-                    </span>
-                    <div>
-                      <span className="font-medium">Beregningsmetode</span>
-                      <span className="text-pkt-text-body-subtle">
-                        {' '}
-                        — Akseptere eller endre beregningsmetode
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">
-                      Steg {harPreklusjonsSteg ? 4 : 3}
-                    </span>
-                    <div>
-                      <span className="font-medium">Beløp</span>
-                      <span className="text-pkt-text-body-subtle"> — Vurdere beløpene for hvert krav</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">
-                      Steg {harPreklusjonsSteg ? 5 : 4}
-                    </span>
-                    <div>
-                      <span className="font-medium">Oppsummering</span>
-                      <span className="text-pkt-text-body-subtle"> — Se samlet resultat og send svar</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Veiviser fjernet - se _wizard-guidance-backup.tsx for gjeninnføring */}
             </div>
           )}
 
@@ -1956,205 +1951,96 @@ export function RespondVederlagModal({
                     </tbody>
                   </table>
 
-                  {/* Mobil: card-liste */}
-                  <div className="sm:hidden space-y-3">
-                    {/* Hovedkrav card */}
-                    <div className="p-3 border border-pkt-border-subtle rounded-none">
-                      <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
-                        <span className="font-medium">Hovedkrav</span>
-                        {hovedkravPrekludert ? (
-                          <Badge variant="danger">Prekludert</Badge>
-                        ) : formValues.hovedkrav_vurdering === 'godkjent' ? (
-                          <Badge variant="success">Godkjent</Badge>
-                        ) : formValues.hovedkrav_vurdering === 'delvis' ? (
-                          <Badge variant="warning">Delvis</Badge>
-                        ) : (
-                          <Badge variant="danger">Avvist</Badge>
-                        )}
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-pkt-text-body-subtle">Krevd:</span>
-                        <span className="font-mono">{hovedkravBelop?.toLocaleString('nb-NO') || 0}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-pkt-text-body-subtle">Godkjent:</span>
-                        <span className="font-mono">
-                          {hovedkravPrekludert
-                            ? 0
-                            : formValues.hovedkrav_vurdering === 'godkjent'
-                              ? hovedkravBelop?.toLocaleString('nb-NO') || 0
-                              : formValues.hovedkrav_vurdering === 'delvis'
-                                ? formValues.hovedkrav_godkjent_belop?.toLocaleString('nb-NO') || 0
-                                : 0}
-                        </span>
-                      </div>
-                      {/* Subsidiært på mobil */}
-                      {hovedkravPrekludert && (
-                        <div className="mt-2 pt-2 border-t border-pkt-border-subtle text-pkt-text-body-subtle">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="italic">↳ Hvis varslet i tide:</span>
-                            {formValues.hovedkrav_vurdering === 'godkjent' ? (
-                              <Badge variant="success">Godkjent</Badge>
-                            ) : formValues.hovedkrav_vurdering === 'delvis' ? (
-                              <Badge variant="warning">Delvis</Badge>
-                            ) : (
-                              <Badge variant="danger">Avvist</Badge>
-                            )}
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>Godkjent:</span>
-                            <span className="font-mono">
-                              {formValues.hovedkrav_vurdering === 'godkjent'
-                                ? hovedkravBelop?.toLocaleString('nb-NO') || 0
-                                : formValues.hovedkrav_vurdering === 'delvis'
-                                  ? formValues.hovedkrav_godkjent_belop?.toLocaleString('nb-NO') || 0
-                                  : 0}
+                  {/* Mobil: kompakt liste */}
+                  <div className="sm:hidden space-y-2 text-sm">
+                    {/* Hovedkrav */}
+                    {(() => {
+                      const badge = getVurderingBadge(formValues.hovedkrav_vurdering, hovedkravPrekludert);
+                      const godkjent = beregnGodkjentBelop(
+                        formValues.hovedkrav_vurdering,
+                        hovedkravBelop || 0,
+                        formValues.hovedkrav_godkjent_belop,
+                        hovedkravPrekludert
+                      );
+                      const subsidiaert = hovedkravPrekludert
+                        ? beregnGodkjentBelop(formValues.hovedkrav_vurdering, hovedkravBelop || 0, formValues.hovedkrav_godkjent_belop)
+                        : null;
+                      return (
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="font-medium min-w-[90px]">Hovedkrav:</span>
+                          <span className="font-mono">kr {godkjent.toLocaleString('nb-NO')}</span>
+                          <Badge variant={badge.variant} size="sm">{badge.label}</Badge>
+                          {subsidiaert !== null && (
+                            <span className="text-pkt-text-body-subtle text-xs">
+                              (subs: kr {subsidiaert.toLocaleString('nb-NO')})
                             </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Rigg/Drift card */}
-                    {harRiggKrav && (
-                      <div className="p-3 border border-pkt-border-subtle rounded-none">
-                        <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
-                          <span className="font-medium">Rigg/drift</span>
-                          {riggPrekludert ? (
-                            <Badge variant="danger">Prekludert</Badge>
-                          ) : formValues.rigg_vurdering === 'godkjent' ? (
-                            <Badge variant="success">Godkjent</Badge>
-                          ) : formValues.rigg_vurdering === 'delvis' ? (
-                            <Badge variant="warning">Delvis</Badge>
-                          ) : (
-                            <Badge variant="danger">Avvist</Badge>
                           )}
                         </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-pkt-text-body-subtle">Krevd:</span>
-                          <span className="font-mono">
-                            {riggBelop?.toLocaleString('nb-NO') || 0}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-pkt-text-body-subtle">Godkjent:</span>
-                          <span className="font-mono">
-                            {riggPrekludert
-                              ? 0
-                              : formValues.rigg_vurdering === 'godkjent'
-                                ? riggBelop?.toLocaleString('nb-NO') || 0
-                                : formValues.rigg_vurdering === 'delvis'
-                                  ? formValues.rigg_godkjent_belop?.toLocaleString('nb-NO') || 0
-                                  : 0}
-                          </span>
-                        </div>
-                        {/* Subsidiært på mobil */}
-                        {riggPrekludert && (
-                          <div className="mt-2 pt-2 border-t border-pkt-border-subtle text-pkt-text-body-subtle">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="italic">↳ Hvis varslet i tide:</span>
-                              {formValues.rigg_vurdering === 'godkjent' ? (
-                                <Badge variant="success">Godkjent</Badge>
-                              ) : formValues.rigg_vurdering === 'delvis' ? (
-                                <Badge variant="warning">Delvis</Badge>
-                              ) : (
-                                <Badge variant="danger">Avvist</Badge>
-                              )}
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Godkjent:</span>
-                              <span className="font-mono">
-                                {formValues.rigg_vurdering === 'godkjent'
-                                  ? riggBelop?.toLocaleString('nb-NO') || 0
-                                  : formValues.rigg_vurdering === 'delvis'
-                                    ? formValues.rigg_godkjent_belop?.toLocaleString('nb-NO') || 0
-                                    : 0}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                      );
+                    })()}
 
-                    {/* Produktivitet card */}
-                    {harProduktivitetKrav && (
-                      <div className="p-3 border border-pkt-border-subtle rounded-none">
-                        <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
-                          <span className="font-medium">Produktivitetstap</span>
-                          {produktivitetPrekludert ? (
-                            <Badge variant="danger">Prekludert</Badge>
-                          ) : formValues.produktivitet_vurdering === 'godkjent' ? (
-                            <Badge variant="success">Godkjent</Badge>
-                          ) : formValues.produktivitet_vurdering === 'delvis' ? (
-                            <Badge variant="warning">Delvis</Badge>
-                          ) : (
-                            <Badge variant="danger">Avvist</Badge>
+                    {/* Rigg/Drift */}
+                    {harRiggKrav && (() => {
+                      const badge = getVurderingBadge(formValues.rigg_vurdering, riggPrekludert);
+                      const godkjent = beregnGodkjentBelop(
+                        formValues.rigg_vurdering,
+                        riggBelop || 0,
+                        formValues.rigg_godkjent_belop,
+                        riggPrekludert
+                      );
+                      const subsidiaert = riggPrekludert
+                        ? beregnGodkjentBelop(formValues.rigg_vurdering, riggBelop || 0, formValues.rigg_godkjent_belop)
+                        : null;
+                      return (
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="font-medium min-w-[90px]">Rigg/drift:</span>
+                          <span className="font-mono">kr {godkjent.toLocaleString('nb-NO')}</span>
+                          <Badge variant={badge.variant} size="sm">{badge.label}</Badge>
+                          {subsidiaert !== null && (
+                            <span className="text-pkt-text-body-subtle text-xs">
+                              (subs: kr {subsidiaert.toLocaleString('nb-NO')})
+                            </span>
                           )}
                         </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-pkt-text-body-subtle">Krevd:</span>
-                          <span className="font-mono">
-                            {produktivitetBelop?.toLocaleString('nb-NO') || 0}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-pkt-text-body-subtle">Godkjent:</span>
-                          <span className="font-mono">
-                            {produktivitetPrekludert
-                              ? 0
-                              : formValues.produktivitet_vurdering === 'godkjent'
-                                ? produktivitetBelop?.toLocaleString('nb-NO') || 0
-                                : formValues.produktivitet_vurdering === 'delvis'
-                                  ? formValues.produktivitet_godkjent_belop?.toLocaleString('nb-NO') || 0
-                                  : 0}
-                          </span>
-                        </div>
-                        {/* Subsidiært på mobil */}
-                        {produktivitetPrekludert && (
-                          <div className="mt-2 pt-2 border-t border-pkt-border-subtle text-pkt-text-body-subtle">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="italic">↳ Hvis varslet i tide:</span>
-                              {formValues.produktivitet_vurdering === 'godkjent' ? (
-                                <Badge variant="success">Godkjent</Badge>
-                              ) : formValues.produktivitet_vurdering === 'delvis' ? (
-                                <Badge variant="warning">Delvis</Badge>
-                              ) : (
-                                <Badge variant="danger">Avvist</Badge>
-                              )}
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Godkjent:</span>
-                              <span className="font-mono">
-                                {formValues.produktivitet_vurdering === 'godkjent'
-                                  ? produktivitetBelop?.toLocaleString('nb-NO') || 0
-                                  : formValues.produktivitet_vurdering === 'delvis'
-                                    ? formValues.produktivitet_godkjent_belop?.toLocaleString('nb-NO') || 0
-                                    : 0}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                      );
+                    })()}
 
-                    {/* Totalt card */}
-                    <div className="p-3 border border-pkt-border-default rounded-none bg-pkt-surface-subtle">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-bold">TOTALT</span>
+                    {/* Produktivitet */}
+                    {harProduktivitetKrav && (() => {
+                      const badge = getVurderingBadge(formValues.produktivitet_vurdering, produktivitetPrekludert);
+                      const godkjent = beregnGodkjentBelop(
+                        formValues.produktivitet_vurdering,
+                        produktivitetBelop || 0,
+                        formValues.produktivitet_godkjent_belop,
+                        produktivitetPrekludert
+                      );
+                      const subsidiaert = produktivitetPrekludert
+                        ? beregnGodkjentBelop(formValues.produktivitet_vurdering, produktivitetBelop || 0, formValues.produktivitet_godkjent_belop)
+                        : null;
+                      return (
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="font-medium min-w-[90px]">Produktivitet:</span>
+                          <span className="font-mono">kr {godkjent.toLocaleString('nb-NO')}</span>
+                          <Badge variant={badge.variant} size="sm">{badge.label}</Badge>
+                          {subsidiaert !== null && (
+                            <span className="text-pkt-text-body-subtle text-xs">
+                              (subs: kr {subsidiaert.toLocaleString('nb-NO')})
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Totalt */}
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-2 border-t border-pkt-border-subtle font-bold">
+                      <span className="min-w-[90px]">TOTALT:</span>
+                      <span className="font-mono">kr {computed.totalGodkjent.toLocaleString('nb-NO')}</span>
+                      <span className="text-pkt-text-body-subtle font-normal text-xs">
+                        av {computed.totalKrevdInklPrekludert.toLocaleString('nb-NO')}
                         {computed.totalKrevdInklPrekludert > 0 && (
-                          <span className="text-sm font-medium">
-                            {((computed.totalGodkjent / computed.totalKrevdInklPrekludert) * 100).toFixed(1)}%
-                          </span>
+                          <> ({((computed.totalGodkjent / computed.totalKrevdInklPrekludert) * 100).toFixed(0)}%)</>
                         )}
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-pkt-text-body-subtle">Krevd:</span>
-                        <span className="font-mono font-bold">{computed.totalKrevdInklPrekludert.toLocaleString('nb-NO')}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-pkt-text-body-subtle">Godkjent:</span>
-                        <span className="font-mono font-bold">{computed.totalGodkjent.toLocaleString('nb-NO')}</span>
-                      </div>
+                      </span>
                     </div>
                   </div>
                 </div>
