@@ -452,130 +452,17 @@ export async function downloadRevisionHistoryExcel(
 // ========== FRAVIK EXPORT ==========
 
 import type { FravikState, MaskinTilstand } from '../types/fravik';
-
-const FRAVIK_GRUNN_LABELS: Record<string, string> = {
-  markedsmangel: 'Markedsmangel',
-  leveringstid: 'Leveringstid',
-  tekniske_begrensninger: 'Tekniske begrensninger',
-  hms_krav: 'HMS-krav',
-  annet: 'Annet',
-};
-
-const DRIVSTOFF_LABELS: Record<string, string> = {
-  HVO100: 'HVO100 (palmefritt)',
-  annet_biodrivstoff: 'Annet biodrivstoff',
-  diesel: 'Diesel',
-  diesel_euro6: 'Diesel Euro 6', // Legacy - for backwards compatibility
-};
-
-const MASKIN_VEKT_LABELS: Record<string, string> = {
-  liten: 'Liten (< 8 tonn)',
-  medium: 'Medium (8–20 tonn)',
-  stor: 'Stor (20–50 tonn)',
-  svart_stor: 'Svært stor (> 50 tonn)',
-};
-
-const ARBEIDSKATEGORI_LABELS: Record<string, string> = {
-  graving: 'Graving',
-  lasting: 'Lasting',
-  lofting: 'Løfting',
-  boring_peling: 'Boring/pæling',
-  asfalt_komprimering: 'Asfalt/komprimering',
-  annet: 'Annet',
-};
-
-const BRUKSINTENSITET_LABELS: Record<string, string> = {
-  sporadisk: 'Sporadisk (< 2 timer/dag)',
-  normal: 'Normal (2–6 timer/dag)',
-  intensiv: 'Intensiv (> 6 timer/dag)',
-};
-
-const FRAVIK_BESLUTNING_LABELS: Record<string, string> = {
-  godkjent: 'Godkjent',
-  delvis_godkjent: 'Delvis godkjent',
-  avslatt: 'Avslått',
-};
-
-const FRAVIK_STATUS_LABELS: Record<string, string> = {
-  utkast: 'Utkast',
-  sendt_inn: 'Sendt inn',
-  under_miljo_vurdering: 'Til vurdering hos miljørådgiver',
-  returnert_fra_miljo: 'Returnert fra miljørådgiver',
-  under_pl_vurdering: 'Til godkjenning hos prosjektleder',
-  returnert_fra_pl: 'Returnert fra prosjektleder',
-  under_arbeidsgruppe: 'Til behandling i arbeidsgruppen',
-  under_eier_beslutning: 'Til beslutning hos eier',
-  godkjent: 'Godkjent',
-  delvis_godkjent: 'Delvis godkjent',
-  avslatt: 'Avslått',
-  trukket: 'Trukket',
-};
-
-const MASKIN_STATUS_LABELS: Record<string, string> = {
-  ikke_vurdert: 'Ikke vurdert',
-  godkjent: 'Godkjent',
-  avslatt: 'Avslått',
-  delvis_godkjent: 'Delvis godkjent',
-};
-
-const MASKIN_TYPE_LABELS: Record<string, string> = {
-  Gravemaskin: 'Gravemaskin',
-  Hjullaster: 'Hjullaster',
-  Lift: 'Lift',
-  Asfaltutlegger: 'Asfaltutlegger',
-  Bergboremaskin: 'Bergboremaskin',
-  Borerigg: 'Borerigg',
-  Hjuldoser: 'Hjuldoser',
-  Pælemaskin: 'Pælemaskin',
-  Spuntmaskin: 'Spuntmaskin',
-  Vals: 'Vals',
-  Annet: 'Annet',
-};
-
-function formatGrunner(grunner?: string[]): string {
-  if (!grunner || grunner.length === 0) return '-';
-  return grunner.map((g) => FRAVIK_GRUNN_LABELS[g] || g).join(', ');
-}
-
-function formatDrivstoff(drivstoff?: string): string {
-  if (!drivstoff) return '-';
-  return DRIVSTOFF_LABELS[drivstoff] || drivstoff;
-}
-
-function formatFravikBeslutning(beslutning?: string): string {
-  if (!beslutning) return '-';
-  return FRAVIK_BESLUTNING_LABELS[beslutning] || beslutning;
-}
-
-function formatFravikStatus(status?: string): string {
-  if (!status) return '-';
-  return FRAVIK_STATUS_LABELS[status] || status;
-}
-
-function formatMaskinType(type?: string): string {
-  if (!type) return '-';
-  return MASKIN_TYPE_LABELS[type] || type;
-}
-
-function formatMaskinStatus(status?: string): string {
-  if (!status) return '-';
-  return MASKIN_STATUS_LABELS[status] || status;
-}
-
-function formatMaskinVekt(vekt?: string): string {
-  if (!vekt) return '-';
-  return MASKIN_VEKT_LABELS[vekt] || vekt;
-}
-
-function formatArbeidskategori(kategori?: string): string {
-  if (!kategori) return '-';
-  return ARBEIDSKATEGORI_LABELS[kategori] || kategori;
-}
-
-function formatBruksintensitet(intensitet?: string): string {
-  if (!intensitet) return '-';
-  return BRUKSINTENSITET_LABELS[intensitet] || intensitet;
-}
+import {
+  formatFravikGrunner,
+  getDrivstoffLabel,
+  getFravikBeslutningLabel,
+  getFravikStatusLabel,
+  getMaskinTypeLabel,
+  getMaskinStatusLabel,
+  getMaskinVektLabel,
+  getArbeidskategoriLabel,
+  getBruksintensitetLabel,
+} from '../constants/fravikLabels';
 
 function buildFravikOppsummeringSheet(
   workbook: ExcelJS.Workbook,
@@ -602,7 +489,7 @@ function buildFravikOppsummeringSheet(
     [],
     ['STATUS'],
     [],
-    ['Status', formatFravikStatus(state.status)],
+    ['Status', getFravikStatusLabel(state.status)],
     ['Hastebehandling', state.er_haste ? 'Ja' : 'Nei'],
     ['Hastebegrunnelse', state.haste_begrunnelse || '-'],
     [],
@@ -619,7 +506,7 @@ function buildFravikOppsummeringSheet(
     [],
     ['ENDELIG BESLUTNING'],
     [],
-    ['Beslutning', formatFravikBeslutning(state.endelig_beslutning)],
+    ['Beslutning', getFravikBeslutningLabel(state.endelig_beslutning)],
     ['Kommentar', state.endelig_beslutning_kommentar || '-'],
     ['Besluttet av', state.endelig_beslutning_av || '-'],
     [
@@ -679,24 +566,24 @@ function buildMaskinerSheet(
 
   const rows = Object.values(maskiner).map((m) => [
     m.maskin_id,
-    formatMaskinType(m.maskin_type),
+    getMaskinTypeLabel(m.maskin_type),
     m.annet_type || '-',
-    formatMaskinVekt(m.vekt),
+    getMaskinVektLabel(m.vekt),
     m.registreringsnummer || '-',
     m.start_dato || '-',
     m.slutt_dato || '-',
-    formatGrunner(m.grunner),
+    formatFravikGrunner(m.grunner),
     m.begrunnelse || '-',
     m.alternativer_vurdert || '-',
     m.markedsundersokelse ? 'Ja' : 'Nei',
     m.undersøkte_leverandorer || '-',
     m.erstatningsmaskin || '-',
-    formatDrivstoff(m.erstatningsdrivstoff),
-    formatArbeidskategori(m.arbeidskategori),
-    formatBruksintensitet(m.bruksintensitet),
+    getDrivstoffLabel(m.erstatningsdrivstoff),
+    getArbeidskategoriLabel(m.arbeidskategori),
+    getBruksintensitetLabel(m.bruksintensitet),
     m.estimert_drivstofforbruk ? `${m.estimert_drivstofforbruk}` : '-',
     m.arbeidsbeskrivelse || '-',
-    formatMaskinStatus(m.samlet_status),
+    getMaskinStatusLabel(m.samlet_status),
   ]);
 
   ws.addRow(headers);
