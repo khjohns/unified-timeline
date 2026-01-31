@@ -57,101 +57,95 @@ export interface SporHistoryProps {
   className?: string;
 }
 
+// ============ CONFIGURATION ============
+
+/** BH resultat til sammendrag-tekst */
+const BH_RESULTAT_LABELS: Record<string, string> = {
+  godkjent: 'Godkjent',
+  delvis_godkjent: 'Delvis godkjent',
+  avslatt: 'Avslått',
+  frafalt: 'Frafalt',
+};
+
+/** Entry type mapping basert på endring_type og rolle */
+const ENTRY_TYPE_MAP: Record<string, Record<'TE' | 'BH', SporHistoryEntryType>> = {
+  sendt: { TE: 'te_krav', BH: 'bh_respons' },
+  opprettet: { TE: 'te_krav', BH: 'bh_respons' },
+  oppdatert: { TE: 'te_oppdatering', BH: 'bh_oppdatering' },
+  trukket: { TE: 'te_oppdatering', BH: 'bh_oppdatering' },
+  respons: { TE: 'te_oppdatering', BH: 'bh_respons' },
+  respons_oppdatert: { TE: 'te_oppdatering', BH: 'bh_oppdatering' },
+};
+
 // ============ TRANSFORMATION FUNCTIONS ============
 
 function getVederlagSammendrag(entry: VederlagHistorikkEntry): string {
-  if (entry.endring_type === 'sendt') {
-    return entry.krav_belop != null ? `Krevd ${formatCurrency(entry.krav_belop)}` : 'Vederlagskrav sendt';
-  }
-  if (entry.endring_type === 'oppdatert') {
-    return entry.krav_belop != null ? `Oppdatert til ${formatCurrency(entry.krav_belop)}` : 'Krav oppdatert';
-  }
-  if (entry.endring_type === 'trukket') {
-    return 'Krav trukket';
-  }
-  if (entry.endring_type === 'respons') {
-    if (entry.bh_resultat === 'godkjent') {
-      return entry.godkjent_belop != null ? `Godkjent ${formatCurrency(entry.godkjent_belop)}` : 'Godkjent';
+  const { endring_type, krav_belop, godkjent_belop, bh_resultat } = entry;
+
+  switch (endring_type) {
+    case 'sendt':
+      return krav_belop != null ? `Krevd ${formatCurrency(krav_belop)}` : 'Vederlagskrav sendt';
+    case 'oppdatert':
+      return krav_belop != null ? `Oppdatert til ${formatCurrency(krav_belop)}` : 'Krav oppdatert';
+    case 'trukket':
+      return 'Krav trukket';
+    case 'respons': {
+      const belopText = godkjent_belop != null ? ` ${formatCurrency(godkjent_belop)}` : '';
+      if (bh_resultat === 'godkjent') return `Godkjent${belopText}`;
+      if (bh_resultat === 'delvis_godkjent') return `Delvis godkjent:${belopText}`;
+      return 'Avslått';
     }
-    if (entry.bh_resultat === 'delvis_godkjent') {
-      return entry.godkjent_belop != null ? `Delvis godkjent: ${formatCurrency(entry.godkjent_belop)}` : 'Delvis godkjent';
-    }
-    return 'Avslått';
+    case 'respons_oppdatert':
+      return 'Standpunkt oppdatert';
+    default:
+      return '';
   }
-  if (entry.endring_type === 'respons_oppdatert') {
-    return 'Standpunkt oppdatert';
-  }
-  return '';
 }
 
 function getFristSammendrag(entry: FristHistorikkEntry): string {
-  if (entry.endring_type === 'sendt') {
-    return entry.krav_dager != null ? `Krevd ${formatDays(entry.krav_dager)}` : 'Fristkrav sendt';
-  }
-  if (entry.endring_type === 'oppdatert') {
-    return entry.krav_dager != null ? `Oppdatert til ${formatDays(entry.krav_dager)}` : 'Krav oppdatert';
-  }
-  if (entry.endring_type === 'trukket') {
-    return 'Krav trukket';
-  }
-  if (entry.endring_type === 'respons') {
-    if (entry.bh_resultat === 'godkjent') {
-      return entry.godkjent_dager != null ? `Godkjent ${formatDays(entry.godkjent_dager)}` : 'Godkjent';
-    }
-    if (entry.bh_resultat === 'delvis_godkjent') {
-      return entry.godkjent_dager != null ? `Delvis godkjent: ${formatDays(entry.godkjent_dager)}` : 'Delvis godkjent';
-    }
-    return 'Avslått';
-  }
-  if (entry.endring_type === 'respons_oppdatert') {
-    return 'Standpunkt oppdatert';
-  }
-  return '';
-}
+  const { endring_type, krav_dager, godkjent_dager, bh_resultat } = entry;
 
-function getEntryType(endringType: string, rolle: 'TE' | 'BH'): SporHistoryEntryType {
-  if (rolle === 'TE') {
-    return endringType === 'sendt' ? 'te_krav' : 'te_oppdatering';
+  switch (endring_type) {
+    case 'sendt':
+      return krav_dager != null ? `Krevd ${formatDays(krav_dager)}` : 'Fristkrav sendt';
+    case 'oppdatert':
+      return krav_dager != null ? `Oppdatert til ${formatDays(krav_dager)}` : 'Krav oppdatert';
+    case 'trukket':
+      return 'Krav trukket';
+    case 'respons': {
+      const dagerText = godkjent_dager != null ? ` ${formatDays(godkjent_dager)}` : '';
+      if (bh_resultat === 'godkjent') return `Godkjent${dagerText}`;
+      if (bh_resultat === 'delvis_godkjent') return `Delvis godkjent:${dagerText}`;
+      return 'Avslått';
+    }
+    case 'respons_oppdatert':
+      return 'Standpunkt oppdatert';
+    default:
+      return '';
   }
-  return endringType === 'respons' ? 'bh_respons' : 'bh_oppdatering';
-}
-
-function getGrunnlagEntryType(endringType: string, rolle: 'TE' | 'BH'): SporHistoryEntryType {
-  if (rolle === 'TE') {
-    return endringType === 'opprettet' ? 'te_krav' : 'te_oppdatering';
-  }
-  return endringType === 'respons' ? 'bh_respons' : 'bh_oppdatering';
 }
 
 function getGrunnlagSammendrag(entry: GrunnlagHistorikkEntry): string {
-  if (entry.endring_type === 'opprettet') {
-    return 'Grunnlag opprettet';
+  const { endring_type, bh_resultat, bh_resultat_label } = entry;
+
+  switch (endring_type) {
+    case 'opprettet':
+      return 'Grunnlag opprettet';
+    case 'oppdatert':
+      return 'Grunnlag oppdatert';
+    case 'trukket':
+      return 'Grunnlag trukket';
+    case 'respons':
+      return BH_RESULTAT_LABELS[bh_resultat ?? ''] || bh_resultat_label || 'Svar mottatt';
+    case 'respons_oppdatert':
+      return 'Standpunkt oppdatert';
+    default:
+      return '';
   }
-  if (entry.endring_type === 'oppdatert') {
-    return 'Grunnlag oppdatert';
-  }
-  if (entry.endring_type === 'trukket') {
-    return 'Grunnlag trukket';
-  }
-  if (entry.endring_type === 'respons') {
-    if (entry.bh_resultat === 'godkjent') {
-      return 'Godkjent';
-    }
-    if (entry.bh_resultat === 'delvis_godkjent') {
-      return 'Delvis godkjent';
-    }
-    if (entry.bh_resultat === 'avslatt') {
-      return 'Avslått';
-    }
-    if (entry.bh_resultat === 'frafalt') {
-      return 'Frafalt';
-    }
-    return entry.bh_resultat_label || 'Svar mottatt';
-  }
-  if (entry.endring_type === 'respons_oppdatert') {
-    return 'Standpunkt oppdatert';
-  }
-  return '';
+}
+
+function getEntryType(endringType: string, rolle: 'TE' | 'BH'): SporHistoryEntryType {
+  return ENTRY_TYPE_MAP[endringType]?.[rolle] ?? (rolle === 'TE' ? 'te_oppdatering' : 'bh_oppdatering');
 }
 
 export function transformVederlagHistorikk(entries: VederlagHistorikkEntry[]): SporHistoryEntry[] {
@@ -187,7 +181,7 @@ export function transformFristHistorikk(entries: FristHistorikkEntry[]): SporHis
 export function transformGrunnlagHistorikk(entries: GrunnlagHistorikkEntry[]): SporHistoryEntry[] {
   return entries.map((entry) => ({
     id: entry.event_id,
-    type: getGrunnlagEntryType(entry.endring_type, entry.aktor.rolle),
+    type: getEntryType(entry.endring_type, entry.aktor.rolle),
     versjon: entry.versjon,
     tidsstempel: entry.tidsstempel,
     aktorNavn: entry.aktor.navn,
@@ -257,50 +251,45 @@ export function transformGrunnlagEvents(events: TimelineEvent[]): SporHistoryEnt
 
 // ============ HELPER FUNCTIONS ============
 
-function getEntryIcon(type: SporHistoryEntryType) {
-  switch (type) {
-    case 'te_krav':
-      return <ArrowRightIcon className="h-4 w-4" />;
-    case 'te_oppdatering':
-      return <ReloadIcon className="h-4 w-4" />;
-    case 'bh_respons':
-      return <ChatBubbleIcon className="h-4 w-4" />;
-    case 'bh_oppdatering':
-      return <CheckIcon className="h-4 w-4" />;
-  }
+/** Icon mapping per entry type */
+const ENTRY_ICONS: Record<SporHistoryEntryType, React.ReactNode> = {
+  te_krav: <ArrowRightIcon className="h-4 w-4" />,
+  te_oppdatering: <ReloadIcon className="h-4 w-4" />,
+  bh_respons: <ChatBubbleIcon className="h-4 w-4" />,
+  bh_oppdatering: <CheckIcon className="h-4 w-4" />,
+};
+
+/** Variant mapping for BH resultat */
+const BH_RESULTAT_VARIANTS: Record<string, ActivityHistoryVariant> = {
+  godkjent: 'success',
+  avslatt: 'danger',
+  delvis_godkjent: 'warning',
+};
+
+function getEntryIcon(type: SporHistoryEntryType): React.ReactNode {
+  return ENTRY_ICONS[type];
 }
 
 function getEntryVariant(type: SporHistoryEntryType, resultat?: string | null): ActivityHistoryVariant {
-  // TE actions: info variant (neutral cyan)
+  // TE actions: always info variant
   if (type === 'te_krav' || type === 'te_oppdatering') {
     return 'info';
   }
-
-  // BH actions: variant based on result
-  if (resultat === 'godkjent') {
-    return 'success';
-  }
-  if (resultat === 'avslatt') {
-    return 'danger';
-  }
-  // delvis_godkjent or unknown
-  return 'warning';
+  // BH actions: variant based on resultat
+  return BH_RESULTAT_VARIANTS[resultat ?? ''] ?? 'warning';
 }
 
 function getEntryLabel(entry: SporHistoryEntry): string {
-  // TE-versjonsreferanse: versjon 1 = original, versjon 2 = Rev. 1, osv.
   const teVersionRef = entry.versjon > 1 ? ` · Rev. ${entry.versjon - 1}` : '';
 
-  switch (entry.type) {
-    case 'te_krav':
-      return 'Krav sendt';
-    case 'te_oppdatering':
-      return `Krav oppdatert${teVersionRef}`;
-    case 'bh_respons':
-      return `${entry.sammendrag || 'Svar mottatt'}${teVersionRef}`;
-    case 'bh_oppdatering':
-      return `Standpunkt oppdatert${teVersionRef}`;
-  }
+  const labels: Record<SporHistoryEntryType, string> = {
+    te_krav: 'Krav sendt',
+    te_oppdatering: `Krav oppdatert${teVersionRef}`,
+    bh_respons: `${entry.sammendrag || 'Svar mottatt'}${teVersionRef}`,
+    bh_oppdatering: `Standpunkt oppdatert${teVersionRef}`,
+  };
+
+  return labels[entry.type];
 }
 
 // ============ COMPONENT ============

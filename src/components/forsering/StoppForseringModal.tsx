@@ -8,7 +8,6 @@
  * UPDATED (2025-01-09):
  * - Refactored to use React Hook Form + Zod
  * - Added useFormBackup for localStorage persistence
- * - Added useConfirmClose for unsaved changes dialog
  */
 
 import { useState, useEffect, useRef } from 'react';
