@@ -2,10 +2,11 @@
  * OnboardingStep Component
  *
  * Displays a popover-style tooltip for each onboarding step.
- * Positioned relative to a target element with arrow indicator.
+ * On desktop: Positioned relative to target element with arrow indicator.
+ * On mobile: Bottom sheet with swipe navigation.
  */
 
-import { useEffect, useState, useCallback, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { clsx } from 'clsx';
 import { Button } from '../primitives';
 import {
@@ -40,6 +41,9 @@ export interface OnboardingStepProps {
   onComplete: () => void;
 }
 
+const MOBILE_BREAKPOINT = 640;
+const SWIPE_THRESHOLD = 50;
+
 export function OnboardingStep({
   title,
   description,
@@ -58,12 +62,33 @@ export function OnboardingStep({
     y: number;
     actualSide: 'top' | 'bottom';
   } | null>(null);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' && window.innerWidth < MOBILE_BREAKPOINT
+  );
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const touchStartX = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const isFirstStep = stepNumber === 1;
   const isLastStep = stepNumber === totalSteps;
 
-  // Calculate optimal position for popover
+  // Track viewport size
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Calculate optimal position for popover (desktop only)
   const calculatePosition = useCallback(() => {
+    if (isMobile) {
+      // On mobile, we use fixed bottom positioning
+      setPopoverPosition({ x: 0, y: 0, actualSide: 'bottom' });
+      return;
+    }
+
     const element = document.querySelector(targetSelector) as HTMLElement;
     if (!element) return;
 
@@ -107,7 +132,7 @@ export function OnboardingStep({
     y = Math.max(padding, y);
 
     setPopoverPosition({ x, y, actualSide });
-  }, [targetSelector]);
+  }, [targetSelector, isMobile]);
 
   // Calculate position when active
   useEffect(() => {
@@ -134,6 +159,40 @@ export function OnboardingStep({
     };
   }, [isActive, calculatePosition]);
 
+  // Swipe handlers for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    setSwipeOffset(0);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isMobile) return;
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - touchStartX.current;
+    // Limit swipe offset for visual feedback
+    setSwipeOffset(Math.max(-100, Math.min(100, diff)));
+  }, [isMobile]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isMobile) return;
+
+    if (swipeOffset < -SWIPE_THRESHOLD) {
+      // Swipe left - next
+      if (isLastStep) {
+        onComplete();
+      } else {
+        onNext();
+      }
+    } else if (swipeOffset > SWIPE_THRESHOLD) {
+      // Swipe right - previous
+      if (!isFirstStep) {
+        onPrevious();
+      }
+    }
+
+    setSwipeOffset(0);
+  }, [isMobile, swipeOffset, isFirstStep, isLastStep, onNext, onPrevious, onComplete]);
+
   if (!isActive || !popoverPosition) {
     return null;
   }
@@ -141,6 +200,121 @@ export function OnboardingStep({
   const titleId = `onboarding-title-${stepNumber}`;
   const descId = `onboarding-desc-${stepNumber}`;
 
+  // Mobile: Bottom sheet
+  if (isMobile) {
+    return (
+      <div
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descId}
+        className={clsx(
+          'fixed inset-x-0 bottom-0 z-onboarding-popover',
+          'bg-pkt-bg-card rounded-t-2xl',
+          'shadow-[0_-4px_24px_rgba(0,0,0,0.15)]',
+          'border-t-2 border-x-2 border-pkt-border-default',
+          'animate-in slide-in-from-bottom duration-300 ease-out',
+          'motion-reduce:animate-none',
+          'touch-pan-y'
+        )}
+        style={{
+          transform: `translateX(${swipeOffset * 0.3}px)`,
+          transition: swipeOffset === 0 ? 'transform 0.2s ease-out' : 'none',
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 bg-pkt-grays-gray-300 rounded-full" />
+        </div>
+
+        {/* Header with close button */}
+        <div className="flex items-center justify-between px-5 py-2">
+          <span className="text-xs font-medium text-pkt-text-body-subtle">
+            {stepNumber} av {totalSteps}
+          </span>
+          <button
+            onClick={onSkip}
+            className="p-2 -mr-2 rounded-full hover:bg-pkt-bg-subtle text-pkt-text-body-subtle"
+            aria-label="Lukk veiviser"
+          >
+            <Cross2Icon className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="px-5 py-3">
+          <h3
+            id={titleId}
+            className="text-lg font-semibold text-pkt-text-body-dark mb-2"
+          >
+            {title}
+          </h3>
+          <div
+            id={descId}
+            className="text-sm text-pkt-text-body-default leading-relaxed"
+          >
+            {description}
+          </div>
+        </div>
+
+        {/* Progress dots */}
+        <div
+          className="flex justify-center gap-2 px-5 py-3"
+          role="group"
+          aria-label={`Steg ${stepNumber} av ${totalSteps}`}
+        >
+          {Array.from({ length: totalSteps }).map((_, index) => (
+            <div
+              key={index}
+              aria-hidden="true"
+              className={clsx(
+                'w-2 h-2 rounded-full transition-colors motion-reduce:transition-none',
+                index + 1 === stepNumber
+                  ? 'bg-pkt-brand-dark-blue-1000'
+                  : index + 1 < stepNumber
+                    ? 'bg-pkt-brand-green-1000'
+                    : 'bg-pkt-grays-gray-200'
+              )}
+            />
+          ))}
+        </div>
+
+        {/* Swipe hint - only on first step */}
+        {isFirstStep && (
+          <div className="flex items-center justify-center gap-2 px-5 pb-4 text-pkt-text-body-subtle">
+            <ArrowLeftIcon className="w-4 h-4 animate-pulse" />
+            <span className="text-xs">Sveip for å navigere</span>
+            <ArrowRightIcon className="w-4 h-4 animate-pulse" />
+          </div>
+        )}
+
+        {/* Last step: Show complete button */}
+        {isLastStep && (
+          <div className="px-5 pb-5">
+            <Button
+              variant="primary"
+              size="md"
+              onClick={onComplete}
+              className="w-full"
+            >
+              <CheckIcon className="w-4 h-4 mr-2" />
+              Fullfør
+            </Button>
+          </div>
+        )}
+
+        {/* Safe area padding for devices with home indicator */}
+        <div className="h-safe-area-inset-bottom pb-2" />
+      </div>
+    );
+  }
+
+  // Desktop: Floating popover
   return (
     <div
       role="dialog"
