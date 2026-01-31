@@ -330,9 +330,9 @@ export function OnboardingStep({
               key={index}
               aria-hidden="true"
               className={clsx(
-                'w-2 h-2 rounded-full transition-all duration-200 motion-reduce:transition-none',
+                'w-2 h-2 rounded-full transition-colors duration-200 motion-reduce:transition-none',
                 index + 1 === stepNumber
-                  ? 'bg-pkt-brand-dark-blue-1000 scale-125'
+                  ? 'bg-pkt-brand-dark-blue-1000'
                   : index + 1 < stepNumber
                     ? 'bg-pkt-brand-green-1000'
                     : 'bg-pkt-grays-gray-200'
