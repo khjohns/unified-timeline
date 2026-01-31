@@ -67,6 +67,8 @@ export function OnboardingStep({
   );
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [dragOffsetY, setDragOffsetY] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [displayedStep, setDisplayedStep] = useState(stepNumber);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const isDraggingVertical = useRef(false);
@@ -74,6 +76,20 @@ export function OnboardingStep({
 
   const isFirstStep = stepNumber === 1;
   const isLastStep = stepNumber === totalSteps;
+
+  // Animate content transition on step change (mobile only)
+  useEffect(() => {
+    if (isMobile && displayedStep !== stepNumber && isActive) {
+      setIsTransitioning(true);
+      const timer = setTimeout(() => {
+        setDisplayedStep(stepNumber);
+        setIsTransitioning(false);
+      }, 150);
+      return () => clearTimeout(timer);
+    } else if (!isMobile) {
+      setDisplayedStep(stepNumber);
+    }
+  }, [stepNumber, displayedStep, isMobile, isActive]);
 
   // Track viewport size
   useEffect(() => {
@@ -202,19 +218,30 @@ export function OnboardingStep({
       }
       setDragOffsetY(0);
     } else {
-      // Horizontal swipe
+      // Horizontal swipe - trigger transition then navigate
       if (swipeOffset < -SWIPE_THRESHOLD) {
-        if (isLastStep) {
-          onComplete();
-        } else {
-          onNext();
-        }
+        setIsTransitioning(true);
+        setSwipeOffset(0);
+        setTimeout(() => {
+          if (isLastStep) {
+            onComplete();
+          } else {
+            onNext();
+          }
+        }, 150);
       } else if (swipeOffset > SWIPE_THRESHOLD) {
         if (!isFirstStep) {
-          onPrevious();
+          setIsTransitioning(true);
+          setSwipeOffset(0);
+          setTimeout(() => {
+            onPrevious();
+          }, 150);
+        } else {
+          setSwipeOffset(0);
         }
+      } else {
+        setSwipeOffset(0);
       }
-      setSwipeOffset(0);
     }
 
     isDraggingVertical.current = false;
@@ -261,30 +288,38 @@ export function OnboardingStep({
           <div className="w-10 h-1 bg-pkt-grays-gray-300 rounded-full" />
         </div>
 
-        {/* Header: Title | step count */}
-        <div className="flex items-center justify-between px-5 py-2">
-          <h3
-            id={titleId}
-            className="text-lg font-semibold text-pkt-text-body-dark"
-          >
-            {title}
-          </h3>
-          <span className="text-xs font-medium text-pkt-text-body-subtle">
-            {stepNumber} av {totalSteps}
-          </span>
-        </div>
+        {/* Content wrapper with transition */}
+        <div
+          className={clsx(
+            'transition-opacity duration-150 ease-out',
+            isTransitioning ? 'opacity-0' : 'opacity-100'
+          )}
+        >
+          {/* Header: Title | step count */}
+          <div className="flex items-center justify-between px-5 py-2">
+            <h3
+              id={titleId}
+              className="text-lg font-semibold text-pkt-text-body-dark"
+            >
+              {title}
+            </h3>
+            <span className="text-xs font-medium text-pkt-text-body-subtle">
+              {stepNumber} av {totalSteps}
+            </span>
+          </div>
 
-        {/* Description */}
-        <div className="px-5 py-3">
-          <div
-            id={descId}
-            className="text-sm text-pkt-text-body-default leading-relaxed"
-          >
-            {description}
+          {/* Description */}
+          <div className="px-5 py-3">
+            <div
+              id={descId}
+              className="text-sm text-pkt-text-body-default leading-relaxed"
+            >
+              {description}
+            </div>
           </div>
         </div>
 
-        {/* Progress dots */}
+        {/* Progress dots - outside transition wrapper so they animate independently */}
         <div
           className="flex justify-center gap-2 px-5 py-3"
           role="group"
@@ -295,9 +330,9 @@ export function OnboardingStep({
               key={index}
               aria-hidden="true"
               className={clsx(
-                'w-2 h-2 rounded-full transition-colors motion-reduce:transition-none',
+                'w-2 h-2 rounded-full transition-all duration-200 motion-reduce:transition-none',
                 index + 1 === stepNumber
-                  ? 'bg-pkt-brand-dark-blue-1000'
+                  ? 'bg-pkt-brand-dark-blue-1000 scale-125'
                   : index + 1 < stepNumber
                     ? 'bg-pkt-brand-green-1000'
                     : 'bg-pkt-grays-gray-200'
