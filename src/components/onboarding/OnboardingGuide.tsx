@@ -129,7 +129,7 @@ export function OnboardingGuide({
     }
   }, [isActive, currentStep, currentStepConfig, updateSpotlight]);
 
-  // Keep spotlight updated on scroll/resize
+  // Keep spotlight updated on scroll/resize (but not during step transitions)
   useEffect(() => {
     if (!isActive) {
       setSpotlight(null);
@@ -137,6 +137,8 @@ export function OnboardingGuide({
     }
 
     const handleUpdate = () => {
+      // Don't update spotlight position during step transitions
+      if (isScrolling) return;
       requestAnimationFrame(updateSpotlight);
     };
 
@@ -151,7 +153,7 @@ export function OnboardingGuide({
       window.removeEventListener('scroll', handleUpdate, true);
       window.removeEventListener('resize', handleUpdate);
     };
-  }, [isActive, updateSpotlight]);
+  }, [isActive, isScrolling, updateSpotlight]);
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -208,12 +210,12 @@ export function OnboardingGuide({
         onClick={onSkip}
         aria-hidden="true"
       >
-        {/* SVG mask for spotlight cutout */}
+        {/* SVG mask for spotlight cutout - hide cutout during scroll for clean transition */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none">
           <defs>
             <mask id="spotlight-mask">
               <rect x="0" y="0" width="100%" height="100%" fill="white" />
-              {spotlight && (
+              {spotlight && !isScrolling && (
                 <rect
                   x={spotlight.x}
                   y={spotlight.y}
@@ -221,7 +223,6 @@ export function OnboardingGuide({
                   height={spotlight.height}
                   rx="8"
                   fill="black"
-                  className="transition-all duration-300 ease-out"
                 />
               )}
             </mask>
