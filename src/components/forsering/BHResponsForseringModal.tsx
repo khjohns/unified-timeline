@@ -264,8 +264,8 @@ export function BHResponsForseringModal({
   const harProduktivitetKrav = (forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop ?? 0) > 0;
   const harSaerskiltKrav = harRiggKrav || harProduktivitetKrav;
 
-  // Calculate total ports (5 with Oversikt step for consistency)
-  const totalPorts = 5;
+  // Calculate total ports (4 steps - Oversikt fjernet)
+  const totalPorts = 4;
 
   // Fetch grunnlag validation status when modal opens
   const { data: grunnlagValidering, isLoading: isLoadingGrunnlag } = useQuery({
@@ -587,13 +587,10 @@ export function BHResponsForseringModal({
     }
   };
 
-  // Port navigation
+  // Port navigation (Oversikt fjernet - port 1 er nå Forseringsrett)
   const canProceed = useMemo(() => {
     switch (currentPort) {
       case 1:
-        // Oversikt - always OK
-        return true;
-      case 2:
         // Forseringsrett - All saker must be evaluated
         if (!avslatteSaker || avslatteSaker.length === 0) {
           // Fallback: if no avslatteSaker data, allow proceeding (will use forseringData.avslatte_dager)
@@ -606,10 +603,10 @@ export function BHResponsForseringModal({
           )
         );
         return alleVurdert;
-      case 3:
+      case 2:
         // 30%-regel er kun informativ - beregnes automatisk
         return true;
-      case 4:
+      case 3:
         // Beløp - hovedkrav må vurderes
         return formData.hovedkrav_vurdering !== undefined;
       default:
@@ -631,9 +628,8 @@ export function BHResponsForseringModal({
     }
   };
 
-  // Step configuration
+  // Step configuration (Oversikt fjernet)
   const steps = [
-    { label: 'Oversikt' },
     { label: 'Forseringsrett' },
     { label: '30%-regel' },
     { label: 'Beløp' },
@@ -673,38 +669,8 @@ export function BHResponsForseringModal({
           {/* Token Expired Alert */}
           <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
 
-          {/* PORT 1: OVERSIKT */}
+          {/* PORT 1: Forseringsrett (§33.8) - Per-sak vurdering */}
           {currentPort === 1 && (
-            <div className="space-y-4 sm:space-y-6">
-              <h3 className="text-lg font-semibold">Oversikt</h3>
-
-              {/* Kravsammendrag */}
-              <SectionContainer title="Forseringskrav fra entreprenør">
-                <DataList variant="grid">
-                  <DataListItem label="Varslet">
-                    {formatDate(forseringData.dato_varslet)}
-                  </DataListItem>
-                  <DataListItem label="Avslåtte saker" mono>
-                    {avslatteSaker?.length ?? forseringData.avslatte_fristkrav?.length ?? 0}
-                  </DataListItem>
-                  <DataListItem label="Avslåtte dager (sum)" mono>
-                    {computed.totalAvslatteDager}
-                  </DataListItem>
-                  <DataListItem label="Estimert kostnad" mono>
-                    {formatCurrency(forseringData.estimert_kostnad)}
-                  </DataListItem>
-                  <DataListItem label="Maks (30%-grense)" mono>
-                    {formatCurrency(forseringData.maks_forseringskostnad)}
-                  </DataListItem>
-                </DataList>
-              </SectionContainer>
-
-              {/* Veiviser fjernet - se _wizard-guidance-backup.tsx for gjeninnføring */}
-            </div>
-          )}
-
-          {/* PORT 2: Forseringsrett (§33.8) - Per-sak vurdering */}
-          {currentPort === 2 && (
             <div className="space-y-3 sm:space-y-4">
               <h3 className="text-lg font-semibold">Forseringsrett (§33.8)</h3>
               <p className="text-sm text-pkt-text-body-subtle">
@@ -828,8 +794,8 @@ export function BHResponsForseringModal({
             </div>
           )}
 
-          {/* PORT 3: 30%-regel */}
-          {currentPort === 3 && (
+          {/* PORT 2: 30%-regel */}
+          {currentPort === 2 && (
             <div className="space-y-3 sm:space-y-4">
               <h3 className="text-lg font-semibold">30%-regelen (§33.8)</h3>
               <p className="text-sm text-pkt-text-body-subtle">
@@ -872,8 +838,8 @@ export function BHResponsForseringModal({
             </div>
           )}
 
-          {/* PORT 4: Beløpsvurdering */}
-          {currentPort === 4 && (
+          {/* PORT 3: Beløpsvurdering */}
+          {currentPort === 3 && (
             <div className="space-y-3 sm:space-y-4">
               <h3 className="text-lg font-semibold">Beløpsvurdering</h3>
               <p className="text-sm text-pkt-text-body-subtle">
@@ -1071,8 +1037,8 @@ export function BHResponsForseringModal({
             </div>
           )}
 
-          {/* PORT 5: Oppsummering */}
-          {currentPort === 5 && (
+          {/* PORT 4: Oppsummering */}
+          {currentPort === 4 && (
             <div className="space-y-3 sm:space-y-4">
               <h3 className="text-lg font-semibold">Oppsummering</h3>
 

@@ -499,12 +499,12 @@ describe('Action/Modal Components - Functional Tests', () => {
       expect(screen.getByRole('dialog', { name: /Oppdater svar på vederlagskrav/i })).toBeInTheDocument();
     });
 
-    it('should have resultat field', () => {
-      // Note: "Samlet resultat" is on step 2 or later
+    it('should have step indicator', () => {
+      // Note: Uses multi-step wizard, check for step indicator
       renderWithProviders(<RespondVederlagModal {...defaultProps} />);
 
-      // On step 1 we see the overview, check for step indicator
-      expect(screen.getAllByText(/Oversikt/i).length).toBeGreaterThan(0);
+      // On step 1 we see Beregningsmetode (no særskilte krav = no preklusjon step)
+      expect(screen.getAllByText(/Beregningsmetode/i).length).toBeGreaterThan(0);
     });
 
     it('should not render when closed', () => {
@@ -549,8 +549,8 @@ describe('Action/Modal Components - Functional Tests', () => {
       // Note: Uses multi-step wizard, check for step indicator
       renderWithProviders(<RespondFristModal {...defaultProps} />);
 
-      // On step 1 we see the overview
-      expect(screen.getAllByText(/Oversikt/i).length).toBeGreaterThan(0);
+      // On step 1 we see Varsling (preklusjon step)
+      expect(screen.getAllByText(/Varsling/i).length).toBeGreaterThan(0);
     });
 
     it('should not render when closed', () => {
