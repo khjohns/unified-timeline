@@ -531,9 +531,7 @@ class TimelineService:
         ])
 
         # Port 2: Beregning
-        _copy_fields_if_present(event.data, vederlag, [
-            'beregnings_resultat',
-        ], require_truthy=False)
+        # Note: beregnings_resultat maps to bh_resultat (not a direct field copy)
         if hasattr(event.data, 'beregnings_resultat') and event.data.beregnings_resultat:
             vederlag.bh_resultat = event.data.beregnings_resultat
 
