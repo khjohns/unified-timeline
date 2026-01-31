@@ -190,6 +190,11 @@ export function OnboardingGuide({
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   const effectiveSide = isMobile ? 'bottom' : currentStepConfig.side;
 
+  // On mobile, keep overlay visible during transitions for smooth experience
+  const showOverlay = isMobile
+    ? isActive && spotlight
+    : isActive && !isScrolling && spotlight;
+
   const overlayContent = (
     <>
       {/* Spotlight overlay with cutout */}
@@ -197,7 +202,7 @@ export function OnboardingGuide({
         className={clsx(
           'fixed inset-0 z-onboarding-overlay',
           'transition-opacity duration-300 motion-reduce:duration-0',
-          isActive && !isScrolling && spotlight ? 'opacity-100' : 'opacity-0',
+          showOverlay ? 'opacity-100' : 'opacity-0',
           'pointer-events-auto'
         )}
         onClick={onSkip}
@@ -216,6 +221,7 @@ export function OnboardingGuide({
                   height={spotlight.height}
                   rx="8"
                   fill="black"
+                  className="transition-all duration-300 ease-out"
                 />
               )}
             </mask>
@@ -244,8 +250,8 @@ export function OnboardingGuide({
         )}
       </div>
 
-      {/* Popover for current step - only show when not scrolling */}
-      {!isScrolling && (
+      {/* Popover for current step - always show on mobile, hide during scroll on desktop */}
+      {(isMobile || !isScrolling) && (
         <OnboardingStep
           title={currentStepConfig.title}
           description={currentStepConfig.description}
