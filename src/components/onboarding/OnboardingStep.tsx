@@ -116,8 +116,8 @@ export function OnboardingStep({
       return;
     }
 
-    // Initial calculation with delay
-    const timer = setTimeout(calculatePosition, 150);
+    // Initial calculation with delay (synced with spotlight timing)
+    const timer = setTimeout(calculatePosition, 100);
 
     // Update on scroll/resize
     const handleUpdate = () => {
@@ -143,9 +143,10 @@ export function OnboardingStep({
       className={clsx(
         'fixed z-onboarding-popover',
         'w-[320px] max-w-[calc(100vw-2rem)]',
-        'bg-pkt-bg-card rounded-lg shadow-xl',
+        'bg-pkt-bg-card rounded-lg',
+        'shadow-[0_4px_24px_rgba(0,0,0,0.12),0_8px_48px_rgba(0,0,0,0.08)]',
         'border-2 border-pkt-border-default',
-        'animate-in fade-in-0 duration-200',
+        'animate-in fade-in-0 zoom-in-95 duration-200 ease-out',
         popoverPosition.actualSide === 'bottom'
           ? 'slide-in-from-top-2'
           : 'slide-in-from-bottom-2'

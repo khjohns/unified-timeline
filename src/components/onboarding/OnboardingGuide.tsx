@@ -6,7 +6,7 @@
  * with a popover explaining each step.
  */
 
-import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { clsx } from 'clsx';
 import { OnboardingStep } from './OnboardingStep';
@@ -233,7 +233,7 @@ export function OnboardingGuide({
         {/* Spotlight border/highlight */}
         {spotlight && (
           <div
-            className="absolute rounded-lg border-2 border-pkt-brand-blue-1000 shadow-[0_0_0_4px_rgba(111,233,255,0.3)] pointer-events-none transition-all duration-200"
+            className="absolute rounded-lg border-2 border-pkt-brand-blue-1000 shadow-[0_0_0_4px_rgba(111,233,255,0.25),0_0_20px_rgba(111,233,255,0.15)] pointer-events-none transition-all duration-300 ease-out"
             style={{
               left: spotlight.x,
               top: spotlight.y,
