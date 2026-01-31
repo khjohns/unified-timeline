@@ -21,25 +21,19 @@ import { getHjemmelInline } from './KontraktsregelInline';
 interface CategoryLabelProps {
   /** Hovedkategori-kode (f.eks. "ENDRING", "SVIKT") */
   hovedkategori: string;
-  /** Underkategori-kode(r) - kan være string eller array */
-  underkategori?: string | string[];
+  /** Underkategori-kode */
+  underkategori?: string;
 }
 
 export function CategoryLabel({ hovedkategori, underkategori }: CategoryLabelProps) {
   const [open, setOpen] = useState(false);
   const hovedkatObj = getHovedkategori(hovedkategori);
   const hovedLabel = getHovedkategoriLabel(hovedkategori);
-  const underkategorier = Array.isArray(underkategori)
-    ? underkategori
-    : underkategori
-      ? [underkategori]
-      : [];
-  const underLabels = underkategorier.map((uk) => getUnderkategoriLabel(uk)).join(', ');
+  const underLabel = underkategori ? getUnderkategoriLabel(underkategori) : '';
 
   // Hent hjemmel og inline-tekst for tooltip
   // Prioritet: underkategori → hovedkategori (for Force Majeure etc.)
-  const forsteUnderkategori = underkategorier[0];
-  const ukObj = forsteUnderkategori ? getUnderkategoriObj(forsteUnderkategori) : null;
+  const ukObj = underkategori ? getUnderkategoriObj(underkategori) : null;
 
   let tooltipTitle: string | null = null;
   let hjemmelKey: string | null = null;
@@ -65,7 +59,7 @@ export function CategoryLabel({ hovedkategori, underkategori }: CategoryLabelPro
     <div className="flex items-start gap-2 text-sm">
       <span className="font-medium text-pkt-text-body-dark">
         {hovedLabel}
-        {underLabels && <> → {underLabels}</>}
+        {underLabel && <> → {underLabel}</>}
       </span>
       {hasTooltip && (
         <Tooltip.Provider delayDuration={200}>

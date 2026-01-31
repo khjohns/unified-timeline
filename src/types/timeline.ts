@@ -87,10 +87,9 @@ export type FristBeregningResultat =
   | 'avslatt';              // BH avviser kravet
 
 // Grunnlag response result (BH's vurdering av ansvarsgrunnlaget)
-// NB: 'avvist_for_sent' er fjernet - preklusjon håndteres av kravspor-status
+// Med ett ansvarsgrunnlag per sak er det binært: godkjent eller avslått
 export type GrunnlagResponsResultat =
   | 'godkjent'
-  | 'delvis_godkjent'
   | 'avslatt'          // BH avslår ansvarsgrunnlaget
   | 'frafalt';         // §32.3 c - BH frafaller pålegget (kun irregulær endring)
 

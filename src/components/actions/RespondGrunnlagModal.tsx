@@ -77,7 +77,7 @@ type RespondGrunnlagFormData = z.infer<typeof respondGrunnlagSchema>;
 // Event data from the grunnlag claim
 interface GrunnlagEventInfo {
   hovedkategori?: string;
-  underkategori?: string | string[];
+  underkategori?: string;
   beskrivelse?: string;
   dato_oppdaget?: string;
   dato_varslet?: string;
@@ -86,7 +86,6 @@ interface GrunnlagEventInfo {
 /** Labels for resultat display */
 const RESULTAT_LABELS: Record<GrunnlagResponsResultat, string> = {
   godkjent: 'Godkjent',
-  delvis_godkjent: 'Delvis godkjent',
   avslatt: 'Avslått',
   frafalt: 'Frafalt (§32.3 c)',
 };
@@ -147,17 +146,13 @@ export function RespondGrunnlagModal({
   // §32.2 gjelder alle ENDRING-underkategorier UNNTATT EO (formell endringsordre)
   const erEndringMed32_2 =
     grunnlagEvent?.hovedkategori === 'ENDRING' &&
-    (Array.isArray(grunnlagEvent?.underkategori)
-      ? !grunnlagEvent.underkategori.includes('EO')
-      : grunnlagEvent?.underkategori !== 'EO');
+    grunnlagEvent?.underkategori !== 'EO';
 
   // Determine if this is a pålegg case (§32.1) where frafall (§32.3 c) applies
   // Kun IRREG og VALGRETT er pålegg - andre §32.2-tilfeller kan ikke "frafalles"
   const erPaalegg =
     grunnlagEvent?.hovedkategori === 'ENDRING' &&
-    (Array.isArray(grunnlagEvent?.underkategori)
-      ? grunnlagEvent.underkategori.some((uk) => uk === 'IRREG' || uk === 'VALGRETT')
-      : grunnlagEvent?.underkategori === 'IRREG' || grunnlagEvent?.underkategori === 'VALGRETT');
+    (grunnlagEvent?.underkategori === 'IRREG' || grunnlagEvent?.underkategori === 'VALGRETT');
 
   // Compute default values based on mode
   const computedDefaultValues = useMemo((): Partial<RespondGrunnlagFormData> => {
@@ -302,7 +297,7 @@ export function RespondGrunnlagModal({
   // Check if changing from rejected to approved (snuoperasjon)
   const erSnuoperasjon = useMemo(() => {
     if (!isUpdateMode || !varAvvist) return false;
-    return selectedResultat === 'godkjent' || selectedResultat === 'delvis_godkjent';
+    return selectedResultat === 'godkjent';
   }, [isUpdateMode, varAvvist, selectedResultat]);
 
   // Get previous begrunnelse from sakState (for update mode display)

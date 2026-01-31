@@ -948,7 +948,6 @@ class TimelineService:
         """Mapper GrunnlagResponsResultat til SporStatus"""
         mapping = {
             GrunnlagResponsResultat.GODKJENT: SporStatus.GODKJENT,
-            GrunnlagResponsResultat.DELVIS_GODKJENT: SporStatus.DELVIS_GODKJENT,
             GrunnlagResponsResultat.AVSLATT: SporStatus.AVSLATT,
             GrunnlagResponsResultat.FRAFALT: SporStatus.TRUKKET,  # Pålegg frafalt
         }
@@ -1775,7 +1774,7 @@ class MigrationHelper:
         # NB: AVVENTER (100000004) returnerer None - BH har ikke tatt beslutning ennå
         mapping = {
             '100000000': GrunnlagResponsResultat.GODKJENT,           # GODKJENT_FULLT
-            '100000001': GrunnlagResponsResultat.DELVIS_GODKJENT,    # DELVIS_GODKJENT
+            '100000001': GrunnlagResponsResultat.GODKJENT,           # DELVIS_GODKJENT -> nå GODKJENT (akseptert ansvar)
             '100000002': GrunnlagResponsResultat.AVSLATT,            # AVSLÅTT_UENIG
             '100000003': GrunnlagResponsResultat.AVSLATT,            # AVSLÅTT_FOR_SENT -> nå AVSLATT
             '100000005': GrunnlagResponsResultat.GODKJENT,           # GODKJENT_ANNEN_METODE
