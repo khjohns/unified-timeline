@@ -197,7 +197,7 @@ export function OnboardingGuide({
         className={clsx(
           'fixed inset-0 z-onboarding-overlay',
           'transition-opacity duration-300',
-          isActive && !isScrolling ? 'opacity-100' : 'opacity-0',
+          isActive && !isScrolling && spotlight ? 'opacity-100' : 'opacity-0',
           'pointer-events-auto'
         )}
         onClick={onSkip}
