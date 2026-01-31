@@ -196,7 +196,7 @@ export function OnboardingGuide({
       <div
         className={clsx(
           'fixed inset-0 z-onboarding-overlay',
-          'transition-opacity duration-300',
+          'transition-opacity duration-300 motion-reduce:duration-0',
           isActive && !isScrolling && spotlight ? 'opacity-100' : 'opacity-0',
           'pointer-events-auto'
         )}
@@ -233,7 +233,7 @@ export function OnboardingGuide({
         {/* Spotlight border/highlight */}
         {spotlight && (
           <div
-            className="absolute rounded-lg border-2 border-pkt-brand-blue-1000 shadow-[0_0_0_4px_rgba(111,233,255,0.25),0_0_20px_rgba(111,233,255,0.15)] pointer-events-none transition-all duration-300 ease-out"
+            className="absolute rounded-lg border-2 border-pkt-brand-blue-1000 shadow-[0_0_0_4px_rgba(111,233,255,0.25),0_0_20px_rgba(111,233,255,0.15)] pointer-events-none transition-all duration-300 ease-out motion-reduce:duration-0"
             style={{
               left: spotlight.x,
               top: spotlight.y,
