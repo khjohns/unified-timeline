@@ -152,10 +152,10 @@ export function SendFristModal({
   } = useForm<FristFormData>({
     resolver: zodResolver(fristSchema),
     defaultValues: {
-      frist_varsel_sendes_na: false,
+      frist_varsel_sendes_na: true,
       frist_varsel_metoder: [],
       har_tidligere_varslet: false,
-      spesifisert_varsel_sendes_na: false,
+      spesifisert_varsel_sendes_na: true,
       spesifisert_varsel_metoder: [],
       attachments: [],
     },
