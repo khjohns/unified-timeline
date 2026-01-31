@@ -116,8 +116,8 @@ export function OnboardingStep({
       return;
     }
 
-    // Initial calculation with delay
-    const timer = setTimeout(calculatePosition, 150);
+    // Initial calculation with delay (synced with spotlight timing)
+    const timer = setTimeout(calculatePosition, 100);
 
     // Update on scroll/resize
     const handleUpdate = () => {
@@ -138,14 +138,23 @@ export function OnboardingStep({
     return null;
   }
 
+  const titleId = `onboarding-title-${stepNumber}`;
+  const descId = `onboarding-desc-${stepNumber}`;
+
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      aria-describedby={descId}
       className={clsx(
         'fixed z-onboarding-popover',
         'w-[320px] max-w-[calc(100vw-2rem)]',
-        'bg-pkt-bg-card rounded-lg shadow-xl',
+        'bg-pkt-bg-card rounded-lg',
+        'shadow-[0_4px_24px_rgba(0,0,0,0.12),0_8px_48px_rgba(0,0,0,0.08)]',
         'border-2 border-pkt-border-default',
-        'animate-in fade-in-0 duration-200',
+        'animate-in fade-in-0 zoom-in-95 duration-200 ease-out',
+        'motion-reduce:animate-none',
         popoverPosition.actualSide === 'bottom'
           ? 'slide-in-from-top-2'
           : 'slide-in-from-bottom-2'
@@ -185,21 +194,32 @@ export function OnboardingStep({
 
       {/* Content */}
       <div className="px-4 py-3">
-        <h3 className="text-base font-semibold text-pkt-text-body-dark mb-2">
+        <h3
+          id={titleId}
+          className="text-base font-semibold text-pkt-text-body-dark mb-2"
+        >
           {title}
         </h3>
-        <div className="text-sm text-pkt-text-body-default leading-relaxed">
+        <div
+          id={descId}
+          className="text-sm text-pkt-text-body-default leading-relaxed"
+        >
           {description}
         </div>
       </div>
 
       {/* Progress dots */}
-      <div className="flex justify-center gap-1.5 px-4 pb-3">
+      <div
+        className="flex justify-center gap-1.5 px-4 pb-3"
+        role="group"
+        aria-label={`Steg ${stepNumber} av ${totalSteps}`}
+      >
         {Array.from({ length: totalSteps }).map((_, index) => (
           <div
             key={index}
+            aria-hidden="true"
             className={clsx(
-              'w-2 h-2 rounded-full transition-colors',
+              'w-2 h-2 rounded-full transition-colors motion-reduce:transition-none',
               index + 1 === stepNumber
                 ? 'bg-pkt-brand-dark-blue-1000'
                 : index + 1 < stepNumber
