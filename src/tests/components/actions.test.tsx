@@ -272,8 +272,12 @@ describe('Action/Modal Components - Functional Tests', () => {
       expect(screen.getAllByText(/Kravtype/i).length).toBeGreaterThan(0);
     });
 
-    it('should have begrunnelse field', () => {
+    it('should show begrunnelse field when spesifisert is selected', async () => {
       renderWithProviders(<SendFristModal {...defaultProps} />);
+
+      // Select "spesifisert" varsel type to show begrunnelse field
+      const spesifisertRadio = screen.getByRole('radio', { name: /Spesifisert krav/i });
+      await userEvent.click(spesifisertRadio);
 
       // Check for the begrunnelse field by data-testid
       expect(screen.getByTestId('frist-begrunnelse')).toBeInTheDocument();
