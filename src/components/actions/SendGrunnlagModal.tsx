@@ -15,7 +15,6 @@ import {
   Alert,
   AttachmentUpload,
   Button,
-  Checkbox,
   DatePicker,
   InlineDataList,
   InlineDataListItem,
@@ -52,7 +51,7 @@ import { getPreklusjonsvarsel, getPreklusjonsvarselMellomDatoer, beregnDagerSide
 // Underkategori is only required if the hovedkategori has underkategorier (e.g., not Force Majeure)
 const createGrunnlagSchema = z.object({
   hovedkategori: z.string().min(1, 'Hovedkategori er påkrevd'),
-  underkategori: z.array(z.string()).default([]),
+  underkategori: z.string().default(''),
   tittel: z.string().min(3, 'Tittel må være minst 3 tegn').max(100, 'Tittel kan ikke være lengre enn 100 tegn'),
   beskrivelse: z.string().min(10, 'Beskrivelse må være minst 10 tegn'),
   dato_oppdaget: z.string().min(1, 'Dato oppdaget er påkrevd'),
@@ -68,11 +67,11 @@ const createGrunnlagSchema = z.object({
       // No underkategorier required (e.g., Force Majeure)
       return true;
     }
-    // Require at least one underkategori
+    // Require underkategori to be selected
     return data.underkategori.length > 0;
   },
   {
-    message: 'Minst én underkategori må velges',
+    message: 'Underkategori må velges',
     path: ['underkategori'],
   }
 );
@@ -80,7 +79,7 @@ const createGrunnlagSchema = z.object({
 // Schema for update mode - all fields optional
 const updateGrunnlagSchema = z.object({
   hovedkategori: z.string().optional(),
-  underkategori: z.array(z.string()).optional(),
+  underkategori: z.string().optional(),
   tittel: z.string().optional(),
   beskrivelse: z.string().optional(),
   dato_oppdaget: z.string().optional(),
@@ -125,13 +124,13 @@ export function SendGrunnlagModal({
   const computedDefaultValues = useMemo((): Partial<GrunnlagFormData> => {
     if (isUpdateMode && grunnlag) {
       // UPDATE MODE: Pre-fill from existing grunnlag
+      // Handle legacy array format by taking first element
+      const underkategoriValue = Array.isArray(grunnlag.underkategori)
+        ? grunnlag.underkategori[0] || ''
+        : grunnlag.underkategori || '';
       return {
         hovedkategori: grunnlag.hovedkategori || '',
-        underkategori: Array.isArray(grunnlag.underkategori)
-          ? grunnlag.underkategori
-          : grunnlag.underkategori
-            ? [grunnlag.underkategori]
-            : [],
+        underkategori: underkategoriValue,
         tittel: grunnlag.tittel || '',
         beskrivelse: grunnlag.beskrivelse || '',
         dato_oppdaget: grunnlag.dato_oppdaget || '',
@@ -144,7 +143,7 @@ export function SendGrunnlagModal({
     // CREATE MODE: Default values
     return {
       hovedkategori: '',
-      underkategori: [],
+      underkategori: '',
       tittel: '',
       beskrivelse: '',
       dato_oppdaget: '',
@@ -217,12 +216,10 @@ export function SendGrunnlagModal({
     [selectedHovedkategori]
   );
 
-  // Get all selected underkategorier info (not just first one)
-  const valgteUnderkategorier = useMemo(() => {
-    if (!selectedUnderkategorier?.length) return [];
-    return selectedUnderkategorier
-      .map((kode) => getUnderkategoriObj(kode))
-      .filter((obj): obj is NonNullable<typeof obj> => obj !== undefined);
+  // Get selected underkategori info
+  const valgtUnderkategori = useMemo(() => {
+    if (!selectedUnderkategorier) return undefined;
+    return getUnderkategoriObj(selectedUnderkategorier);
   }, [selectedUnderkategorier]);
 
   // Calculate preclusion risk for current moment (when sending now)
@@ -278,7 +275,7 @@ export function SendGrunnlagModal({
   const handleHovedkategoriChange = (value: string) => {
     setSelectedHovedkategori(value);
     setValue('hovedkategori', value, { shouldDirty: true });
-    setValue('underkategori', [], { shouldDirty: true });
+    setValue('underkategori', '', { shouldDirty: true });
   };
 
   const onSubmit = (data: GrunnlagFormData) => {
@@ -446,84 +443,82 @@ export function SendGrunnlagModal({
               />
             </FormField>
 
-            {/* Underkategori - Dynamic based on hovedkategori, grouped */}
+            {/* Underkategori - Dynamic based on hovedkategori, grouped with radio buttons */}
             {selectedHovedkategori && valgtHovedkategori && valgtHovedkategori.underkategorier.length > 0 && (
               <Controller
                 name="underkategori"
                 control={control}
                 render={({ field }) => {
                   const grupperteUnderkategorier = getGrupperteUnderkategorier(valgtHovedkategori.underkategorier);
+                  // Map underkategori til KontraktsregelInline hjemmel (der tilgjengelig)
+                  const hjemmelMap: Record<string, '§10.2' | '§14.4' | '§14.6' | '§15.2' | '§19.1' | '§21.4' | '§22' | '§23.1' | '§23.3' | '§24.1' | '§24.2.2' | '§26.3' | '§29.2' | '§32.1' | '§38.1'> = {
+                    'VALGRETT': '§14.6',
+                    'SVAR_VARSEL': '§24.2.2',
+                    'LOV_GJENSTAND': '§14.4',
+                    'LOV_PROSESS': '§15.2',
+                    'IRREG': '§32.1',
+                    'GRUNN': '§23.1',
+                    'KULTURMINNER': '§23.3',
+                    'PROSJ_RISIKO': '§24.1',
+                    'MEDVIRK': '§22',
+                    'GEBYR': '§26.3',
+                    'SAMORD': '§21.4',
+                    'NEKT_MH': '§10.2',
+                    'SKADE_BH': '§19.1',
+                    'BRUKSTAKELSE': '§38.1',
+                    'STANS_BET': '§29.2',
+                  };
                   return (
                     <FormField
                       label="Underkategori"
                       required
                       error={errors.underkategori?.message}
                     >
-                      <div className="space-y-3 sm:space-y-4" data-testid="grunnlag-underkategori-list">
-                        {Array.from(grupperteUnderkategorier.entries()).map(([gruppeNavn, underkategorier]) => (
-                          <div key={gruppeNavn ?? 'ungrouped'}>
-                            {gruppeNavn && (
-                              <p className="text-sm font-semibold text-pkt-text-body mb-2">{gruppeNavn}</p>
-                            )}
-                            <div className="space-y-2 pl-0">
-                              {underkategorier.map((uk) => {
-                                const erValgt = field.value?.includes(uk.kode) ?? false;
-                                // Map underkategori til KontraktsregelInline hjemmel (der tilgjengelig)
-                                const hjemmelMap: Record<string, '§10.2' | '§14.4' | '§14.6' | '§15.2' | '§19.1' | '§21.4' | '§22' | '§23.1' | '§23.3' | '§24.1' | '§24.2.2' | '§26.3' | '§29.2' | '§32.1' | '§38.1'> = {
-                                  'VALGRETT': '§14.6',
-                                  'SVAR_VARSEL': '§24.2.2',
-                                  'LOV_GJENSTAND': '§14.4',
-                                  'LOV_PROSESS': '§15.2',
-                                  'IRREG': '§32.1',
-                                  'GRUNN': '§23.1',
-                                  'KULTURMINNER': '§23.3',
-                                  'PROSJ_RISIKO': '§24.1',
-                                  'MEDVIRK': '§22',
-                                  'GEBYR': '§26.3',
-                                  'SAMORD': '§21.4',
-                                  'NEKT_MH': '§10.2',
-                                  'SKADE_BH': '§19.1',
-                                  'BRUKSTAKELSE': '§38.1',
-                                  'STANS_BET': '§29.2',
-                                };
-                                const hjemmel = hjemmelMap[uk.kode];
-                                return (
-                                  <div key={uk.kode}>
-                                    <Checkbox
-                                      id={`underkategori-${uk.kode}`}
-                                      label={uk.label}
-                                      checked={erValgt}
-                                      onCheckedChange={(checked) => {
-                                        const current = field.value ?? [];
-                                        if (checked) {
-                                          field.onChange([...current, uk.kode]);
-                                        } else {
-                                          field.onChange(current.filter((v: string) => v !== uk.kode));
-                                        }
-                                      }}
-                                    />
-                                    {erValgt && (
-                                      <div className="mt-2 ml-6">
-                                        {hjemmel ? (
-                                          <KontraktsregelInline hjemmel={hjemmel} />
-                                        ) : (
-                                          <KontraktsregelInline
-                                            custom={{
-                                              tekst: uk.beskrivelse,
-                                              hjemmel: `§${uk.hjemmel_basis}`,
-                                              konsekvens: `Varslingskrav: §${uk.varselkrav_ref}`,
-                                            }}
-                                          />
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                      <RadioGroup
+                        value={field.value || ''}
+                        onValueChange={field.onChange}
+                        data-testid="grunnlag-underkategori-list"
+                      >
+                        <div className="space-y-3 sm:space-y-4">
+                          {Array.from(grupperteUnderkategorier.entries()).map(([gruppeNavn, underkategorier]) => (
+                            <div key={gruppeNavn ?? 'ungrouped'}>
+                              {gruppeNavn && (
+                                <p className="text-sm font-semibold text-pkt-text-body mb-2">{gruppeNavn}</p>
+                              )}
+                              <div className="space-y-2 pl-0">
+                                {underkategorier.map((uk) => {
+                                  const erValgt = field.value === uk.kode;
+                                  const hjemmel = hjemmelMap[uk.kode];
+                                  return (
+                                    <div key={uk.kode}>
+                                      <RadioItem
+                                        value={uk.kode}
+                                        label={uk.label}
+                                        error={!!errors.underkategori}
+                                      />
+                                      {erValgt && (
+                                        <div className="mt-2 ml-6">
+                                          {hjemmel ? (
+                                            <KontraktsregelInline hjemmel={hjemmel} />
+                                          ) : (
+                                            <KontraktsregelInline
+                                              custom={{
+                                                tekst: uk.beskrivelse,
+                                                hjemmel: `§${uk.hjemmel_basis}`,
+                                                konsekvens: `Varslingskrav: §${uk.varselkrav_ref}`,
+                                              }}
+                                            />
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      </RadioGroup>
                     </FormField>
                   );
                 }}

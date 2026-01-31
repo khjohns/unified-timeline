@@ -723,9 +723,11 @@ class FristEvent(SakEvent):
 # ============ RESPONS EVENTS (BH) ============
 
 class GrunnlagResponsResultat(str, Enum):
-    """Resultat av byggherrens vurdering av grunnlag (ansvar)"""
-    GODKJENT = "godkjent"  # Byggherren aksepterer ansvarsgrunnlaget fullt ut
-    DELVIS_GODKJENT = "delvis_godkjent"  # Byggherren aksepterer deler av grunnlaget
+    """Resultat av byggherrens vurdering av grunnlag (ansvar).
+
+    Med ett ansvarsgrunnlag per sak er det binært: godkjent eller avslått.
+    """
+    GODKJENT = "godkjent"  # Byggherren aksepterer ansvarsgrunnlaget
     AVSLATT = "avslatt"  # Byggherren avslår ansvarsgrunnlaget
     FRAFALT = "frafalt"  # §32.3 c - Byggherren frafaller pålegget (kun irregulær endring)
 

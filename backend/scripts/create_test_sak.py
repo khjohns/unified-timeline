@@ -250,7 +250,6 @@ def create_grunnlag_respons(
     """Opprett respons_grunnlag event."""
     begrunnelser = {
         GrunnlagResponsResultat.GODKJENT: "Grunnlaget godkjennes. BH aksepterer ansvar for forsinkelsen.",
-        GrunnlagResponsResultat.DELVIS_GODKJENT: "Grunnlaget delvis godkjent. BH aksepterer delvis ansvar.",
         GrunnlagResponsResultat.AVSLATT: "Grunnlaget avslås. BH mener TE burde ha forutsett situasjonen.",
     }
 

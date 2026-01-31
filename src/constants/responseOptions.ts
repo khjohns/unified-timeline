@@ -15,7 +15,6 @@ import type { SubsidiaerTrigger } from '../types/timeline';
 export const BH_GRUNNLAGSVAR_OPTIONS: DropdownOption[] = [
   { value: "", label: "— Velg —" },
   { value: "godkjent", label: "Godkjent" },
-  { value: "delvis_godkjent", label: "Delvis godkjent" },
   { value: "avslatt", label: "Avslått" },
   { value: "frafalt", label: "Frafall pålegget" },
 ];
@@ -124,7 +123,6 @@ export function getBhFristsvarValues(): [string, ...string[]] {
 
 export const BH_GRUNNLAGSVAR_DESCRIPTIONS: Record<string, string> = {
   godkjent: "Byggherren aksepterer ansvarsgrunnlaget. Endringsordre (EO) kan utstedes når vederlag og frist også er avklart.",
-  delvis_godkjent: "Byggherren aksepterer deler av ansvarsgrunnlaget. Kan påvirke vederlag/frist-vurdering.",
   avslatt: "Byggherren avslår ansvarsgrunnlaget. Vederlag og frist vurderes subsidiært (hvis ansvar hadde foreligget).",
   frafalt: "Byggherren frafaller pålegget (§32.3 c). Kun for irregulære endringer. Arbeidet trenger ikke utføres.",
 };
