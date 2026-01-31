@@ -1922,6 +1922,21 @@ def parse_event(data: dict) -> AnyEvent:
                 if field in event_data and field not in data:
                     data[field] = event_data[field]
 
+    # Migrate deprecated enum values in subsidiaer_triggers
+    # Changed in commit 453248e: preklusjon_spesifisert → reduksjon_spesifisert
+    event_data = data.get("data")
+    if event_data and isinstance(event_data, dict):
+        triggers = event_data.get("subsidiaer_triggers")
+        if triggers and isinstance(triggers, list):
+            migrated = [
+                "reduksjon_spesifisert" if t == "preklusjon_spesifisert" else t
+                for t in triggers
+            ]
+            if migrated != triggers:
+                data = dict(data)
+                data["data"] = dict(event_data)
+                data["data"]["subsidiaer_triggers"] = migrated
+
     return event_class.model_validate(data)
 
 
