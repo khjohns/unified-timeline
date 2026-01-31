@@ -230,10 +230,10 @@ export function OnboardingGuide({
           />
         </svg>
 
-        {/* Spotlight border/highlight */}
-        {spotlight && (
+        {/* Spotlight border/highlight - hidden during step transitions */}
+        {spotlight && !isScrolling && (
           <div
-            className="absolute rounded-lg border-2 border-pkt-brand-blue-1000 shadow-[0_0_0_4px_rgba(111,233,255,0.25),0_0_20px_rgba(111,233,255,0.15)] pointer-events-none transition-all duration-300 ease-out motion-reduce:duration-0"
+            className="absolute rounded-lg border-2 border-pkt-brand-blue-1000 shadow-[0_0_0_4px_rgba(111,233,255,0.25),0_0_20px_rgba(111,233,255,0.15)] pointer-events-none animate-in fade-in-0 duration-200 motion-reduce:animate-none"
             style={{
               left: spotlight.x,
               top: spotlight.y,
