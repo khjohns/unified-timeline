@@ -66,7 +66,10 @@ export function OnboardingStep({
     typeof window !== 'undefined' && window.innerWidth < MOBILE_BREAKPOINT
   );
   const [swipeOffset, setSwipeOffset] = useState(0);
+  const [dragOffsetY, setDragOffsetY] = useState(0);
   const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const isDraggingVertical = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isFirstStep = stepNumber === 1;
@@ -159,39 +162,63 @@ export function OnboardingStep({
     };
   }, [isActive, calculatePosition]);
 
-  // Swipe handlers for mobile
+  // Swipe/drag handlers for mobile
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isDraggingVertical.current = false;
     setSwipeOffset(0);
+    setDragOffsetY(0);
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isMobile) return;
     const currentX = e.touches[0].clientX;
-    const diff = currentX - touchStartX.current;
-    // Limit swipe offset for visual feedback
-    setSwipeOffset(Math.max(-100, Math.min(100, diff)));
+    const currentY = e.touches[0].clientY;
+    const diffX = currentX - touchStartX.current;
+    const diffY = currentY - touchStartY.current;
+
+    // Determine direction on first significant move
+    if (!isDraggingVertical.current && Math.abs(diffY) > 10 && Math.abs(diffY) > Math.abs(diffX)) {
+      isDraggingVertical.current = true;
+    }
+
+    if (isDraggingVertical.current) {
+      // Vertical drag - only allow dragging down
+      setDragOffsetY(Math.max(0, diffY));
+    } else {
+      // Horizontal swipe
+      setSwipeOffset(Math.max(-100, Math.min(100, diffX)));
+    }
   }, [isMobile]);
 
   const handleTouchEnd = useCallback(() => {
     if (!isMobile) return;
 
-    if (swipeOffset < -SWIPE_THRESHOLD) {
-      // Swipe left - next
-      if (isLastStep) {
-        onComplete();
-      } else {
-        onNext();
+    if (isDraggingVertical.current) {
+      // Vertical drag - close if dragged down enough
+      if (dragOffsetY > 100) {
+        onSkip();
       }
-    } else if (swipeOffset > SWIPE_THRESHOLD) {
-      // Swipe right - previous
-      if (!isFirstStep) {
-        onPrevious();
+      setDragOffsetY(0);
+    } else {
+      // Horizontal swipe
+      if (swipeOffset < -SWIPE_THRESHOLD) {
+        if (isLastStep) {
+          onComplete();
+        } else {
+          onNext();
+        }
+      } else if (swipeOffset > SWIPE_THRESHOLD) {
+        if (!isFirstStep) {
+          onPrevious();
+        }
       }
+      setSwipeOffset(0);
     }
 
-    setSwipeOffset(0);
-  }, [isMobile, swipeOffset, isFirstStep, isLastStep, onNext, onPrevious, onComplete]);
+    isDraggingVertical.current = false;
+  }, [isMobile, swipeOffset, dragOffsetY, isFirstStep, isLastStep, onNext, onPrevious, onSkip, onComplete]);
 
   if (!isActive || !popoverPosition) {
     return null;
@@ -202,6 +229,8 @@ export function OnboardingStep({
 
   // Mobile: Bottom sheet
   if (isMobile) {
+    const isBeingDragged = dragOffsetY > 0 || swipeOffset !== 0;
+
     return (
       <div
         ref={containerRef}
@@ -215,45 +244,38 @@ export function OnboardingStep({
           'shadow-[0_-4px_24px_rgba(0,0,0,0.15)]',
           'border-t-2 border-x-2 border-pkt-border-default',
           'animate-in slide-in-from-bottom duration-300 ease-out',
-          'motion-reduce:animate-none',
-          'touch-pan-y'
+          'motion-reduce:animate-none'
         )}
         style={{
-          transform: `translateX(${swipeOffset * 0.3}px)`,
-          transition: swipeOffset === 0 ? 'transform 0.2s ease-out' : 'none',
+          transform: `translate(${swipeOffset * 0.3}px, ${dragOffsetY}px)`,
+          transition: isBeingDragged ? 'none' : 'transform 0.2s ease-out',
+          opacity: dragOffsetY > 0 ? Math.max(0.5, 1 - dragOffsetY / 200) : 1,
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-1">
+        {/* Drag handle - pull down to close */}
+        <div className="flex justify-center pt-3 pb-2">
           <div className="w-10 h-1 bg-pkt-grays-gray-300 rounded-full" />
         </div>
 
-        {/* Header with close button */}
+        {/* Header: Title | step count */}
         <div className="flex items-center justify-between px-5 py-2">
-          <span className="text-xs font-medium text-pkt-text-body-subtle">
-            {stepNumber} av {totalSteps}
-          </span>
-          <button
-            onClick={onSkip}
-            className="p-2 -mr-2 rounded-full hover:bg-pkt-bg-subtle text-pkt-text-body-subtle"
-            aria-label="Lukk veiviser"
-          >
-            <Cross2Icon className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="px-5 py-3">
           <h3
             id={titleId}
-            className="text-lg font-semibold text-pkt-text-body-dark mb-2"
+            className="text-lg font-semibold text-pkt-text-body-dark"
           >
             {title}
           </h3>
+          <span className="text-xs font-medium text-pkt-text-body-subtle">
+            {stepNumber} av {totalSteps}
+          </span>
+        </div>
+
+        {/* Description */}
+        <div className="px-5 py-3">
           <div
             id={descId}
             className="text-sm text-pkt-text-body-default leading-relaxed"
