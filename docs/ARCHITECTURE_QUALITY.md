@@ -4,6 +4,8 @@
 
 Vurdering av backend-arkitekturen med fokus på gjenbrukbarhet, testbarhet og Azure-utvidelse.
 
+> **Status 2026-02-01:** DI Container implementert (`core/container.py`). Se [Oppdateringer](#oppdateringer) for detaljer.
+
 ---
 
 ## Innhold
@@ -19,20 +21,20 @@ Vurdering av backend-arkitekturen med fokus på gjenbrukbarhet, testbarhet og Az
 
 ## Sammendrag
 
-### Arkitektur-modenhet: ⭐⭐⭐☆☆ (60%)
+### Arkitektur-modenhet: ⭐⭐⭐⭐☆ (70%)
 
-| Område | Score | Azure-egnet |
-|--------|-------|-------------|
-| Domain Models | ⭐⭐⭐⭐⭐ | ✅ Utmerket |
-| Repository Pattern | ⭐⭐⭐⭐☆ | ✅ God |
-| Configuration | ⭐⭐⭐⭐☆ | ⚠️ Trenger utvidelse |
-| Service Layer | ⭐⭐⭐☆☆ | ⚠️ Ujevn |
-| Dependency Injection | ⭐⭐☆☆☆ | ❌ Primitiv |
-| Integrasjoner | ⭐⭐⭐☆☆ | ❌ Flask-avhengig |
+| Område | Score | Azure-egnet | Status |
+|--------|-------|-------------|--------|
+| Domain Models | ⭐⭐⭐⭐⭐ | ✅ Utmerket | |
+| Repository Pattern | ⭐⭐⭐⭐☆ | ✅ God | |
+| Configuration | ⭐⭐⭐⭐☆ | ⚠️ Trenger utvidelse | |
+| Service Layer | ⭐⭐⭐☆☆ | ⚠️ Ujevn | |
+| Dependency Injection | ⭐⭐⭐⭐☆ | ✅ God | ✅ **Implementert** |
+| Integrasjoner | ⭐⭐⭐☆☆ | ❌ Flask-avhengig | |
 
 ### Konklusjon
 
-Kodebasen har et **solid fundament** med gode domenemodeller og repository pattern, men har **teknisk gjeld** i form av hardkodede avhengigheter og Flask-koblinger som hindrer ren Azure-utvidelse.
+Kodebasen har et **solid fundament** med gode domenemodeller og repository pattern. DI Container er nå implementert (`core/container.py`), som muliggjør testbarhet og Azure-migrasjon. Gjenstående teknisk gjeld: Flask-koblinger i auth.py og globale singletons i routes.
 
 ---
 
@@ -181,28 +183,45 @@ timeline_service = TimelineService()       # Global!
 
 ---
 
-### 5. Dependency Injection ⭐⭐☆☆☆
+### 5. Dependency Injection ⭐⭐⭐⭐☆
 
-**Status:** Primitiv - hardkodede imports
+**Status:** ✅ Implementert - `core/container.py`
 
 ```python
-# backend/functions/adapters.py - ServiceContext
-class ServiceContext:
+# backend/core/container.py - DI Container
+@dataclass
+class Container:
+    config: Settings = field(default_factory=lambda: default_settings)
+
     @property
-    def event_repository(self):
-        if self._event_repository is None:
-            from repositories import create_event_repository  # ❌ Hardkodet
-            self._event_repository = create_event_repository()
-        return self._event_repository
+    def event_repository(self) -> EventRepository:
+        if self._event_repo is None:
+            from repositories import create_event_repository
+            self._event_repo = create_event_repository()
+        return self._event_repo
+
+    def get_forsering_service(self) -> ForseringService:
+        return ForseringService(
+            event_repository=self.event_repository,
+            timeline_service=self.timeline_service,
+            catenda_client=self.catenda_client,
+        )
+
+# Usage i Azure Functions
+container = Container(settings)
+service = container.get_forsering_service()
+
+# Testing med mock
+container._event_repo = MockEventRepository()
 ```
 
-**Problemer:**
-- Imports er hardkodet i properties
-- Ingen DI-container
-- Vanskelig å injisere test doubles
-- Circular import-risiko
+**Fordeler:**
+- ✅ Sentralisert avhengighetshåndtering
+- ✅ Lazy loading (opprettes kun ved behov)
+- ✅ Testbarhet (kan injisere mock-objekter)
+- ✅ ServiceContext bruker Container
 
-**Azure-egnethet:** ❌ Må refaktoreres for testbarhet og fleksibilitet
+**Azure-egnethet:** ✅ God - kan opprettes per request i Azure Functions
 
 ---
 
@@ -278,15 +297,14 @@ class GrunnlagData(BaseModel):
 | `routes/*.py` | Global singletons |
 | `app.py` | `get_system()` coupling |
 
-### 2. Ingen ekte DI-container
+### 2. ~~Ingen ekte DI-container~~ ✅ LØST
 
 ```python
-# Nåværende: Hardkodede imports
-from repositories import create_event_repository
+# Implementert i core/container.py
+from core.container import get_container
 
-# Ønsket: Injisert avhengighet
-def __init__(self, event_repo: EventRepository):
-    self.event_repo = event_repo
+container = get_container()
+service = container.get_forsering_service()  # Alle avhengigheter injisert
 ```
 
 ### 3. Manglende transaction-støtte i repository
@@ -315,58 +333,24 @@ thread.start()  # ❌ Fungerer IKKE i Azure Functions!
 
 ## Anbefalte forbedringer
 
-### 1. DI Container (Prioritet: Høy)
+### 1. ~~DI Container~~ ✅ IMPLEMENTERT
 
-**Ny fil:** `backend/core/container.py`
+**Fil:** `backend/core/container.py`
 
+Implementert 2026-02-01. Se [seksjon 5](#5-dependency-injection-) for detaljer.
+
+**Bruk:**
 ```python
-from dataclasses import dataclass
-from typing import Optional
+from core.container import Container, get_container
 
-@dataclass
-class Container:
-    """Dependency injection container"""
-    config: Settings
-    _event_repo: Optional[EventRepository] = None
-    _timeline_service: Optional[TimelineService] = None
-    _catenda_client: Optional[CatendaClient] = None
+# Default container
+container = get_container()
+service = container.get_forsering_service()
 
-    @property
-    def event_repository(self) -> EventRepository:
-        if self._event_repo is None:
-            backend = self.config.event_store_backend
-            if backend == "supabase":
-                self._event_repo = SupabaseEventRepository()
-            elif backend == "azure_sql":
-                self._event_repo = AzureSqlEventRepository(
-                    self.config.azure_sql_connection
-                )
-        return self._event_repo
-
-    @property
-    def timeline_service(self) -> TimelineService:
-        if self._timeline_service is None:
-            self._timeline_service = TimelineService()
-        return self._timeline_service
-
-    def get_forsering_service(self) -> ForseringService:
-        return ForseringService(
-            event_repository=self.event_repository,
-            timeline_service=self.timeline_service,
-            catenda_client=self.catenda_client
-        )
-
-# Bruk i Azure Functions
-def my_function(req):
-    container = Container(config=settings)
-    service = container.get_forsering_service()
-    result = service.process(req)
+# Testing
+container = Container(settings)
+container._event_repo = MockEventRepository()
 ```
-
-**Fordeler:**
-- Testbar (kan injisere mock)
-- Lazy loading (opprettes kun ved behov)
-- Sentralisert avhengighetshåndtering
 
 ---
 
@@ -487,12 +471,12 @@ class Settings(BaseSettings):
 
 ### Fase 1: Fjern blokkere (8-12 timer)
 
-| # | Oppgave | Fil | Estimat |
-|---|---------|-----|---------|
-| 1.1 | Opprett DI Container | `core/container.py` | 4 timer |
-| 1.2 | Refaktor auth.py - fjern Flask | `integrations/catenda/auth.py` | 4 timer |
-| 1.3 | Fjern globale singletons i routes | `routes/*.py` | 2 timer |
-| 1.4 | Oppdater ServiceContext | `functions/adapters.py` | 2 timer |
+| # | Oppgave | Fil | Estimat | Status |
+|---|---------|-----|---------|--------|
+| 1.1 | Opprett DI Container | `core/container.py` | 4 timer | ✅ Ferdig |
+| 1.2 | Refaktor auth.py - fjern Flask | `integrations/catenda/auth.py` | 4 timer | |
+| 1.3 | Fjern globale singletons i routes | `routes/*.py` | 2 timer | |
+| 1.4 | Oppdater ServiceContext | `functions/adapters.py` | 2 timer | ✅ Ferdig |
 
 ### Fase 2: Forbedre robusthet (8-12 timer)
 
@@ -513,6 +497,52 @@ class Settings(BaseSettings):
 | 3.4 | CosmosTokenStore | `integrations/catenda/stores.py` | 4 timer |
 
 **Total estimat:** 32-48 timer
+
+---
+
+---
+
+## Oppdateringer
+
+### 2026-02-01: DI Container implementert
+
+**Nye filer:**
+- `backend/core/container.py` - DI Container
+
+**Oppdaterte filer:**
+- `backend/functions/adapters.py` - ServiceContext bruker nå Container
+- `backend/core/__init__.py` - Eksporterer Container
+
+**Kan tas i bruk umiddelbart:**
+
+```python
+# I Flask routes (anbefalt for nye endpoints)
+from core.container import get_container
+
+@app.route('/api/saker/<sak_id>/timeline')
+def get_timeline(sak_id):
+    container = get_container()
+    events, _ = container.event_repository.get_events(sak_id)
+    state = container.timeline_service.compute_state(events)
+    return jsonify(state.model_dump())
+
+# I tester
+from core.container import Container, set_container
+
+def test_with_mock():
+    container = Container()
+    container._event_repo = MockEventRepository()
+    set_container(container)
+
+    # Test kode som bruker get_container()
+    ...
+
+    set_container(None)  # Reset
+```
+
+**Neste steg (prioritert):**
+1. Refaktor `auth.py` - fjern Flask-avhengigheter
+2. Fjern globale singletons i `routes/*.py`
 
 ---
 
