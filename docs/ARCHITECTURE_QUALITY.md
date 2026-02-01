@@ -680,6 +680,58 @@ CATENDA_ENABLED=false
 - `POST /api/forsering/opprett` - Opprett forsering direkte
 - `POST /api/endringsordre/opprett` - Opprett endringsordre direkte
 
+### 2026-02-01: SakCreationService - felles saksopprettelse
+
+**Ny fil:** `backend/services/sak_creation_service.py`
+
+Felles service for saksopprettelse med Unit of Work. Erstatter duplikert UoW-logikk.
+
+**Arkitektur:**
+```
+┌─────────────────────┐     ┌─────────────────┐
+│ Catenda Webhook     │     │   Direkte API   │
+│ (catenda_webhook_   │     │ (event_routes,  │
+│  service.py)        │     │  endringsordre) │
+└─────────┬───────────┘     └────────┬────────┘
+          │                          │
+          ▼                          ▼
+    ┌──────────────────────────────────────┐
+    │       SakCreationService             │
+    │  - Atomisk metadata + events (UoW)   │
+    │  - Konsistent feilhåndtering         │
+    │  - Logging                           │
+    └──────────────────────────────────────┘
+```
+
+**Bruk:**
+```python
+from services.sak_creation_service import get_sak_creation_service
+
+service = get_sak_creation_service()
+result = service.create_sak(
+    sak_id="SAK-20260201-001",
+    sakstype="standard",
+    events=[event],
+    metadata_kwargs={
+        "cached_title": "Min sak",
+        "created_by": "bruker@example.com",
+    }
+)
+
+if result.success:
+    print(f"Sak {result.sak_id} opprettet, versjon {result.version}")
+else:
+    print(f"Feil: {result.error}")
+```
+
+**Refaktorerte filer:**
+- `backend/services/catenda_webhook_service.py` - Bruker SakCreationService
+- `backend/services/endringsordre_service.py` - Bruker SakCreationService
+
+**Fil-renames:**
+- `webhook_service.py` → `catenda_webhook_service.py`
+- `webhook_routes.py` → `catenda_webhook_routes.py`
+
 ---
 
 ## Se også
