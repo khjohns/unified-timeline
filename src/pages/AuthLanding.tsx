@@ -12,6 +12,18 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { ExclamationTriangleIcon, LockClosedIcon, SunIcon, MoonIcon } from '@radix-ui/react-icons';
 
+// Oslo kommune logo component for mobile header
+function OsloLogo() {
+  const { resolvedTheme } = useTheme();
+  return (
+    <img
+      src={resolvedTheme === 'dark' ? '/logos/Oslo-logo-hvit-RGB.svg' : '/logos/Oslo-logo-sort-RGB.svg'}
+      alt="Oslo kommune"
+      className="h-16 w-auto -ml-4"
+    />
+  );
+}
+
 // Theme toggle button
 function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
@@ -309,17 +321,20 @@ export function AuthLanding() {
         >
           {/* Mobile header (shown only on small screens) */}
           <div className="lg:hidden mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-pkt-brand-dark-blue-1000 flex items-center justify-center">
-                <div className="w-5 h-5 rounded border-2 border-pkt-brand-blue-1000" />
-              </div>
+            <div className="flex items-center gap-3 mb-4 w-fit">
+              <OsloLogo />
+              <div className="h-10 w-px bg-pkt-border-subtle" />
               <span className="text-xs font-semibold tracking-widest text-pkt-text-body-subtle uppercase">
                 Oslobygg KF
               </span>
             </div>
-            <h1 className="text-2xl font-bold text-pkt-text-body-dark">
-              Skjema <span className="text-pkt-brand-warm-blue-1000">Endringsmeldinger</span>
+            <h1 className="text-xl sm:text-2xl font-bold text-pkt-text-body-dark leading-tight mb-2">
+              Digital håndtering av{' '}
+              <span className="text-pkt-brand-warm-blue-1000">endringsmeldinger</span>
             </h1>
+            <p className="text-sm text-pkt-text-body-subtle">
+              Effektiv samhandling mellom byggherre og totalentreprenør etter NS 8407.
+            </p>
           </div>
 
           {/* Login card */}
@@ -369,7 +384,7 @@ export function AuthLanding() {
 
           {/* Footer */}
           <p className="mt-6 text-center text-xs text-pkt-text-body-subtle">
-            Totalentreprise · Oslobygg KF
+            NS 8407:2011 Totalentreprise
           </p>
         </div>
       </div>
