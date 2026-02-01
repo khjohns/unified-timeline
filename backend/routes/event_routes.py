@@ -714,14 +714,36 @@ def get_case_state(sak_id: str):
 
     Response includes version for optimistic locking.
     """
+    logger.info(f"📊 State request for sak_id: {sak_id}")
+
     events_data, version = event_repo.get_events(sak_id)
+    logger.info(f"📊 Retrieved {len(events_data)} raw events, version: {version}")
 
     if not events_data:
+        logger.warning(f"⚠️ No events found for sak_id: {sak_id}")
         return jsonify({"error": "Sak ikke funnet"}), 404
 
-    # Parse events from stored data
-    events = [parse_event(e) for e in events_data]
-    state = timeline_service.compute_state(events)
+    # Parse events from stored data with error handling
+    events = []
+    for i, e in enumerate(events_data):
+        try:
+            parsed = parse_event(e)
+            events.append(parsed)
+        except Exception as parse_error:
+            logger.error(f"❌ Failed to parse event {i}: {parse_error}")
+            logger.error(f"   Raw event data: {e}")
+
+    logger.info(f"📊 Successfully parsed {len(events)} of {len(events_data)} events")
+
+    if not events:
+        logger.error(f"❌ All events failed to parse for sak_id: {sak_id}")
+        return jsonify({"error": "Kunne ikke lese hendelser"}), 500
+
+    try:
+        state = timeline_service.compute_state(events)
+    except Exception as compute_error:
+        logger.error(f"❌ Failed to compute state: {compute_error}", exc_info=True)
+        return jsonify({"error": "Kunne ikke beregne saksstatus"}), 500
 
     return jsonify({
         "version": version,
