@@ -21,20 +21,20 @@ Vurdering av backend-arkitekturen med fokus på gjenbrukbarhet, testbarhet og Az
 
 ## Sammendrag
 
-### Arkitektur-modenhet: ⭐⭐⭐⭐☆ (70%)
+### Arkitektur-modenhet: ⭐⭐⭐⭐☆ (75%)
 
 | Område | Score | Azure-egnet | Status |
 |--------|-------|-------------|--------|
 | Domain Models | ⭐⭐⭐⭐⭐ | ✅ Utmerket | |
 | Repository Pattern | ⭐⭐⭐⭐☆ | ✅ God | |
 | Configuration | ⭐⭐⭐⭐☆ | ⚠️ Trenger utvidelse | |
-| Service Layer | ⭐⭐⭐☆☆ | ⚠️ Ujevn | |
+| Service Layer | ⭐⭐⭐⭐☆ | ✅ God | ✅ **Refaktorert** |
 | Dependency Injection | ⭐⭐⭐⭐☆ | ✅ God | ✅ **Implementert** |
 | Integrasjoner | ⭐⭐⭐☆☆ | ❌ Flask-avhengig | |
 
 ### Konklusjon
 
-Kodebasen har et **solid fundament** med gode domenemodeller og repository pattern. DI Container er nå implementert (`core/container.py`), som muliggjør testbarhet og Azure-migrasjon. Gjenstående teknisk gjeld: Flask-koblinger i auth.py og globale singletons i routes.
+Kodebasen har et **solid fundament** med gode domenemodeller og repository pattern. DI Container er implementert (`core/container.py`) og alle routes er refaktorert til å bruke Container. Gjenstående teknisk gjeld: Flask-koblinger i `auth.py`.
 
 ---
 
@@ -291,11 +291,11 @@ class GrunnlagData(BaseModel):
 
 ### 1. Flask-avhengigheter blokkerer Azure
 
-| Fil | Problem |
-|-----|---------|
-| `integrations/catenda/auth.py` | `from flask import request, g` |
-| `routes/*.py` | Global singletons |
-| `app.py` | `get_system()` coupling |
+| Fil | Problem | Status |
+|-----|---------|--------|
+| `integrations/catenda/auth.py` | `from flask import request, g` | |
+| `routes/*.py` | ~~Global singletons~~ | ✅ Fjernet |
+| `app.py` | `get_system()` coupling | |
 
 ### 2. ~~Ingen ekte DI-container~~ ✅ LØST
 
@@ -475,7 +475,7 @@ class Settings(BaseSettings):
 |---|---------|-----|---------|--------|
 | 1.1 | Opprett DI Container | `core/container.py` | 4 timer | ✅ Ferdig |
 | 1.2 | Refaktor auth.py - fjern Flask | `integrations/catenda/auth.py` | 4 timer | |
-| 1.3 | Fjern globale singletons i routes | `routes/*.py` | 2 timer | |
+| 1.3 | Fjern globale singletons i routes | `routes/*.py` | 2 timer | ✅ Ferdig |
 | 1.4 | Oppdater ServiceContext | `functions/adapters.py` | 2 timer | ✅ Ferdig |
 
 ### Fase 2: Forbedre robusthet (8-12 timer)
@@ -542,7 +542,23 @@ def test_with_mock():
 
 **Neste steg (prioritert):**
 1. Refaktor `auth.py` - fjern Flask-avhengigheter
-2. Fjern globale singletons i `routes/*.py`
+
+### 2026-02-01: Routes refaktorert til Container
+
+**Oppdaterte filer:**
+- `routes/event_routes.py` - Bruker `_get_event_repo()`, `_get_metadata_repo()`, `_get_timeline_service()`
+- `routes/forsering_routes.py` - Bruker `_get_forsering_service()` via Container
+- `routes/endringsordre_routes.py` - Bruker `_get_endringsordre_service()` via Container
+- `routes/analytics_routes.py` - Bruker Container-getters
+- `routes/fravik_routes.py` - Bruker Container-getters
+
+**Ny test:**
+- `tests/test_core/test_container.py` - Enhetstester for Container
+
+**Fordeler:**
+- Ingen globale singletons - avhengigheter hentes per request
+- Testbar - kan injisere mock via `set_container()`
+- Azure-klar - fungerer i serverless miljø
 
 ---
 

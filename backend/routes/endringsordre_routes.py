@@ -14,9 +14,6 @@ Endpoints:
 """
 from flask import Blueprint, request, jsonify
 
-from services.endringsordre_service import EndringsordreService
-from services.timeline_service import TimelineService
-from repositories import create_event_repository, create_metadata_repository
 from lib.catenda_factory import get_catenda_client
 from lib.decorators import handle_service_errors
 from lib.auth.magic_link import require_magic_link
@@ -35,20 +32,20 @@ logger = get_logger(__name__)
 # Create Blueprint
 endringsordre_bp = Blueprint('endringsordre', __name__)
 
-# Dependencies - use factory functions to respect EVENT_STORE_BACKEND/METADATA_STORE_BACKEND
-event_repo = create_event_repository()
-timeline_service = TimelineService()
-metadata_repo = create_metadata_repository()
+
+# ---------------------------------------------------------------------------
+# Dependency access via Container
+# ---------------------------------------------------------------------------
+
+def _get_container():
+    """Hent DI Container."""
+    from core.container import get_container
+    return get_container()
 
 
-def _get_endringsordre_service() -> EndringsordreService:
-    """Oppretter EndringsordreService med dependencies."""
-    return EndringsordreService(
-        catenda_client=get_catenda_client(),
-        event_repository=event_repo,
-        timeline_service=timeline_service,
-        metadata_repository=metadata_repo
-    )
+def _get_endringsordre_service():
+    """Hent EndringsordreService fra Container."""
+    return _get_container().get_endringsordre_service()
 
 
 @endringsordre_bp.route('/api/endringsordre/opprett', methods=['POST'])

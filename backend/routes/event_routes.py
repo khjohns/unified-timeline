@@ -18,12 +18,9 @@ import tempfile
 import os
 from datetime import datetime, timezone
 
-from services.timeline_service import TimelineService
 from services.business_rules import BusinessRuleValidator
 from repositories.event_repository import ConcurrencyError
-from repositories import create_event_repository
 from lib.helpers.version_control import handle_concurrency_error
-from repositories.supabase_sak_metadata_repository import create_metadata_repository
 from models.events import (
     parse_event_from_request,
     parse_event,
@@ -120,13 +117,34 @@ def enrich_event_with_version(event: AnyEvent, current_state: Optional[SakState]
 
 events_bp = Blueprint('events', __name__)
 
-# Dependencies (consider DI container for production)
-# Uses EVENT_STORE_BACKEND env var: "json" (default) or "supabase"
-event_repo = create_event_repository()
-metadata_repo = create_metadata_repository()
-timeline_service = TimelineService()
+# Stateless singletons (safe to keep global)
 validator = BusinessRuleValidator()
 magic_link_manager = get_magic_link_manager()
+
+
+# ---------------------------------------------------------------------------
+# Dependency access via Container (erstatter globale singletons)
+# ---------------------------------------------------------------------------
+
+def _get_container():
+    """Hent DI Container."""
+    from core.container import get_container
+    return get_container()
+
+
+def _get_event_repo():
+    """Hent EventRepository fra DI Container."""
+    return _get_container().event_repository
+
+
+def _get_metadata_repo():
+    """Hent SakMetadataRepository fra DI Container."""
+    return _get_container().metadata_repository
+
+
+def _get_timeline_service():
+    """Hent TimelineService fra DI Container."""
+    return _get_container().timeline_service
 
 
 # ============================================================================
@@ -241,7 +259,7 @@ def _build_version_conflict_message(
 
     # Compute state to check for BH responses
     conflict_events = [parse_event(e) for e in existing_events_data]
-    conflict_state = timeline_service.compute_state(conflict_events)
+    conflict_state = _get_timeline_service().compute_state(conflict_events)
 
     spor_name = _derive_spor_from_event(event)
     if not spor_name:
@@ -279,7 +297,7 @@ def _validate_business_rules_and_compute_state(
         return None, [], None
 
     existing_events = [parse_event(e) for e in existing_events_data]
-    current_state = timeline_service.compute_state(existing_events)
+    current_state = _get_timeline_service().compute_state(existing_events)
     old_status = current_state.overordnet_status
 
     validation = validator.validate(event, current_state)
@@ -360,7 +378,7 @@ def submit_event():
 
         # Look up catenda_topic_id from metadata if not provided
         if not catenda_topic_id:
-            metadata = metadata_repo.get(sak_id)
+            metadata = _get_metadata_repo().get(sak_id)
             if metadata and metadata.catenda_topic_id:
                 catenda_topic_id = metadata.catenda_topic_id
                 logger.info(f"📋 Retrieved catenda_topic_id from metadata: {catenda_topic_id}")
@@ -398,7 +416,7 @@ def submit_event():
         event = parse_event_from_request(event_data)
 
         # 3. Load current state for validation
-        existing_events_data, current_version = event_repo.get_events(sak_id)
+        existing_events_data, current_version = _get_event_repo().get_events(sak_id)
 
         # 4. Validate expected version BEFORE business rules
         if current_version != expected_version:
@@ -432,16 +450,16 @@ def submit_event():
 
         # 6. Persist event (with optimistic lock)
         try:
-            new_version = event_repo.append(event, expected_version)
+            new_version = _get_event_repo().append(event, expected_version)
         except ConcurrencyError as e:
             return handle_concurrency_error(e)
 
         # 7. Compute new state
         all_events = existing_events + [event]
-        new_state = timeline_service.compute_state(all_events)
+        new_state = _get_timeline_service().compute_state(all_events)
 
         # 8. Update cached metadata
-        metadata_repo.update_cache(
+        _get_metadata_repo().update_cache(
             sak_id=sak_id,
             cached_title=new_state.sakstittel,
             cached_status=new_state.overordnet_status,
@@ -551,7 +569,7 @@ def submit_batch():
             events.append(parse_event_from_request(ed))
 
         # 2. Load current state
-        existing_events_data, current_version = event_repo.get_events(sak_id)
+        existing_events_data, current_version = _get_event_repo().get_events(sak_id)
 
         # 3. Validate version
         if current_version != expected_version:
@@ -566,7 +584,7 @@ def submit_batch():
         # 4. Validate business rules for EACH event in sequence
         if existing_events_data:
             existing_events = [parse_event(e) for e in existing_events_data]
-            state = timeline_service.compute_state(existing_events)
+            state = _get_timeline_service().compute_state(existing_events)
         else:
             existing_events = []
             state = None
@@ -590,18 +608,18 @@ def submit_batch():
 
             # Simulate state after this event for next validation
             if state:
-                state = timeline_service.compute_state(
+                state = _get_timeline_service().compute_state(
                     existing_events + validated_events
                 )
             else:
                 # First event in batch, create initial state
-                state = timeline_service.compute_state(validated_events)
+                state = _get_timeline_service().compute_state(validated_events)
 
         # 5a. Create metadata FIRST if new case (FK constraint requires this)
         if expected_version == 0:
             from models.sak_metadata import SakMetadata
             # Compute initial state for cached values (use enriched events)
-            initial_state = timeline_service.compute_state(validated_events)
+            initial_state = _get_timeline_service().compute_state(validated_events)
             metadata = SakMetadata(
                 sak_id=sak_id,
                 prosjekt_id=data.get('prosjekt_id'),
@@ -611,26 +629,26 @@ def submit_batch():
                 cached_status=initial_state.overordnet_status,
                 last_event_at=datetime.now(timezone.utc)
             )
-            metadata_repo.upsert(metadata)
+            _get_metadata_repo().upsert(metadata)
 
         # 5b. Persist ALL events atomically (use enriched validated_events)
         try:
-            new_version = event_repo.append_batch(validated_events, expected_version)
+            new_version = _get_event_repo().append_batch(validated_events, expected_version)
         except ConcurrencyError as e:
             # Rollback metadata if events fail (for new cases)
             if expected_version == 0:
                 try:
-                    metadata_repo.delete(sak_id)
+                    _get_metadata_repo().delete(sak_id)
                 except Exception:
                     pass
             return handle_concurrency_error(e)
 
         # 6. Compute final state and update metadata cache
         all_events = existing_events + validated_events
-        final_state = timeline_service.compute_state(all_events)
+        final_state = _get_timeline_service().compute_state(all_events)
 
         # 7. Update metadata cache (both new and existing cases)
-        metadata_repo.update_cache(
+        _get_metadata_repo().update_cache(
             sak_id=sak_id,
             cached_title=final_state.sakstittel,
             cached_status=final_state.overordnet_status,
@@ -681,9 +699,9 @@ def list_cases():
         sakstype = request.args.get('sakstype')
 
         if sakstype:
-            cases = metadata_repo.list_by_sakstype(sakstype)
+            cases = _get_metadata_repo().list_by_sakstype(sakstype)
         else:
-            cases = metadata_repo.list_all()
+            cases = _get_metadata_repo().list_all()
 
         return jsonify({
             "cases": [
@@ -718,7 +736,7 @@ def get_case_state(sak_id: str):
     """
     logger.info(f"📊 State request for sak_id: {sak_id}")
 
-    events_data, version = event_repo.get_events(sak_id)
+    events_data, version = _get_event_repo().get_events(sak_id)
     logger.info(f"📊 Retrieved {len(events_data)} raw events, version: {version}")
 
     if not events_data:
@@ -742,7 +760,7 @@ def get_case_state(sak_id: str):
         return jsonify({"error": "Kunne ikke lese hendelser"}), 500
 
     try:
-        state = timeline_service.compute_state(events)
+        state = _get_timeline_service().compute_state(events)
     except Exception as compute_error:
         logger.error(f"❌ Failed to compute state: {compute_error}", exc_info=True)
         return jsonify({"error": "Kunne ikke beregne saksstatus"}), 500
@@ -781,7 +799,7 @@ def get_case_timeline(sak_id: str):
     """
     logger.info(f"📋 Timeline request for sak_id: {sak_id}")
 
-    events_data, version = event_repo.get_events(sak_id)
+    events_data, version = _get_event_repo().get_events(sak_id)
     logger.info(f"📋 Retrieved {len(events_data)} raw events, version: {version}")
 
     if not events_data:
@@ -825,7 +843,7 @@ def get_case_historikk(sak_id: str):
     """
     logger.info(f"📜 Historikk request for sak_id: {sak_id}")
 
-    events_data, version = event_repo.get_events(sak_id)
+    events_data, version = _get_event_repo().get_events(sak_id)
     logger.info(f"📜 Retrieved {len(events_data)} raw events, version: {version}")
 
     if not events_data:
@@ -849,9 +867,9 @@ def get_case_historikk(sak_id: str):
         return jsonify({"error": "Kunne ikke lese hendelser"}), 500
 
     # Build historikk for all three tracks
-    grunnlag_historikk = timeline_service.get_grunnlag_historikk(events)
-    vederlag_historikk = timeline_service.get_vederlag_historikk(events)
-    frist_historikk = timeline_service.get_frist_historikk(events)
+    grunnlag_historikk = _get_timeline_service().get_grunnlag_historikk(events)
+    vederlag_historikk = _get_timeline_service().get_vederlag_historikk(events)
+    frist_historikk = _get_timeline_service().get_frist_historikk(events)
 
     return jsonify({
         "version": version,
@@ -891,7 +909,7 @@ def _prepare_catenda_context(sak_id: str) -> Optional[CatendaContext]:
         logger.warning("❌ Catenda service not configured, skipping")
         return None
 
-    metadata = metadata_repo.get(sak_id)
+    metadata = _get_metadata_repo().get(sak_id)
     if not metadata:
         logger.warning(f"❌ No metadata found for case {sak_id}")
         return None
@@ -954,7 +972,7 @@ def _resolve_pdf(
 
         events_list = []
         try:
-            events_data, _ = event_repo.get_events(sak_id)
+            events_data, _ = _get_event_repo().get_events(sak_id)
             events_list = events_data
         except Exception as e:
             logger.warning(f"Could not get events for PDF: {e}")
