@@ -32,8 +32,8 @@ _jwks_client: Optional[PyJWKClient] = None
 # Organisasjoner som regnes som BH (Byggherre) - resten er TE
 # Konfigureres basert på IDA-oppsett
 BH_ORGANIZATIONS = [
-    "oslobygg.no",
-    "oslo.kommune.no",
+    "obf.oslo.kommune.no",  # Oslobygg KF
+    "oslo.kommune.no",      # Oslo kommune generelt
     # Legg til flere domener/organisasjoner etter behov
 ]
 
@@ -80,7 +80,7 @@ class EntraUser:
         # Sjekk company claim
         if self.company:
             company_lower = self.company.lower()
-            if "oslobygg" in company_lower or "oslo kommune" in company_lower:
+            if any(org in company_lower for org in ["oslobygg", "obf", "oslo kommune"]):
                 return "BH"
 
         # Sjekk gruppemedlemskap for BH-rolle
