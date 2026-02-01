@@ -21,7 +21,7 @@ Vurdering av backend-arkitekturen med fokus på gjenbrukbarhet, testbarhet og Az
 
 ## Sammendrag
 
-### Arkitektur-modenhet: ⭐⭐⭐⭐☆ (75%)
+### Arkitektur-modenhet: ⭐⭐⭐⭐☆ (85%)
 
 | Område | Score | Azure-egnet | Status |
 |--------|-------|-------------|--------|
@@ -30,11 +30,16 @@ Vurdering av backend-arkitekturen med fokus på gjenbrukbarhet, testbarhet og Az
 | Configuration | ⭐⭐⭐⭐☆ | ⚠️ Trenger utvidelse | |
 | Service Layer | ⭐⭐⭐⭐☆ | ✅ God | ✅ **Refaktorert** |
 | Dependency Injection | ⭐⭐⭐⭐☆ | ✅ God | ✅ **Implementert** |
-| Integrasjoner | ⭐⭐⭐☆☆ | ❌ Flask-avhengig | |
+| Integrasjoner | ⭐⭐⭐⭐☆ | ✅ God | ✅ **Refaktorert** |
 
 ### Konklusjon
 
-Kodebasen har et **solid fundament** med gode domenemodeller og repository pattern. DI Container er implementert (`core/container.py`) og alle routes er refaktorert til å bruke Container. Gjenstående teknisk gjeld: Flask-koblinger i `auth.py`.
+Kodebasen er nå **Azure-klar** for Fase 1. Alle blokkere er fjernet:
+- ✅ DI Container (`core/container.py`)
+- ✅ Routes uten globale singletons
+- ✅ Framework-agnostisk auth (`integrations/catenda/auth.py`)
+
+Gjenstående for full Azure-migrasjon: Azure-spesifikk konfigurasjon og repository-implementasjoner.
 
 ---
 
@@ -289,13 +294,18 @@ class GrunnlagData(BaseModel):
 
 ## Svakheter
 
-### 1. Flask-avhengigheter blokkerer Azure
+### 1. ~~Flask-avhengigheter blokkerer Azure~~ ✅ LØST
 
 | Fil | Problem | Status |
 |-----|---------|--------|
-| `integrations/catenda/auth.py` | `from flask import request, g` | |
+| `integrations/catenda/auth.py` | ~~`from flask import request, g`~~ | ✅ Refaktorert |
 | `routes/*.py` | ~~Global singletons~~ | ✅ Fjernet |
-| `app.py` | `get_system()` coupling | |
+| `app.py` | `get_system()` coupling | ⚠️ Legacy |
+
+**auth.py refaktorert:**
+- `authenticate_from_headers()` - framework-agnostisk
+- `check_project_access()` - framework-agnostisk
+- Flask-imports kun i decorators, ikke på modulnivå
 
 ### 2. ~~Ingen ekte DI-container~~ ✅ LØST
 
@@ -469,12 +479,12 @@ class Settings(BaseSettings):
 
 ## Prioritert handlingsplan
 
-### Fase 1: Fjern blokkere (8-12 timer)
+### Fase 1: Fjern blokkere ✅ FULLFØRT
 
 | # | Oppgave | Fil | Estimat | Status |
 |---|---------|-----|---------|--------|
 | 1.1 | Opprett DI Container | `core/container.py` | 4 timer | ✅ Ferdig |
-| 1.2 | Refaktor auth.py - fjern Flask | `integrations/catenda/auth.py` | 4 timer | |
+| 1.2 | Refaktor auth.py - fjern Flask | `integrations/catenda/auth.py` | 4 timer | ✅ Ferdig |
 | 1.3 | Fjern globale singletons i routes | `routes/*.py` | 2 timer | ✅ Ferdig |
 | 1.4 | Oppdater ServiceContext | `functions/adapters.py` | 2 timer | ✅ Ferdig |
 
@@ -559,6 +569,33 @@ def test_with_mock():
 - Ingen globale singletons - avhengigheter hentes per request
 - Testbar - kan injisere mock via `set_container()`
 - Azure-klar - fungerer i serverless miljø
+
+### 2026-02-01: auth.py refaktorert til framework-agnostisk
+
+**Fil:** `integrations/catenda/auth.py`
+
+**Nye funksjoner (framework-agnostiske):**
+- `extract_token_from_headers(headers)` - Hent token fra headers dict
+- `authenticate_from_headers(headers)` - Autentiser fra headers, returnerer AuthResult
+- `check_project_access(user, project_id)` - Sjekk prosjekttilgang
+- `AuthResult` dataklasse - Strukturert resultat uten Flask-avhengigheter
+
+**Flask-decorators (beholdt for bakoverkompatibilitet):**
+- `@require_catenda_auth` - Importerer Flask lokalt
+- `@require_project_access` - Bruker Container for metadata
+
+**Azure Functions bruk:**
+```python
+from integrations.catenda.auth import authenticate_from_headers, check_project_access
+
+def my_function(req):
+    result = authenticate_from_headers(dict(req.headers))
+    if not result.success:
+        return func.HttpResponse(json.dumps(result.to_dict()), status_code=result.error_code)
+
+    # Autentisert - fortsett
+    user = result.user
+```
 
 ---
 

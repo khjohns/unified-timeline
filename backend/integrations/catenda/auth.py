@@ -18,23 +18,77 @@ Security Features:
 - Team-based role mapping (TE vs BH)
 - Field-level access control
 
+Arkitektur (refaktorert 2026-02-01):
+- Core auth-funksjoner er framework-agnostiske (kan brukes i Flask og Azure Functions)
+- Flask-spesifikke decorators er i egen seksjon nederst
+- RequestContext-klasse abstraherer request-håndtering
+
 Referanser:
 - Catenda API-reference-auth.yaml
 - Catenda Project API.yaml
 - OWASP Authorization Cheat Sheet
-
-Forfatter: Claude
-Dato: 2025-11-24
 """
 
 import os
 import requests
-from typing import Tuple, Dict, List, Optional
-from flask import request, jsonify, g
+from typing import Tuple, Dict, List, Optional, Protocol, Any, Callable
 from functools import wraps
+from dataclasses import dataclass
 
 # Catenda API base URL
 CATENDA_API_BASE = "https://api.catenda.com"
+
+
+# =============================================================================
+# Framework-agnostisk abstraksjon
+# =============================================================================
+
+@dataclass
+class AuthResult:
+    """
+    Resultat av autentisering.
+
+    Brukes som retur-type fra auth-funksjoner for å unngå
+    framework-spesifikke response-objekter.
+    """
+    success: bool
+    user: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    error_code: int = 401
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Konverter til dict for JSON-serialisering."""
+        if self.success:
+            return {"authenticated": True, "user": self.user}
+        return {
+            "error": "Authentication required" if self.error_code == 401 else "Forbidden",
+            "detail": self.error,
+            "hint": "Provide valid Catenda OAuth token in Authorization header"
+        }
+
+
+def extract_token_from_headers(headers: Dict[str, str]) -> str:
+    """
+    Hent Catenda OAuth token fra HTTP headers.
+
+    Framework-agnostisk versjon av get_catenda_token_from_request().
+
+    Args:
+        headers: Dict med HTTP headers (case-insensitive keys støttes)
+
+    Returns:
+        str: Token eller tom string hvis ikke funnet
+    """
+    # Normaliser header-navn til lowercase for case-insensitive lookup
+    normalized = {k.lower(): v for k, v in headers.items()}
+
+    # Sjekk standard Authorization header
+    auth_header = normalized.get('authorization', '')
+    if auth_header.startswith('Bearer '):
+        return auth_header[7:]
+
+    # Sjekk custom header (fallback)
+    return normalized.get('x-catenda-token', '')
 
 # Field access control lists
 # TE (Teknisk Entreprenør) kan ikke redigere disse feltene (BH-only)
@@ -64,9 +118,82 @@ TE_LOCKED_AFTER_SUBMIT_FIELDS = [
 ]
 
 
+def authenticate_from_headers(headers: Dict[str, str]) -> AuthResult:
+    """
+    Autentiser bruker fra HTTP headers.
+
+    Framework-agnostisk funksjon som kan brukes i både Flask og Azure Functions.
+
+    Args:
+        headers: Dict med HTTP headers
+
+    Returns:
+        AuthResult med success/failure og user info
+
+    Example:
+        # Flask
+        result = authenticate_from_headers(dict(request.headers))
+
+        # Azure Functions
+        result = authenticate_from_headers(dict(req.headers))
+
+        if result.success:
+            user = result.user
+        else:
+            return error_response(result.error, result.error_code)
+    """
+    token = extract_token_from_headers(headers)
+    valid, error, user_info = validate_catenda_token(token)
+
+    if not valid:
+        return AuthResult(success=False, error=error, error_code=401)
+
+    return AuthResult(success=True, user=user_info)
+
+
+def check_project_access(
+    user: Dict[str, Any],
+    project_id: Optional[str]
+) -> AuthResult:
+    """
+    Sjekk om bruker har tilgang til et prosjekt.
+
+    Framework-agnostisk funksjon.
+
+    Args:
+        user: User info dict (fra authenticate_from_headers)
+        project_id: Catenda project ID (eller None for legacy data)
+
+    Returns:
+        AuthResult med success/failure
+    """
+    # Hvis ingen project_id, tillat (legacy data)
+    if not project_id:
+        return AuthResult(success=True, user=user)
+
+    # Hent brukerens prosjekter
+    user_projects = get_user_projects(user.get('catenda_token', ''))
+
+    # Sjekk tilgang
+    if project_id not in user_projects:
+        return AuthResult(
+            success=False,
+            error="You don't have access to this project",
+            error_code=403
+        )
+
+    return AuthResult(success=True, user=user)
+
+
+# =============================================================================
+# Flask-spesifikke funksjoner (deprecated, bruk authenticate_from_headers)
+# =============================================================================
+
 def get_catenda_token_from_request() -> str:
     """
-    Hent Catenda OAuth token fra HTTP request.
+    Hent Catenda OAuth token fra Flask request.
+
+    DEPRECATED: Bruk extract_token_from_headers() for framework-agnostisk kode.
 
     Støtter to metoder:
     1. Authorization: Bearer <token> (standard OAuth 2.0)
@@ -74,21 +201,10 @@ def get_catenda_token_from_request() -> str:
 
     Returns:
         str: Token eller tom string hvis ikke funnet
-
-    Example:
-        # Request with Authorization header
-        Authorization: Bearer abc123xyz...
-
-        # Request with custom header
-        X-Catenda-Token: abc123xyz...
     """
-    # Sjekk standard Authorization header
-    auth_header = request.headers.get('Authorization', '')
-    if auth_header.startswith('Bearer '):
-        return auth_header[7:]  # Strip "Bearer " prefix
-
-    # Sjekk custom header (fallback)
-    return request.headers.get('X-Catenda-Token', '')
+    # Importer Flask request kun når funksjonen kalles
+    from flask import request
+    return extract_token_from_headers(dict(request.headers))
 
 
 def validate_catenda_token(token: str) -> Tuple[bool, str, Dict]:
@@ -366,6 +482,9 @@ def require_catenda_auth(f):
     Validerer token og lagrer user info i Flask's 'g' object.
     Hvis token er ugyldig, returner 401 Unauthorized.
 
+    Note: Dette er en Flask-spesifikk decorator. For Azure Functions,
+    bruk authenticate_from_headers() direkte.
+
     Usage:
         @app.route('/api/cases/<sakId>', methods=['GET'])
         @require_catenda_auth
@@ -388,21 +507,17 @@ def require_catenda_auth(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Hent token fra request
-        token = get_catenda_token_from_request()
+        # Importer Flask kun når decorator brukes
+        from flask import request, jsonify, g
 
-        # Valider token
-        valid, error, user_info = validate_catenda_token(token)
+        # Bruk framework-agnostisk autentisering
+        result = authenticate_from_headers(dict(request.headers))
 
-        if not valid:
-            return jsonify({
-                "error": "Authentication required",
-                "detail": error,
-                "hint": "Provide valid Catenda OAuth token in Authorization header"
-            }), 401
+        if not result.success:
+            return jsonify(result.to_dict()), result.error_code
 
         # Lagre user info i request context (tilgjengelig i view function)
-        g.user = user_info
+        g.user = result.user
 
         # Kjør original funksjon
         return f(*args, **kwargs)
@@ -417,7 +532,9 @@ def require_project_access(f):
     Forutsetter:
     - @require_catenda_auth er allerede anvendt (g.user eksisterer)
     - Saken har 'catenda_project_id' felt
-    - Flask 'g' har 'get_system()' for database access
+
+    Note: Dette er en Flask-spesifikk decorator. For Azure Functions,
+    bruk check_project_access() direkte.
 
     Logikk:
     1. Hent sak fra database (via sakId i path/body)
@@ -448,46 +565,41 @@ def require_project_access(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        from app import get_system  # Import here to avoid circular dependency
+        # Importer Flask kun når decorator brukes
+        from flask import request, jsonify, g
 
         user = g.get('user')
         if not user:
             return jsonify({"error": "Unauthorized"}), 401
 
         # Hent sakId fra path eller body
-        sak_id = kwargs.get('sakId') or request.get_json().get('sakId')
+        sak_id = kwargs.get('sakId')
+        if not sak_id:
+            try:
+                body = request.get_json() or {}
+                sak_id = body.get('sakId')
+            except Exception:
+                pass
+
         if not sak_id:
             return jsonify({"error": "Missing sakId"}), 400
 
-        # Hent sak fra database
-        sys = get_system()
-        sak_data = sys.db.get_form_data(sak_id)
+        # Hent project_id fra metadata via Container
+        from core.container import get_container
+        metadata_repo = get_container().metadata_repository
+        metadata = metadata_repo.get(sak_id)
 
-        if not sak_data:
+        if not metadata:
             return jsonify({"error": "Case not found"}), 404
 
-        # Hent project_id fra sak
-        # Try nested structure first (sak.catenda_project_id)
-        project_id = None
-        if isinstance(sak_data, dict):
-            if 'sak' in sak_data and isinstance(sak_data['sak'], dict):
-                project_id = sak_data['sak'].get('catenda_project_id')
-            else:
-                project_id = sak_data.get('catenda_project_id')
+        # Hent project_id fra metadata
+        project_id = getattr(metadata, 'catenda_project_id', None)
 
-        # Hvis sak ikke har project_id, tillat (eldre data uten project linking)
-        if not project_id:
-            return f(*args, **kwargs)
+        # Bruk framework-agnostisk sjekk
+        result = check_project_access(user, project_id)
 
-        # Hent brukerens prosjekter
-        user_projects = get_user_projects(user['catenda_token'])
-
-        # Sjekk tilgang
-        if project_id not in user_projects:
-            return jsonify({
-                "error": "Forbidden",
-                "detail": "You don't have access to this project"
-            }), 403
+        if not result.success:
+            return jsonify(result.to_dict()), result.error_code
 
         # OK - proceed
         return f(*args, **kwargs)
