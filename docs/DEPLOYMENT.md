@@ -968,15 +968,6 @@ Se [TECHNOLOGY_COMPARISON.md](TECHNOLOGY_COMPARISON.md) for fullstendig analyse.
 | **Ingen felt-nivå sikkerhet** | Kan ikke skille TE/BH-felter |
 | **Ingen ACID-transaksjoner** | Risiko for inkonsistent data (se forklaring under) |
 
-### Om forretningslogikk og database
-
-**Viktig presisering:** Tre-spor-modellen og subsidiær logikk implementeres i applikasjonslaget, ikke i databasen:
-
-- **Frontend:** React-komponenter renderer de tre sporene (Grunnlag, Vederlag, Frist)
-- **Backend:** `TimelineService.compute_state()` projiserer events til state
-
-Databasen (enten PostgreSQL eller SharePoint) er kun en lagringsplass for events. SharePoint-begrensningene handler derfor ikke om at den "ikke støtter" forretningslogikk, men om **data-integritet** og **skalerbarhet**.
-
 ### Hva betyr "ingen transaksjoner"?
 
 En **transaksjon** er en gruppe operasjoner som enten utføres *alle sammen* eller *ingen av dem*. Dette kalles **atomisitet** (A i ACID).
