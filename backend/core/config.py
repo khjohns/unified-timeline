@@ -28,6 +28,27 @@ class Settings(BaseSettings):
     catenda_refresh_token: str = ""
     catenda_redirect_uri: str = "http://localhost:8080/callback"
 
+    # Catenda integration toggle (auto-detected if not explicitly set)
+    # Set to "false" to disable Catenda integration even if credentials exist
+    catenda_enabled: str = ""  # "", "true", "false"
+
+    @property
+    def is_catenda_enabled(self) -> bool:
+        """
+        Check if Catenda integration is enabled.
+
+        Logic:
+        - If catenda_enabled is explicitly "false" → disabled
+        - If catenda_enabled is explicitly "true" → enabled
+        - Otherwise, auto-detect based on credentials
+        """
+        if self.catenda_enabled.lower() == "false":
+            return False
+        if self.catenda_enabled.lower() == "true":
+            return True
+        # Auto-detect: enabled if we have client credentials
+        return bool(self.catenda_client_id and self.catenda_client_secret)
+
     # Frontend URL (for magic links i Catenda-kommentarer)
     react_app_url: str = ""
     dev_react_app_url: str = ""
@@ -58,6 +79,26 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
     log_format: str = "json"  # "json" or "text"
+
+    # Azure Storage (for document storage)
+    azure_storage_account: str = ""
+    azure_storage_key: str = ""
+    azure_storage_container: str = "koe-documents"
+
+    # Azure Service Bus (for background tasks)
+    azure_service_bus_connection: str = ""
+    azure_queue_name: str = "koe-events"
+
+    # Azure SQL (for production database)
+    azure_sql_connection: str = ""
+
+    # Azure Key Vault (for secrets management)
+    azure_keyvault_url: str = ""
+
+    @property
+    def is_azure_environment(self) -> bool:
+        """Check if running in Azure environment."""
+        return bool(self.azure_keyvault_url or self.azure_sql_connection)
 
     def get_catenda_config(self) -> dict:
         """Returner Catenda-konfigurasjon som dict (for bakoverkompatibilitet)."""

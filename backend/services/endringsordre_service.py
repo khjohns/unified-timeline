@@ -144,19 +144,16 @@ class EndringsordreService(BaseSakService):
         frad = fradrag_belop or 0.0
         netto = komp - frad
 
-        # 3. Opprett metadata FØRST (kreves for foreign key)
-        if self.metadata_repository:
-            metadata = SakMetadata(
-                sak_id=sak_id,
-                created_at=now,
-                created_by=utstedt_av or "BH",
-                sakstype="endringsordre",
-                cached_title=f"Endringsordre {eo_nummer}",
-                cached_status="utstedt",
-                last_event_at=now,
-            )
-            self.metadata_repository.upsert(metadata)
-            logger.info(f"✅ Metadata opprettet for {sak_id}")
+        # 3. Opprett metadata (vil lagres atomisk med events via UoW)
+        metadata = SakMetadata(
+            sak_id=sak_id,
+            created_at=now,
+            created_by=utstedt_av or "BH",
+            sakstype="endringsordre",
+            cached_title=f"Endringsordre {eo_nummer}",
+            cached_status="utstedt",
+            last_event_at=now,
+        )
 
         # 4. Opprett events lokalt
         events = []
@@ -225,19 +222,23 @@ class EndringsordreService(BaseSakService):
         )
         events.append(eo_utstedt)
 
-        # 5. Lagre events til repository
-        if self.event_repository:
-            try:
-                self.event_repository.append_batch(events, expected_version=0)
-                logger.info(f"✅ {len(events)} events lagret lokalt for {sak_id}")
-            except Exception as e:
-                logger.error(f"Feil ved lagring av events: {e}")
-                raise RuntimeError(f"Kunne ikke lagre events: {e}")
+        # 5. Lagre metadata + events atomisk via SakCreationService
+        from services.sak_creation_service import get_sak_creation_service
 
-        # 6. Prøv å synke til Catenda (valgfritt)
+        creation_service = get_sak_creation_service()
+        result = creation_service.create_sak_with_metadata(
+            metadata=metadata,
+            events=events
+        )
+
+        if not result.success:
+            raise RuntimeError(f"Kunne ikke opprette endringsordre: {result.error}")
+
+        # 6. Prøv å synke til Catenda (valgfritt, kun hvis enabled)
         catenda_synced = False
         catenda_topic_id = None
-        if self.client:
+        from core.config import settings
+        if settings.is_catenda_enabled and self.client:
             try:
                 topic = self.client.create_topic(
                     title=f"Endringsordre {eo_nummer}",

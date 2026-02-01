@@ -1,5 +1,8 @@
 """
-WebhookService - Event Sourcing compatible webhook handler.
+Catenda Webhook Service - Handles Catenda-specific webhook events.
+
+This module is OPTIONAL - the application works without Catenda integration.
+When Catenda is disabled (CATENDA_ENABLED=false), this service is not used.
 
 Handles Catenda webhook events by generating appropriate domain events
 instead of directly manipulating state.
@@ -8,13 +11,14 @@ Architecture:
 - Uses EventRepository instead of CSVRepository
 - Generates domain events (SakOpprettetEvent) instead of documents
 - State is computed from events, not stored directly
+- Uses Unit of Work for atomic metadata + event operations
+- Catenda comment posting is conditional on is_catenda_enabled
 """
 import os
 import base64
 import tempfile
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
-from threading import Thread
 
 from repositories.event_repository import JsonFileEventRepository
 from repositories import create_metadata_repository
@@ -223,33 +227,27 @@ class WebhookService:
                 sakstype=sakstype,
             )
 
-            # Create metadata FIRST (FK constraint requires this)
-            metadata = SakMetadata(
+            # Create case using SakCreationService (atomic metadata + event)
+            from services.sak_creation_service import get_sak_creation_service
+
+            creation_service = get_sak_creation_service()
+            result = creation_service.create_sak(
                 sak_id=sak_id,
-                prosjekt_id=v2_project_id,
+                sakstype=sakstype,
+                events=[event],
                 catenda_topic_id=topic_id,
                 catenda_board_id=board_id,
                 catenda_project_id=v2_project_id,
-                created_at=datetime.now(timezone.utc),
-                created_by=author_name,
-                cached_title=title,
-                cached_status="UNDER_VARSLING",  # Initial status
+                prosjekt_id=v2_project_id,
+                metadata_kwargs={
+                    "created_by": author_name,
+                    "cached_title": title,
+                    "cached_status": "UNDER_VARSLING",
+                }
             )
-            self.metadata_repo.create(metadata)
-            logger.info(f"✅ Metadata created for {sak_id}")
 
-            # Persist event (version 0 = new case)
-            try:
-                new_version = self.event_repo.append(event, expected_version=0)
-                logger.info(f"✅ SakOpprettetEvent persisted for {sak_id}, version: {new_version}")
-            except Exception as e:
-                logger.error(f"❌ Failed to persist SakOpprettetEvent: {e}")
-                # Rollback metadata if event fails
-                try:
-                    self.metadata_repo.delete(sak_id)
-                except Exception:
-                    pass
-                return {'success': False, 'error': f'Failed to persist event: {e}'}
+            if not result.success:
+                return {'success': False, 'error': result.error}
 
             # Generate magic link with correct route based on sakstype
             magic_token = None
@@ -260,26 +258,33 @@ class WebhookService:
             frontend_route = get_frontend_route(sakstype, sak_id)
             magic_link = f"{base_url}{frontend_route}?magicToken={magic_token}" if magic_token else f"{base_url}{frontend_route}"
 
-            # Post comment to Catenda (async to avoid blocking)
-            comment_generator = CatendaCommentGenerator()
-            comment_text = comment_generator.generate_creation_comment(
-                sak_id=sak_id,
-                sakstype=sakstype,
-                project_name=project_name,
-                magic_link=magic_link
-            )
+            # Post comment to Catenda (synchronous - critical operation)
+            # Only if Catenda is enabled and client is available
+            from core.config import settings
+            if settings.is_catenda_enabled and self.catenda and topic_id:
+                comment_generator = CatendaCommentGenerator()
+                comment_text = comment_generator.generate_creation_comment(
+                    sak_id=sak_id,
+                    sakstype=sakstype,
+                    project_name=project_name,
+                    magic_link=magic_link
+                )
 
-            def post_comment_async():
+                # Post comment synchronously - case is already created, so we log errors
+                # but don't rollback the case creation
                 try:
                     self.catenda.create_comment(topic_id, comment_text)
                     logger.info(f"✅ Comment posted to Catenda for case {sak_id}")
                 except Exception as e:
-                    logger.error(f"❌ Error posting comment to Catenda: {e}")
+                    # Critical: Log for manual follow-up, but case is created
+                    logger.error(
+                        f"❌ CRITICAL: Failed to post comment to Catenda for {sak_id}. "
+                        f"Manual follow-up required. Error: {e}"
+                    )
+            else:
+                logger.info(f"ℹ️ Catenda disabled or not configured, skipping comment for {sak_id}")
 
-            # TODO: Azure Service Bus - Replace with queue for production
-            # Background threads are unreliable in Azure Functions (may be killed after HTTP response)
-            Thread(target=post_comment_async, daemon=True).start()
-            logger.info(f"✅ Case {sak_id} created, comment being posted in background.")
+            logger.info(f"✅ Case {sak_id} created successfully.")
 
             return {'success': True, 'sak_id': sak_id}
 

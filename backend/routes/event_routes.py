@@ -474,7 +474,8 @@ def submit_event():
         catenda_documents: List[Dict[str, Any]] = []
         catenda_skipped_reason = None
 
-        if catenda_topic_id:
+        from core.config import settings
+        if settings.is_catenda_enabled and catenda_topic_id:
             catenda_success, pdf_source, catenda_documents = _post_to_catenda(
                 sak_id=sak_id,
                 state=new_state,
@@ -486,6 +487,8 @@ def submit_event():
             )
             if not catenda_success:
                 catenda_skipped_reason = 'error'
+        elif not settings.is_catenda_enabled:
+            catenda_skipped_reason = 'catenda_disabled'
         else:
             catenda_skipped_reason = 'no_topic_id'
 

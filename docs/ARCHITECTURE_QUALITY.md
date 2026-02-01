@@ -334,7 +334,7 @@ with uow.transaction():
 ### 4. Threading i background tasks
 
 ```python
-# backend/services/webhook_service.py
+# backend/services/catenda_webhook_service.py
 thread = threading.Thread(target=self._sync_to_catenda)
 thread.start()  # ❌ Fungerer IKKE i Azure Functions!
 ```
@@ -488,14 +488,14 @@ class Settings(BaseSettings):
 | 1.3 | Fjern globale singletons i routes | `routes/*.py` | 2 timer | ✅ Ferdig |
 | 1.4 | Oppdater ServiceContext | `functions/adapters.py` | 2 timer | ✅ Ferdig |
 
-### Fase 2: Forbedre robusthet (8-12 timer)
+### Fase 2: Forbedre robusthet ✅ FULLFØRT
 
-| # | Oppgave | Fil | Estimat |
-|---|---------|-----|---------|
-| 2.1 | Implementer Unit of Work | `core/unit_of_work.py` | 4 timer |
-| 2.2 | Utvid repository interface | `repositories/base.py` | 2 timer |
-| 2.3 | Legg til Azure config | `core/config.py` | 2 timer |
-| 2.4 | Fjern threading i services | `services/webhook_service.py` | 4 timer |
+| # | Oppgave | Fil | Estimat | Status |
+|---|---------|-----|---------|--------|
+| 2.1 | Implementer Unit of Work | `core/unit_of_work.py` | 4 timer | ✅ Ferdig |
+| 2.2 | Utvid repository interface | (løst via UoW) | 2 timer | ✅ Ferdig |
+| 2.3 | Legg til Azure config | `core/config.py` | 2 timer | ✅ Ferdig |
+| 2.4 | Refaktorer catenda_webhook_service | `services/catenda_webhook_service.py` | 4 timer | ✅ Ferdig |
 
 ### Fase 3: Azure-spesifikke implementasjoner (16-24 timer)
 
@@ -596,6 +596,141 @@ def my_function(req):
     # Autentisert - fortsett
     user = result.user
 ```
+
+### 2026-02-01: Fase 2 fullført - Unit of Work og Azure config
+
+**Nye filer:**
+- `backend/core/unit_of_work.py` - Unit of Work pattern
+- `backend/tests/test_core/test_unit_of_work.py` - Tester for UoW
+- `backend/tests/test_core/test_config.py` - Tester for Azure config
+
+**Oppdaterte filer:**
+- `backend/core/config.py` - Azure-konfigurasjon (storage, service bus, sql, keyvault)
+- `backend/core/container.py` - `create_unit_of_work()` factory-metode
+- `backend/core/__init__.py` - Eksporterer UoW-klasser
+- `backend/services/catenda_webhook_service.py` - Bruker UoW + synkron kommentarposting
+
+**Unit of Work bruk:**
+```python
+from core.container import get_container
+
+container = get_container()
+with container.create_unit_of_work() as uow:
+    uow.metadata.create(metadata)
+    uow.events.append(event, expected_version=0)
+    # Automatisk commit ved suksess, rollback ved exception
+```
+
+**Implementasjoner:**
+- `TrackingUnitOfWork` - Produksjon, best-effort kompenserende rollback
+- `InMemoryUnitOfWork` - Testing, full atomisitet
+
+**Azure config:**
+```python
+from core.config import settings
+
+# Nye felter
+settings.azure_storage_account
+settings.azure_storage_container  # default: "koe-documents"
+settings.azure_service_bus_connection
+settings.azure_queue_name  # default: "koe-events"
+settings.azure_sql_connection
+settings.azure_keyvault_url
+settings.is_azure_environment  # property: True hvis Azure-config er satt
+```
+
+**Endringer i catenda_webhook_service:**
+- Fjernet `threading.Thread` - Azure Functions-kompatibel
+- Bruker Unit of Work for atomisk metadata + event opprettelse
+- Synkron Catenda-kommentarposting med feillogging
+
+### 2026-02-01: Catenda-uavhengig arkitektur
+
+Catenda er nå valgfritt. Appen fungerer uten Catenda-integrasjon.
+
+**Ny config:**
+```python
+from core.config import settings
+
+# Eksplisitt enable/disable (valgfritt)
+# CATENDA_ENABLED=false  # i .env
+
+# Auto-deteksjon basert på credentials
+settings.is_catenda_enabled  # True hvis client_id + client_secret er satt
+```
+
+**Oppdaterte filer:**
+- `backend/core/config.py` - `catenda_enabled` og `is_catenda_enabled` property
+- `backend/services/catenda_webhook_service.py` - Betinget kommentarposting
+- `backend/routes/event_routes.py` - Betinget `_post_to_catenda`
+- `backend/services/endringsordre_service.py` - UoW + betinget Catenda-synk
+
+**Bruk uten Catenda:**
+```bash
+# Sett i .env for å eksplisitt disable
+CATENDA_ENABLED=false
+
+# Eller bare ikke sett credentials - auto-deteksjon
+# CATENDA_CLIENT_ID=
+# CATENDA_CLIENT_SECRET=
+```
+
+**Catenda-uavhengige API-er:**
+- `POST /api/events/batch` - Opprett KOE-saker direkte
+- `POST /api/forsering/opprett` - Opprett forsering direkte
+- `POST /api/endringsordre/opprett` - Opprett endringsordre direkte
+
+### 2026-02-01: SakCreationService - felles saksopprettelse
+
+**Ny fil:** `backend/services/sak_creation_service.py`
+
+Felles service for saksopprettelse med Unit of Work. Erstatter duplikert UoW-logikk.
+
+**Arkitektur:**
+```
+┌─────────────────────┐     ┌─────────────────┐
+│ Catenda Webhook     │     │   Direkte API   │
+│ (catenda_webhook_   │     │ (event_routes,  │
+│  service.py)        │     │  endringsordre) │
+└─────────┬───────────┘     └────────┬────────┘
+          │                          │
+          ▼                          ▼
+    ┌──────────────────────────────────────┐
+    │       SakCreationService             │
+    │  - Atomisk metadata + events (UoW)   │
+    │  - Konsistent feilhåndtering         │
+    │  - Logging                           │
+    └──────────────────────────────────────┘
+```
+
+**Bruk:**
+```python
+from services.sak_creation_service import get_sak_creation_service
+
+service = get_sak_creation_service()
+result = service.create_sak(
+    sak_id="SAK-20260201-001",
+    sakstype="standard",
+    events=[event],
+    metadata_kwargs={
+        "cached_title": "Min sak",
+        "created_by": "bruker@example.com",
+    }
+)
+
+if result.success:
+    print(f"Sak {result.sak_id} opprettet, versjon {result.version}")
+else:
+    print(f"Feil: {result.error}")
+```
+
+**Refaktorerte filer:**
+- `backend/services/catenda_webhook_service.py` - Bruker SakCreationService
+- `backend/services/endringsordre_service.py` - Bruker SakCreationService
+
+**Fil-renames:**
+- `webhook_service.py` → `catenda_webhook_service.py`
+- `webhook_routes.py` → `catenda_webhook_routes.py`
 
 ---
 
