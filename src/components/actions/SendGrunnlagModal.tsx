@@ -24,6 +24,13 @@ import {
   RadioGroup,
   RadioItem,
   SectionContainer,
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
   Textarea,
   useToast,
 } from '../primitives';
@@ -443,7 +450,7 @@ export function SendGrunnlagModal({
               />
             </FormField>
 
-            {/* Underkategori - Dynamic based on hovedkategori, grouped with radio buttons */}
+            {/* Underkategori - Dynamic based on hovedkategori, grouped Select */}
             {selectedHovedkategori && valgtHovedkategori && valgtHovedkategori.underkategorier.length > 0 && (
               <Controller
                 name="underkategori"
@@ -468,57 +475,54 @@ export function SendGrunnlagModal({
                     'BRUKSTAKELSE': '§38.1',
                     'STANS_BET': '§29.2',
                   };
+                  const hjemmel = field.value ? hjemmelMap[field.value] : undefined;
                   return (
                     <FormField
                       label="Underkategori"
                       required
                       error={errors.underkategori?.message}
                     >
-                      <RadioGroup
-                        value={field.value || ''}
-                        onValueChange={field.onChange}
-                        data-testid="grunnlag-underkategori-list"
-                      >
-                        <div className="space-y-3 sm:space-y-4">
-                          {Array.from(grupperteUnderkategorier.entries()).map(([gruppeNavn, underkategorier]) => (
-                            <div key={gruppeNavn ?? 'ungrouped'}>
-                              {gruppeNavn && (
-                                <p className="text-sm font-semibold text-pkt-text-body mb-2">{gruppeNavn}</p>
-                              )}
-                              <div className="space-y-2 pl-0">
-                                {underkategorier.map((uk) => {
-                                  const erValgt = field.value === uk.kode;
-                                  const hjemmel = hjemmelMap[uk.kode];
-                                  return (
-                                    <div key={uk.kode}>
-                                      <RadioItem
-                                        value={uk.kode}
-                                        label={uk.label}
-                                        error={!!errors.underkategori}
-                                      />
-                                      {erValgt && (
-                                        <div className="mt-2 ml-6">
-                                          {hjemmel ? (
-                                            <KontraktsregelInline hjemmel={hjemmel} />
-                                          ) : (
-                                            <KontraktsregelInline
-                                              custom={{
-                                                tekst: uk.beskrivelse,
-                                                hjemmel: `§${uk.hjemmel_basis}`,
-                                                konsekvens: `Varslingskrav: §${uk.varselkrav_ref}`,
-                                              }}
-                                            />
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </RadioGroup>
+                      <div className="space-y-2">
+                        <Select
+                          value={field.value || ''}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger
+                            error={!!errors.underkategori}
+                            data-testid="grunnlag-underkategori-list"
+                          >
+                            <SelectValue placeholder="Velg underkategori" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from(grupperteUnderkategorier.entries()).map(([gruppeNavn, underkategorier]) => (
+                              <SelectGroup key={gruppeNavn ?? 'ungrouped'}>
+                                {gruppeNavn && <SelectLabel>{gruppeNavn}</SelectLabel>}
+                                {underkategorier.map((uk) => (
+                                  <SelectItem key={uk.kode} value={uk.kode}>
+                                    {uk.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {/* Vis hjemmel-info for valgt underkategori */}
+                        {field.value && valgtUnderkategori && (
+                          <div className="mt-2">
+                            {hjemmel ? (
+                              <KontraktsregelInline hjemmel={hjemmel} />
+                            ) : (
+                              <KontraktsregelInline
+                                custom={{
+                                  tekst: valgtUnderkategori.beskrivelse,
+                                  hjemmel: `§${valgtUnderkategori.hjemmel_basis}`,
+                                  konsekvens: `Varslingskrav: §${valgtUnderkategori.varselkrav_ref}`,
+                                }}
+                              />
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </FormField>
                   );
                 }}
