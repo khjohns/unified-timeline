@@ -44,9 +44,18 @@ Status og handlingsplan for Azure-deploy av Unified Timeline.
 
 ### Hva mangler for Azure-deploy
 
-- ❌ 56 Flask-routes ikke portert til Azure Functions
-- ⚠️ Background processing (bruker synkron fallback, Service Bus er fremtidig)
+**Med App Service (anbefalt):**
+- ✅ Ingenting - Flask-appen er klar, bare deploy `app.py`
 - ❌ Azure-ressurser må opprettes i Azure Portal
+
+**Med Azure Functions (alternativ):**
+- ❌ 56 Flask-routes ikke portert
+- ⚠️ Background processing (synkron fallback)
+
+### Anbefaling
+
+**Bruk Azure App Service (B1, ~140 kr/mnd)** - enklest, ingen kodeendringer, ingen cold start.
+Azure Functions er overkill for vår enterprise B2B-applikasjon med forutsigbar trafikk.
 
 ---
 
@@ -291,15 +300,85 @@ Batch-endepunktet bruker `SakCreationService` for atomisk saksopprettelse.
 | Fase 4 | Robust produksjon | ~22 timer |
 | **Total** | | **~51 timer** |
 
-### Alternativ: Fortsett med Flask
+---
 
-Hvis Azure Functions-portering er for omfattende, kan Flask-backend deployes til:
+## Valg av Azure Backend-hosting
 
-- **Azure App Service** (Flask direkte)
-- **Azure Container Apps** (Docker)
-- **Render/Railway** (enklere, men ikke Azure)
+### Anbefaling: **Azure App Service (Linux B1)**
 
-Dette krever mindre portering men gir ikke serverless-fordeler.
+For denne typen enterprise B2B-applikasjon er App Service det beste valget.
+
+#### Prissammenligning
+
+| Plan | Cold start | Pris/mnd | Passer for |
+|------|------------|----------|------------|
+| **Functions Consumption** | ⚠️ 5-10 sek | Gratis* | Kun prototype |
+| **Functions Flex** | ✅ Ingen | ~200-400 kr | Overkill for oss |
+| **App Service Free (F1)** | ⚠️ Sovner | Gratis | Prototype |
+| **App Service Basic (B1)** | ✅ Ingen | **~140 kr** | ✅ **Anbefalt** |
+
+\* Gratis opp til 1M requests/mnd
+
+#### Hvorfor App Service for oss
+
+**Vår bruksprofil:**
+- ~50-500 prosjektdeltakere (enterprise B2B)
+- Trafikk i kontortid (08-16)
+- Maks 10-20 samtidige brukere
+- Noen hundre til få tusen events/dag
+
+**Serverless skalering gir mening når:**
+- Uforutsigbar burst-trafikk (Black Friday, virale kampanjer)
+- Mange uavhengige tenants (SaaS med 10 000+ kunder)
+- Sporadisk kjøring (nattlige batch-jobber)
+- Event-drevet med millioner av meldinger (IoT)
+
+**Vi har ingen av disse.** En App Service B1 håndterer vår trafikk med god margin.
+
+#### Fordeler med App Service
+
+| Aspekt | App Service | Functions |
+|--------|-------------|-----------|
+| **Deploy** | `git push` → ferdig | Må porte 56 endpoints |
+| **Kodeendringer** | Ingen | Ny `function_app.py` |
+| **Cold start** | Ingen (B1+) | Ja (Consumption) |
+| **Pris** | ~140 kr/mnd | ~200-400 kr (Flex) |
+| **Kompleksitet** | Lav | Høyere |
+
+### Dual-mode arkitektur (beholdes)
+
+Vi har fortsatt to entry points for fleksibilitet:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Felles kjernelogikk                      │
+│     services/, repositories/, models/, core/container.py   │
+└─────────────────────────────────────────────────────────────┘
+            │                              │
+            ▼                              ▼
+┌─────────────────────┐      ┌─────────────────────────┐
+│   app.py (Flask)    │      │  function_app.py        │
+│                     │      │  (Native Azure Funcs)   │
+│ ✅ App Service      │      │ ⚠️ Kun hvis serverless  │
+│ ✅ Render           │      │    trengs senere        │
+│ ✅ Lokal utvikling  │      │                         │
+└─────────────────────┘      └─────────────────────────┘
+```
+
+### Migrasjonsvei
+
+```
+Fase 1: Prototype (nå)
+├── Vercel (frontend)
+└── Render (backend/Flask)
+
+Fase 2: Azure produksjon (anbefalt)
+├── Azure Static Web Apps (frontend)
+└── Azure App Service B1 (backend/Flask)  ← Ingen kodeendringer!
+
+Fase 3: Kun hvis behov oppstår
+└── Azure Functions (hvis serverless skalering trengs)
+```
 
 ---
 
@@ -331,22 +410,31 @@ backend/services/catenda_service.py    # ⚠️ Bruker fortsatt threading (lav p
 
 ## Neste steg
 
+### Anbefalt: App Service (enklest)
+
 1. **Opprett Azure-ressurser:**
    - Azure Static Web App (frontend)
-   - Azure Function App (backend, Python 3.11, Linux)
+   - Azure App Service (backend, Python 3.11, Linux, B1-plan)
 
-2. **Konfigurer GitHub Secrets:**
-   - `AZURE_STATIC_WEB_APPS_API_TOKEN` - fra Azure Portal
-   - `AZURE_FUNCTIONAPP_PUBLISH_PROFILE` - fra Azure Portal
+2. **Konfigurer GitHub for App Service:**
+   - I Azure Portal: App Service → Deployment Center → GitHub
+   - Velg repo og branch → Azure oppretter workflow automatisk
 
-3. **Sett miljøvariabler i Azure Function App:**
+3. **Sett miljøvariabler i App Service → Configuration:**
    - `CATENDA_CLIENT_ID`, `CATENDA_CLIENT_SECRET`, `CATENDA_PROJECT_ID`
    - `SUPABASE_URL`, `SUPABASE_KEY`
    - `WEBHOOK_SECRET_PATH`, `MAGIC_LINK_SECRET_KEY`
 
-4. **Test lokalt først:** `cd backend && func start`
+4. **Aktiver "Always On"** i App Service → Configuration → General settings
 
 5. **Push til main** - GitHub Actions deployer automatisk
+
+### Alternativ: Azure Functions (kun hvis serverless trengs)
+
+1. Opprett Azure Function App (Python 3.11, Linux, Flex plan)
+2. Konfigurer GitHub Secrets: `AZURE_FUNCTIONAPP_PUBLISH_PROFILE`
+3. Bruk eksisterende `.github/workflows/azure-functions.yml`
+4. Merk: Kun 12/68 endpoints er portert - resten må portes først
 
 ---
 
