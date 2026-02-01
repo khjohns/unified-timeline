@@ -68,11 +68,11 @@ import {
 import { OnboardingGuide, useOnboarding, casePageSteps } from '../components/onboarding';
 import { PdfPreviewModal } from '../components/pdf';
 import {
+  LoadingState,
   VerifyingState,
   AuthErrorState,
 } from '../components/PageStateHelpers';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { PageLoadingFallback } from '../components/PageLoadingFallback';
 import { downloadRevisionHistoryCsv } from '../utils/csvExport';
 import { downloadCaseExcel } from '../utils/excelExport';
 
@@ -109,7 +109,7 @@ function CasePageContent() {
   // Suspense catches both lazy-loading and data fetching
   return (
     <ErrorBoundary>
-      <Suspense fallback={<PageLoadingFallback />}>
+      <Suspense fallback={<LoadingState />}>
         <CasePageDataLoader sakId={sakId || ''} />
       </Suspense>
     </ErrorBoundary>

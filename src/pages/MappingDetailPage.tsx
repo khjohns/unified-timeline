@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { Card, Tabs, Alert, Button, DropdownMenuItem } from '../components/primitives';
+import { InlineLoading } from '../components/PageStateHelpers';
 import { useSyncMapping } from '../hooks/useSyncMappings';
 import { MappingOverviewTab } from '../components/integrasjoner/MappingOverviewTab';
 import { MappingHistoryTab } from '../components/integrasjoner/MappingHistoryTab';
@@ -93,10 +94,7 @@ export function MappingDetailPage() {
         />
         <main className="max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
           <Card variant="outlined" padding="lg">
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-oslo-blue" />
-              <span className="ml-3 text-pkt-text-body-subtle">Laster mapping...</span>
-            </div>
+            <InlineLoading message="Laster mapping..." />
           </Card>
         </main>
       </div>

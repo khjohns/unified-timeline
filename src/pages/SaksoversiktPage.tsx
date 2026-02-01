@@ -20,8 +20,7 @@ import {
 } from '../constants/statusStyles';
 import { formatDateShort } from '../utils/formatters';
 import type { OverordnetStatus } from '../types/timeline';
-import { VerifyingState } from '../components/PageStateHelpers';
-import { PageLoadingFallback } from '../components/PageLoadingFallback';
+import { LoadingState, VerifyingState } from '../components/PageStateHelpers';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
 type SakstypeFilter = 'all' | 'standard' | 'forsering' | 'endringsordre';
@@ -59,7 +58,7 @@ export function SaksoversiktPage() {
 
   return (
     <ErrorBoundary>
-      <Suspense fallback={<PageLoadingFallback />}>
+      <Suspense fallback={<LoadingState />}>
         <SaksoversiktContent filter={filter} setFilter={setFilter} />
       </Suspense>
     </ErrorBoundary>

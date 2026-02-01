@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { PageLoadingFallback } from './components/PageLoadingFallback';
+import { LoadingState } from './components/PageStateHelpers';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
 
@@ -45,7 +45,7 @@ const CookiesPage = lazy(() => import('./pages/CookiesPage'));
 const App: React.FC = () => {
   return (
     <Layout>
-      <Suspense fallback={<PageLoadingFallback />}>
+      <Suspense fallback={<LoadingState />}>
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<AuthLanding />} />

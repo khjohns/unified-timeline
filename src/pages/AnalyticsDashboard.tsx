@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, Button, Tabs, DropdownMenuItem } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
+import { InlineLoading } from '../components/PageStateHelpers';
 import { useAuth } from '../context/AuthContext';
 import { useUserRole } from '../hooks/useUserRole';
 import {
@@ -133,10 +134,7 @@ export function AnalyticsDashboard() {
       <main className="max-w-3xl mx-auto px-2 pt-2 pb-4 sm:px-4 sm:pt-3 sm:pb-6 min-h-[calc(100vh-88px)] space-y-4">
         {isLoading ? (
           <Card variant="outlined" padding="lg">
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pkt-border-focus" />
-              <span className="ml-3 text-pkt-text-body-subtle">Laster analysedata...</span>
-            </div>
+            <InlineLoading message="Laster analysedata..." />
           </Card>
         ) : (
           <div className="space-y-6">
