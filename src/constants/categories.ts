@@ -276,35 +276,47 @@ export function getUnderkategorier(hovedkategori: string): DropdownOption[] {
 }
 
 // Get hovedkategori label from code (case-insensitive)
-export function getHovedkategoriLabel(code: string | undefined | null): string {
+export function getHovedkategoriLabel(code: string | string[] | undefined | null): string {
   if (!code) return '';
-  const upperCode = code.toUpperCase();
+  // Handle array by taking first element
+  const codeStr = Array.isArray(code) ? code[0] : code;
+  if (!codeStr) return '';
+  const upperCode = codeStr.toUpperCase();
   const kategori = KRAV_STRUKTUR_NS8407.find((k) => k.kode.toUpperCase() === upperCode);
-  return kategori?.label || code;
+  return kategori?.label || codeStr;
 }
 
 // Get underkategori label from code (case-insensitive)
-export function getUnderkategoriLabel(code: string | undefined | null): string {
+export function getUnderkategoriLabel(code: string | string[] | undefined | null): string {
   if (!code) return '';
-  const upperCode = code.toUpperCase();
+  // Handle array by taking first element
+  const codeStr = Array.isArray(code) ? code[0] : code;
+  if (!codeStr) return '';
+  const upperCode = codeStr.toUpperCase();
   for (const hovedkategori of KRAV_STRUKTUR_NS8407) {
     const underkategori = hovedkategori.underkategorier.find((u) => u.kode.toUpperCase() === upperCode);
     if (underkategori) return underkategori.label;
   }
-  return code;
+  return codeStr;
 }
 
 // Get full hovedkategori object by code (case-insensitive)
-export function getHovedkategori(code: string | undefined | null): Hovedkategori | undefined {
+export function getHovedkategori(code: string | string[] | undefined | null): Hovedkategori | undefined {
   if (!code) return undefined;
-  const upperCode = code.toUpperCase();
+  // Handle array by taking first element
+  const codeStr = Array.isArray(code) ? code[0] : code;
+  if (!codeStr) return undefined;
+  const upperCode = codeStr.toUpperCase();
   return KRAV_STRUKTUR_NS8407.find((k) => k.kode.toUpperCase() === upperCode);
 }
 
 // Get full underkategori object by code (case-insensitive)
-export function getUnderkategoriObj(code: string | undefined | null): Underkategori | undefined {
+export function getUnderkategoriObj(code: string | string[] | undefined | null): Underkategori | undefined {
   if (!code) return undefined;
-  const upperCode = code.toUpperCase();
+  // Handle array by taking first element
+  const codeStr = Array.isArray(code) ? code[0] : code;
+  if (!codeStr) return undefined;
+  const upperCode = codeStr.toUpperCase();
   for (const hovedkategori of KRAV_STRUKTUR_NS8407) {
     const underkategori = hovedkategori.underkategorier.find((u) => u.kode.toUpperCase() === upperCode);
     if (underkategori) return underkategori;
