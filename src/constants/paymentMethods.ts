@@ -32,7 +32,8 @@ export const VEDERLAGSMETODER_OPTIONS: DropdownOption[] = [
 ];
 
 // Helper function to get vederlagsmetode label from code (case-insensitive)
-export function getVederlagsmetodeLabel(code: string): string {
+export function getVederlagsmetodeLabel(code: string | undefined | null): string {
+  if (!code) return '';
   const upperCode = code.toUpperCase();
   const option = VEDERLAGSMETODER_OPTIONS.find(opt => opt.value.toUpperCase() === upperCode);
   return option?.label || code;
@@ -46,7 +47,8 @@ const SHORT_LABELS: Record<VederlagsMetode, string> = {
 };
 
 // Helper function to get short vederlagsmetode label (uten hjemmel)
-export function getVederlagsmetodeShortLabel(code: string): string {
+export function getVederlagsmetodeShortLabel(code: string | undefined | null): string {
+  if (!code) return '';
   const upperCode = code.toUpperCase() as VederlagsMetode;
   return SHORT_LABELS[upperCode] || code;
 }
