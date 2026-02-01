@@ -7,8 +7,53 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ComprehensiveMetadata } from '@/components/views/ComprehensiveMetadata';
-import { mockSakState1 } from '@mocks';
-import type { SakState, SporStatus } from '@/types/timeline';
+import type { SakState } from '@/types/timeline';
+
+// Inline mock state for tests
+const mockSakState1: SakState = {
+  sak_id: 'SAK-2025-001',
+  sakstittel: 'Endring av grunnforhold - Bjørvika Utbyggingsprosjekt',
+  prosjekt_navn: 'Bjørvika Utbygging',
+  entreprenor: 'NCC Norge AS',
+  byggherre: 'Oslo kommune',
+  sakstype: 'standard',
+  grunnlag: {
+    status: 'sendt',
+    hovedkategori: 'ENDRING',
+    underkategori: 'PROSJEKTERING',
+    beskrivelse: 'Endring i grunnforhold oppdaget under prosjektering',
+    kontraktsreferanser: ['§25.2'],
+    laast: false,
+    antall_versjoner: 1,
+  },
+  vederlag: {
+    status: 'sendt',
+    metode: 'REGNINGSARBEID',
+    kostnads_overslag: 500000,
+    antall_versjoner: 1,
+  },
+  frist: {
+    status: 'sendt',
+    krevd_dager: 14,
+    antall_versjoner: 1,
+  },
+  er_subsidiaert_vederlag: false,
+  er_subsidiaert_frist: false,
+  visningsstatus_vederlag: 'Sendt',
+  visningsstatus_frist: 'Sendt',
+  overordnet_status: 'UNDER_BEHANDLING',
+  kan_utstede_eo: false,
+  neste_handling: {
+    rolle: 'BH',
+    handling: 'Vurder grunnlag',
+    spor: 'grunnlag',
+  },
+  sum_krevd: 500000,
+  sum_godkjent: 0,
+  opprettet: '2025-01-15T08:00:00Z',
+  siste_aktivitet: '2025-01-15T10:30:00Z',
+  antall_events: 4,
+};
 
 describe('View Components - Functional Tests', () => {
   describe('ComprehensiveMetadata', () => {

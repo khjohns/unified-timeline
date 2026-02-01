@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { apiFetch, ApiError, mockDelay, USE_MOCK_API } from '@/api/client';
+import { apiFetch, ApiError } from '@/api/client';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -38,30 +38,6 @@ describe('API Client', () => {
       expect(error.status).toBe(500);
       expect(error.message).toBe('Server Error');
       expect(error.data).toBeUndefined();
-    });
-  });
-
-  describe('mockDelay', () => {
-    it('should return a promise that resolves after specified delay', async () => {
-      vi.useFakeTimers();
-
-      const promise = mockDelay(100);
-      expect(promise).toBeInstanceOf(Promise);
-
-      vi.advanceTimersByTime(100);
-      await promise;
-
-      vi.useRealTimers();
-    });
-
-    it('should use default delay of 500ms when not specified', async () => {
-      vi.useFakeTimers();
-
-      const promise = mockDelay();
-      vi.advanceTimersByTime(500);
-      await promise;
-
-      vi.useRealTimers();
     });
   });
 
@@ -312,12 +288,6 @@ describe('API Client', () => {
         expect.stringMatching(/http.*\/api\/endpoint/),
         expect.any(Object)
       );
-    });
-  });
-
-  describe('USE_MOCK_API', () => {
-    it('should be a boolean value', () => {
-      expect(typeof USE_MOCK_API).toBe('boolean');
     });
   });
 });
