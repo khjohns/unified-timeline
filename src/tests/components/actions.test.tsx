@@ -178,11 +178,11 @@ describe('Action/Modal Components - Functional Tests', () => {
       expect(screen.getByRole('dialog', { name: /Varsle ansvarsgrunnlag/i })).toBeInTheDocument();
     });
 
-    it('should have hovedkategori field', () => {
+    it('should have kategori field', () => {
       renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
       // Use getAllByText since text may appear in multiple places
-      expect(screen.getAllByText(/Hovedkategori/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Kategori/i).length).toBeGreaterThan(0);
     });
 
     it('should have tittel field', () => {
