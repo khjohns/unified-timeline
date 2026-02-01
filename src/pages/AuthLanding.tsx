@@ -287,17 +287,19 @@ export function AuthLanding() {
           {/* Branding */}
           <div className="mb-12">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center backdrop-blur-sm">
-                <div className="w-5 h-5 rounded border-2 border-pkt-brand-blue-1000" />
-              </div>
+              <img
+                src="/logos/Oslo-logo-hvit-RGB.svg"
+                alt="Oslo kommune"
+                className="h-16 w-auto"
+              />
+              <div className="h-10 w-px bg-white/20" />
               <span className="text-xs font-semibold tracking-widest text-white/60 uppercase">
                 Oslobygg KF
               </span>
             </div>
             <h1 className="text-3xl xl:text-4xl font-bold text-white leading-tight">
-              Digital håndtering av
-              <br />
-              <span className="text-pkt-brand-blue-1000">endringsordrer</span>
+              Digital håndtering av{' '}
+              <span className="text-pkt-brand-blue-1000">endringsmeldinger</span>
             </h1>
             <p className="mt-4 text-white/70 leading-relaxed">
               Effektiv samhandling mellom byggherre og totalentreprenør etter NS 8407.
