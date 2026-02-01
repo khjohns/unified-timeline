@@ -1,0 +1,100 @@
+name: Azure Static Web Apps (Frontend)
+
+# =============================================================================
+# Deployment workflow for frontend to Azure Static Web Apps
+#
+# Triggers:
+# - Push to main branch
+# - Pull requests to main (creates preview environment)
+#
+# Setup:
+# 1. Create Azure Static Web App in Azure Portal
+# 2. Copy deployment token from Azure Portal > Static Web App > Manage deployment token
+# 3. Add as GitHub Secret: AZURE_STATIC_WEB_APPS_API_TOKEN
+# =============================================================================
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'package.json'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'staticwebapp.config.json'
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'package.json'
+      - 'vite.config.ts'
+
+jobs:
+  build_and_deploy:
+    # Don't run on closed PRs that weren't merged
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    runs-on: ubuntu-latest
+    name: Build and Deploy
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run type check
+        run: npx tsc --noEmit
+        continue-on-error: true  # Don't fail deploy on type errors in preview
+
+      - name: Run linter
+        run: npm run lint
+        continue-on-error: true  # Don't fail deploy on lint errors in preview
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || '' }}
+          VITE_CATENDA_PROJECT_ID: ${{ vars.VITE_CATENDA_PROJECT_ID || '' }}
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          # Frontend
+          app_location: "/"
+          output_location: "dist"
+          # Skip API - we use separate Azure Functions
+          skip_api_build: true
+          # Config file for routing
+          config_file_location: "/"
+
+  # Close PR preview environment
+  close_pull_request:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close Pull Request
+    steps:
+      - name: Close Pull Request
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: "close"

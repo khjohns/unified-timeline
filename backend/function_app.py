@@ -368,6 +368,256 @@ if AZURE_FUNCTIONS_AVAILABLE:
             "event_id": event_id
         })
 
+    # =========================================================================
+    # Event Submission Endpoints
+    # =========================================================================
+
+    @app.route(route="events", methods=["POST"])
+    def submit_event(req: func.HttpRequest) -> func.HttpResponse:
+        """
+        Submit a single event to a case.
+
+        Request:
+        {
+            "event": { "event_type": "vederlag_krav_sendt", "data": {...} },
+            "sak_id": "KOE-20251201-001",
+            "expected_version": 3
+        }
+        """
+        from models.events import parse_event_from_request, parse_event
+        from services.business_rules import BusinessRuleValidator
+        from repositories.event_repository import ConcurrencyError
+        from datetime import datetime, timezone
+
+        data = adapt_request(req)
+        payload = data['json']
+
+        sak_id = payload.get('sak_id')
+        expected_version = payload.get('expected_version')
+        event_data = payload.get('event')
+
+        if not sak_id or expected_version is None or not event_data:
+            return create_error_response(
+                "sak_id, expected_version, and event are required", 400
+            )
+
+        try:
+            # 1. Parse event
+            event_data['sak_id'] = sak_id
+            event = parse_event_from_request(event_data)
+
+            with ServiceContext() as ctx:
+                # 2. Load current state
+                existing_events_data, current_version = ctx.event_repository.get_events(sak_id)
+
+                # 3. Validate version
+                if current_version != expected_version:
+                    return create_response({
+                        "success": False,
+                        "error": "VERSION_CONFLICT",
+                        "expected_version": expected_version,
+                        "current_version": current_version,
+                        "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
+                    }, 409)
+
+                # 4. Validate business rules
+                if existing_events_data:
+                    existing_events = [parse_event(e) for e in existing_events_data]
+                    current_state = ctx.timeline_service.compute_state(existing_events)
+
+                    validator = BusinessRuleValidator()
+                    validation = validator.validate(event, current_state)
+                    if not validation.is_valid:
+                        return create_response({
+                            "success": False,
+                            "error": "BUSINESS_RULE_VIOLATION",
+                            "rule": validation.violated_rule,
+                            "message": validation.message
+                        }, 400)
+                else:
+                    existing_events = []
+                    current_state = None
+
+                # 5. Persist event
+                try:
+                    new_version = ctx.event_repository.append(event, expected_version)
+                except ConcurrencyError as e:
+                    return create_response({
+                        "success": False,
+                        "error": "VERSION_CONFLICT",
+                        "message": str(e)
+                    }, 409)
+
+                # 6. Compute new state
+                all_events = existing_events + [event]
+                new_state = ctx.timeline_service.compute_state(all_events)
+
+                # 7. Update metadata cache
+                ctx.metadata_repository.update_cache(
+                    sak_id=sak_id,
+                    cached_title=new_state.sakstittel,
+                    cached_status=new_state.overordnet_status,
+                    last_event_at=datetime.now(timezone.utc)
+                )
+
+                return create_response({
+                    "success": True,
+                    "event_id": event.event_id,
+                    "new_version": new_version,
+                    "state": new_state.model_dump(mode='json')
+                }, 201)
+
+        except ValueError as e:
+            return create_error_response(str(e), 400)
+        except Exception as e:
+            logger.exception(f"Failed to submit event: {e}")
+            return create_error_response(f"Internal error: {str(e)}", 500)
+
+    @app.route(route="events/batch", methods=["POST"])
+    def submit_batch(req: func.HttpRequest) -> func.HttpResponse:
+        """
+        Submit multiple events atomically.
+
+        Used for initial case creation where Grunnlag + Vederlag + Frist
+        are submitted together.
+
+        Request:
+        {
+            "sak_id": "KOE-20251201-001",
+            "expected_version": 0,
+            "sakstype": "standard",
+            "events": [
+                { "event_type": "sak_opprettet", ... },
+                { "event_type": "grunnlag_opprettet", ... }
+            ]
+        }
+        """
+        from models.events import parse_event_from_request, parse_event
+        from services.business_rules import BusinessRuleValidator
+        from services.sak_creation_service import get_sak_creation_service
+        from repositories.event_repository import ConcurrencyError
+        from datetime import datetime, timezone
+
+        data = adapt_request(req)
+        payload = data['json']
+
+        sak_id = payload.get('sak_id')
+        expected_version = payload.get('expected_version')
+        event_datas = payload.get('events', [])
+
+        if not sak_id or expected_version is None or not event_datas:
+            return create_error_response(
+                "sak_id, expected_version og events[] er påkrevd", 400
+            )
+
+        try:
+            # 1. Parse all events
+            events = []
+            for ed in event_datas:
+                ed['sak_id'] = sak_id
+                events.append(parse_event_from_request(ed))
+
+            with ServiceContext() as ctx:
+                # 2. Load current state
+                existing_events_data, current_version = ctx.event_repository.get_events(sak_id)
+
+                # 3. Validate version
+                if current_version != expected_version:
+                    return create_response({
+                        "success": False,
+                        "error": "VERSION_CONFLICT",
+                        "expected_version": expected_version,
+                        "current_version": current_version,
+                        "message": "Saken har blitt oppdatert. Last inn på nytt."
+                    }, 409)
+
+                # 4. Validate business rules for each event
+                if existing_events_data:
+                    existing_events = [parse_event(e) for e in existing_events_data]
+                    state = ctx.timeline_service.compute_state(existing_events)
+                else:
+                    existing_events = []
+                    state = None
+
+                validated_events = []
+                validator = BusinessRuleValidator()
+
+                for event in events:
+                    if state:
+                        validation = validator.validate(event, state)
+                        if not validation.is_valid:
+                            return create_response({
+                                "success": False,
+                                "error": "BUSINESS_RULE_VIOLATION",
+                                "rule": validation.violated_rule,
+                                "message": validation.message,
+                                "failed_event_type": event.event_type.value
+                            }, 400)
+
+                    validated_events.append(event)
+
+                    # Update state for next validation
+                    if state:
+                        state = ctx.timeline_service.compute_state(
+                            existing_events + validated_events
+                        )
+                    else:
+                        state = ctx.timeline_service.compute_state(validated_events)
+
+                # 5. Persist events
+                if expected_version == 0:
+                    # New case: Use SakCreationService for atomic metadata + events
+                    initial_state = ctx.timeline_service.compute_state(validated_events)
+                    result = get_sak_creation_service().create_sak(
+                        sak_id=sak_id,
+                        sakstype=payload.get('sakstype', 'standard'),
+                        events=validated_events,
+                        prosjekt_id=payload.get('prosjekt_id'),
+                        metadata_kwargs={
+                            "created_by": payload.get('created_by', 'unknown'),
+                            "cached_title": initial_state.sakstittel,
+                            "cached_status": initial_state.overordnet_status,
+                        }
+                    )
+                    if not result.success:
+                        return create_error_response(result.error, 500)
+                    new_version = result.version
+                else:
+                    # Existing case: Use direct append_batch
+                    try:
+                        new_version = ctx.event_repository.append_batch(
+                            validated_events, expected_version
+                        )
+                    except ConcurrencyError as e:
+                        return create_response({
+                            "success": False,
+                            "error": "VERSION_CONFLICT",
+                            "message": str(e)
+                        }, 409)
+
+                # 6. Compute final state
+                all_events = existing_events + validated_events
+                final_state = ctx.timeline_service.compute_state(all_events)
+
+                # 7. Update metadata cache
+                ctx.metadata_repository.update_cache(
+                    sak_id=sak_id,
+                    cached_title=final_state.sakstittel,
+                    cached_status=final_state.overordnet_status,
+                    last_event_at=datetime.now(timezone.utc)
+                )
+
+                return create_response({
+                    "success": True,
+                    "event_ids": [e.event_id for e in events],
+                    "new_version": new_version,
+                    "state": final_state.model_dump(mode='json')
+                }, 201)
+
+        except Exception as e:
+            logger.exception(f"Failed to submit batch: {e}")
+            return create_error_response(f"Internal error: {str(e)}", 500)
+
 else:
     # Fallback når azure-functions ikke er installert
     logger.warning("Azure Functions SDK ikke tilgjengelig. Bruk Flask-versjonen for lokal utvikling.")

@@ -70,6 +70,13 @@ gunicorn==21.2.0                # Production WSGI server
 # sentry-sdk[flask]==1.39.1       # Error tracking
 # prometheus-flask-exporter==0.22.4  # Metrics
 
+# ------------------------------------------------------------------------------
+# Azure Functions & SDK
+# ------------------------------------------------------------------------------
+azure-functions>=1.17.0           # Azure Functions runtime
+azure-identity>=1.15.0            # Azure AD authentication
+azure-keyvault-secrets>=4.7.0     # Azure Key Vault for secrets
+
 # ==============================================================================
 # Development Dependencies (se requirements-dev.txt)
 # ==============================================================================

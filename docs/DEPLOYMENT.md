@@ -16,6 +16,7 @@ Veiledning for utrulling av Unified Timeline (KOE-system) til produksjon.
 - [Event-format: CloudEvents](#event-format-cloudevents)
 - [Azure Event Grid (fremtidig)](#azure-event-grid-fremtidig)
 - [Sikkerhet](#sikkerhet)
+- [Autentisering: IDA og Entra ID](#autentisering-ida-og-entra-id)
 - [Miljøvariabler](#miljøvariabler)
 - [CI/CD Pipeline](#cicd-pipeline)
 - [Overvåkning](#overvåkning)
@@ -572,6 +573,194 @@ client = SecretClient(vault_url="https://koe-keyvault.vault.azure.net/", credent
 
 catenda_secret = client.get_secret("CATENDA-CLIENT-SECRET").value
 ```
+
+---
+
+## Autentisering: IDA og Entra ID
+
+### Hva er IDA?
+
+**IDA** er Oslo kommunes sentraliserte tjeneste for identitets- og tilgangsstyring. IDA wrapper Microsoft Entra ID (tidligere Azure AD) og gir:
+
+- Standardisert integrasjonsprosess for kommunale systemer
+- Sentralisert forvaltning av tilganger
+- Støtte fra IDA-forvaltningsteamet
+
+> **Viktig:** Vi implementerer ikke Entra ID direkte. Vi bestiller integrasjon via IDA, og IDA-teamet hjelper med konfigurasjon.
+
+### Bestillingsprosess
+
+```
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│  Bestilling  │───▶│  Kartlegging │───▶│  Løsnings-   │───▶│  Implement-  │
+│  via Kompass │    │  (møte)      │    │  design      │    │  ering       │
+└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
+```
+
+**Bestilling sendes via Kompass** med skjema "Bestille tilgang til applikasjon for virksomheter".
+
+#### Eksempel bestillingstekst
+
+```markdown
+## Systemet
+Unified Timeline / KOE-system for Oslobygg KF
+
+## Behov for tilgangsstyring
+1. **Autentisering**: Ansatte i Oslobygg skal logge inn med Entra ID
+2. **Autorisasjon**: Godkjenningsflyt basert på beløpsgrenser (se vedlegg)
+3. **Rolle-identifikasjon**: Må kunne identifisere roller:
+   - PL (Prosjektleder)
+   - SL (Seksjonsleder)
+   - AL (Avdelingsleder)
+   - DU (Direktør utbygging)
+   - AD (Administrerende direktør)
+4. **Leder-hierarki**: Trenger tilgang til Microsoft Graph API
+   for å hente brukerens leder (/me/manager)
+
+## Teknisk
+- Backend: Flask/Python på Azure App Service
+- Frontend: React SPA på Azure Static Web Apps
+- Støtter OIDC/OAuth2 og JWT-validering
+
+## Ønsket tidsramme
+Q2 2026
+```
+
+### Teknisk arkitektur
+
+```
+┌─────────┐    ┌─────────────┐    ┌─────────────────┐    ┌─────────────┐
+│ Bruker  │───▶│  IDA/       │───▶│  Flask-app      │───▶│ Graph API   │
+│         │    │  Entra ID   │    │  (validerer JWT)│    │ (manager)   │
+└─────────┘    └─────────────┘    └─────────────────┘    └─────────────┘
+                     │                     │
+                     ▼                     ▼
+              ┌─────────────────────────────────────┐
+              │   JWT Token inneholder:             │
+              │   - oid (bruker-ID)                 │
+              │   - preferred_username (e-post)    │
+              │   - name                            │
+              │   - groups[] (rollegrupper)         │
+              └─────────────────────────────────────┘
+```
+
+### Backend-støtte
+
+Flask-appen har innebygd støtte for Entra ID-autentisering som kan aktiveres:
+
+```python
+# backend/core/config.py - Entra ID konfigurasjon
+entra_enabled: bool = False          # Sett True når IDA er klar
+entra_tenant_id: str = ""            # Fra IDA
+entra_client_id: str = ""            # Fra IDA (audience)
+entra_issuer: str = ""               # https://login.microsoftonline.com/{tenant}/v2.0
+```
+
+**Miljøvariabler for produksjon:**
+
+```bash
+ENTRA_ENABLED=true
+ENTRA_TENANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+ENTRA_CLIENT_ID=yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
+```
+
+### Rolle-mapping
+
+IDA konfigurerer Entra ID-grupper som mappes til applikasjonsroller:
+
+| Entra ID-gruppe | Applikasjonsrolle | Godkjenningsgrense |
+|-----------------|-------------------|-------------------|
+| `KOE-Godkjenner-PL` | Prosjektleder | 0 – 500.000 kr |
+| `KOE-Godkjenner-SL` | Seksjonsleder | 500.001 – 2.000.000 kr |
+| `KOE-Godkjenner-AL` | Avdelingsleder | 2.000.001 – 5.000.000 kr |
+| `KOE-Godkjenner-DU` | Direktør utbygging | 5.000.001 – 10.000.000 kr |
+| `KOE-Godkjenner-AD` | Adm. direktør | Over 10.000.000 kr |
+
+### Spørsmål til IDA-kartlegging
+
+Under kartleggingsmøtet, avklar:
+
+1. **Rolle-mapping**: Hvordan identifisere PL/SL/AL/DU/AD?
+   - Entra ID-grupper?
+   - Directory extension attributes?
+   - Stillingstittel fra HR-system?
+
+2. **Graph API-tilgang**: Trenger `/me/manager` endpoint
+   - Krever `User.Read.All` eller `Directory.Read.All`
+   - Må konfigureres i app registration
+
+3. **Token-claims**: Hvilke claims får vi automatisk?
+   - `groups`? `roles`? `manager`?
+
+### Enhetlig autentisering
+
+**Alle brukere** (både interne og eksterne) autentiseres via Entra ID/IDA:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                     Autentisering                            │
+├──────────────────────────────────────────────────────────────┤
+│  Alle brukere:                                               │
+│  └── Entra ID via IDA (SSO med MFA)                         │
+│                                                              │
+│  Rollebestemmelse (TE vs BH):                               │
+│  └── Basert på organisasjonstilhørighet eller attributt     │
+│      - Oslobygg-ansatte → BH (Byggherre)                    │
+│      - Eksterne (entreprenører) → TE (Totalentreprenør)     │
+│                                                              │
+│  HR-system er master for:                                    │
+│  └── Stillingstittel (PL/SL/AL/DU/AD)                       │
+│  └── Organisasjonshierarki (leder-relasjoner)               │
+│  └── Synkroniseres til Entra ID via HR-integrasjon          │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### HR-system som master
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  HR-system  │───▶│  Entra ID   │───▶│  IDA        │───▶│  Flask-app  │
+│  (master)   │    │  (synk)     │    │  (wrapper)  │    │  (validerer)│
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+      │
+      ▼
+┌─────────────────────────────────────┐
+│  HR-data som synkroniseres:         │
+│  - Stillingstittel                  │
+│  - Avdeling/seksjon                 │
+│  - Leder (manager)                  │
+│  - Ansettelsesforhold               │
+└─────────────────────────────────────┘
+```
+
+**Spørsmål til IDA-kartlegging (oppdatert):**
+
+1. **Hvordan identifisere TE vs BH?**
+   - Organisasjonstilhørighet i Entra ID?
+   - Domene (f.eks. `@oslobygg.no` vs `@ekstern.no`)?
+   - Spesifikk gruppe eller attributt?
+
+2. **Hvordan hentes stillingstittel/rolle?**
+   - HR-synkronisering til `jobTitle` claim?
+   - Directory extension attribute?
+   - Custom claim fra HR-system?
+
+3. **Hvordan hentes leder-hierarki?**
+   - Graph API `/me/manager` (synkronisert fra HR)?
+   - Custom attributt i token?
+
+### Testing uten IDA
+
+For lokal utvikling og testing før IDA er konfigurert:
+
+```bash
+# .env - Deaktiver Entra ID
+ENTRA_ENABLED=false
+
+# Bruk mock-autentisering via Magic Links (fallback)
+```
+
+Se også: [plan-godkjenning-workflow.md](plan-godkjenning-workflow.md) for godkjenningsflyt-integrasjon.
 
 ---
 

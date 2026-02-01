@@ -19,17 +19,17 @@ Status og handlingsplan for Azure-deploy av Unified Timeline.
 
 ## Sammendrag
 
-### Beredskapsgrad: ⚠️ ~35%
+### Beredskapsgrad: ⚠️ ~50%
 
 | Kategori | Status | Dekning |
 |----------|--------|---------|
 | Azure Functions entry point | ✅ Ferdig | 100% |
 | Azure Functions konfigurasjon | ✅ Ferdig | 100% |
-| Azure Functions endpoints | ⚠️ Delvis | **10/68 (15%)** |
+| Azure Functions endpoints | ⚠️ Delvis | **12/68 (18%)** |
 | Frontend build | ✅ Ferdig | 100% |
-| Frontend Azure-konfig | ❌ Mangler | 0% |
-| CI/CD pipelines | ❌ Mangler | 0% |
-| Azure SDK dependencies | ❌ Mangler | 0% |
+| Frontend Azure-konfig | ✅ Ferdig | 100% |
+| CI/CD pipelines | ✅ Ferdig | 100% |
+| Azure SDK dependencies | ✅ Ferdig | 100% |
 
 ### Hva fungerer i dag
 
@@ -37,15 +37,25 @@ Status og handlingsplan for Azure-deploy av Unified Timeline.
 - ✅ Frontend bygger og kjører lokalt
 - ✅ Supabase-integrasjon fungerer
 - ✅ CloudEvents v1.0 implementert
-- ✅ 10 basis-endpoints portert til Azure Functions
+- ✅ 12 endpoints portert til Azure Functions (inkl. kritiske event submission)
+- ✅ GitHub Actions workflows for CI/CD
+- ✅ `staticwebapp.config.json` for frontend
+- ✅ Azure SDK-pakker i `requirements.txt`
 
 ### Hva mangler for Azure-deploy
 
-- ❌ 58 Flask-routes ikke portert til Azure Functions
-- ❌ `staticwebapp.config.json` for frontend
-- ❌ Azure SDK-pakker i `requirements.txt`
-- ❌ Background processing (threading → Service Bus)
-- ❌ CI/CD workflows
+**Med App Service (anbefalt):**
+- ✅ Ingenting - Flask-appen er klar, bare deploy `app.py`
+- ❌ Azure-ressurser må opprettes i Azure Portal
+
+**Med Azure Functions (alternativ):**
+- ❌ 56 Flask-routes ikke portert
+- ⚠️ Background processing (synkron fallback)
+
+### Anbefaling
+
+**Bruk Azure App Service (B1, ~140 kr/mnd)** - enklest, ingen kodeendringer, ingen cold start.
+Azure Functions er overkill for vår enterprise B2B-applikasjon med forutsigbar trafikk.
 
 ---
 
@@ -60,7 +70,7 @@ Status og handlingsplan for Azure-deploy av Unified Timeline.
 | `backend/host.json` | ✅ | Azure Functions konfigurasjon |
 | `backend/local.settings.json.example` | ✅ | Template for lokale innstillinger |
 
-### Implementerte endpoints (10/68)
+### Implementerte endpoints (12/68)
 
 | Route | Metode | Beskrivelse |
 |-------|--------|-------------|
@@ -74,17 +84,10 @@ Status og handlingsplan for Azure-deploy av Unified Timeline.
 | `/api/cases/{sakId}/draft` | PUT | Lagre utkast |
 | `/api/cases/{sakId}/pdf` | POST | Last opp PDF til Catenda |
 | `/api/webhook/catenda/{secret}` | POST | Catenda webhook mottak |
+| `/api/events` | POST | ✅ Submit enkelt event |
+| `/api/events/batch` | POST | ✅ Atomisk batch submission (bruker SakCreationService) |
 
-### Manglende endpoints (58 stk)
-
-#### Kritisk: Event Submission (2 endpoints)
-
-```
-❌ POST /api/events           - Submit enkelt event
-❌ POST /api/events/batch     - Atomisk batch submission
-```
-
-**Uten disse kan ikke systemet lagre nye events!**
+### Manglende endpoints (56 stk)
 
 #### Forsering §33.8 (15 endpoints)
 
@@ -198,61 +201,51 @@ Status og handlingsplan for Azure-deploy av Unified Timeline.
 
 ## Kritiske blokkere
 
-### 1. ❌ Manglende Azure SDK i `requirements.txt`
+### 1. ✅ ~~Manglende Azure SDK i `requirements.txt`~~ LØST
 
-**Problem:** `import azure.functions` vil feile i produksjon.
+Azure SDK er nå lagt til i `backend/requirements.txt`:
+- `azure-functions>=1.17.0`
+- `azure-identity>=1.15.0`
+- `azure-keyvault-secrets>=4.7.0`
 
-**Løsning:** Legg til i `backend/requirements.txt`:
+### 2. ✅ ~~Manglende `staticwebapp.config.json`~~ LØST
 
-```
-azure-functions>=1.15.0
-azure-identity>=1.15.0
-azure-keyvault-secrets>=4.7.0
-```
+`staticwebapp.config.json` er opprettet i repository root med:
+- SPA fallback routing
+- Security headers
+- Cache-kontroll for assets
 
-### 2. ❌ Manglende `staticwebapp.config.json`
+### 3. ⚠️ Threading i background tasks (delvis løst)
 
-**Problem:** SPA routing fungerer ikke, alle deep links gir 404.
+**Status:** `catenda_webhook_service.py` er refaktorert til synkron operasjon.
 
-**Løsning:** Opprett fil i repository root (se eksempel over).
+**Gjenstår:**
+- `backend/services/catenda_service.py:69` og `:84` bruker fortsatt threading
+- Langsiktig løsning: Azure Service Bus + separate Function triggers
 
-### 3. ❌ Threading i background tasks
+### 4. ✅ ~~Event submission endpoints mangler~~ LØST
 
-**Problem:** `webhook_service.py` og `catenda_service.py` bruker `threading.Thread()` for background processing. Dette fungerer **ikke** i Azure Functions - prosessen avsluttes etter HTTP-respons.
-
-**Filer med problemet:**
-- `backend/services/webhook_service.py:279`
-- `backend/services/catenda_service.py:69`
-- `backend/services/catenda_service.py:84`
-
-**Løsninger:**
-1. **Kortsiktig:** Fjern background processing, gjør synkront
-2. **Langsiktig:** Azure Service Bus + separate Function triggers
-
-### 4. ❌ Event submission endpoints mangler
-
-**Problem:** Kan ikke lagre nye events via Azure Functions.
-
-**Løsning:** Port `POST /api/events` og `POST /api/events/batch` fra `backend/routes/event_routes.py`.
+`POST /api/events` og `POST /api/events/batch` er portert til `function_app.py`.
+Batch-endepunktet bruker `SakCreationService` for atomisk saksopprettelse.
 
 ---
 
 ## Handlingsplan
 
-### Fase 1: Minimalt deploybart (MVP)
+### Fase 1: Minimalt deploybart (MVP) ✅ FULLFØRT
 
 **Mål:** Kunne deploye og kjøre basis-funksjonalitet i Azure.
 
-| # | Oppgave | Prioritet | Estimat |
-|---|---------|-----------|---------|
-| 1.1 | Legg til Azure SDK i requirements.txt | 🔴 Kritisk | 15 min |
-| 1.2 | Opprett staticwebapp.config.json | 🔴 Kritisk | 30 min |
-| 1.3 | Port POST /api/events endpoint | 🔴 Kritisk | 2 timer |
-| 1.4 | Port POST /api/events/batch endpoint | 🔴 Kritisk | 1 time |
-| 1.5 | Fjern/deaktiver threading i webhook_service | 🟡 Høy | 1 time |
-| 1.6 | Test lokal Azure Functions (`func start`) | 🟡 Høy | 1 time |
+| # | Oppgave | Prioritet | Status |
+|---|---------|-----------|--------|
+| 1.1 | Legg til Azure SDK i requirements.txt | 🔴 Kritisk | ✅ Ferdig |
+| 1.2 | Opprett staticwebapp.config.json | 🔴 Kritisk | ✅ Ferdig |
+| 1.3 | Port POST /api/events endpoint | 🔴 Kritisk | ✅ Ferdig |
+| 1.4 | Port POST /api/events/batch endpoint | 🔴 Kritisk | ✅ Ferdig |
+| 1.5 | Fjern/deaktiver threading i webhook_service | 🟡 Høy | ✅ Ferdig (synkron) |
+| 1.6 | Opprett GitHub Actions workflows | 🟡 Høy | ✅ Ferdig |
 
-**Total Fase 1:** ~6 timer
+**Neste:** Test lokalt med `func start`, deretter deploy til Azure.
 
 ### Fase 2: Komplett KOE-funksjonalitet
 
@@ -307,43 +300,141 @@ azure-keyvault-secrets>=4.7.0
 | Fase 4 | Robust produksjon | ~22 timer |
 | **Total** | | **~51 timer** |
 
-### Alternativ: Fortsett med Flask
+---
 
-Hvis Azure Functions-portering er for omfattende, kan Flask-backend deployes til:
+## Valg av Azure Backend-hosting
 
-- **Azure App Service** (Flask direkte)
-- **Azure Container Apps** (Docker)
-- **Render/Railway** (enklere, men ikke Azure)
+### Anbefaling: **Azure App Service (Linux B1)**
 
-Dette krever mindre portering men gir ikke serverless-fordeler.
+For denne typen enterprise B2B-applikasjon er App Service det beste valget.
+
+#### Prissammenligning
+
+| Plan | Cold start | Pris/mnd | Passer for |
+|------|------------|----------|------------|
+| **Functions Consumption** | ⚠️ 5-10 sek | Gratis* | Kun prototype |
+| **Functions Flex** | ✅ Ingen | ~200-400 kr | Overkill for oss |
+| **App Service Free (F1)** | ⚠️ Sovner | Gratis | Prototype |
+| **App Service Basic (B1)** | ✅ Ingen | **~140 kr** | ✅ **Anbefalt** |
+
+\* Gratis opp til 1M requests/mnd
+
+#### Hvorfor App Service for oss
+
+**Vår bruksprofil:**
+- ~50-500 prosjektdeltakere (enterprise B2B)
+- Trafikk i kontortid (08-16)
+- Maks 10-20 samtidige brukere
+- Noen hundre til få tusen events/dag
+
+**Serverless skalering gir mening når:**
+- Uforutsigbar burst-trafikk (Black Friday, virale kampanjer)
+- Mange uavhengige tenants (SaaS med 10 000+ kunder)
+- Sporadisk kjøring (nattlige batch-jobber)
+- Event-drevet med millioner av meldinger (IoT)
+
+**Vi har ingen av disse.** En App Service B1 håndterer vår trafikk med god margin.
+
+#### Fordeler med App Service
+
+| Aspekt | App Service | Functions |
+|--------|-------------|-----------|
+| **Deploy** | `git push` → ferdig | Må porte 56 endpoints |
+| **Kodeendringer** | Ingen | Ny `function_app.py` |
+| **Cold start** | Ingen (B1+) | Ja (Consumption) |
+| **Pris** | ~140 kr/mnd | ~200-400 kr (Flex) |
+| **Kompleksitet** | Lav | Høyere |
+
+### Dual-mode arkitektur (beholdes)
+
+Vi har fortsatt to entry points for fleksibilitet:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Felles kjernelogikk                      │
+│     services/, repositories/, models/, core/container.py   │
+└─────────────────────────────────────────────────────────────┘
+            │                              │
+            ▼                              ▼
+┌─────────────────────┐      ┌─────────────────────────┐
+│   app.py (Flask)    │      │  function_app.py        │
+│                     │      │  (Native Azure Funcs)   │
+│ ✅ App Service      │      │ ⚠️ Kun hvis serverless  │
+│ ✅ Render           │      │    trengs senere        │
+│ ✅ Lokal utvikling  │      │                         │
+└─────────────────────┘      └─────────────────────────┘
+```
+
+### Migrasjonsvei
+
+```
+Fase 1: Prototype (nå)
+├── Vercel (frontend)
+└── Render (backend/Flask)
+
+Fase 2: Azure produksjon (anbefalt)
+├── Azure Static Web Apps (frontend)
+└── Azure App Service B1 (backend/Flask)  ← Ingen kodeendringer!
+
+Fase 3: Kun hvis behov oppstår
+└── Azure Functions (hvis serverless skalering trengs)
+```
 
 ---
 
-## Filer som må endres
+## Filer som er endret/opprettet
 
-### Nye filer
-
-```
-/staticwebapp.config.json              # Azure SWA konfig
-/.github/workflows/azure-deploy.yml    # CI/CD pipeline (valgfritt fase 2)
-```
-
-### Eksisterende filer
+### Nye filer (opprettet)
 
 ```
-backend/requirements.txt               # Legg til azure-* pakker
-backend/function_app.py                # Port flere endpoints
-backend/services/webhook_service.py    # Fjern threading
-backend/services/catenda_service.py    # Fjern threading
+/staticwebapp.config.json                        # ✅ Azure SWA konfig
+/.github/workflows/azure-static-web-apps.yml     # ✅ Frontend CI/CD
+/.github/workflows/azure-functions.yml           # ✅ Backend CI/CD
+```
+
+### Oppdaterte filer
+
+```
+backend/requirements.txt               # ✅ Azure SDK pakker lagt til
+backend/function_app.py                # ✅ Event submission endpoints portert
+backend/services/catenda_webhook_service.py  # ✅ Synkron (ingen threading)
+```
+
+### Gjenstår å oppdatere
+
+```
+backend/services/catenda_service.py    # ⚠️ Bruker fortsatt threading (lav prioritet)
 ```
 
 ---
 
 ## Neste steg
 
-1. **Beslutning:** Skal vi prioritere Azure Functions eller vurdere Azure App Service?
-2. **Hvis Azure Functions:** Start med Fase 1 (MVP)
-3. **Test lokalt:** `cd backend && func start` før deploy
+### Anbefalt: App Service (enklest)
+
+1. **Opprett Azure-ressurser:**
+   - Azure Static Web App (frontend)
+   - Azure App Service (backend, Python 3.11, Linux, B1-plan)
+
+2. **Konfigurer GitHub for App Service:**
+   - I Azure Portal: App Service → Deployment Center → GitHub
+   - Velg repo og branch → Azure oppretter workflow automatisk
+
+3. **Sett miljøvariabler i App Service → Configuration:**
+   - `CATENDA_CLIENT_ID`, `CATENDA_CLIENT_SECRET`, `CATENDA_PROJECT_ID`
+   - `SUPABASE_URL`, `SUPABASE_KEY`
+   - `WEBHOOK_SECRET_PATH`, `MAGIC_LINK_SECRET_KEY`
+
+4. **Aktiver "Always On"** i App Service → Configuration → General settings
+
+5. **Push til main** - GitHub Actions deployer automatisk
+
+### Alternativ: Azure Functions (kun hvis serverless trengs)
+
+1. Opprett Azure Function App (Python 3.11, Linux, Flex plan)
+2. Konfigurer GitHub Secrets: `AZURE_FUNCTIONAPP_PUBLISH_PROFILE`
+3. Bruk eksisterende `.github/workflows/azure-functions.yml`
+4. Merk: Kun 12/68 endpoints er portert - resten må portes først
 
 ---
 

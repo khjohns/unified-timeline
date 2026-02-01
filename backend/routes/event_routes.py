@@ -5,7 +5,7 @@ This module provides REST endpoints for submitting events to cases,
 with full support for:
 - Optimistic locking (version-based conflict detection)
 - Business rule validation
-- Atomic batch submissions
+- Atomic batch submissions (via SakCreationService for new cases)
 - State computation and caching
 - Hybrid PDF generation (client-provided or server fallback)
 - Catenda integration (PDF upload + comment posting)
@@ -618,33 +618,36 @@ def submit_batch():
                 # First event in batch, create initial state
                 state = _get_timeline_service().compute_state(validated_events)
 
-        # 5a. Create metadata FIRST if new case (FK constraint requires this)
+        # 5. Persist events (use SakCreationService for new cases, direct append for existing)
         if expected_version == 0:
-            from models.sak_metadata import SakMetadata
-            # Compute initial state for cached values (use enriched events)
-            initial_state = _get_timeline_service().compute_state(validated_events)
-            metadata = SakMetadata(
-                sak_id=sak_id,
-                prosjekt_id=data.get('prosjekt_id'),
-                created_at=datetime.now(timezone.utc),
-                created_by=request.magic_link_data.get('email', 'unknown'),
-                cached_title=initial_state.sakstittel,
-                cached_status=initial_state.overordnet_status,
-                last_event_at=datetime.now(timezone.utc)
-            )
-            _get_metadata_repo().upsert(metadata)
+            # New case: Use SakCreationService for atomic metadata + events
+            from services.sak_creation_service import get_sak_creation_service
 
-        # 5b. Persist ALL events atomically (use enriched validated_events)
-        try:
-            new_version = _get_event_repo().append_batch(validated_events, expected_version)
-        except ConcurrencyError as e:
-            # Rollback metadata if events fail (for new cases)
-            if expected_version == 0:
-                try:
-                    _get_metadata_repo().delete(sak_id)
-                except Exception:
-                    pass
-            return handle_concurrency_error(e)
+            initial_state = _get_timeline_service().compute_state(validated_events)
+            result = get_sak_creation_service().create_sak(
+                sak_id=sak_id,
+                sakstype=data.get('sakstype', 'standard'),
+                events=validated_events,
+                prosjekt_id=data.get('prosjekt_id'),
+                metadata_kwargs={
+                    "created_by": request.magic_link_data.get('email', 'unknown'),
+                    "cached_title": initial_state.sakstittel,
+                    "cached_status": initial_state.overordnet_status,
+                }
+            )
+            if not result.success:
+                return jsonify({
+                    "success": False,
+                    "error": "CREATION_FAILED",
+                    "message": result.error
+                }), 500
+            new_version = result.version
+        else:
+            # Existing case: Use direct append_batch
+            try:
+                new_version = _get_event_repo().append_batch(validated_events, expected_version)
+            except ConcurrencyError as e:
+                return handle_concurrency_error(e)
 
         # 6. Compute final state and update metadata cache
         all_events = existing_events + validated_events
