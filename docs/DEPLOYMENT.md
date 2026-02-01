@@ -966,7 +966,57 @@ Se [TECHNOLOGY_COMPARISON.md](TECHNOLOGY_COMPARISON.md) for fullstendig analyse.
 | **500 raders delegation limit** | Sakliste fungerer ikke med >500 saker |
 | **5 000 elementers listeterskel** | Nås innen 1-2 år med ~10 000 events/år |
 | **Ingen felt-nivå sikkerhet** | Kan ikke skille TE/BH-felter |
-| **Ingen transaksjoner** | Risiko for inkonsistent data |
+| **Ingen ACID-transaksjoner** | Risiko for inkonsistent data (se forklaring under) |
+
+### Hva betyr "ingen transaksjoner"?
+
+En **transaksjon** er en gruppe operasjoner som enten utføres *alle sammen* eller *ingen av dem*. Dette kalles **atomisitet** (A i ACID).
+
+#### Eksempel 1: Optimistisk låsing
+
+I Event Sourcing bruker vi **optimistisk låsing** for å hindre at to brukere overskriver hverandres endringer:
+
+```
+Bruker A leser sak (versjon 5)
+Bruker B leser sak (versjon 5)
+Bruker A sender event → lagres som versjon 6 ✅
+Bruker B sender event → skal bli versjon 6, men den finnes allerede! ❌ Avvist
+```
+
+**Med PostgreSQL (atomisk):**
+```sql
+BEGIN TRANSACTION;
+  -- Sjekk og insert i én atomisk operasjon
+  INSERT INTO koe_events (sak_id, versjon, ...)
+  VALUES ('KOE-001', 6, ...);  -- UNIQUE constraint på (sak_id, versjon)
+COMMIT;
+```
+Hvis to brukere sender samtidig, får én constraint violation og må prøve på nytt.
+
+**Med SharePoint:**
+Det finnes ingen atomisk "sjekk-og-sett" operasjon. Begge brukere kan potensielt lagre versjon 6, som gir duplikate/inkonsistente events.
+
+#### Eksempel 2: Batch-operasjoner
+
+Noen operasjoner krever at flere events lagres atomisk:
+
+```sql
+BEGIN TRANSACTION;
+  INSERT INTO koe_events (...) VALUES (...);  -- Event 1
+  INSERT INTO koe_events (...) VALUES (...);  -- Event 2
+  UPDATE sak_metadata SET last_event_at = NOW();
+COMMIT;  -- Alt eller ingenting
+```
+
+**Med SharePoint:** Hvis event 1 lagres men event 2 feiler, får vi delvis lagret data uten mulighet for rollback.
+
+#### Konkret risiko
+
+| Scenario | PostgreSQL | SharePoint |
+|----------|------------|------------|
+| To brukere sender samtidig | Én feiler, retry | Begge kan lagres (duplikat) |
+| Batch insert feiler midtveis | Alt rulles tilbake | Delvis lagret data |
+| Event + metadata synk | Atomisk | Kan bli ute av synk |
 
 ### Kan SharePoint brukes for begrenset pilot?
 
@@ -977,7 +1027,7 @@ Se [TECHNOLOGY_COMPARISON.md](TECHNOLOGY_COMPARISON.md) for fullstendig analyse.
 | **Antall saker** | ~50-100 saker per prosjekt = innenfor 500-grensen |
 | **Event-volum** | ~500-1500 events = under 5000-terskelen |
 | **Felt-sikkerhet** | ❌ Fortsatt problematisk - TE/BH må se ulike felter |
-| **Kompleksitet** | ❌ Subsidiær logikk, tre-spor modell støttes ikke |
+| **Data-integritet** | ❌ Ingen ACID-transaksjoner for optimistisk låsing |
 
 **Konklusjon for pilot:**
 
@@ -986,16 +1036,15 @@ Se [TECHNOLOGY_COMPARISON.md](TECHNOLOGY_COMPARISON.md) for fullstendig analyse.
 | Enkel saksregistrering | ✅ Ja |
 | Statussporing | ✅ Ja |
 | Varslings-workflows | ✅ Ja (Power Automate) |
-| Tre-spor modell | ❌ Nei |
-| Subsidiær logikk | ❌ Nei |
+| Event Sourcing med optimistisk låsing | ❌ Nei |
 | TE/BH felt-separasjon | ❌ Nei |
 | Catenda-integrasjon | ⚠️ Krever Premium-lisens |
 
 **Anbefaling:** Hvis en begrenset pilot vurderes:
-1. Definer et sterkt forenklet scope (kun statussporing, ingen kompleks logikk)
+1. Definer et sterkt forenklet scope (kun statussporing, ingen Event Sourcing)
 2. Aksepter at felt-sikkerhet må håndteres manuelt (separate lister eller visninger)
-3. Plan for migrering til fullverdig løsning etter pilot
-4. Vurder om innsatsen er verdt det vs. å bruke eksisterende custom-løsning
+3. Vær klar over at samtidig redigering kan gi datakonflikter
+4. Plan for migrering til fullverdig løsning etter pilot
 
 Se [TECHNOLOGY_COMPARISON.md](TECHNOLOGY_COMPARISON.md) for detaljert sammenligning.
 
