@@ -262,25 +262,30 @@ class WebhookService:
             magic_link = f"{base_url}{frontend_route}?magicToken={magic_token}" if magic_token else f"{base_url}{frontend_route}"
 
             # Post comment to Catenda (synchronous - critical operation)
-            comment_generator = CatendaCommentGenerator()
-            comment_text = comment_generator.generate_creation_comment(
-                sak_id=sak_id,
-                sakstype=sakstype,
-                project_name=project_name,
-                magic_link=magic_link
-            )
-
-            # Post comment synchronously - case is already created, so we log errors
-            # but don't rollback the case creation
-            try:
-                self.catenda.create_comment(topic_id, comment_text)
-                logger.info(f"✅ Comment posted to Catenda for case {sak_id}")
-            except Exception as e:
-                # Critical: Log for manual follow-up, but case is created
-                logger.error(
-                    f"❌ CRITICAL: Failed to post comment to Catenda for {sak_id}. "
-                    f"Manual follow-up required. Error: {e}"
+            # Only if Catenda is enabled and client is available
+            from core.config import settings
+            if settings.is_catenda_enabled and self.catenda and topic_id:
+                comment_generator = CatendaCommentGenerator()
+                comment_text = comment_generator.generate_creation_comment(
+                    sak_id=sak_id,
+                    sakstype=sakstype,
+                    project_name=project_name,
+                    magic_link=magic_link
                 )
+
+                # Post comment synchronously - case is already created, so we log errors
+                # but don't rollback the case creation
+                try:
+                    self.catenda.create_comment(topic_id, comment_text)
+                    logger.info(f"✅ Comment posted to Catenda for case {sak_id}")
+                except Exception as e:
+                    # Critical: Log for manual follow-up, but case is created
+                    logger.error(
+                        f"❌ CRITICAL: Failed to post comment to Catenda for {sak_id}. "
+                        f"Manual follow-up required. Error: {e}"
+                    )
+            else:
+                logger.info(f"ℹ️ Catenda disabled or not configured, skipping comment for {sak_id}")
 
             logger.info(f"✅ Case {sak_id} created successfully.")
 

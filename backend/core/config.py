@@ -28,6 +28,27 @@ class Settings(BaseSettings):
     catenda_refresh_token: str = ""
     catenda_redirect_uri: str = "http://localhost:8080/callback"
 
+    # Catenda integration toggle (auto-detected if not explicitly set)
+    # Set to "false" to disable Catenda integration even if credentials exist
+    catenda_enabled: str = ""  # "", "true", "false"
+
+    @property
+    def is_catenda_enabled(self) -> bool:
+        """
+        Check if Catenda integration is enabled.
+
+        Logic:
+        - If catenda_enabled is explicitly "false" → disabled
+        - If catenda_enabled is explicitly "true" → enabled
+        - Otherwise, auto-detect based on credentials
+        """
+        if self.catenda_enabled.lower() == "false":
+            return False
+        if self.catenda_enabled.lower() == "true":
+            return True
+        # Auto-detect: enabled if we have client credentials
+        return bool(self.catenda_client_id and self.catenda_client_secret)
+
     # Frontend URL (for magic links i Catenda-kommentarer)
     react_app_url: str = ""
     dev_react_app_url: str = ""

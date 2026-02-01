@@ -644,6 +644,42 @@ settings.is_azure_environment  # property: True hvis Azure-config er satt
 - Bruker Unit of Work for atomisk metadata + event opprettelse
 - Synkron Catenda-kommentarposting med feillogging
 
+### 2026-02-01: Catenda-uavhengig arkitektur
+
+Catenda er nå valgfritt. Appen fungerer uten Catenda-integrasjon.
+
+**Ny config:**
+```python
+from core.config import settings
+
+# Eksplisitt enable/disable (valgfritt)
+# CATENDA_ENABLED=false  # i .env
+
+# Auto-deteksjon basert på credentials
+settings.is_catenda_enabled  # True hvis client_id + client_secret er satt
+```
+
+**Oppdaterte filer:**
+- `backend/core/config.py` - `catenda_enabled` og `is_catenda_enabled` property
+- `backend/services/webhook_service.py` - Betinget kommentarposting
+- `backend/routes/event_routes.py` - Betinget `_post_to_catenda`
+- `backend/services/endringsordre_service.py` - UoW + betinget Catenda-synk
+
+**Bruk uten Catenda:**
+```bash
+# Sett i .env for å eksplisitt disable
+CATENDA_ENABLED=false
+
+# Eller bare ikke sett credentials - auto-deteksjon
+# CATENDA_CLIENT_ID=
+# CATENDA_CLIENT_SECRET=
+```
+
+**Catenda-uavhengige API-er:**
+- `POST /api/events/batch` - Opprett KOE-saker direkte
+- `POST /api/forsering/opprett` - Opprett forsering direkte
+- `POST /api/endringsordre/opprett` - Opprett endringsordre direkte
+
 ---
 
 ## Se også
