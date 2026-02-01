@@ -6,7 +6,6 @@ import { Layout } from './components/Layout';
 
 // Lazy load all pages for code splitting
 const AuthLanding = lazy(() => import('./pages/AuthLanding'));
-const ExampleCasesPage = lazy(() => import('./pages/ExampleCasesPage'));
 const OpprettSakPage = lazy(() => import('./pages/OpprettSakPage'));
 const SaksoversiktPage = lazy(() => import('./pages/SaksoversiktPage'));
 const CasePage = lazy(() => import('./pages/CasePage'));
@@ -27,7 +26,6 @@ const CookiesPage = lazy(() => import('./pages/CookiesPage'));
  *
  * Routes:
  * - / : Auth landing (handles magic link token, redirects to case)
- * - /demo : Example cases selector (mock mode)
  * - /saker : Case overview page (list all cases from Supabase)
  * - /saker/ny : Create new case page (for external deployments)
  * - /saker/:sakId : Case detail view (timeline + dashboard + actions)
@@ -49,7 +47,6 @@ const App: React.FC = () => {
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<AuthLanding />} />
-          <Route path="/demo" element={<ExampleCasesPage />} />
           <Route path="/showcase" element={<ComponentShowcase />} />
           <Route path="/personvern" element={<PersonvernPage />} />
           <Route path="/cookies" element={<CookiesPage />} />

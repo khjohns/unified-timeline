@@ -7,7 +7,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { setAuthToken, USE_MOCK_API } from '../api/client';
+import { setAuthToken } from '../api/client';
 
 interface AuthContextType {
   token: string | null;
@@ -42,17 +42,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // In mock mode, always provide a valid token without verification
-    // This allows GitHub Pages preview to work without backend
-    if (USE_MOCK_API) {
-      const mockToken = 'mock-token-for-preview';
-      setToken(mockToken);
-      setSakId(null); // sakId comes from URL params in mock mode
-      setAuthToken(mockToken);
-      setIsVerifying(false);
-      return;
-    }
-
     // Bypass auth for testing (matches backend DISABLE_AUTH)
     if (import.meta.env.VITE_DISABLE_AUTH === 'true') {
       const testToken = 'test-token-auth-disabled';

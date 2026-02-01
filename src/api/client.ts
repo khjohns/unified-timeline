@@ -3,16 +3,9 @@
  *
  * Centralized HTTP client for backend communication.
  * Handles authentication, error handling, and request formatting.
- *
- * Mock Mode:
- * Set VITE_USE_MOCK_API=true to use mock data instead of real API.
- * Useful for development, testing, and GitHub Pages preview.
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-
-// Check if we should use mock API
-export const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true';
 
 // Auth token storage (set by AuthContext)
 let authToken: string | null = null;
@@ -76,13 +69,6 @@ export class ApiError extends Error {
     super(message);
     this.name = 'ApiError';
   }
-}
-
-/**
- * Simulate network delay for mock API calls
- */
-export function mockDelay(ms: number = 500): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**

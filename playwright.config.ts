@@ -80,14 +80,10 @@ export default defineConfig({
   ],
 
   // Run local dev server before starting the tests (optional)
-  // Note: VITE_USE_MOCK_API=false ensures frontend uses real backend API
   // Uses port 3001 to avoid conflicts with existing dev server on 3000
   webServer: {
-    command: 'VITE_USE_MOCK_API=false npm run dev -- --port 3001',
+    command: 'npm run dev -- --port 3001',
     url: 'http://localhost:3001',
     reuseExistingServer: false,
-    env: {
-      VITE_USE_MOCK_API: 'false',
-    },
   },
 });

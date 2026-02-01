@@ -39,7 +39,7 @@ import {
   erLovendring,
   getGrupperteUnderkategorier,
 } from '../constants';
-import { apiFetch, USE_MOCK_API, mockDelay } from '../api/client';
+import { apiFetch } from '../api/client';
 import type { StateResponse } from '../types/api';
 
 // Schema for the form
@@ -134,16 +134,6 @@ export function OpprettSakPage() {
   // Mutation for creating the case
   const createCaseMutation = useMutation<BatchEventResponse, Error, OpprettSakFormData>({
     mutationFn: async (data) => {
-      // Mock mode
-      if (USE_MOCK_API) {
-        await mockDelay(800);
-        return {
-          success: true,
-          event_ids: [`evt-mock-${Date.now()}`],
-          new_version: 1,
-        };
-      }
-
       // Build VarselInfo structure
       const varselDato = data.varsel_sendes_na
         ? new Date().toISOString().split('T')[0]
