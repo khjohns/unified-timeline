@@ -692,27 +692,62 @@ Under kartleggingsmøtet, avklar:
 3. **Token-claims**: Hvilke claims får vi automatisk?
    - `groups`? `roles`? `manager`?
 
-### Dual-mode autentisering
+### Enhetlig autentisering
 
-Systemet støtter både Magic Links (eksterne) og Entra ID (interne):
+**Alle brukere** (både interne og eksterne) autentiseres via Entra ID/IDA:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                     Autentisering                            │
 ├──────────────────────────────────────────────────────────────┤
-│  Eksterne brukere (TE - Totalentreprenør):                   │
-│  └── Magic Links via e-post                                  │
-│                                                              │
-│  Interne brukere (BH - Byggherre/Oslobygg):                 │
+│  Alle brukere:                                               │
 │  └── Entra ID via IDA (SSO med MFA)                         │
 │                                                              │
-│  Backend validerer begge token-typer og setter:              │
-│  - request.user_id                                           │
-│  - request.user_email                                        │
-│  - request.user_role (TE/BH)                                 │
-│  - request.approval_role (PL/SL/AL/DU/AD) - kun BH           │
+│  Rollebestemmelse (TE vs BH):                               │
+│  └── Basert på organisasjonstilhørighet eller attributt     │
+│      - Oslobygg-ansatte → BH (Byggherre)                    │
+│      - Eksterne (entreprenører) → TE (Totalentreprenør)     │
+│                                                              │
+│  HR-system er master for:                                    │
+│  └── Stillingstittel (PL/SL/AL/DU/AD)                       │
+│  └── Organisasjonshierarki (leder-relasjoner)               │
+│  └── Synkroniseres til Entra ID via HR-integrasjon          │
 └──────────────────────────────────────────────────────────────┘
 ```
+
+### HR-system som master
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  HR-system  │───▶│  Entra ID   │───▶│  IDA        │───▶│  Flask-app  │
+│  (master)   │    │  (synk)     │    │  (wrapper)  │    │  (validerer)│
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+      │
+      ▼
+┌─────────────────────────────────────┐
+│  HR-data som synkroniseres:         │
+│  - Stillingstittel                  │
+│  - Avdeling/seksjon                 │
+│  - Leder (manager)                  │
+│  - Ansettelsesforhold               │
+└─────────────────────────────────────┘
+```
+
+**Spørsmål til IDA-kartlegging (oppdatert):**
+
+1. **Hvordan identifisere TE vs BH?**
+   - Organisasjonstilhørighet i Entra ID?
+   - Domene (f.eks. `@oslobygg.no` vs `@ekstern.no`)?
+   - Spesifikk gruppe eller attributt?
+
+2. **Hvordan hentes stillingstittel/rolle?**
+   - HR-synkronisering til `jobTitle` claim?
+   - Directory extension attribute?
+   - Custom claim fra HR-system?
+
+3. **Hvordan hentes leder-hierarki?**
+   - Graph API `/me/manager` (synkronisert fra HR)?
+   - Custom attributt i token?
 
 ### Testing uten IDA
 
@@ -722,7 +757,7 @@ For lokal utvikling og testing før IDA er konfigurert:
 # .env - Deaktiver Entra ID
 ENTRA_ENABLED=false
 
-# Bruk mock-autentisering via Magic Links
+# Bruk mock-autentisering via Magic Links (fallback)
 ```
 
 Se også: [plan-godkjenning-workflow.md](plan-godkjenning-workflow.md) for godkjenningsflyt-integrasjon.

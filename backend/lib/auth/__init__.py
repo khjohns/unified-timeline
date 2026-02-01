@@ -14,6 +14,7 @@ from .entra_id import (
     validate_entra_token,
     require_entra_auth,
     require_approval_role,
+    require_bh_role,
     get_entra_user,
 )
 
@@ -29,10 +30,11 @@ __all__ = [
     'require_supabase_auth',
     'validate_supabase_token',
     'get_current_user',
-    # Entra ID / IDA (interne brukere)
+    # Entra ID / IDA (alle brukere)
     'EntraUser',
     'validate_entra_token',
     'require_entra_auth',
     'require_approval_role',
+    'require_bh_role',
     'get_entra_user',
 ]
