@@ -63,8 +63,42 @@ def verify_magic_link():
 
 @utility_bp.route('/api/health', methods=['GET'])
 def health_check():
-    """Simple health check endpoint"""
-    return jsonify({"status": "healthy", "service": "koe-backend"}), 200
+    """
+    Health check endpoint med database-sjekk.
+
+    Returnerer:
+    - status: "healthy" | "degraded" | "unhealthy"
+    - checks: detaljer om hver komponent
+    """
+    checks = {
+        "database": {"status": "unknown", "latency_ms": None},
+        "service": {"status": "healthy"}
+    }
+    overall_status = "healthy"
+
+    # Database check - prøv å hente metadata-count
+    try:
+        import time
+        from repositories import create_metadata_repository
+
+        start = time.time()
+        repo = create_metadata_repository()
+        # Enkel spørring for å verifisere tilkobling
+        _ = repo.count() if hasattr(repo, 'count') else repo.list_all()[:1]
+        latency_ms = round((time.time() - start) * 1000, 2)
+
+        checks["database"] = {"status": "healthy", "latency_ms": latency_ms}
+    except Exception as e:
+        logger.warning(f"Health check: Database unavailable - {e}")
+        checks["database"] = {"status": "unhealthy", "error": str(e)}
+        overall_status = "degraded"
+
+    status_code = 200 if overall_status == "healthy" else 503
+    return jsonify({
+        "status": overall_status,
+        "service": "koe-backend",
+        "checks": checks
+    }), status_code
 
 
 @utility_bp.route('/api/health/catenda', methods=['GET'])

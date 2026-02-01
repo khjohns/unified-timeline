@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     # Flask
     flask_host: str = "0.0.0.0"
     flask_port: int = 8080
-    flask_debug: bool = True
+    flask_debug: bool = False  # Sett FLASK_DEBUG=true i .env for lokal utvikling
 
     # CORS
     cors_origins: str = "http://localhost:3000"  # Comma-separated list
