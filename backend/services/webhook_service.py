@@ -8,13 +8,13 @@ Architecture:
 - Uses EventRepository instead of CSVRepository
 - Generates domain events (SakOpprettetEvent) instead of documents
 - State is computed from events, not stored directly
+- Uses Unit of Work for atomic metadata + event operations
 """
 import os
 import base64
 import tempfile
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
-from threading import Thread
 
 from repositories.event_repository import JsonFileEventRepository
 from repositories import create_metadata_repository
@@ -223,7 +223,7 @@ class WebhookService:
                 sakstype=sakstype,
             )
 
-            # Create metadata FIRST (FK constraint requires this)
+            # Create metadata and event atomically using Unit of Work
             metadata = SakMetadata(
                 sak_id=sak_id,
                 prosjekt_id=v2_project_id,
@@ -235,21 +235,22 @@ class WebhookService:
                 cached_title=title,
                 cached_status="UNDER_VARSLING",  # Initial status
             )
-            self.metadata_repo.create(metadata)
-            logger.info(f"✅ Metadata created for {sak_id}")
 
-            # Persist event (version 0 = new case)
+            # Use Unit of Work for atomic metadata + event creation
+            # Automatic rollback on failure
+            from core.container import get_container
+            container = get_container()
+
             try:
-                new_version = self.event_repo.append(event, expected_version=0)
-                logger.info(f"✅ SakOpprettetEvent persisted for {sak_id}, version: {new_version}")
+                with container.create_unit_of_work() as uow:
+                    uow.metadata.create(metadata)
+                    logger.info(f"✅ Metadata created for {sak_id}")
+
+                    new_version = uow.events.append(event, expected_version=0)
+                    logger.info(f"✅ SakOpprettetEvent persisted for {sak_id}, version: {new_version}")
             except Exception as e:
-                logger.error(f"❌ Failed to persist SakOpprettetEvent: {e}")
-                # Rollback metadata if event fails
-                try:
-                    self.metadata_repo.delete(sak_id)
-                except Exception:
-                    pass
-                return {'success': False, 'error': f'Failed to persist event: {e}'}
+                logger.error(f"❌ Failed to create case {sak_id}: {e}")
+                return {'success': False, 'error': f'Failed to create case: {e}'}
 
             # Generate magic link with correct route based on sakstype
             magic_token = None
@@ -260,7 +261,7 @@ class WebhookService:
             frontend_route = get_frontend_route(sakstype, sak_id)
             magic_link = f"{base_url}{frontend_route}?magicToken={magic_token}" if magic_token else f"{base_url}{frontend_route}"
 
-            # Post comment to Catenda (async to avoid blocking)
+            # Post comment to Catenda (synchronous - critical operation)
             comment_generator = CatendaCommentGenerator()
             comment_text = comment_generator.generate_creation_comment(
                 sak_id=sak_id,
@@ -269,17 +270,19 @@ class WebhookService:
                 magic_link=magic_link
             )
 
-            def post_comment_async():
-                try:
-                    self.catenda.create_comment(topic_id, comment_text)
-                    logger.info(f"✅ Comment posted to Catenda for case {sak_id}")
-                except Exception as e:
-                    logger.error(f"❌ Error posting comment to Catenda: {e}")
+            # Post comment synchronously - case is already created, so we log errors
+            # but don't rollback the case creation
+            try:
+                self.catenda.create_comment(topic_id, comment_text)
+                logger.info(f"✅ Comment posted to Catenda for case {sak_id}")
+            except Exception as e:
+                # Critical: Log for manual follow-up, but case is created
+                logger.error(
+                    f"❌ CRITICAL: Failed to post comment to Catenda for {sak_id}. "
+                    f"Manual follow-up required. Error: {e}"
+                )
 
-            # TODO: Azure Service Bus - Replace with queue for production
-            # Background threads are unreliable in Azure Functions (may be killed after HTTP response)
-            Thread(target=post_comment_async, daemon=True).start()
-            logger.info(f"✅ Case {sak_id} created, comment being posted in background.")
+            logger.info(f"✅ Case {sak_id} created successfully.")
 
             return {'success': True, 'sak_id': sak_id}
 
