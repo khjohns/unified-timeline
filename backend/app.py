@@ -123,7 +123,7 @@ init_limiter(app)
 
 from routes.utility_routes import utility_bp
 from routes.event_routes import events_bp
-from routes.webhook_routes import webhook_bp
+from routes.catenda_webhook_routes import webhook_bp  # Catenda-specific webhooks
 from routes.forsering_routes import forsering_bp
 from routes.endringsordre_routes import endringsordre_bp
 from routes.cloudevents_routes import cloudevents_bp

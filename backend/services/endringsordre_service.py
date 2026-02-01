@@ -222,20 +222,17 @@ class EndringsordreService(BaseSakService):
         )
         events.append(eo_utstedt)
 
-        # 5. Lagre metadata + events atomisk med Unit of Work
-        from core.container import get_container
-        container = get_container()
+        # 5. Lagre metadata + events atomisk via SakCreationService
+        from services.sak_creation_service import get_sak_creation_service
 
-        try:
-            with container.create_unit_of_work() as uow:
-                uow.metadata.create(metadata)
-                logger.info(f"✅ Metadata opprettet for {sak_id}")
+        creation_service = get_sak_creation_service()
+        result = creation_service.create_sak_with_metadata(
+            metadata=metadata,
+            events=events
+        )
 
-                uow.events.append_batch(events, expected_version=0)
-                logger.info(f"✅ {len(events)} events lagret for {sak_id}")
-        except Exception as e:
-            logger.error(f"❌ Feil ved lagring av endringsordre {sak_id}: {e}")
-            raise RuntimeError(f"Kunne ikke opprette endringsordre: {e}")
+        if not result.success:
+            raise RuntimeError(f"Kunne ikke opprette endringsordre: {result.error}")
 
         # 6. Prøv å synke til Catenda (valgfritt, kun hvis enabled)
         catenda_synced = False

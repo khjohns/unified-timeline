@@ -227,34 +227,27 @@ class WebhookService:
                 sakstype=sakstype,
             )
 
-            # Create metadata and event atomically using Unit of Work
-            metadata = SakMetadata(
+            # Create case using SakCreationService (atomic metadata + event)
+            from services.sak_creation_service import get_sak_creation_service
+
+            creation_service = get_sak_creation_service()
+            result = creation_service.create_sak(
                 sak_id=sak_id,
-                prosjekt_id=v2_project_id,
+                sakstype=sakstype,
+                events=[event],
                 catenda_topic_id=topic_id,
                 catenda_board_id=board_id,
                 catenda_project_id=v2_project_id,
-                created_at=datetime.now(timezone.utc),
-                created_by=author_name,
-                cached_title=title,
-                cached_status="UNDER_VARSLING",  # Initial status
+                prosjekt_id=v2_project_id,
+                metadata_kwargs={
+                    "created_by": author_name,
+                    "cached_title": title,
+                    "cached_status": "UNDER_VARSLING",
+                }
             )
 
-            # Use Unit of Work for atomic metadata + event creation
-            # Automatic rollback on failure
-            from core.container import get_container
-            container = get_container()
-
-            try:
-                with container.create_unit_of_work() as uow:
-                    uow.metadata.create(metadata)
-                    logger.info(f"✅ Metadata created for {sak_id}")
-
-                    new_version = uow.events.append(event, expected_version=0)
-                    logger.info(f"✅ SakOpprettetEvent persisted for {sak_id}, version: {new_version}")
-            except Exception as e:
-                logger.error(f"❌ Failed to create case {sak_id}: {e}")
-                return {'success': False, 'error': f'Failed to create case: {e}'}
+            if not result.success:
+                return {'success': False, 'error': result.error}
 
             # Generate magic link with correct route based on sakstype
             magic_token = None
