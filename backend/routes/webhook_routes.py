@@ -4,7 +4,8 @@ Webhook Routes Blueprint
 Endpoints for:
 - Receiving Catenda webhook events
 
-Uses WebhookService for business logic (framework-agnostic).
+Uses CatendaWebhookService for business logic (framework-agnostic).
+Note: These routes are only active when Catenda integration is enabled.
 """
 import os
 import logging
@@ -17,7 +18,7 @@ from lib.security.webhook_security import (
 )
 from lib.security.rate_limiter import limit_webhook
 from lib.monitoring.audit import audit
-from services.webhook_service import WebhookService
+from services.catenda_webhook_service import WebhookService
 from repositories import create_event_repository
 from lib.catenda_factory import get_catenda_client
 from core.config import settings

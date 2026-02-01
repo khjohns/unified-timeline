@@ -334,7 +334,7 @@ with uow.transaction():
 ### 4. Threading i background tasks
 
 ```python
-# backend/services/webhook_service.py
+# backend/services/catenda_webhook_service.py
 thread = threading.Thread(target=self._sync_to_catenda)
 thread.start()  # ❌ Fungerer IKKE i Azure Functions!
 ```
@@ -495,7 +495,7 @@ class Settings(BaseSettings):
 | 2.1 | Implementer Unit of Work | `core/unit_of_work.py` | 4 timer | ✅ Ferdig |
 | 2.2 | Utvid repository interface | (løst via UoW) | 2 timer | ✅ Ferdig |
 | 2.3 | Legg til Azure config | `core/config.py` | 2 timer | ✅ Ferdig |
-| 2.4 | Refaktorer webhook_service | `services/webhook_service.py` | 4 timer | ✅ Ferdig |
+| 2.4 | Refaktorer catenda_webhook_service | `services/catenda_webhook_service.py` | 4 timer | ✅ Ferdig |
 
 ### Fase 3: Azure-spesifikke implementasjoner (16-24 timer)
 
@@ -608,7 +608,7 @@ def my_function(req):
 - `backend/core/config.py` - Azure-konfigurasjon (storage, service bus, sql, keyvault)
 - `backend/core/container.py` - `create_unit_of_work()` factory-metode
 - `backend/core/__init__.py` - Eksporterer UoW-klasser
-- `backend/services/webhook_service.py` - Bruker UoW + synkron kommentarposting
+- `backend/services/catenda_webhook_service.py` - Bruker UoW + synkron kommentarposting
 
 **Unit of Work bruk:**
 ```python
@@ -639,7 +639,7 @@ settings.azure_keyvault_url
 settings.is_azure_environment  # property: True hvis Azure-config er satt
 ```
 
-**Endringer i webhook_service:**
+**Endringer i catenda_webhook_service:**
 - Fjernet `threading.Thread` - Azure Functions-kompatibel
 - Bruker Unit of Work for atomisk metadata + event opprettelse
 - Synkron Catenda-kommentarposting med feillogging
@@ -661,7 +661,7 @@ settings.is_catenda_enabled  # True hvis client_id + client_secret er satt
 
 **Oppdaterte filer:**
 - `backend/core/config.py` - `catenda_enabled` og `is_catenda_enabled` property
-- `backend/services/webhook_service.py` - Betinget kommentarposting
+- `backend/services/catenda_webhook_service.py` - Betinget kommentarposting
 - `backend/routes/event_routes.py` - Betinget `_post_to_catenda`
 - `backend/services/endringsordre_service.py` - UoW + betinget Catenda-synk
 

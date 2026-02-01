@@ -1,5 +1,8 @@
 """
-WebhookService - Event Sourcing compatible webhook handler.
+Catenda Webhook Service - Handles Catenda-specific webhook events.
+
+This module is OPTIONAL - the application works without Catenda integration.
+When Catenda is disabled (CATENDA_ENABLED=false), this service is not used.
 
 Handles Catenda webhook events by generating appropriate domain events
 instead of directly manipulating state.
@@ -9,6 +12,7 @@ Architecture:
 - Generates domain events (SakOpprettetEvent) instead of documents
 - State is computed from events, not stored directly
 - Uses Unit of Work for atomic metadata + event operations
+- Catenda comment posting is conditional on is_catenda_enabled
 """
 import os
 import base64
