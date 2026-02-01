@@ -28,15 +28,19 @@ Veiledning for utrulling av Unified Timeline (KOE-system) til produksjon.
 
 ### Prototype vs. Produksjon
 
-| Aspekt | Prototype | Produksjon |
-|--------|-----------|------------|
+| Aspekt | Prototype (Dev) | Produksjon |
+|--------|-----------------|------------|
 | Frontend | Vite dev server | Azure Static Web Apps |
 | Backend | Flask (Python) | Azure Functions (Python) |
-| Event Store | JSON-filer (per sak) | Microsoft Dataverse |
+| Database | Supabase (PostgreSQL) | Azure PostgreSQL (anbefalt) |
+| Event-format | CloudEvents v1.0 | CloudEvents v1.0 |
 | Arkitektur | Event Sourcing + CQRS | Event Sourcing + CQRS |
-| Autentisering | Magic links | Magic links + Entra ID |
+| Autentisering | Magic links / Supabase Auth | Magic links + Entra ID |
 | Sikkerhet | Basis CSRF/CORS | WAF, DDoS, RLS |
-| Hosting | Lokal/ngrok | Azure |
+| Hosting | Lokal / Vercel+Render | Azure |
+
+> **Merk:** Supabase brukes kun for utvikling. For produksjon anbefales Azure PostgreSQL.
+> Se [DATABASE_ARCHITECTURE.md](../backend/docs/DATABASE_ARCHITECTURE.md) for detaljer.
 
 ### Produksjonsmiljø
 
@@ -71,7 +75,7 @@ Veiledning for utrulling av Unified Timeline (KOE-system) til produksjon.
 │                      Azure Functions (Python 3.11)                    │
 │  ┌──────────────────────────────────────────────────────────────────┐ │
 │  │  Forretningslogikk og API-lag                                    │ │
-│  │  - Event Sourcing (immutabel hendelseslogg)                      │ │
+│  │  - Event Sourcing (CloudEvents v1.0)                             │ │
 │  │  - Gatekeeper (autorisasjon + rollebasert tilgang)               │ │
 │  │  - Input-validering (UUID, felt-validering)                      │ │
 │  │  - Magic Link-håndtering                                         │ │
@@ -80,23 +84,26 @@ Veiledning for utrulling av Unified Timeline (KOE-system) til produksjon.
 │  └──────────────────────────────────────────────────────────────────┘ │
 └───────────────┬───────────────────────────────────┬───────────────────┘
                 │                                   │
-                │ Managed Identity                  │ HTTPS
+                │ psycopg2/SQLAlchemy               │ HTTPS
                 ▼                                   ▼
 ┌───────────────────────────────┐    ┌──────────────────────────────────┐
-│      Dataverse (Event Store)  │    │           Catenda                │
-│  ┌─────────────────────────┐  │    │  ┌────────────────────────────┐  │
-│  │  - koe_events           │  │    │  │  - Webhook (inn)           │  │
-│  │    (append-only log)    │  │    │  │  - Document API v2         │  │
-│  │  - koe_sak_metadata     │  │    │  │  - BCF 3.0 API             │  │
-│  │  - koe_magic_links      │  │    │  │  - Project Members         │  │
-│  └─────────────────────────┘  │    │  └────────────────────────────┘  │
-│  Row-Level Security           │    │  Autoritativ dokument-kilde      │
-│  Encryption at rest           │    └──────────────────────────────────┘
-└───────────────────────────────┘
-                │
-                │ Native Connector
-                ▼
-┌───────────────────────────────┐
+│  Azure PostgreSQL             │    │           Catenda                │
+│  (Event Store)                │    │  ┌────────────────────────────┐  │
+│  ┌─────────────────────────┐  │    │  │  - Webhook (inn)           │  │
+│  │  - koe_events           │  │    │  │  - Document API v2         │  │
+│  │  - forsering_events     │  │    │  │  - BCF 3.0 API             │  │
+│  │  - endringsordre_events │  │    │  │  - Project Members         │  │
+│  │  - sak_metadata         │  │    │  └────────────────────────────┘  │
+│  │  - magic_links          │  │    │  Autoritativ dokument-kilde      │
+│  └─────────────────────────┘  │    └──────────────────────────────────┘
+│  ACID Transactions            │
+│  Row-Level Security           │             ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐
+│  Encryption at rest           │               Azure Event Grid
+└───────────────────────────────┘             │ (fremtidig mulighet)  │
+                │                              - Retry ved feil
+                │ Azure Synapse Link          │ - Fan-out til Power BI│
+                ▼                              - Dead-letter queue
+┌───────────────────────────────┐             └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘
 │        Power BI               │
 │  - Rapporter                  │
 │  - Dashboards                 │
@@ -324,73 +331,73 @@ az functionapp deployment source config-zip \
 
 ---
 
-## Database: Dataverse (Event Store)
+## Database: PostgreSQL
 
-### Event Sourcing med Dataverse
+### Utviklingsmiljø: Supabase
 
-Systemet bruker Event Sourcing der alle endringer lagres som uforanderlige hendelser:
+I utviklingsmiljøet brukes **Supabase** (managed PostgreSQL):
+- Rask oppstart og gratis tier for prototyping
+- Native JSONB for event payloads
+- Row Level Security (RLS)
+- **Begrensning:** Mangler client-side transaksjoner via PostgREST
 
-| Tabell | Beskrivelse | Primærnøkkel |
-|--------|-------------|--------------|
-| `koe_events` | Event store (append-only) | `event_id` |
-| `koe_sak_metadata` | Metadata-cache for sakliste | `sak_id` |
-| `koe_magic_link` | Magic link tokens | `token_id` |
+> ⚠️ **Supabase er kun for utvikling.** For produksjon anbefales Azure PostgreSQL.
 
-### Event-struktur i Dataverse
+### Produksjonsalternativer
 
-```python
-# Hver event lagres med følgende struktur:
-{
-    "event_id": "uuid",
-    "sak_id": "SAK-001",
-    "event_type": "GRUNNLAG_OPPRETTET",  # eller andre EventType
-    "tidsstempel": "2025-12-06T10:00:00Z",
-    "aktor": "ola.nordmann@firma.no",
-    "aktor_rolle": "TE",  # eller "BH"
-    "data": { ... },  # Event-spesifikk payload (JSON)
-    "kommentar": "Valgfri kommentar",
-    "referrer_til_event_id": null  # Referanse til tidligere event
-}
-```
+Se [DATABASE_ARCHITECTURE.md](../backend/docs/DATABASE_ARCHITECTURE.md) for fullstendig analyse.
 
-### Produksjons Event Repository
+| Database | Anbefaling | Begrunnelse |
+|----------|------------|-------------|
+| **Azure PostgreSQL** | ✅ Anbefalt | Enklest migrering fra Supabase, full ACID |
+| Azure SQL | Alternativ | God transaksjonsstøtte, krever skjema-tilpasning |
+| Dataverse | Kun hvis Power Platform | Batch-transaksjoner, høy migreringskompleksitet |
 
-Det finnes flere alternativer for produksjons event store:
+### Tabellstruktur (CloudEvents v1.0)
 
-#### Alternativ 1: Supabase (PostgreSQL)
+Systemet bruker Event Sourcing med tre event-tabeller:
 
-Allerede implementert i `repositories/supabase_event_repository.py`:
-
-```python
-# Supabase bruker PostgreSQL med:
-# - Native JSONB for event payloads
-# - Row Level Security for TE/BH separasjon
-# - Optimistisk låsing via versjon-constraint
-
-# SQL-skjema (se supabase_event_repository.py for full migrasjon):
+```sql
+-- Standard KOE-saker
 CREATE TABLE koe_events (
     id SERIAL PRIMARY KEY,
+    -- CloudEvents Required Attributes
+    specversion TEXT NOT NULL DEFAULT '1.0',
     event_id UUID NOT NULL UNIQUE,
-    sak_id TEXT NOT NULL,
-    event_type TEXT NOT NULL,
-    tidsstempel TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    aktor TEXT NOT NULL,
-    aktor_rolle TEXT NOT NULL CHECK (aktor_rolle IN ('TE', 'BH')),
+    source TEXT NOT NULL,           -- /projects/{prosjekt_id}/cases/{sak_id}
+    type TEXT NOT NULL,             -- no.oslo.koe.{event_type}
+    -- CloudEvents Optional Attributes
+    time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    subject TEXT NOT NULL,          -- sak_id
+    datacontenttype TEXT DEFAULT 'application/json',
+    -- Extension Attributes
+    actor TEXT NOT NULL,
+    actorrole TEXT NOT NULL CHECK (actorrole IN ('TE', 'BH')),
+    comment TEXT,
+    referstoid UUID,
+    -- Data Payload
     data JSONB NOT NULL,
+    -- Internal
+    sak_id TEXT NOT NULL,
     versjon INTEGER NOT NULL,
-    CONSTRAINT unique_sak_version UNIQUE (sak_id, versjon)
+    CONSTRAINT unique_koe_sak_version UNIQUE (sak_id, versjon)
 );
+
+-- Tilsvarende for forsering_events og endringsordre_events
 ```
 
-#### Alternativ 2: Dataverse (planlagt)
+**Metadata-tabell:**
 
-```python
-# repositories/dataverse_event_repository.py (ikke implementert)
-# Følger samme EventRepository interface som Supabase-versjonen
-class DataverseEventRepository(EventRepository):
-    def append(self, event: SakEvent, expected_version: int) -> int:
-        """Legg til event med optimistisk låsing."""
-        # ... Dataverse-spesifikk implementasjon
+```sql
+CREATE TABLE sak_metadata (
+    sak_id TEXT PRIMARY KEY,
+    prosjekt_id TEXT,
+    catenda_topic_id TEXT,
+    sakstype TEXT DEFAULT 'standard',  -- standard, forsering, endringsordre
+    cached_title TEXT,
+    cached_status TEXT,
+    last_event_at TIMESTAMPTZ
+);
 ```
 
 ### State-projeksjon
@@ -403,16 +410,105 @@ events, version = event_repo.get_events(sak_id)
 state = timeline_service.compute_state(events)
 ```
 
+### Repository Pattern
+
+Backend bruker factory-funksjoner for å bytte database:
+
+```python
+# Miljøvariabel bestemmer backend
+EVENT_STORE_BACKEND=supabase  # dev
+EVENT_STORE_BACKEND=azure_postgres  # prod (fremtidig)
+
+# Factory-funksjon
+from repositories import create_event_repository
+event_repo = create_event_repository()
+```
+
 ### Row-Level Security
 
-Dataverse støtter RLS for å begrense tilgang:
+```
+Tilgangskontroll:
+├── Oslobygg-ansatte: Full tilgang til alle saker
+├── Entreprenør (TE): Kun egne saker
+└── Byggherre (BH): Kun tildelte saker
+```
+
+---
+
+## Event-format: CloudEvents
+
+Systemet bruker **CloudEvents v1.0** som event-format. Dette er en CNCF-standard som gir:
+
+- **Standardisering** - Felles format som er selvdokumenterende
+- **Interoperabilitet** - SDK-er for Python, JavaScript, Go, Java, .NET
+- **Azure-kompatibilitet** - Native støtte i Azure Event Grid
+
+### Event-struktur
+
+```json
+{
+  "specversion": "1.0",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "source": "/projects/P-2025-001/cases/KOE-2025-042",
+  "type": "no.oslo.koe.grunnlag_opprettet",
+  "time": "2025-12-20T10:30:00Z",
+  "subject": "KOE-2025-042",
+  "datacontenttype": "application/json",
+  "actor": "ola.nordmann@firma.no",
+  "actorrole": "TE",
+  "data": {
+    "tittel": "Forsinket tegningsunderlag",
+    "hovedkategori": "SVIKT",
+    "underkategori": "MEDVIRK"
+  }
+}
+```
+
+### API-støtte
+
+- `Accept: application/cloudevents+json` på `/api/cases/{sak_id}/timeline`
+- Schema-endepunkter: `/api/cloudevents/schemas`
+
+Se [CLOUDEVENTS_ADOPTION.md](CLOUDEVENTS_ADOPTION.md) for fullstendig dokumentasjon.
+
+---
+
+## Azure Event Grid (fremtidig)
+
+> **Status:** Ikke implementert. Avhenger av om virksomheten har Azure Event Grid tilgjengelig.
+
+### Hvorfor Event Grid?
+
+Event Grid kan gi betydelig verdi for robusthet og skalerbarhet:
+
+| Fordel | Beskrivelse |
+|--------|-------------|
+| **Retry** | Automatisk retry ved feil (eksponentiell backoff) |
+| **Ingen datatap** | Event lagres i database FØR Catenda-kall |
+| **Fan-out** | Samme event til Catenda + Power BI + varsling |
+| **Dead-letter** | Events som feiler permanent fanges opp |
+
+### Arkitektur med Event Grid
 
 ```
-koe_sak
-├── Oslobygg-ansatte: Full tilgang til alle saker
-├── Entreprenør: Kun egne saker (basert på e-post/firma)
-└── Byggherre: Kun saker de er tildelt
+Frontend ──► Backend ──► PostgreSQL ──► ✅ Lagret (garantert)
+                              │
+                              └──► Event Grid ──► Catenda (retry)
+                                       │
+                                       ├──► Power BI (fan-out)
+                                       └──► Varsling (fan-out)
 ```
+
+### Implementering (når aktuelt)
+
+CloudEvents-formatet er allerede implementert, så Event Grid-integrasjon krever kun:
+
+1. Konfigurere Azure Event Grid topic
+2. Implementere publisering via `to_cloudevent()`
+3. Sette opp subscriptions for Azure Functions
+4. Implementere dead-letter håndtering
+
+Se [CLOUDEVENTS_ADOPTION.md](CLOUDEVENTS_ADOPTION.md) fase 5 for detaljer.
 
 ---
 
@@ -437,7 +533,7 @@ koe_sak
    - Project-scope validering
 
 4. **Data**
-   - Dataverse Row-Level Security
+   - PostgreSQL Row-Level Security
    - Managed Identity (ingen hardkodede credentials)
    - Kryptering i hvile og transit
 
@@ -628,7 +724,7 @@ Lag Azure Dashboard med:
 
 ### Før produksjon
 
-- [ ] Azure ressurser opprettet (SWA, Functions, Key Vault, Dataverse)
+- [ ] Azure ressurser opprettet (SWA, Functions, Key Vault, PostgreSQL)
 - [ ] Secrets konfigurert i Key Vault
 - [ ] Managed Identity aktivert
 - [ ] CORS konfigurert riktig
@@ -639,12 +735,13 @@ Lag Azure Dashboard med:
 - [ ] Alerts konfigurert
 - [ ] CI/CD pipeline testet
 - [ ] Backup-strategi dokumentert
-- [ ] **Dataverse event store tabell (`koe_events`) opprettet**
-- [ ] **Dataverse metadata tabell (`koe_sak_metadata`) opprettet**
+- [ ] **PostgreSQL event-tabeller opprettet** (`koe_events`, `forsering_events`, `endringsordre_events`)
+- [ ] **PostgreSQL metadata-tabell opprettet** (`sak_metadata`)
 - [ ] Row-Level Security konfigurert
 - [ ] Catenda webhooks oppdatert til produksjons-URL
 - [ ] Load testing gjennomført
 - [ ] Security review gjennomført
+- [x] **CloudEvents v1.0 format implementert**
 - [x] **Event Sourcing GET-endpoints portert til Azure Functions** (`/state`, `/timeline`)
 - [ ] **Event Sourcing POST-endpoints portert til Azure Functions** (`/events`, `/events/batch`)
 
@@ -653,23 +750,75 @@ Lag Azure Dashboard med:
 - [ ] Smoke test: Health endpoint (`GET /api/health`)
 - [ ] Smoke test: Magic link flow (`POST /api/verify-magic-link`)
 - [ ] Smoke test: Hent sak (`GET /api/cases/{id}`)
-- [ ] Smoke test: Hent state (`GET /api/cases/{id}/state`) ✅
-- [ ] Smoke test: Hent timeline (`GET /api/cases/{id}/timeline`) ✅
+- [ ] Smoke test: Hent state (`GET /api/cases/{id}/state`)
+- [ ] Smoke test: Hent timeline (`GET /api/cases/{id}/timeline`)
 - [ ] Smoke test: Lagre utkast (`PUT /api/cases/{id}/draft`)
 - [ ] Smoke test: Webhook mottak (`POST /webhook/catenda/{secret}`)
 - [ ] Verifiser logging i App Insights
 - [ ] Verifiser event log i event store
 
 **Event Sourcing POST-endpoints (krever portering fra Flask):**
-- [ ] Smoke test: Submit event (`POST /api/events`) ⚠️
-- [ ] Smoke test: Submit batch (`POST /api/events/batch`) ⚠️
-- [ ] Smoke test: Optimistisk låsing (conflict handling) ⚠️
+- [ ] Smoke test: Submit event (`POST /api/events`)
+- [ ] Smoke test: Submit batch (`POST /api/events/batch`)
+- [ ] Smoke test: Optimistisk låsing (conflict handling)
+
+---
+
+## Vedlegg: SharePoint-vurdering
+
+> **Konklusjon:** SharePoint anbefales ikke for dette systemet, men kan vurderes for svært begrenset pilot.
+
+### Hvorfor SharePoint ikke passer
+
+Se [TECHNOLOGY_COMPARISON.md](TECHNOLOGY_COMPARISON.md) for fullstendig analyse. Hovedutfordringene:
+
+| Begrensning | Konsekvens |
+|-------------|------------|
+| **500 raders delegation limit** | Sakliste fungerer ikke med >500 saker |
+| **5 000 elementers listeterskel** | Nås innen 1-2 år med ~10 000 events/år |
+| **Ingen felt-nivå sikkerhet** | Kan ikke skille TE/BH-felter |
+| **Ingen transaksjoner** | Risiko for inkonsistent data |
+
+### Kan SharePoint brukes for begrenset pilot?
+
+**Scenario:** 1-2 prosjekter i stedet for 50
+
+| Faktor | Vurdering |
+|--------|-----------|
+| **Antall saker** | ~50-100 saker per prosjekt = innenfor 500-grensen |
+| **Event-volum** | ~500-1500 events = under 5000-terskelen |
+| **Felt-sikkerhet** | ❌ Fortsatt problematisk - TE/BH må se ulike felter |
+| **Kompleksitet** | ❌ Subsidiær logikk, tre-spor modell støttes ikke |
+
+**Konklusjon for pilot:**
+
+| Aspekt | Egnet for SharePoint? |
+|--------|----------------------|
+| Enkel saksregistrering | ✅ Ja |
+| Statussporing | ✅ Ja |
+| Varslings-workflows | ✅ Ja (Power Automate) |
+| Tre-spor modell | ❌ Nei |
+| Subsidiær logikk | ❌ Nei |
+| TE/BH felt-separasjon | ❌ Nei |
+| Catenda-integrasjon | ⚠️ Krever Premium-lisens |
+
+**Anbefaling:** Hvis en begrenset pilot vurderes:
+1. Definer et sterkt forenklet scope (kun statussporing, ingen kompleks logikk)
+2. Aksepter at felt-sikkerhet må håndteres manuelt (separate lister eller visninger)
+3. Plan for migrering til fullverdig løsning etter pilot
+4. Vurder om innsatsen er verdt det vs. å bruke eksisterende custom-løsning
+
+Se [TECHNOLOGY_COMPARISON.md](TECHNOLOGY_COMPARISON.md) for detaljert sammenligning.
 
 ---
 
 ## Se også
 
-- [SECURITY_ARCHITECTURE.md](SECURITY_ARCHITECTURE.md) – Sikkerhetsarkitektur (prototype vs. produksjon)
+- [DATABASE_ARCHITECTURE.md](../backend/docs/DATABASE_ARCHITECTURE.md) – Database-alternativer og transaksjoner
+- [CLOUDEVENTS_ADOPTION.md](CLOUDEVENTS_ADOPTION.md) – CloudEvents-implementering og Azure Event Grid
+- [TECHNOLOGY_COMPARISON.md](TECHNOLOGY_COMPARISON.md) – Custom-løsning vs. Power Platform/SharePoint
+- [EXTERNAL_DEPLOYMENT.md](EXTERNAL_DEPLOYMENT.md) – Alternativ deploy (Vercel/Render/Supabase)
+- [SECURITY_ARCHITECTURE.md](SECURITY_ARCHITECTURE.md) – Sikkerhetsarkitektur
 - [FRONTEND_ARCHITECTURE.md](FRONTEND_ARCHITECTURE.md) – Frontend-arkitektur
 - [GETTING_STARTED.md](GETTING_STARTED.md) – Lokal utvikling
 - [backend/STRUCTURE.md](../backend/STRUCTURE.md) – Backend-mappestruktur
