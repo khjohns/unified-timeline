@@ -61,7 +61,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 Last siden på nytt
               </Button>
             </div>
-            {import.meta.env.DEV && this.state.error && (
+            {(import.meta.env.DEV || import.meta.env.VITE_SHOW_ERROR_DETAILS === 'true') && this.state.error && (
               <pre className="mt-6 p-3 sm:p-4 bg-pkt-bg-subtle text-left text-xs sm:text-sm overflow-auto rounded border border-pkt-grays-gray-200 max-h-48 sm:max-h-64">
                 {this.state.error.message}
                 {'\n\n'}
