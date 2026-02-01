@@ -12,7 +12,7 @@ with full support for:
 - CloudEvents v1.0 format for all event responses
 """
 from flask import Blueprint, request, jsonify
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List, Dict, Any
 import base64
 import tempfile
 import os
@@ -453,10 +453,11 @@ def submit_event():
         # 9. Catenda Integration (PDF + Comment + Status Sync) - optional
         catenda_success = False
         pdf_source = None
+        catenda_documents: List[Dict[str, Any]] = []
         catenda_skipped_reason = None
 
         if catenda_topic_id:
-            catenda_success, pdf_source = _post_to_catenda(
+            catenda_success, pdf_source, catenda_documents = _post_to_catenda(
                 sak_id=sak_id,
                 state=new_state,
                 event=event,
@@ -479,7 +480,8 @@ def submit_event():
             "pdf_uploaded": catenda_success,
             "pdf_source": pdf_source,
             "catenda_synced": catenda_success,
-            "catenda_skipped_reason": catenda_skipped_reason
+            "catenda_skipped_reason": catenda_skipped_reason,
+            "catenda_documents": catenda_documents
         }), 201
 
     except CatendaAuthError as e:
@@ -986,8 +988,9 @@ def _upload_and_link_pdf(
     ctx: CatendaContext,
     topic_id: str,
     pdf_path: str,
-    filename: str
-) -> bool:
+    filename: str,
+    source: str
+) -> Optional[Dict[str, Any]]:
     """
     Upload PDF to Catenda and link to topic.
 
@@ -996,14 +999,20 @@ def _upload_and_link_pdf(
         topic_id: Catenda topic GUID
         pdf_path: Path to PDF file
         filename: Filename for upload
+        source: PDF source ("client" or "server")
 
     Returns:
-        True if successful
+        Document info dict if successful, None otherwise:
+        {
+            "id": "catenda-document-id",
+            "filename": "uploaded-filename.pdf",
+            "source": "client" | "server"
+        }
     """
     doc_result = ctx.service.upload_document(ctx.project_id, pdf_path, filename, ctx.folder_id)
     if not doc_result:
         logger.error("❌ Failed to upload PDF to Catenda")
-        return False
+        return None
 
     compact_guid = doc_result.get('id') or doc_result.get('library_item_id')
     logger.info(f"✅ PDF uploaded to Catenda: {compact_guid}")
@@ -1023,9 +1032,15 @@ def _upload_and_link_pdf(
         if not ref_result and compact_guid != document_guid:
             logger.warning(f"Formatted GUID failed, trying compact: {compact_guid}")
             ref_result = ctx.service.create_document_reference(topic_id, compact_guid)
-        return ref_result is not None
 
-    return False
+        if ref_result is not None:
+            return {
+                "id": compact_guid,
+                "filename": filename,
+                "source": source
+            }
+
+    return None
 
 
 def _post_catenda_comment(
@@ -1111,7 +1126,7 @@ def _post_to_catenda(
     client_pdf_base64: Optional[str] = None,
     client_pdf_filename: Optional[str] = None,
     old_status: Optional[str] = None
-) -> Tuple[bool, Optional[str]]:
+) -> Tuple[bool, Optional[str], List[Dict[str, Any]]]:
     """
     Post PDF and comment to Catenda (hybrid approach) + sync status.
 
@@ -1130,15 +1145,20 @@ def _post_to_catenda(
         old_status: Previous overordnet_status for status sync
 
     Returns:
-        (success, pdf_source)  # pdf_source = "client" | "server" | None
+        (success, pdf_source, catenda_documents)
+        - success: True if PDF uploaded or comment posted
+        - pdf_source: "client" | "server" | None
+        - catenda_documents: List of uploaded document info dicts
     """
     try:
         logger.info(f"🔄 _post_to_catenda called for case {sak_id}, topic {topic_id}")
 
+        catenda_documents: List[Dict[str, Any]] = []
+
         # 1. Prepare Catenda context (service, config, IDs)
         ctx = _prepare_catenda_context(sak_id)
         if not ctx:
-            return False, None
+            return False, None, []
 
         # 2. Resolve PDF (client or server-generated)
         pdf_path, filename, pdf_source = _resolve_pdf(
@@ -1148,7 +1168,10 @@ def _post_to_catenda(
         # 3. Upload and link PDF to topic
         pdf_uploaded = False
         if pdf_path:
-            pdf_uploaded = _upload_and_link_pdf(ctx, topic_id, pdf_path, filename)
+            doc_info = _upload_and_link_pdf(ctx, topic_id, pdf_path, filename, pdf_source)
+            pdf_uploaded = doc_info is not None
+            if doc_info:
+                catenda_documents.append(doc_info)
             # Cleanup temp file
             try:
                 os.remove(pdf_path)
@@ -1162,14 +1185,14 @@ def _post_to_catenda(
         _sync_topic_status(ctx, topic_id, old_status, state.overordnet_status)
 
         # Return success if either PDF uploaded or comment posted
-        return (pdf_uploaded or comment_posted), pdf_source
+        return (pdf_uploaded or comment_posted), pdf_source, catenda_documents
 
     except CatendaAuthError:
         # Re-raise auth errors to trigger proper error handling upstream
         raise
     except Exception as e:
         logger.error(f"❌ Failed to post to Catenda: {e}", exc_info=True)
-        return False, None
+        return False, None, []
 
 
 def get_catenda_service() -> Optional[CatendaService]:

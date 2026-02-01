@@ -12,12 +12,42 @@ Fase 1: Kompatibilitetslag
 """
 from pydantic import BaseModel, computed_field
 from typing import Optional, Any, Dict
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 # CloudEvents namespace for dette prosjektet
 CLOUDEVENTS_NAMESPACE = "no.oslo.koe"
 CLOUDEVENTS_SPECVERSION = "1.0"
+
+
+def parse_rfc3339(time_str: str) -> datetime:
+    """
+    Parser RFC 3339 timestamp (CloudEvents time-format).
+
+    Støtter både UTC (Z-suffix) og offset-format (+/-HH:MM).
+
+    Args:
+        time_str: Timestamp i RFC 3339-format
+
+    Returns:
+        datetime med timezone-info
+
+    Raises:
+        ValueError: Hvis formatet er ugyldig
+
+    Eksempler:
+        >>> parse_rfc3339("2025-12-20T10:30:00Z")
+        datetime(2025, 12, 20, 10, 30, 0, tzinfo=timezone.utc)
+        >>> parse_rfc3339("2025-12-20T10:30:00+01:00")
+        datetime(2025, 12, 20, 10, 30, 0, tzinfo=...)
+    """
+    if time_str.endswith("Z"):
+        # UTC format: 2025-12-20T10:30:00Z
+        return datetime.fromisoformat(time_str[:-1]).replace(tzinfo=timezone.utc)
+    else:
+        # Offset format: 2025-12-20T10:30:00+01:00
+        # Python 3.11+ støtter dette direkte
+        return datetime.fromisoformat(time_str)
 
 
 class CloudEventMixin(BaseModel):
@@ -67,9 +97,14 @@ class CloudEventMixin(BaseModel):
         CloudEvents source URI.
 
         Format: /projects/{prosjekt_id}/cases/{sak_id}
-        Bruker 'unknown' som fallback hvis prosjekt_id ikke er satt.
+        Bruker 'oslobygg' som default hvis prosjekt_id ikke er satt.
         """
-        proj_id = getattr(self, 'prosjekt_id', None) or 'unknown'
+        # TODO: prosjekt_id bør hentes fra sak-kontekst ved event-opprettelse.
+        # Mulige løsninger:
+        # 1. Hent fra database: SakRepository.get_prosjekt_id(sak_id)
+        # 2. Inkluder prosjekt_id som required felt i API-requests
+        # 3. Legg til prosjekt_id i SakState og hent derfra
+        proj_id = getattr(self, 'prosjekt_id', None) or 'oslobygg'
         sak_id = getattr(self, 'sak_id', 'unknown')
         return f"/projects/{proj_id}/cases/{sak_id}"
 
@@ -216,6 +251,9 @@ class CloudEventMixin(BaseModel):
         Returns:
             Event-instans
 
+        Raises:
+            ValueError: Hvis CloudEvent mangler påkrevde felter eller har ugyldig format
+
         Eksempel input:
         {
             "specversion": "1.0",
@@ -229,6 +267,9 @@ class CloudEventMixin(BaseModel):
             "data": { ... }
         }
         """
+        # Valider CloudEvent først
+        validate_cloudevent(ce)
+
         # Map CloudEvents attributter til interne felter
         mapped: Dict[str, Any] = {
             "event_id": ce.get("id"),
@@ -239,16 +280,13 @@ class CloudEventMixin(BaseModel):
             "kommentar": ce.get("comment"),
         }
 
-        # Parse tidsstempel
+        # Parse tidsstempel (RFC 3339)
         time_str = ce.get("time")
         if time_str:
-            # Fjern Z suffix og parse
-            if time_str.endswith("Z"):
-                time_str = time_str[:-1]
             try:
-                mapped["tidsstempel"] = datetime.fromisoformat(time_str)
-            except ValueError:
-                mapped["tidsstempel"] = time_str
+                mapped["tidsstempel"] = parse_rfc3339(time_str)
+            except ValueError as e:
+                raise ValueError(f"Ugyldig RFC 3339 timestamp: {time_str}") from e
 
         # Ekstraher event_type fra type (fjern namespace)
         ce_type = ce.get("type", "")
@@ -264,7 +302,8 @@ class CloudEventMixin(BaseModel):
             parts = source.split("/")
             if len(parts) >= 3:
                 prosjekt_id = parts[2]
-                if prosjekt_id != "unknown":
+                # Ignorer default-verdier
+                if prosjekt_id not in ("unknown", "oslobygg"):
                     mapped["prosjekt_id"] = prosjekt_id
 
         # Legg til data
