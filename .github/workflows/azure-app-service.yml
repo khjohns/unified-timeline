@@ -1,0 +1,68 @@
+# Azure App Service (Flask) Deployment
+#
+# Deployer Flask-backend til Azure App Service.
+# Anbefalt for produksjon - enklere enn Functions, ingen cold start.
+#
+# Oppsett:
+# 1. Opprett App Service i Azure Portal (Python 3.11, Linux, B1-plan)
+# 2. Gå til App Service → Deployment Center → GitHub
+# 3. ELLER: Last ned Publish Profile og legg til som GitHub Secret
+#
+# Secrets som trengs:
+# - AZURE_WEBAPP_PUBLISH_PROFILE: Fra Azure Portal → App Service → Get publish profile
+
+name: Deploy Backend to Azure App Service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/azure-app-service.yml'
+  workflow_dispatch:  # Manuell trigger
+
+env:
+  AZURE_WEBAPP_NAME: 'unified-timeline-api'  # Endre til ditt App Service navn
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create deployment package
+        run: |
+          cd backend
+          # Fjern unødvendige filer for deploy
+          rm -rf __pycache__ .pytest_cache tests/ *.pyc
+          # Zip for raskere upload
+          zip -r ../deploy.zip . -x "*.git*" -x "*__pycache__*" -x "*.pyc"
+
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: deploy.zip
+
+      - name: Health check
+        run: |
+          echo "Waiting for deployment to complete..."
+          sleep 30
+          curl -f https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/api/health || echo "Health check failed - app may still be starting"
