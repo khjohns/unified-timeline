@@ -95,6 +95,28 @@ class Settings(BaseSettings):
     # Azure Key Vault (for secrets management)
     azure_keyvault_url: str = ""
 
+    # Entra ID / IDA (Oslo kommunes identitetstjeneste)
+    entra_enabled: bool = False  # Sett True når IDA er konfigurert
+    entra_tenant_id: str = ""  # Azure AD tenant ID fra IDA
+    entra_client_id: str = ""  # Application (client) ID fra IDA
+    entra_issuer: str = ""  # Overstyr issuer URL (valgfritt)
+
+    @property
+    def entra_issuer_url(self) -> str:
+        """Returner Entra ID issuer URL."""
+        if self.entra_issuer:
+            return self.entra_issuer
+        if self.entra_tenant_id:
+            return f"https://login.microsoftonline.com/{self.entra_tenant_id}/v2.0"
+        return ""
+
+    @property
+    def entra_jwks_url(self) -> str:
+        """Returner Entra ID JWKS URL for token-validering."""
+        if self.entra_tenant_id:
+            return f"https://login.microsoftonline.com/{self.entra_tenant_id}/discovery/v2.0/keys"
+        return ""
+
     @property
     def is_azure_environment(self) -> bool:
         """Check if running in Azure environment."""
