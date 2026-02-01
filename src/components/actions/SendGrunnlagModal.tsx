@@ -57,7 +57,7 @@ import { getPreklusjonsvarsel, getPreklusjonsvarselMellomDatoer, beregnDagerSide
 // Schema for create mode - all fields required
 // Underkategori is only required if the hovedkategori has underkategorier (e.g., not Force Majeure)
 const createGrunnlagSchema = z.object({
-  hovedkategori: z.string().min(1, 'Hovedkategori er påkrevd'),
+  hovedkategori: z.string().min(1, 'Kategori er påkrevd'),
   underkategori: z.string().default(''),
   tittel: z.string().min(3, 'Tittel må være minst 3 tegn').max(100, 'Tittel kan ikke være lengre enn 100 tegn'),
   beskrivelse: z.string().min(10, 'Beskrivelse må være minst 10 tegn'),
@@ -78,7 +78,7 @@ const createGrunnlagSchema = z.object({
     return data.underkategori.length > 0;
   },
   {
-    message: 'Underkategori må velges',
+    message: 'Hjemmel må velges',
     path: ['underkategori'],
   }
 );
@@ -405,7 +405,7 @@ export function SendGrunnlagModal({
           <div className="space-y-3 sm:space-y-4">
             {/* Hovedkategori */}
             <FormField
-              label="Hovedkategori"
+              label="Kategori"
               required
               error={errors.hovedkategori?.message}
               helpText="Velg rettslig grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder og hvilke krav som kan fremmes."
@@ -478,7 +478,7 @@ export function SendGrunnlagModal({
                   const hjemmel = field.value ? hjemmelMap[field.value] : undefined;
                   return (
                     <FormField
-                      label="Underkategori"
+                      label="Hjemmel"
                       required
                       error={errors.underkategori?.message}
                     >
@@ -491,7 +491,7 @@ export function SendGrunnlagModal({
                             error={!!errors.underkategori}
                             data-testid="grunnlag-underkategori-list"
                           >
-                            <SelectValue placeholder="Velg underkategori" />
+                            <SelectValue placeholder="Velg hjemmel" />
                           </SelectTrigger>
                           <SelectContent>
                             {Array.from(grupperteUnderkategorier.entries()).map(([gruppeNavn, underkategorier]) => (
