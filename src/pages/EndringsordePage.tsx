@@ -25,10 +25,10 @@ import {
   PlusIcon,
 } from '@radix-ui/react-icons';
 import {
+  LoadingState,
   VerifyingState,
   AuthErrorState,
 } from '../components/PageStateHelpers';
-import { PageLoadingFallback } from '../components/PageLoadingFallback';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import type {
   EndringsordreData,
@@ -119,7 +119,7 @@ export function EndringsordePage() {
   // Auth OK - render with Suspense
   return (
     <ErrorBoundary>
-      <Suspense fallback={<PageLoadingFallback />}>
+      <Suspense fallback={<LoadingState />}>
         <EndringsordrePageContent sakId={sakId || ''} />
       </Suspense>
     </ErrorBoundary>

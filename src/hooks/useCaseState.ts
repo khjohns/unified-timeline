@@ -79,7 +79,7 @@ export interface UseCaseStateSuspenseOptions {
  * @example
  * ```tsx
  * // Wrap in Suspense boundary
- * <Suspense fallback={<PageLoadingFallback />}>
+ * <Suspense fallback={<LoadingState />}>
  *   <CasePage />
  * </Suspense>
  *

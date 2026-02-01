@@ -10,33 +10,74 @@
  * These replace the duplicated loading/error patterns across pages.
  */
 
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { ReloadIcon, ExclamationTriangleIcon } from '@radix-ui/react-icons';
 import { Button } from './primitives';
 
+/**
+ * Roterende folkelige meldinger for å gjøre ventetiden mer engasjerende.
+ * Bytter melding hvert 750ms i tilfeldig rekkefølge.
+ */
+const LOADING_MESSAGES = [
+  'Henter kaffe …',
+  'Leter i arkivet …',
+  'Finner frem papirene …',
+  'Støvsuger mappene …',
+  'Sorterer bunken …',
+  'Nesten der …',
+];
+
+function getRandomIndex(currentIndex: number): number {
+  let newIndex: number;
+  do {
+    newIndex = Math.floor(Math.random() * LOADING_MESSAGES.length);
+  } while (newIndex === currentIndex && LOADING_MESSAGES.length > 1);
+  return newIndex;
+}
+
 interface LoadingStateProps {
-  /** Message to display below the spinner */
+  /** Custom message to display (overrides rotating messages) */
   message?: string;
   /** Whether to use full viewport height (default: true) */
   fullHeight?: boolean;
 }
 
 /**
- * Full-page loading state with spinner
+ * Full-page loading state with spinner and rotating friendly messages.
+ * Used for both data fetching and lazy-loaded pages (Suspense fallback).
  */
 export function LoadingState({
-  message = 'Laster...',
+  message,
   fullHeight = true,
 }: LoadingStateProps) {
+  const [messageIndex, setMessageIndex] = useState(() =>
+    Math.floor(Math.random() * LOADING_MESSAGES.length)
+  );
+
+  useEffect(() => {
+    // Skip rotation if custom message is provided
+    if (message) return;
+
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => getRandomIndex(prev));
+    }, 750);
+
+    return () => clearInterval(interval);
+  }, [message]);
+
+  const displayMessage = message ?? LOADING_MESSAGES[messageIndex];
+
   return (
     <div
       className={`${
         fullHeight ? 'min-h-screen' : 'min-h-[200px]'
       } bg-pkt-bg-subtle flex items-center justify-center px-4`}
     >
-      <div className="text-center">
-        <ReloadIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-pkt-grays-gray-400 animate-spin" />
-        <p className="text-sm sm:text-base text-pkt-grays-gray-500">{message}</p>
+      <div className="flex flex-col items-center gap-3 sm:gap-4">
+        <ReloadIcon className="w-10 h-10 sm:w-12 sm:h-12 text-pkt-brand-purple-1000 animate-spin" />
+        <p className="text-sm sm:text-base text-pkt-text-body-default animate-pulse">
+          {displayMessage}
+        </p>
       </div>
     </div>
   );

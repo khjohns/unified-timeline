@@ -8,7 +8,7 @@
 import { useState, Suspense } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { PageLoadingFallback } from '../components/PageLoadingFallback';
+import { LoadingState } from '../components/PageStateHelpers';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { Button, Card, Table, DropdownMenuItem, type Column } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
@@ -146,7 +146,7 @@ const columns: Column<FravikListeItem>[] = [
 export function FravikOversiktPage() {
   return (
     <ErrorBoundary>
-      <Suspense fallback={<PageLoadingFallback />}>
+      <Suspense fallback={<LoadingState />}>
         <FravikOversiktContent />
       </Suspense>
     </ErrorBoundary>
