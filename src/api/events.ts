@@ -5,7 +5,7 @@
  * All state mutations happen through events.
  */
 
-import { apiFetch, USE_MOCK_API, mockDelay } from './client';
+import { apiFetch } from './client';
 import { EventType } from '../types/timeline';
 
 // Storage keys (MUST match their respective sources)
@@ -74,25 +74,6 @@ export async function submitEvent(
     pdfFilename?: string;
   }
 ): Promise<EventSubmitResponse> {
-  // Use mock data if enabled
-  if (USE_MOCK_API) {
-    await mockDelay(800); // Simulate network delay for submission
-
-    // Return mock success response - simulate no Catenda sync in mock mode
-    return {
-      event_id: `evt-mock-${Date.now()}`,
-      tidsstempel: new Date().toISOString(),
-      success: true,
-      message: 'Mock event submitted successfully',
-      pdf_uploaded: !!options?.pdfBase64,
-      pdf_source: options?.pdfBase64 ? 'client' : undefined,
-      new_version: (options?.expectedVersion ?? 0) + 1,
-      catenda_synced: false,
-      catenda_skipped_reason: 'no_topic_id',
-    };
-  }
-
-  // Real API call
   return apiFetch<EventSubmitResponse>(`/api/events`, {
     method: 'POST',
     body: JSON.stringify({

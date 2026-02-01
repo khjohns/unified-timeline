@@ -26,12 +26,6 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ],
-      "@mocks/*": [
-        "./__mocks__/*"
-      ],
-      "@mocks": [
-        "./__mocks__"
       ]
     },
     "allowImportingTsExtensions": true,

@@ -1,16 +1,16 @@
 # Quickstart Guide - Event Sourcing Prototype
 
-This guide will get you up and running with the Event Sourcing prototype in under 5 minutes.
+This guide will get you up and running with the Event Sourcing prototype.
 
-## 🎯 What's Been Fixed
+## What's Been Fixed
 
-### ✅ Backend (`backend/app.py`)
+### Backend (`backend/app.py`)
 - **Removed**: Legacy routes (case_routes, varsel_routes, koe_routes, svar_routes)
 - **Added**: Event Sourcing routes (event_routes, webhook_routes, utility_routes)
 - **Improved**: Clear startup banner showing all available endpoints
 - **Changed**: Catenda integration is now optional (runs without credentials)
 
-### ✅ API Endpoints (Now Consistent)
+### API Endpoints (Now Consistent)
 All endpoints now use English with plural form `/api/cases/`:
 
 | Endpoint | Method | Purpose |
@@ -23,37 +23,12 @@ All endpoints now use English with plural form `/api/cases/`:
 | `/api/csrf-token` | GET | Get CSRF token |
 | `/api/magic-link/verify` | GET | Verify magic link |
 
-### ✅ Frontend (`src/api/state.ts`)
+### Frontend (`src/api/state.ts`)
 - Uses `/api/cases/` endpoint
 
 ---
 
-## 🚀 Option 1: Mock Mode (Fastest - No Backend)
-
-Perfect for testing the UI without setting up the backend.
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Enable mock mode
-echo "VITE_USE_MOCK_API=true" > .env.local
-
-# 3. Start frontend
-npm run dev
-
-# 4. Open browser
-# http://localhost:3000
-```
-
-**What you'll see:**
-- Example cases page with 4 pre-loaded scenarios
-- Click a case to see the timeline, status dashboard, and actions
-- All interactions work with mock data (no backend needed)
-
----
-
-## 🚀 Option 2: Full Stack (Backend + Frontend)
+## Getting Started
 
 ### Prerequisites
 - Python 3.11+ with pip
@@ -85,21 +60,21 @@ python app.py
 **Expected output:**
 ```
 ======================================================================
-🚀 KOE Backend API - Event Sourcing Architecture
+ KOE Backend API - Event Sourcing Architecture
 ======================================================================
 
-📡 Server: http://localhost:8080
-🔍 Environment: Development
-🔗 CORS: http://localhost:3000
+ Server: http://localhost:8080
+ Environment: Development
+ CORS: http://localhost:3000
 
-📋 Available Endpoints:
-  ┌─ Event Submission
-  ├── POST   /api/events              Submit single event
-  └── POST   /api/events/batch        Submit multiple events atomically
+ Available Endpoints:
+   - Event Submission
+  -- POST   /api/events              Submit single event
+  -- POST   /api/events/batch        Submit multiple events atomically
 
-  ┌─ State & Timeline
-  ├── GET    /api/cases/<id>/state    Get computed case state
-  └── GET    /api/cases/<id>/timeline Get event timeline
+   - State & Timeline
+  -- GET    /api/cases/<id>/state    Get computed case state
+  -- GET    /api/cases/<id>/timeline Get event timeline
   ...
 ======================================================================
 ```
@@ -112,9 +87,8 @@ Open a **new terminal** (keep backend running):
 # Install dependencies
 npm install
 
-# Configure to use real backend
+# Configure to use backend
 echo "VITE_API_BASE_URL=http://localhost:8080" > .env.local
-echo "VITE_USE_MOCK_API=false" >> .env.local
 
 # Start frontend
 npm run dev
@@ -130,15 +104,7 @@ npm run dev
 
 ---
 
-## 🧪 Testing Checklist
-
-### Frontend Only (Mock Mode)
-- [ ] Homepage loads with example cases
-- [ ] Can navigate to case detail page
-- [ ] Status dashboard shows three tracks (Grunnlag, Vederlag, Frist)
-- [ ] Can open action modals
-- [ ] Can fill out forms (mock submission)
-- [ ] Console logs show mock events
+## Testing Checklist
 
 ### Full Stack
 - [ ] Backend starts without errors
@@ -151,7 +117,7 @@ npm run dev
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Backend won't start
 **Error:** `CATENDA_CLIENT_ID missing`
@@ -191,7 +157,7 @@ echo "VITE_API_BASE_URL=http://localhost:8081" > .env.local
 
 ---
 
-## 📁 Where Data is Stored
+## Where Data is Stored
 
 ### Events (Event Store)
 ```
@@ -234,7 +200,7 @@ Each case has its own event log file with:
 
 ---
 
-## 🎓 Next Steps
+## Next Steps
 
 ### Learn the Architecture
 - Read `docs/IMPLEMENTATION_PROMPT.md` - Full migration plan
@@ -252,68 +218,68 @@ Each case has its own event log file with:
 3. Restart backend
 
 ### Deploy to Production
-- Frontend: Vite build → Static hosting (Vercel, Netlify)
-- Backend: Docker → Azure Container Apps
+- Frontend: Vite build - Static hosting (Vercel, Netlify)
+- Backend: Docker - Azure Container Apps
 - Follow `docs/UNIFIED_TIMELINE_MIGRATION_PLAN_V4_1_1.md` Appendix E
 
 ---
 
-## 📊 Architecture Overview
+## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        FRONTEND (React)                         │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
-│  │   Timeline   │  │   Dashboard  │  │ Action Modals│         │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘         │
-│         │                  │                  │                  │
-│         └──────────────────┴──────────────────┘                 │
-│                            │                                     │
-│                   ┌────────▼─────────┐                          │
-│                   │   API Client     │                          │
-│                   │  (state.ts,      │                          │
-│                   │   events.ts)     │                          │
-│                   └────────┬─────────┘                          │
-└────────────────────────────┼──────────────────────────────────┘
-                             │ HTTP (REST API)
-┌────────────────────────────▼──────────────────────────────────┐
-│                     BACKEND (Flask)                            │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │             event_routes.py (Blueprint)                  │ │
-│  │  POST /api/events     │  GET /api/cases/<id>/state       │ │
-│  │  POST /api/events/batch  GET /api/cases/<id>/timeline    │ │
-│  └──────┬───────────────────────────────┬───────────────────┘ │
-│         │                                │                     │
-│  ┌──────▼──────────┐           ┌────────▼─────────┐          │
-│  │  API Validators │           │ Timeline Service │          │
-│  │ (NS 8407 rules) │           │ (Event Replay)   │          │
-│  └──────┬──────────┘           └────────┬─────────┘          │
-│         │                                │                     │
-│  ┌──────▼────────────────────────────────▼─────────┐         │
-│  │          Event Repository                        │         │
-│  │      (Optimistic Locking + Persistence)          │         │
-│  └──────────────────────┬───────────────────────────┘         │
-│                         │                                      │
-│                ┌────────▼─────────┐                           │
-│                │  JSON Event Log  │                           │
-│                │ (Append-Only)    │                           │
-│                └──────────────────┘                           │
-└──────────────────────────────────────────────────────────────┘
++----------------------------------------------------------------+
+|                        FRONTEND (React)                         |
+|  +--------------+  +--------------+  +--------------+          |
+|  |   Timeline   |  |   Dashboard  |  | Action Modals|          |
+|  +------+-------+  +------+-------+  +------+-------+          |
+|         |                  |                  |                 |
+|         +------------------+------------------+                 |
+|                            |                                    |
+|                   +--------v---------+                          |
+|                   |   API Client     |                          |
+|                   |  (state.ts,      |                          |
+|                   |   events.ts)     |                          |
+|                   +--------+---------+                          |
++----------------------------+------------------------------------+
+                             | HTTP (REST API)
++----------------------------v------------------------------------+
+|                     BACKEND (Flask)                             |
+|  +----------------------------------------------------------+  |
+|  |             event_routes.py (Blueprint)                  |  |
+|  |  POST /api/events     |  GET /api/cases/<id>/state       |  |
+|  |  POST /api/events/batch  GET /api/cases/<id>/timeline    |  |
+|  +------+-----------------------------------+---------------+  |
+|         |                                   |                   |
+|  +------v----------+           +------------v-------+          |
+|  |  API Validators |           | Timeline Service   |          |
+|  | (NS 8407 rules) |           | (Event Replay)     |          |
+|  +------+----------+           +------------+-------+          |
+|         |                                   |                   |
+|  +------v-------------------------------v---+------+           |
+|  |          Event Repository                       |           |
+|  |      (Optimistic Locking + Persistence)         |           |
+|  +-----------------------+-------------------------+           |
+|                          |                                      |
+|                 +--------v---------+                            |
+|                 |  JSON Event Log  |                            |
+|                 | (Append-Only)    |                            |
+|                 +------------------+                            |
++----------------------------------------------------------------+
 ```
 
 **Key Principles:**
 1. **Immutable Events** - Once written, never changed
 2. **Optimistic Locking** - Prevents concurrent update conflicts
 3. **State Computation** - Current state = replay all events
-4. **Validation in Layers** - API validators → Business rules → Event store
+4. **Validation in Layers** - API validators - Business rules - Event store
 
 ---
 
-## 💡 Tips
+## Tips
 
 ### Development Workflow
-1. Start with **Mock Mode** to develop UI
-2. Switch to **Full Stack** when integrating backend
+1. Start backend first
+2. Then start frontend
 3. Add **Catenda** last (requires credentials)
 
 ### Debugging
@@ -321,15 +287,8 @@ Each case has its own event log file with:
 - Check backend terminal for API logs
 - Event files in `backend/koe_data/events/` show what's persisted
 
-### Testing Events
-Use the mock scenarios in `backend/mocks/mock_events.py`:
-- Scenario 1: Full approval workflow
-- Scenario 2: Subsidiary approval (grunnlag rejected)
-- Scenario 3: Partial approval (amount disagreement)
-- Scenario 4: Precluded claim (late warning)
-
 ---
 
 **Questions?** Check the documentation in `docs/` or open an issue.
 
-**Ready to code?** Start with Mock Mode and work your way up! 🚀
+**Ready to code?** Start the backend and frontend and get going!
