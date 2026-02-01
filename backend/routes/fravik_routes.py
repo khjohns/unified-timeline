@@ -23,7 +23,6 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from services.fravik_service import fravik_service
-from repositories import create_event_repository
 from repositories.event_repository import ConcurrencyError
 from lib.decorators import handle_service_errors
 from lib.helpers.version_control import (
@@ -64,8 +63,15 @@ logger = get_logger(__name__)
 # Create Blueprint
 fravik_bp = Blueprint('fravik', __name__)
 
-# Dependencies
-event_repo = create_event_repository()
+
+# ---------------------------------------------------------------------------
+# Dependency access via Container
+# ---------------------------------------------------------------------------
+
+def _get_event_repo():
+    """Hent EventRepository fra Container."""
+    from core.container import get_container
+    return get_container().event_repository
 
 
 def _generate_sak_id() -> str:
@@ -79,7 +85,7 @@ def _get_events_for_sak(sak_id: str) -> tuple[List, int]:
     """Henter events for en søknad."""
     try:
         # Specify sakstype for direct table lookup (more efficient)
-        events_data, version = event_repo.get_events(sak_id, sakstype="fravik")
+        events_data, version = _get_event_repo().get_events(sak_id, sakstype="fravik")
         events = [parse_fravik_event(e) for e in events_data]
         return events, version
     except FileNotFoundError:
@@ -90,7 +96,7 @@ def _append_event(sak_id: str, event: Any, expected_version: int) -> int:
     """Legger til en event i event-loggen."""
     # Pass event object directly - repository handles serialization
     # sakstype auto-detects from event_type prefix 'fravik_'
-    new_version = event_repo.append(event, expected_version)
+    new_version = _get_event_repo().append(event, expected_version)
     return new_version
 
 
@@ -751,13 +757,13 @@ def liste_fravik_soknader():
     """
     try:
         # 1. Hent alle unike sak_ids fra fravik_events
-        sak_ids = event_repo.get_all_sak_ids(sakstype="fravik")
+        sak_ids = _get_event_repo().get_all_sak_ids(sakstype="fravik")
 
         # 2. Bygg state og konverter til liste-items
         soknader = []
         for sak_id in sak_ids:
             try:
-                events_data, _ = event_repo.get_events(sak_id, sakstype="fravik")
+                events_data, _ = _get_event_repo().get_events(sak_id, sakstype="fravik")
                 if events_data:
                     events = [parse_fravik_event(e) for e in events_data]
                     state = fravik_service.compute_state(events)

@@ -5,10 +5,18 @@ Adapter layer som mapper Azure Functions HTTP requests til
 eksisterende Flask-lignende interface for services.
 
 Dette gjør at vi kan gjenbruke all business logic uten endringer.
+
+Refaktorert 2026-02-01:
+- ServiceContext bruker nå Container for dependency injection
+- Fjernet hardkodede imports i properties
+- Bedre testbarhet og Azure Functions-kompatibilitet
 """
 import json
 import logging
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.container import Container
 
 try:
     import azure.functions as func
@@ -109,28 +117,39 @@ class ServiceContext:
     """
     Context manager for services i Azure Functions.
 
-    Initialiserer repository og services for hver request.
+    Bruker Container for dependency injection - fjerner hardkodede imports
+    og gjør testing enklere.
 
     Usage:
         with ServiceContext() as ctx:
             ctx.repository.save_form_data(...)
             events, version = ctx.event_repository.get_events(sak_id)
             state = ctx.timeline_service.compute_state(events)
+
+        # Med custom container (for testing)
+        mock_container = Container(settings)
+        mock_container._event_repo = MockEventRepository()
+        with ServiceContext(container=mock_container) as ctx:
+            # Bruker mock repository
+            ...
     """
 
-    def __init__(self, repository_type: str = 'csv'):
+    def __init__(
+        self,
+        repository_type: str = 'csv',
+        container: Optional['Container'] = None
+    ):
         """
         Initialize context.
 
         Args:
-            repository_type: 'csv' eller 'dataverse'
+            repository_type: 'csv' eller 'dataverse' (for legacy repository)
+            container: Optional Container for dependency injection.
+                       Hvis None, opprettes en default container.
         """
         self.repository_type = repository_type
-        self._repository = None
-        self._catenda_service = None
-        self._event_repository = None
-        self._timeline_service = None
-        self._metadata_repository = None
+        self._container = container
+        self._legacy_repository = None
 
     def __enter__(self):
         return self
@@ -140,51 +159,46 @@ class ServiceContext:
         pass
 
     @property
+    def _get_container(self) -> 'Container':
+        """Lazy-load container."""
+        if self._container is None:
+            from core.container import get_container
+            self._container = get_container()
+        return self._container
+
+    @property
     def repository(self):
         """Lazy-load legacy CSV repository."""
-        if self._repository is None:
+        if self._legacy_repository is None:
             if self.repository_type == 'csv':
                 from repositories.csv_repository import CSVRepository
-                self._repository = CSVRepository()
+                self._legacy_repository = CSVRepository()
             # elif self.repository_type == 'dataverse':
             #     from repositories.dataverse_repository import DataverseRepository
-            #     self._repository = DataverseRepository()
+            #     self._legacy_repository = DataverseRepository()
             else:
                 raise ValueError(f"Ukjent repository type: {self.repository_type}")
-        return self._repository
+        return self._legacy_repository
 
     @property
     def event_repository(self):
-        """Lazy-load Event Sourcing repository."""
-        if self._event_repository is None:
-            from repositories import create_event_repository
-            self._event_repository = create_event_repository()
-        return self._event_repository
+        """Hent EventRepository fra Container."""
+        return self._get_container.event_repository
 
     @property
     def timeline_service(self):
-        """Lazy-load TimelineService for state projection."""
-        if self._timeline_service is None:
-            from services.timeline_service import TimelineService
-            self._timeline_service = TimelineService()
-        return self._timeline_service
+        """Hent TimelineService fra Container."""
+        return self._get_container.timeline_service
 
     @property
     def catenda_service(self):
-        """Lazy-load CatendaService."""
-        if self._catenda_service is None:
-            from services.catenda_service import CatendaService
-            # CatendaService will use environment variables for config
-            self._catenda_service = CatendaService()
-        return self._catenda_service
+        """Hent CatendaService fra Container."""
+        return self._get_container.catenda_service
 
     @property
     def metadata_repository(self):
-        """Lazy-load metadata repository for case list."""
-        if self._metadata_repository is None:
-            from repositories.supabase_sak_metadata_repository import create_metadata_repository
-            self._metadata_repository = create_metadata_repository()
-        return self._metadata_repository
+        """Hent SakMetadataRepository fra Container."""
+        return self._get_container.metadata_repository
 
 
 def validate_required_fields(

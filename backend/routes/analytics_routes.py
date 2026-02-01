@@ -18,9 +18,6 @@ from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from typing import Dict, List, Any
 
-from repositories import create_event_repository
-from repositories.supabase_sak_metadata_repository import create_metadata_repository
-from services.timeline_service import TimelineService
 from models.events import parse_event
 from lib.auth.magic_link import require_magic_link
 from utils.logger import get_logger
@@ -29,10 +26,30 @@ logger = get_logger(__name__)
 
 analytics_bp = Blueprint('analytics', __name__)
 
-# Dependencies
-event_repo = create_event_repository()
-metadata_repo = create_metadata_repository()
-timeline_service = TimelineService()
+
+# ---------------------------------------------------------------------------
+# Dependency access via Container
+# ---------------------------------------------------------------------------
+
+def _get_container():
+    """Hent DI Container."""
+    from core.container import get_container
+    return get_container()
+
+
+def _get_event_repo():
+    """Hent EventRepository fra Container."""
+    return _get_container().event_repository
+
+
+def _get_metadata_repo():
+    """Hent SakMetadataRepository fra Container."""
+    return _get_container().metadata_repository
+
+
+def _get_timeline_service():
+    """Hent TimelineService fra Container."""
+    return _get_container().timeline_service
 
 
 # ============================================================
@@ -50,15 +67,15 @@ def _get_all_events_with_metadata() -> List[Dict[str, Any]]:
 
     # Hent alle sak_ids fra metadata
     try:
-        cases = metadata_repo.list_all()
+        cases = _get_metadata_repo().list_all()
         sak_ids = [c.sak_id for c in cases]
     except Exception as e:
         logger.warning(f"Could not list cases from metadata: {e}")
-        sak_ids = event_repo.get_all_sak_ids()
+        sak_ids = _get_event_repo().get_all_sak_ids()
 
     for sak_id in sak_ids:
         try:
-            events_data, version = event_repo.get_events(sak_id)
+            events_data, version = _get_event_repo().get_events(sak_id)
             for evt in events_data:
                 evt['_sak_id'] = sak_id
                 all_events.append(evt)
@@ -77,17 +94,17 @@ def _compute_all_states() -> Dict[str, Any]:
     states = {}
 
     try:
-        cases = metadata_repo.list_all()
+        cases = _get_metadata_repo().list_all()
         sak_ids = [c.sak_id for c in cases]
     except Exception:
-        sak_ids = event_repo.get_all_sak_ids()
+        sak_ids = _get_event_repo().get_all_sak_ids()
 
     for sak_id in sak_ids:
         try:
-            events_data, _ = event_repo.get_events(sak_id)
+            events_data, _ = _get_event_repo().get_events(sak_id)
             if events_data:
                 events = [parse_event(e) for e in events_data]
-                state = timeline_service.compute_state(events)
+                state = _get_timeline_service().compute_state(events)
                 states[sak_id] = state
         except Exception as e:
             logger.warning(f"Could not compute state for {sak_id}: {e}")
@@ -492,14 +509,14 @@ def get_response_times():
         all_cases_events = {}
 
         try:
-            cases = metadata_repo.list_all()
+            cases = _get_metadata_repo().list_all()
             sak_ids = [c.sak_id for c in cases]
         except Exception:
-            sak_ids = event_repo.get_all_sak_ids()
+            sak_ids = _get_event_repo().get_all_sak_ids()
 
         for sak_id in sak_ids:
             try:
-                events_data, _ = event_repo.get_events(sak_id)
+                events_data, _ = _get_event_repo().get_events(sak_id)
                 all_cases_events[sak_id] = events_data
             except Exception:
                 pass

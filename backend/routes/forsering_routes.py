@@ -19,10 +19,7 @@ Endpoints:
 from typing import Optional, Dict, Any
 from flask import Blueprint, request, jsonify
 
-from services.forsering_service import ForseringService
-from services.timeline_service import TimelineService
 from services.catenda_sync_service import CatendaSyncService, CatendaSyncResult
-from repositories import create_event_repository, create_metadata_repository
 from repositories.event_repository import ConcurrencyError
 from lib.helpers.version_control import handle_concurrency_error
 from lib.catenda_factory import get_catenda_client
@@ -45,20 +42,35 @@ logger = get_logger(__name__)
 # Create Blueprint
 forsering_bp = Blueprint('forsering', __name__)
 
-# Dependencies - use factory functions to respect EVENT_STORE_BACKEND/METADATA_STORE_BACKEND
-event_repo = create_event_repository()
-timeline_service = TimelineService()
-metadata_repo = create_metadata_repository()
+
+# ---------------------------------------------------------------------------
+# Dependency access via Container
+# ---------------------------------------------------------------------------
+
+def _get_container():
+    """Hent DI Container."""
+    from core.container import get_container
+    return get_container()
 
 
-def _get_forsering_service() -> ForseringService:
-    """Oppretter ForseringService med dependencies."""
-    return ForseringService(
-        catenda_client=get_catenda_client(),
-        event_repository=event_repo,
-        timeline_service=timeline_service,
-        metadata_repository=metadata_repo
-    )
+def _get_forsering_service():
+    """Hent ForseringService fra Container."""
+    return _get_container().get_forsering_service()
+
+
+def _get_event_repo():
+    """Hent EventRepository fra Container."""
+    return _get_container().event_repository
+
+
+def _get_metadata_repo():
+    """Hent SakMetadataRepository fra Container."""
+    return _get_container().metadata_repository
+
+
+def _get_timeline_service():
+    """Hent TimelineService fra Container."""
+    return _get_container().timeline_service
 
 
 def _sync_forsering_to_catenda(
@@ -76,7 +88,7 @@ def _sync_forsering_to_catenda(
         CatendaSyncResult hvis synkronisering ble forsøkt, None hvis hoppet over
     """
     # Sjekk at vi har metadata med topic_id
-    metadata = metadata_repo.get(sak_id)
+    metadata = _get_metadata_repo().get(sak_id)
     if not metadata or not metadata.catenda_topic_id:
         logger.debug(f"Ingen Catenda topic_id for {sak_id}, hopper over synkronisering")
         return CatendaSyncResult(
