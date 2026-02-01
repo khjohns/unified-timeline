@@ -1,8 +1,8 @@
 # Deployment Guide
 
-**Sist oppdatert:** 2025-12-15
+**Sist oppdatert:** 2026-02-01
 
-Veiledning for utrulling av Skjema Endringsmeldinger til produksjon.
+Veiledning for utrulling av Unified Timeline (KOE-system) til produksjon.
 
 ---
 
@@ -12,12 +12,15 @@ Veiledning for utrulling av Skjema Endringsmeldinger til produksjon.
 - [Arkitektur](#arkitektur)
 - [Frontend: Azure Static Web Apps](#frontend-azure-static-web-apps)
 - [Backend: Azure Functions](#backend-azure-functions)
-- [Database: Dataverse](#database-dataverse)
+- [Database: PostgreSQL (Supabase/Azure)](#database-postgresql)
+- [Event-format: CloudEvents](#event-format-cloudevents)
+- [Azure Event Grid (fremtidig)](#azure-event-grid-fremtidig)
 - [Sikkerhet](#sikkerhet)
 - [Miljøvariabler](#miljøvariabler)
 - [CI/CD Pipeline](#cicd-pipeline)
 - [Overvåkning](#overvåkning)
 - [Sjekkliste](#sjekkliste)
+- [Vedlegg: SharePoint-vurdering](#vedlegg-sharepoint-vurdering)
 
 ---
 
