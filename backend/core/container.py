@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     from services.forsering_service import ForseringService
     from services.endringsordre_service import EndringsordreService
     from integrations.catenda import CatendaClient
+    from core.unit_of_work import TrackingUnitOfWork
 
 
 @dataclass
@@ -184,6 +185,23 @@ class Container:
             event_repository=self.event_repository,
             timeline_service=self.timeline_service,
         )
+
+    def create_unit_of_work(self) -> 'TrackingUnitOfWork':
+        """
+        Opprett ny Unit of Work for koordinerte repository-operasjoner.
+
+        Bruk som context manager for automatisk commit/rollback:
+
+            with container.create_unit_of_work() as uow:
+                uow.metadata.create(metadata)
+                uow.events.append(event, expected_version=0)
+                # Commit ved exit, rollback ved exception
+
+        Returns:
+            TrackingUnitOfWork som wrapper event og metadata repositories
+        """
+        from core.unit_of_work import TrackingUnitOfWork
+        return TrackingUnitOfWork(self)
 
     # -------------------------------------------------------------------------
     # Utility methods

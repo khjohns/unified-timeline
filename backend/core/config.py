@@ -59,6 +59,26 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_format: str = "json"  # "json" or "text"
 
+    # Azure Storage (for document storage)
+    azure_storage_account: str = ""
+    azure_storage_key: str = ""
+    azure_storage_container: str = "koe-documents"
+
+    # Azure Service Bus (for background tasks)
+    azure_service_bus_connection: str = ""
+    azure_queue_name: str = "koe-events"
+
+    # Azure SQL (for production database)
+    azure_sql_connection: str = ""
+
+    # Azure Key Vault (for secrets management)
+    azure_keyvault_url: str = ""
+
+    @property
+    def is_azure_environment(self) -> bool:
+        """Check if running in Azure environment."""
+        return bool(self.azure_keyvault_url or self.azure_sql_connection)
+
     def get_catenda_config(self) -> dict:
         """Returner Catenda-konfigurasjon som dict (for bakoverkompatibilitet)."""
         return {
