@@ -727,6 +727,7 @@ else:
 **Refaktorerte filer:**
 - `backend/services/catenda_webhook_service.py` - Bruker SakCreationService
 - `backend/services/endringsordre_service.py` - Bruker SakCreationService
+- `backend/routes/event_routes.py` - Bruker SakCreationService for batch-API (nye saker)
 
 **Fil-renames:**
 - `webhook_service.py` → `catenda_webhook_service.py`
