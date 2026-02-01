@@ -815,6 +815,7 @@ Se [TECHNOLOGY_COMPARISON.md](TECHNOLOGY_COMPARISON.md) for detaljert sammenlign
 ## Se også
 
 - [AZURE_READINESS.md](AZURE_READINESS.md) – **Status og handlingsplan for Azure-deploy**
+- [ARCHITECTURE_QUALITY.md](ARCHITECTURE_QUALITY.md) – Arkitekturkvalitet og forbedringer
 - [DATABASE_ARCHITECTURE.md](../backend/docs/DATABASE_ARCHITECTURE.md) – Database-alternativer og transaksjoner
 - [CLOUDEVENTS_ADOPTION.md](CLOUDEVENTS_ADOPTION.md) – CloudEvents-implementering og Azure Event Grid
 - [TECHNOLOGY_COMPARISON.md](TECHNOLOGY_COMPARISON.md) – Custom-løsning vs. Power Platform/SharePoint

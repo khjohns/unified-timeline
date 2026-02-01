@@ -349,6 +349,7 @@ backend/services/catenda_service.py    # Fjern threading
 
 ## Se også
 
+- [ARCHITECTURE_QUALITY.md](ARCHITECTURE_QUALITY.md) - Arkitekturkvalitet og forbedringer
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Hovedguide for deploy
 - [EXTERNAL_DEPLOYMENT.md](EXTERNAL_DEPLOYMENT.md) - Alternativ deploy (Vercel/Render)
 - [DATABASE_ARCHITECTURE.md](../backend/docs/DATABASE_ARCHITECTURE.md) - Database-valg
