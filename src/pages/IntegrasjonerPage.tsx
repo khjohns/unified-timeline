@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
+import { InlineLoading } from '../components/PageStateHelpers';
 import {
   Card,
   Button,
@@ -151,10 +152,7 @@ export function IntegrasjonerPage() {
         {/* Loading State */}
         {isLoading && (
           <Card variant="outlined" padding="lg">
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-oslo-blue" />
-              <span className="ml-3 text-pkt-text-body-subtle">Laster integrasjoner...</span>
-            </div>
+            <InlineLoading message="Laster integrasjoner..." />
           </Card>
         )}
 

@@ -180,9 +180,9 @@ interface InlineLoadingProps {
  */
 export function InlineLoading({ message = 'Laster...' }: InlineLoadingProps) {
   return (
-    <div className="py-4 text-center text-pkt-grays-gray-500">
-      <ReloadIcon className="w-6 h-6 animate-spin mx-auto mb-2" />
-      <p className="text-sm">{message}</p>
+    <div className="flex items-center justify-center py-8">
+      <ReloadIcon className="w-6 h-6 sm:w-8 sm:h-8 text-pkt-brand-purple-1000 animate-spin" />
+      <span className="ml-3 text-sm sm:text-base text-pkt-text-body-subtle">{message}</span>
     </div>
   );
 }
