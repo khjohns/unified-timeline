@@ -54,15 +54,15 @@ export class ErrorBoundary extends Component<Props, State> {
               En uventet feil oppstod. Prøv å laste siden på nytt.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button variant="secondary" onClick={this.handleReset}>
-                Prøv igjen
+              <Button variant="secondary" onClick={() => window.history.back()}>
+                Gå tilbake
               </Button>
               <Button variant="primary" onClick={() => window.location.reload()}>
                 Last siden på nytt
               </Button>
             </div>
             {import.meta.env.DEV && this.state.error && (
-              <pre className="mt-6 p-4 bg-pkt-bg-subtle text-left text-sm overflow-auto rounded border border-pkt-grays-gray-200">
+              <pre className="mt-6 p-3 sm:p-4 bg-pkt-bg-subtle text-left text-xs sm:text-sm overflow-auto rounded border border-pkt-grays-gray-200 max-h-48 sm:max-h-64">
                 {this.state.error.message}
                 {'\n\n'}
                 {this.state.error.stack}
