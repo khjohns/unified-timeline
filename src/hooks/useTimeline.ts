@@ -5,9 +5,8 @@
  */
 
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { fetchTimeline } from '../api/state';
 import { TimelineResponse } from '../types/api';
-import { STALE_TIME } from '../constants/queryConfig';
+import { sakQueries } from '../queries';
 
 export interface UseTimelineOptions {
   staleTime?: number;
@@ -24,15 +23,14 @@ export interface UseTimelineOptions {
  */
 export function useTimeline(sakId: string, options: UseTimelineOptions = {}) {
   const {
-    staleTime = STALE_TIME.DEFAULT,
+    staleTime,
     refetchOnWindowFocus = true,
     enabled = true,
   } = options;
 
   return useQuery<TimelineResponse, Error>({
-    queryKey: ['sak', sakId, 'timeline'],
-    queryFn: () => fetchTimeline(sakId),
-    staleTime,
+    ...sakQueries.timeline(sakId),
+    ...(staleTime !== undefined && { staleTime }),
     refetchOnWindowFocus,
     enabled: enabled && !!sakId,
   });
@@ -49,14 +47,13 @@ export interface UseTimelineSuspenseOptions {
  */
 export function useTimelineSuspense(sakId: string, options: UseTimelineSuspenseOptions = {}) {
   const {
-    staleTime = STALE_TIME.DEFAULT,
+    staleTime,
     refetchOnWindowFocus = true,
   } = options;
 
   return useSuspenseQuery<TimelineResponse, Error>({
-    queryKey: ['sak', sakId, 'timeline'],
-    queryFn: () => fetchTimeline(sakId),
-    staleTime,
+    ...sakQueries.timeline(sakId),
+    ...(staleTime !== undefined && { staleTime }),
     refetchOnWindowFocus,
   });
 }

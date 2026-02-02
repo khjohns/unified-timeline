@@ -13,9 +13,9 @@
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { submitEvent, EventSubmitResponse } from '../api/events';
 import { EventType } from '../types/timeline';
-import { fetchCaseState } from '../api/state';
-import { getAuthToken, ApiError } from '../api/client';
+import { getAuthToken } from '../api/client';
 import { useVerifyToken } from './useVerifyToken';
+import { sakKeys, sakQueries } from '../queries';
 
 export interface SubmitEventPayload {
   eventType: EventType;
@@ -79,8 +79,7 @@ export function useSubmitEvent(sakId: string, options: UseSubmitEventOptions = {
 
   // Fetch current state for PDF generation
   const { data: stateData } = useQuery({
-    queryKey: ['sak', sakId, 'state'],
-    queryFn: () => fetchCaseState(sakId),
+    ...sakQueries.state(sakId),
     enabled: !!sakId && generatePdf,
   });
 
@@ -129,9 +128,9 @@ export function useSubmitEvent(sakId: string, options: UseSubmitEventOptions = {
     },
     onSuccess: (data) => {
       // Invalidate case state, timeline, and historikk to trigger refetch
-      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
-      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'timeline'] });
-      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'historikk'] });
+      queryClient.invalidateQueries({ queryKey: sakKeys.state(sakId) });
+      queryClient.invalidateQueries({ queryKey: sakKeys.timeline(sakId) });
+      queryClient.invalidateQueries({ queryKey: sakKeys.historikk(sakId) });
 
       // Call user callback
       onSuccess?.(data);

@@ -6,9 +6,8 @@
  */
 
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { fetchCaseState } from '../api/state';
 import { StateResponse } from '../types/api';
-import { STALE_TIME } from '../constants/queryConfig';
+import { sakQueries } from '../queries';
 
 export interface UseCaseStateOptions {
   /**
@@ -39,9 +38,9 @@ export interface UseCaseStateOptions {
  *
  * @example
  * ```tsx
- * const { data, isLoading, error } = useCaseState('123');
+ * const { data, isPending, error } = useCaseState('123');
  *
- * if (isLoading) return <div>Loading...</div>;
+ * if (isPending) return <div>Loading...</div>;
  * if (error) return <div>Error: {error.message}</div>;
  *
  * return <StatusDashboard state={data.state} />;
@@ -49,15 +48,14 @@ export interface UseCaseStateOptions {
  */
 export function useCaseState(sakId: string, options: UseCaseStateOptions = {}) {
   const {
-    staleTime = STALE_TIME.DEFAULT,
+    staleTime,
     refetchOnWindowFocus = true,
     enabled = true,
   } = options;
 
   return useQuery<StateResponse, Error>({
-    queryKey: ['sak', sakId, 'state'],
-    queryFn: () => fetchCaseState(sakId),
-    staleTime,
+    ...sakQueries.state(sakId),
+    ...(staleTime !== undefined && { staleTime }),
     refetchOnWindowFocus,
     enabled: enabled && !!sakId,
   });
@@ -74,7 +72,7 @@ export interface UseCaseStateSuspenseOptions {
  *
  * @param sakId - The case ID
  * @param options - Query options
- * @returns React Query result with guaranteed state data (no isLoading)
+ * @returns React Query result with guaranteed state data (no isPending)
  *
  * @example
  * ```tsx
@@ -90,14 +88,13 @@ export interface UseCaseStateSuspenseOptions {
  */
 export function useCaseStateSuspense(sakId: string, options: UseCaseStateSuspenseOptions = {}) {
   const {
-    staleTime = STALE_TIME.DEFAULT,
+    staleTime,
     refetchOnWindowFocus = true,
   } = options;
 
   return useSuspenseQuery<StateResponse, Error>({
-    queryKey: ['sak', sakId, 'state'],
-    queryFn: () => fetchCaseState(sakId),
-    staleTime,
+    ...sakQueries.state(sakId),
+    ...(staleTime !== undefined && { staleTime }),
     refetchOnWindowFocus,
   });
 }
