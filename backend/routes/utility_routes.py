@@ -20,6 +20,17 @@ logger = logging.getLogger(__name__)
 utility_bp = Blueprint("utility", __name__)
 
 
+@utility_bp.route("/", methods=["GET"])
+def root():
+    """Root endpoint - redirects to health check."""
+    return jsonify({
+        "service": "unified-timeline",
+        "status": "running",
+        "docs": "/api/routes",
+        "health": "/api/health"
+    }), 200
+
+
 @utility_bp.route("/api/routes", methods=["GET"])
 def list_routes():
     """List all registered API routes (for debugging/documentation)."""
