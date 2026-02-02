@@ -666,6 +666,15 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
             }}
             sakState={state}
             onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
+            approvalEnabled={approvalWorkflow.approvalEnabled}
+            onSaveDraft={(draftData) => {
+              approvalWorkflow.saveDraft({
+                sporType: 'grunnlag',
+                resultat: draftData.resultat as 'godkjent' | 'avslatt' | 'frafalt',
+                begrunnelse: draftData.begrunnelse,
+                formData: draftData.formData,
+              });
+            }}
           />
           {/* Update mode: RespondVederlagModal with lastResponseEvent */}
           <RespondVederlagModal
@@ -698,6 +707,16 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
             }}
             vederlagTilstand={state.vederlag}
             onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
+            approvalEnabled={approvalWorkflow.approvalEnabled}
+            onSaveDraft={(draftData) => {
+              approvalWorkflow.saveDraft({
+                sporType: 'vederlag',
+                belop: draftData.belop,
+                resultat: draftData.resultat,
+                begrunnelse: draftData.begrunnelse,
+                formData: draftData.formData,
+              });
+            }}
           />
           <RespondFristModal
             open={modals.updateFristResponse.open}
@@ -712,6 +731,16 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
             }}
             fristTilstand={state.frist}
             onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
+            approvalEnabled={approvalWorkflow.approvalEnabled}
+            onSaveDraft={(draftData) => {
+              approvalWorkflow.saveDraft({
+                sporType: 'frist',
+                dager: draftData.dager,
+                resultat: draftData.resultat,
+                begrunnelse: draftData.begrunnelse,
+                formData: draftData.formData,
+              });
+            }}
           />
 
           {/* Special Action Modals (TE) */}
