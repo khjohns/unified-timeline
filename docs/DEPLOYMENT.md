@@ -9,9 +9,10 @@ Veiledning for utrulling av Unified Timeline (KOE-system) til produksjon.
 ## Innhold
 
 - [Oversikt](#oversikt)
-- [Arkitektur](#arkitektur)
+- [Produksjonsklarhet](#produksjonsklarhet)
 - [Frontend: Azure Static Web Apps](#frontend-azure-static-web-apps)
-- [Backend: Azure Functions](#backend-azure-functions)
+- [Backend: Azure App Service](#backend-azure-app-service-anbefalt)
+- [Backend: Azure Functions](#backend-azure-functions-alternativ)
 - [Database: PostgreSQL (Supabase/Azure)](#database-postgresql)
 - [Event-format: CloudEvents](#event-format-cloudevents)
 - [Azure Event Grid (fremtidig)](#azure-event-grid-fremtidig)
@@ -42,7 +43,49 @@ Veiledning for utrulling av Unified Timeline (KOE-system) til produksjon.
 | Logging | Konsoll (text/JSON) | Application Insights |
 
 > **Merk:** Azure App Service (B1) anbefales fremfor Azure Functions for denne applikasjonen.
-> Flask-appen deployes direkte uten kodeendringer. Se [AZURE_READINESS.md](AZURE_READINESS.md) for begrunnelse.
+> Flask-appen deployes direkte uten kodeendringer.
+
+---
+
+## Produksjonsklarhet
+
+### Beredskapsgrad: ✅ ~90%
+
+| Kategori | Status | Dekning |
+|----------|--------|---------|
+| Backend-arkitektur | ✅ Ferdig | 85% |
+| Azure Functions entry point | ✅ Ferdig | 100% |
+| Azure Functions endpoints | ✅ Kritiske portert | 12/68 (nok for App Service) |
+| Frontend build | ✅ Ferdig | 100% |
+| Frontend Azure-konfig | ✅ Ferdig | 100% |
+| CI/CD pipelines | ✅ Ferdig | 100% |
+| DI Container | ✅ Implementert | `core/container.py` |
+| Unit of Work | ✅ Implementert | `core/unit_of_work.py` |
+| Framework-agnostisk auth | ✅ Refaktorert | `integrations/catenda/auth.py` |
+| Threading fjernet | ✅ Løst | Azure-kompatibel |
+
+### Hva fungerer i dag
+
+- ✅ Flask-backend kjører med alle 68 endpoints
+- ✅ Frontend bygger og kjører
+- ✅ Supabase-integrasjon fungerer
+- ✅ CloudEvents v1.0 implementert
+- ✅ DI Container for testbarhet og Azure-kompatibilitet
+- ✅ Unit of Work for atomiske transaksjoner
+- ✅ GitHub Actions workflows for CI/CD
+- ✅ `staticwebapp.config.json` for frontend
+
+### Hva mangler for Azure-deploy
+
+**Med App Service B1 (anbefalt):**
+- ✅ Ingenting kode-messig - Flask-appen er klar
+- ❓ Database: Supabase fungerer, Azure PostgreSQL er alternativ
+- ⏳ Azure-ressurser må opprettes i Azure Portal
+- ⏳ IDA/Entra ID-integrasjon må bestilles (se [Autentisering](#autentisering-ida-og-entra-id))
+
+**Valgfrie forbedringer:**
+- Azure Key Vault for secrets (anbefalt for prod)
+- Azure Service Bus for async operasjoner (kun hvis behov)
 
 ### Produksjonsmiljø
 
@@ -1156,8 +1199,6 @@ Se [TECHNOLOGY_COMPARISON.md](TECHNOLOGY_COMPARISON.md) for detaljert sammenlign
 
 ## Se også
 
-- [AZURE_READINESS.md](AZURE_READINESS.md) – **Status og handlingsplan for Azure-deploy**
-- [ARCHITECTURE_QUALITY.md](ARCHITECTURE_QUALITY.md) – Arkitekturkvalitet og forbedringer
 - [DATABASE_ARCHITECTURE.md](../backend/docs/DATABASE_ARCHITECTURE.md) – Database-alternativer og transaksjoner
 - [CLOUDEVENTS_ADOPTION.md](CLOUDEVENTS_ADOPTION.md) – CloudEvents-implementering og Azure Event Grid
 - [TECHNOLOGY_COMPARISON.md](TECHNOLOGY_COMPARISON.md) – Custom-løsning vs. Power Platform/SharePoint
