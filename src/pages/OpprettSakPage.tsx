@@ -18,7 +18,6 @@ import {
   Alert,
   Button,
   Card,
-  Checkbox,
   DatePicker,
   DropdownMenuItem,
   FormField,
@@ -26,6 +25,13 @@ import {
   RadioGroup,
   RadioItem,
   SectionContainer,
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
   Textarea,
   useToast,
 } from '../components/primitives';
@@ -36,27 +42,42 @@ import {
   HOVEDKATEGORI_OPTIONS,
   getHovedkategori,
   getUnderkategoriObj,
-  erLovendring,
   getGrupperteUnderkategorier,
 } from '../constants';
 import { apiFetch } from '../api/client';
 import type { StateResponse } from '../types/api';
+import { getPreklusjonsvarsel, getPreklusjonsvarselMellomDatoer, beregnDagerSiden } from '../utils/preklusjonssjekk';
 
 // Schema for the form
+// Underkategori is only required if the hovedkategori has underkategorier (e.g., not Force Majeure)
 const opprettSakSchema = z.object({
   sak_id: z.string()
     .min(1, 'Sak-ID er påkrevd')
     .regex(/^[A-Za-z0-9\-_]+$/, 'Sak-ID kan kun inneholde bokstaver, tall, bindestrek og understrek'),
-  hovedkategori: z.string().min(1, 'Hovedkategori er påkrevd'),
-  underkategori: z.array(z.string()).min(1, 'Minst én underkategori må velges'),
+  hovedkategori: z.string().min(1, 'Kategori er påkrevd'),
+  underkategori: z.string().default(''),
   tittel: z.string().min(3, 'Tittel må være minst 3 tegn').max(100, 'Tittel kan ikke være lengre enn 100 tegn'),
   beskrivelse: z.string().min(10, 'Beskrivelse må være minst 10 tegn'),
   dato_oppdaget: z.string().min(1, 'Dato oppdaget er påkrevd'),
   varsel_sendes_na: z.boolean().optional(),
   dato_varsel_sendt: z.string().optional(),
   varsel_metode: z.array(z.string()).optional(),
-  er_etter_tilbud: z.boolean().optional(),
-});
+}).refine(
+  (data) => {
+    // Check if hovedkategori has underkategorier
+    const hovedkat = getHovedkategori(data.hovedkategori);
+    if (!hovedkat || hovedkat.underkategorier.length === 0) {
+      // No underkategorier required (e.g., Force Majeure)
+      return true;
+    }
+    // Require underkategori to be selected
+    return data.underkategori.length > 0;
+  },
+  {
+    message: 'Hjemmel må velges',
+    path: ['underkategori'],
+  }
+);
 
 type OpprettSakFormData = z.infer<typeof opprettSakSchema>;
 
@@ -100,17 +121,17 @@ export function OpprettSakPage() {
     defaultValues: {
       sak_id: generateSakId(),
       hovedkategori: '',
-      underkategori: [],
+      underkategori: '',
       varsel_sendes_na: true,
       varsel_metode: [],
-      er_etter_tilbud: false,
     },
   });
 
   const hovedkategoriValue = watch('hovedkategori');
   const varselSendesNa = watch('varsel_sendes_na');
   const selectedUnderkategorier = watch('underkategori');
-  const erEtterTilbud = watch('er_etter_tilbud');
+  const datoOppdaget = watch('dato_oppdaget');
+  const datoVarselSendt = watch('dato_varsel_sendt');
 
   // Get selected category info
   const valgtHovedkategori = useMemo(
@@ -118,18 +139,23 @@ export function OpprettSakPage() {
     [selectedHovedkategori]
   );
 
-  // Get all selected underkategorier info
-  const valgteUnderkategorier = useMemo(() => {
-    if (!selectedUnderkategorier?.length) return [];
-    return selectedUnderkategorier
-      .map((kode) => getUnderkategoriObj(kode))
-      .filter((obj): obj is NonNullable<typeof obj> => obj !== undefined);
+  // Get selected underkategori info
+  const valgtUnderkategori = useMemo(() => {
+    if (!selectedUnderkategorier) return undefined;
+    return getUnderkategoriObj(selectedUnderkategorier);
   }, [selectedUnderkategorier]);
 
-  // Check if any selected underkategori is a law change (§14.4)
-  const harLovendring = useMemo(() => {
-    return selectedUnderkategorier?.some((kode) => erLovendring(kode)) ?? false;
-  }, [selectedUnderkategorier]);
+  // Calculate preclusion risk for current moment (when sending now)
+  const preklusjonsResultat = useMemo(() => {
+    if (!datoOppdaget) return null;
+    return getPreklusjonsvarsel(beregnDagerSiden(datoOppdaget), undefined, selectedHovedkategori);
+  }, [datoOppdaget, selectedHovedkategori]);
+
+  // Calculate preclusion risk between discovery and earlier notification date
+  const preklusjonsResultatVarsel = useMemo(() => {
+    if (!datoOppdaget || !datoVarselSendt || varselSendesNa) return null;
+    return getPreklusjonsvarselMellomDatoer(datoOppdaget, datoVarselSendt, undefined, selectedHovedkategori);
+  }, [datoOppdaget, datoVarselSendt, varselSendesNa, selectedHovedkategori]);
 
   // Mutation for creating the case
   const createCaseMutation = useMutation<BatchEventResponse, Error, OpprettSakFormData>({
@@ -166,7 +192,6 @@ export function OpprettSakPage() {
               beskrivelse: data.beskrivelse,
               dato_oppdaget: data.dato_oppdaget,
               grunnlag_varsel: grunnlagVarsel,
-              meta: harLovendring ? { er_etter_tilbud: data.er_etter_tilbud } : undefined,
             },
           },
         ],
@@ -213,9 +238,8 @@ export function OpprettSakPage() {
   // Reset underkategori when hovedkategori changes
   const handleHovedkategoriChange = (value: string) => {
     setSelectedHovedkategori(value);
-    setValue('hovedkategori', value);
-    setValue('underkategori', []);
-    setValue('er_etter_tilbud', false);
+    setValue('hovedkategori', value, { shouldDirty: true });
+    setValue('underkategori', '', { shouldDirty: true });
   };
 
   const onSubmit = (data: OpprettSakFormData) => {
@@ -345,83 +369,78 @@ export function OpprettSakPage() {
                   />
                 </FormField>
 
-                {/* Underkategori - Dynamic based on hovedkategori, grouped */}
+                {/* Underkategori - Dynamic based on hovedkategori, grouped Select */}
                 {selectedHovedkategori && valgtHovedkategori && valgtHovedkategori.underkategorier.length > 0 && (
                   <Controller
                     name="underkategori"
                     control={control}
                     render={({ field }) => {
                       const grupperteUnderkategorier = getGrupperteUnderkategorier(valgtHovedkategori.underkategorier);
+                      // Map underkategori til KontraktsregelInline hjemmel (der tilgjengelig)
+                      const hjemmelMap: Record<string, '§10.2' | '§14.4' | '§14.6' | '§15.2' | '§19.1' | '§21.4' | '§22' | '§23.1' | '§23.3' | '§24.1' | '§24.2.2' | '§26.3' | '§29.2' | '§32.1' | '§38.1'> = {
+                        'VALGRETT': '§14.6',
+                        'SVAR_VARSEL': '§24.2.2',
+                        'LOV_GJENSTAND': '§14.4',
+                        'LOV_PROSESS': '§15.2',
+                        'IRREG': '§32.1',
+                        'GRUNN': '§23.1',
+                        'KULTURMINNER': '§23.3',
+                        'PROSJ_RISIKO': '§24.1',
+                        'MEDVIRK': '§22',
+                        'GEBYR': '§26.3',
+                        'SAMORD': '§21.4',
+                        'NEKT_MH': '§10.2',
+                        'SKADE_BH': '§19.1',
+                        'BRUKSTAKELSE': '§38.1',
+                        'STANS_BET': '§29.2',
+                      };
+                      const hjemmel = field.value ? hjemmelMap[field.value] : undefined;
                       return (
                         <FormField
-                          label="Underkategori"
+                          label="Hjemmel"
                           required
                           error={errors.underkategori?.message}
                         >
-                          <div className="space-y-4" data-testid="sak-underkategori-list">
-                            {Array.from(grupperteUnderkategorier.entries()).map(([gruppeNavn, underkategorier]) => (
-                              <div key={gruppeNavn ?? 'ungrouped'}>
-                                {gruppeNavn && (
-                                  <p className="text-sm font-semibold text-pkt-text-body mb-2">{gruppeNavn}</p>
+                          <div className="space-y-2">
+                            <Select
+                              value={field.value || ''}
+                              onValueChange={field.onChange}
+                            >
+                              <SelectTrigger
+                                error={!!errors.underkategori}
+                                data-testid="sak-underkategori-list"
+                              >
+                                <SelectValue placeholder="Velg hjemmel" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Array.from(grupperteUnderkategorier.entries()).map(([gruppeNavn, underkategorier]) => (
+                                  <SelectGroup key={gruppeNavn ?? 'ungrouped'}>
+                                    {gruppeNavn && <SelectLabel>{gruppeNavn}</SelectLabel>}
+                                    {underkategorier.map((uk) => (
+                                      <SelectItem key={uk.kode} value={uk.kode}>
+                                        {uk.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectGroup>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {/* Vis hjemmel-info for valgt underkategori */}
+                            {field.value && valgtUnderkategori && (
+                              <div className="mt-2">
+                                {hjemmel ? (
+                                  <KontraktsregelInline hjemmel={hjemmel} />
+                                ) : (
+                                  <KontraktsregelInline
+                                    custom={{
+                                      tekst: valgtUnderkategori.beskrivelse,
+                                      hjemmel: `§${valgtUnderkategori.hjemmel_basis}`,
+                                      konsekvens: `Varslingskrav: §${valgtUnderkategori.varselkrav_ref}`,
+                                    }}
+                                  />
                                 )}
-                                <div className="space-y-2 pl-0">
-                                  {underkategorier.map((uk) => {
-                                    const erValgt = field.value?.includes(uk.kode) ?? false;
-                                    // Map underkategori til KontraktsregelInline hjemmel (der tilgjengelig)
-                                    const hjemmelMap: Record<string, '§10.2' | '§14.4' | '§14.6' | '§15.2' | '§19.1' | '§21.4' | '§22' | '§23.1' | '§23.3' | '§24.1' | '§24.2.2' | '§26.3' | '§29.2' | '§32.1' | '§38.1'> = {
-                                      'VALGRETT': '§14.6',
-                                      'SVAR_VARSEL': '§24.2.2',
-                                      'LOV_GJENSTAND': '§14.4',
-                                      'LOV_PROSESS': '§15.2',
-                                      'IRREG': '§32.1',
-                                      'GRUNN': '§23.1',
-                                      'KULTURMINNER': '§23.3',
-                                      'PROSJ_RISIKO': '§24.1',
-                                      'MEDVIRK': '§22',
-                                      'GEBYR': '§26.3',
-                                      'SAMORD': '§21.4',
-                                      'NEKT_MH': '§10.2',
-                                      'SKADE_BH': '§19.1',
-                                      'BRUKSTAKELSE': '§38.1',
-                                      'STANS_BET': '§29.2',
-                                    };
-                                    const hjemmel = hjemmelMap[uk.kode];
-                                    return (
-                                      <div key={uk.kode}>
-                                        <Checkbox
-                                          id={`underkategori-${uk.kode}`}
-                                          label={uk.label}
-                                          checked={erValgt}
-                                          onCheckedChange={(checked) => {
-                                            const current = field.value ?? [];
-                                            if (checked) {
-                                              field.onChange([...current, uk.kode]);
-                                            } else {
-                                              field.onChange(current.filter((v: string) => v !== uk.kode));
-                                            }
-                                          }}
-                                        />
-                                        {erValgt && (
-                                          <div className="mt-2 ml-6">
-                                            {hjemmel ? (
-                                              <KontraktsregelInline hjemmel={hjemmel} />
-                                            ) : (
-                                              <KontraktsregelInline
-                                                custom={{
-                                                  tekst: uk.beskrivelse,
-                                                  hjemmel: `§${uk.hjemmel_basis}`,
-                                                  konsekvens: `Varslingskrav: §${uk.varselkrav_ref}`,
-                                                }}
-                                              />
-                                            )}
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
                               </div>
-                            ))}
+                            )}
                           </div>
                         </FormField>
                       );
@@ -438,29 +457,6 @@ export function OpprettSakPage() {
               description="Beskriv forholdet som varsles"
             >
               <div className="space-y-4">
-                {/* Law change check (§14.4) */}
-                {harLovendring && (
-                  <Alert variant="warning" title="Lovendring (§14.4)">
-                    <Controller
-                      name="er_etter_tilbud"
-                      control={control}
-                      render={({ field }) => (
-                        <Checkbox
-                          id="er_etter_tilbud"
-                          label="Bekreft at endringen inntraff ETTER tilbudsfristens utløp"
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      )}
-                    />
-                    {!erEtterTilbud && (
-                      <p className="text-xs text-pkt-text-danger mt-2">
-                        Hvis lovendringen var kjent ved tilbudsfrist, ligger risikoen normalt hos deg.
-                      </p>
-                    )}
-                  </Alert>
-                )}
-
                 <FormField
                   label="Beskrivelse"
                   required
@@ -492,19 +488,26 @@ export function OpprettSakPage() {
                   required
                   error={errors.dato_oppdaget?.message}
                 >
-                  <Controller
-                    name="dato_oppdaget"
-                    control={control}
-                    render={({ field }) => (
-                      <DatePicker
-                        id="dato_oppdaget"
-                        data-testid="sak-dato-oppdaget"
-                        value={field.value}
-                        onChange={field.onChange}
-                        error={!!errors.dato_oppdaget}
-                      />
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <Controller
+                      name="dato_oppdaget"
+                      control={control}
+                      render={({ field }) => (
+                        <DatePicker
+                          id="dato_oppdaget"
+                          data-testid="sak-dato-oppdaget"
+                          value={field.value}
+                          onChange={field.onChange}
+                          error={!!errors.dato_oppdaget}
+                        />
+                      )}
+                    />
+                    {datoOppdaget && (
+                      <span className="text-sm text-pkt-text-body-subtle whitespace-nowrap">
+                        {beregnDagerSiden(datoOppdaget)} dager siden
+                      </span>
                     )}
-                  />
+                  </div>
                 </FormField>
 
                 <VarselSeksjon
@@ -517,6 +520,18 @@ export function OpprettSakPage() {
                   registerMetoder={register('varsel_metode')}
                   idPrefix="opprett_sak"
                   testId="sak-varsel-valg"
+                  extraContent={
+                    preklusjonsResultatVarsel?.alert && (
+                      <div className="mt-3">
+                        <Alert
+                          variant={preklusjonsResultatVarsel.alert.variant}
+                          title={preklusjonsResultatVarsel.alert.title}
+                        >
+                          {preklusjonsResultatVarsel.alert.message}
+                        </Alert>
+                      </div>
+                    )
+                  }
                 />
               </div>
             </SectionContainer>
