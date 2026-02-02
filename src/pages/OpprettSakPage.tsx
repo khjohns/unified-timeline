@@ -477,63 +477,68 @@ export function OpprettSakPage() {
               </div>
             </SectionContainer>
 
-            {/* Seksjon 4: Tidspunkt og varsling */}
+            {/* Seksjon 4: Tidspunkt - når ble forholdet oppdaget */}
             <SectionContainer
-              title="Tidspunkt og varsling"
-              description="Dokumenter når forholdet ble oppdaget og varslet"
+              title="Tidspunkt"
+              description="Når ble endringsforholdet oppdaget?"
             >
-              <div className="space-y-4">
-                <FormField
-                  label="Dato forhold oppdaget"
-                  required
-                  error={errors.dato_oppdaget?.message}
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                    <Controller
-                      name="dato_oppdaget"
-                      control={control}
-                      render={({ field }) => (
-                        <DatePicker
-                          id="dato_oppdaget"
-                          data-testid="sak-dato-oppdaget"
-                          value={field.value}
-                          onChange={field.onChange}
-                          error={!!errors.dato_oppdaget}
-                        />
-                      )}
-                    />
-                    {datoOppdaget && (
-                      <span className="text-sm text-pkt-text-body-subtle whitespace-nowrap">
-                        {beregnDagerSiden(datoOppdaget)} dager siden
-                      </span>
+              <FormField
+                label="Dato forhold oppdaget"
+                required
+                error={errors.dato_oppdaget?.message}
+                helpText="Datoen da forholdet som gir grunnlag for endringskravet ble kjent for deg"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <Controller
+                    name="dato_oppdaget"
+                    control={control}
+                    render={({ field }) => (
+                      <DatePicker
+                        id="dato_oppdaget"
+                        data-testid="sak-dato-oppdaget"
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={!!errors.dato_oppdaget}
+                      />
                     )}
-                  </div>
-                </FormField>
+                  />
+                  {datoOppdaget && (
+                    <span className="text-sm text-pkt-text-body-subtle whitespace-nowrap">
+                      {beregnDagerSiden(datoOppdaget)} dager siden
+                    </span>
+                  )}
+                </div>
+              </FormField>
+            </SectionContainer>
 
-                <VarselSeksjon
-                  checkboxLabel="Varselet ble sendt tidligere"
-                  harTidligere={!(varselSendesNa ?? true)}
-                  onHarTidligereChange={(value) => setValue('varsel_sendes_na', !value)}
-                  datoSendt={watch('dato_varsel_sendt')}
-                  onDatoSendtChange={(value) => setValue('dato_varsel_sendt', value)}
-                  datoError={errors.dato_varsel_sendt?.message}
-                  registerMetoder={register('varsel_metode')}
-                  idPrefix="opprett_sak"
-                  testId="sak-varsel-valg"
-                  extraContent={
-                    preklusjonsResultatVarsel?.alert && (
-                      <div className="mt-3">
-                        <Alert
-                          variant={preklusjonsResultatVarsel.alert.variant}
-                          title={preklusjonsResultatVarsel.alert.title}
-                        >
-                          {preklusjonsResultatVarsel.alert.message}
-                        </Alert>
-                      </div>
-                    )
-                  }
-                />
-              </div>
+            {/* Seksjon 5: Varsling - når og hvordan ble byggherre varslet */}
+            <SectionContainer
+              title="Varsling"
+              description="Når og hvordan ble byggherre varslet om forholdet?"
+            >
+              <VarselSeksjon
+                checkboxLabel="Varselet ble sendt tidligere"
+                harTidligere={!(varselSendesNa ?? true)}
+                onHarTidligereChange={(value) => setValue('varsel_sendes_na', !value)}
+                datoSendt={watch('dato_varsel_sendt')}
+                onDatoSendtChange={(value) => setValue('dato_varsel_sendt', value)}
+                datoError={errors.dato_varsel_sendt?.message}
+                registerMetoder={register('varsel_metode')}
+                idPrefix="opprett_sak"
+                testId="sak-varsel-valg"
+                extraContent={
+                  preklusjonsResultatVarsel?.alert && (
+                    <div className="mt-3">
+                      <Alert
+                        variant={preklusjonsResultatVarsel.alert.variant}
+                        title={preklusjonsResultatVarsel.alert.title}
+                      >
+                        {preklusjonsResultatVarsel.alert.message}
+                      </Alert>
+                    </div>
+                  )
+                }
+              />
             </SectionContainer>
 
             {/* Guidance text */}
