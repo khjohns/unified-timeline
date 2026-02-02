@@ -642,7 +642,7 @@ class TimelineService:
         Denne event sendes på saker med SaksType.FORSERING.
         """
         if state.forsering_data is None:
-            logger.warning("Mottok FORSERING_VARSEL uten forsering_data - ignorerer")
+            logger.debug("Mottok FORSERING_VARSEL uten forsering_data - ignorerer")
             return state
 
         # Oppdater forsering-data
@@ -671,7 +671,7 @@ class TimelineService:
         Denne event sendes på saker med SaksType.FORSERING.
         """
         if state.forsering_data is None:
-            logger.warning("Mottok FORSERING_RESPONS uten forsering_data - ignorerer")
+            logger.debug("Mottok FORSERING_RESPONS uten forsering_data - ignorerer")
             return state
 
         # Legacy fields (bakoverkompatibilitet)
@@ -716,7 +716,7 @@ class TimelineService:
         Denne event sendes på saker med SaksType.FORSERING.
         """
         if state.forsering_data is None:
-            logger.warning("Mottok FORSERING_STOPPET uten forsering_data - ignorerer")
+            logger.debug("Mottok FORSERING_STOPPET uten forsering_data - ignorerer")
             return state
 
         # Oppdater stopp-tilstand
@@ -735,7 +735,7 @@ class TimelineService:
         Denne event sendes på saker med SaksType.FORSERING.
         """
         if state.forsering_data is None:
-            logger.warning("Mottok FORSERING_KOSTNADER_OPPDATERT uten forsering_data - ignorerer")
+            logger.debug("Mottok FORSERING_KOSTNADER_OPPDATERT uten forsering_data - ignorerer")
             return state
 
         # Oppdater kostnader
@@ -749,7 +749,7 @@ class TimelineService:
         Oppdaterer avslatte_fristkrav listen i forsering_data.
         """
         if state.forsering_data is None:
-            logger.warning("Mottok FORSERING_KOE_LAGT_TIL uten forsering_data - ignorerer")
+            logger.debug("Mottok FORSERING_KOE_LAGT_TIL uten forsering_data - ignorerer")
             return state
 
         koe_sak_id = event.data.koe_sak_id
@@ -769,7 +769,7 @@ class TimelineService:
         Fjerner fra avslatte_fristkrav listen i forsering_data.
         """
         if state.forsering_data is None:
-            logger.warning("Mottok FORSERING_KOE_FJERNET uten forsering_data - ignorerer")
+            logger.debug("Mottok FORSERING_KOE_FJERNET uten forsering_data - ignorerer")
             return state
 
         koe_sak_id = event.data.koe_sak_id
