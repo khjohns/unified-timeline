@@ -5,7 +5,7 @@ These tests verify the Catenda API integration service
 without making actual API calls (using mocks).
 """
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 import tempfile
 from pathlib import Path
 
@@ -62,13 +62,13 @@ class TestCatendaService:
         assert service.is_configured() is False
 
     # ========================================================================
-    # Test: create_comment (sync mode)
+    # Test: create_comment
     # ========================================================================
 
-    def test_create_comment_sync_success(self, service, mock_catenda_client):
-        """Test successful synchronous comment creation"""
+    def test_create_comment_success(self, service, mock_catenda_client):
+        """Test successful comment creation"""
         # Act
-        result = service.create_comment('topic-123', 'Test comment', async_mode=False)
+        result = service.create_comment('topic-123', 'Test comment')
 
         # Assert
         assert result is not None
@@ -119,25 +119,6 @@ class TestCatendaService:
 
         # Assert
         assert result is None  # Should handle exception gracefully
-
-    # ========================================================================
-    # Test: create_comment (async mode)
-    # ========================================================================
-
-    @patch('threading.Thread')
-    def test_create_comment_async_mode(self, mock_thread, service):
-        """Test asynchronous comment creation (background thread)"""
-        # Arrange
-        mock_thread_instance = Mock()
-        mock_thread.return_value = mock_thread_instance
-
-        # Act
-        result = service.create_comment('topic-123', 'Test', async_mode=True)
-
-        # Assert
-        assert result['status'] == 'queued'
-        mock_thread.assert_called_once()
-        mock_thread_instance.start.assert_called_once()
 
     # ========================================================================
     # Test: upload_document
