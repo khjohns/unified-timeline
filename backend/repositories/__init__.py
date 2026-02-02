@@ -11,6 +11,9 @@ Architecture:
         ├── SakMetadataRepository         - CSV files (prototype)
         └── SupabaseSakMetadataRepository - PostgreSQL (test/dev)
 
+    RelationRepository
+        └── RelationRepository - Supabase only (CQRS projection for reverse lookups)
+
 Usage:
     from repositories import create_event_repository, create_metadata_repository
 
@@ -21,6 +24,9 @@ Usage:
     # Testing with Supabase
     event_repo = create_event_repository("supabase")
     metadata_repo = create_metadata_repository("supabase")
+
+    # Relation repository (Supabase only)
+    relation_repo = create_relation_repository()
 
     # Auto-detect from environment (EVENT_STORE_BACKEND / METADATA_STORE_BACKEND)
     event_repo = create_event_repository()
@@ -45,6 +51,11 @@ from .supabase_sak_metadata_repository import (
     create_metadata_repository,
 )
 
+from .relation_repository import (
+    RelationRepository,
+    create_relation_repository,
+)
+
 __all__ = [
     # Event repositories
     "EventRepository",
@@ -56,4 +67,7 @@ __all__ = [
     "SakMetadataRepository",
     "SupabaseSakMetadataRepository",
     "create_metadata_repository",
+    # Relation repository
+    "RelationRepository",
+    "create_relation_repository",
 ]

@@ -10,6 +10,7 @@ med relasjoner til de avslåtte fristforlengelsessakene.
 """
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
+import os
 
 from utils.logger import get_logger
 from lib.helpers import get_all_sak_ids
@@ -18,6 +19,18 @@ from models.events import parse_event
 from services.base_sak_service import BaseSakService
 
 logger = get_logger(__name__)
+
+# Check if relation repository is available (Supabase backend)
+def _get_relation_repository():
+    """Get relation repository if available."""
+    backend = os.environ.get("EVENT_STORE_BACKEND", "json")
+    if backend == "supabase":
+        try:
+            from repositories import create_relation_repository
+            return create_relation_repository()
+        except Exception as e:
+            logger.debug(f"RelationRepository not available: {e}")
+    return None
 
 
 class ForseringService(BaseSakService):
@@ -33,7 +46,8 @@ class ForseringService(BaseSakService):
         catenda_client: Optional[Any] = None,
         event_repository: Optional[Any] = None,
         timeline_service: Optional[Any] = None,
-        metadata_repository: Optional[Any] = None
+        metadata_repository: Optional[Any] = None,
+        relation_repository: Optional[Any] = None,
     ):
         """
         Initialiser ForseringService.
@@ -43,6 +57,7 @@ class ForseringService(BaseSakService):
             event_repository: EventRepository for å hente events fra saker
             timeline_service: TimelineService for å beregne SakState
             metadata_repository: SakMetadataRepository for å mappe topic GUID til sak_id
+            relation_repository: RelationRepository for O(1) relasjonsoppslag (optional)
         """
         super().__init__(
             catenda_client=catenda_client,
@@ -50,6 +65,7 @@ class ForseringService(BaseSakService):
             timeline_service=timeline_service
         )
         self.metadata_repository = metadata_repository
+        self.relation_repository = relation_repository or _get_relation_repository()
         self._log_init_warnings("ForseringService")
 
     def opprett_forseringssak(
@@ -132,6 +148,17 @@ class ForseringService(BaseSakService):
 
         # Bygg forsering data
         sak_id = topic['guid'] if topic else f"mock-{datetime.now().timestamp()}"
+
+        # Add relations to projection table for O(1) lookups
+        if self.relation_repository and avslatte_sak_ids:
+            try:
+                self.relation_repository.add_relations_batch(
+                    source_sak_id=sak_id,
+                    target_sak_ids=avslatte_sak_ids,
+                    relation_type="forsering",
+                )
+            except Exception as e:
+                logger.warning(f"Could not add relations to projection table: {e}")
 
         return {
             "sak_id": sak_id,
@@ -332,6 +359,71 @@ class ForseringService(BaseSakService):
 
         Brukes for å vise back-links fra KOE-saker til deres forsering.
 
+        Uses RelationRepository for O(1) lookup when available,
+        falls back to full scan for JSON backend.
+
+        Args:
+            sak_id: KOE-sakens ID
+
+        Returns:
+            Liste med forseringssaker som refererer til KOE-saken
+        """
+        # Fast path: Use relation repository if available (O(1))
+        if self.relation_repository:
+            return self._finn_forseringer_via_index(sak_id)
+
+        # Slow path: Full scan (O(n)) - for JSON backend
+        return self._finn_forseringer_via_scan(sak_id)
+
+    def _finn_forseringer_via_index(self, sak_id: str) -> List[Dict[str, Any]]:
+        """
+        Find forseringer using relation index (O(1) lookup).
+
+        Args:
+            sak_id: KOE-sakens ID
+
+        Returns:
+            Liste med forseringssaker som refererer til KOE-saken
+        """
+        forseringer = []
+
+        # Get forsering sak_ids from index
+        forsering_sak_ids = self.relation_repository.get_containers_for_sak(
+            target_sak_id=sak_id,
+            relation_type="forsering",
+        )
+
+        if not forsering_sak_ids:
+            logger.debug(f"No forseringer found for {sak_id} in index")
+            return []
+
+        # Fetch state for each forsering
+        for forsering_sak_id in forsering_sak_ids:
+            if self.event_repository and self.timeline_service:
+                try:
+                    events_data, _version = self.event_repository.get_events(forsering_sak_id)
+                    if events_data:
+                        events = [parse_event(e) for e in events_data]
+                        state = self.timeline_service.compute_state(events)
+
+                        if state.sakstype == 'forsering' and state.forsering_data:
+                            forseringer.append({
+                                "forsering_sak_id": forsering_sak_id,
+                                "forsering_sak_tittel": state.sakstittel,
+                                "dato_varslet": state.forsering_data.dato_varslet,
+                                "er_iverksatt": state.forsering_data.er_iverksatt or False,
+                                "er_stoppet": state.forsering_data.er_stoppet or False,
+                            })
+                except Exception as e:
+                    logger.debug(f"Could not fetch state for forsering {forsering_sak_id}: {e}")
+
+        logger.info(f"Found {len(forseringer)} forseringer for {sak_id} (via index)")
+        return forseringer
+
+    def _finn_forseringer_via_scan(self, sak_id: str) -> List[Dict[str, Any]]:
+        """
+        Find forseringer by scanning all saker (O(n) fallback).
+
         Args:
             sak_id: KOE-sakens ID
 
@@ -372,7 +464,7 @@ class ForseringService(BaseSakService):
                 except Exception as e:
                     logger.debug(f"Kunne ikke evaluere sak {candidate_sak_id}: {e}")
 
-        logger.info(f"Fant {len(forseringer)} forseringer som refererer til {sak_id}")
+        logger.info(f"Fant {len(forseringer)} forseringer som refererer til {sak_id} (via scan)")
         return forseringer
 
     def hent_kandidat_koe_saker(self) -> List[Dict[str, Any]]:

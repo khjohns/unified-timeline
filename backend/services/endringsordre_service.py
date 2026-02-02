@@ -9,6 +9,7 @@ med relasjoner til de KOE-sakene som inngår i endringsordren.
 """
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
+import os
 
 from utils.logger import get_logger
 from lib.helpers import get_all_sak_ids
@@ -40,6 +41,18 @@ from services.base_sak_service import BaseSakService
 
 logger = get_logger(__name__)
 
+# Check if relation repository is available (Supabase backend)
+def _get_relation_repository():
+    """Get relation repository if available."""
+    backend = os.environ.get("EVENT_STORE_BACKEND", "json")
+    if backend == "supabase":
+        try:
+            from repositories import create_relation_repository
+            return create_relation_repository()
+        except Exception as e:
+            logger.debug(f"RelationRepository not available: {e}")
+    return None
+
 
 class EndringsordreService(BaseSakService):
     """
@@ -54,7 +67,8 @@ class EndringsordreService(BaseSakService):
         catenda_client: Optional[Any] = None,
         event_repository: Optional[Any] = None,
         timeline_service: Optional[Any] = None,
-        metadata_repository: Optional[Any] = None
+        metadata_repository: Optional[Any] = None,
+        relation_repository: Optional[Any] = None,
     ):
         """
         Initialiser EndringsordreService.
@@ -64,6 +78,7 @@ class EndringsordreService(BaseSakService):
             event_repository: EventRepository for å hente events fra saker
             timeline_service: TimelineService for å beregne SakState
             metadata_repository: SakMetadataRepository for å mappe topic GUID til sak_id
+            relation_repository: RelationRepository for O(1) relasjonsoppslag (optional)
         """
         super().__init__(
             catenda_client=catenda_client,
@@ -71,6 +86,7 @@ class EndringsordreService(BaseSakService):
             timeline_service=timeline_service
         )
         self.metadata_repository = metadata_repository
+        self.relation_repository = relation_repository or _get_relation_repository()
         self._log_init_warnings("EndringsordreService")
 
     def opprett_endringsordresak(
@@ -234,6 +250,17 @@ class EndringsordreService(BaseSakService):
         if not result.success:
             raise RuntimeError(f"Kunne ikke opprette endringsordre: {result.error}")
 
+        # 5b. Add relations to projection table for O(1) lookups
+        if self.relation_repository and koe_sak_ids:
+            try:
+                self.relation_repository.add_relations_batch(
+                    source_sak_id=sak_id,
+                    target_sak_ids=koe_sak_ids,
+                    relation_type="endringsordre",
+                )
+            except Exception as e:
+                logger.warning(f"Could not add relations to projection table: {e}")
+
         # 6. Prøv å synke til Catenda (valgfritt, kun hvis enabled)
         catenda_synced = False
         catenda_topic_id = None
@@ -341,6 +368,17 @@ class EndringsordreService(BaseSakService):
                 logger.error(f"Feil ved lagring av event: {e}")
                 raise RuntimeError(f"Kunne ikke lagre event: {e}")
 
+        # 1b. Add relation to projection table
+        if self.relation_repository:
+            try:
+                self.relation_repository.add_relation(
+                    source_sak_id=eo_sak_id,
+                    target_sak_id=koe_sak_id,
+                    relation_type="endringsordre",
+                )
+            except Exception as e:
+                logger.warning(f"Could not add relation to projection table: {e}")
+
         # 2. Prøv å synke til Catenda (valgfritt)
         catenda_synced = False
         if self.client:
@@ -398,6 +436,17 @@ class EndringsordreService(BaseSakService):
             except Exception as e:
                 logger.error(f"Feil ved lagring av event: {e}")
                 raise RuntimeError(f"Kunne ikke lagre event: {e}")
+
+        # 1b. Remove relation from projection table
+        if self.relation_repository:
+            try:
+                self.relation_repository.remove_relation(
+                    source_sak_id=eo_sak_id,
+                    target_sak_id=koe_sak_id,
+                    relation_type="endringsordre",
+                )
+            except Exception as e:
+                logger.warning(f"Could not remove relation from projection table: {e}")
 
         # 2. Prøv å synke til Catenda (valgfritt)
         catenda_synced = False
@@ -627,6 +676,70 @@ class EndringsordreService(BaseSakService):
 
         Brukes for å vise back-links fra KOE-saker til deres EO.
 
+        Uses RelationRepository for O(1) lookup when available,
+        falls back to full scan for JSON backend.
+
+        Args:
+            koe_sak_id: KOE-sakens ID
+
+        Returns:
+            Liste med EO-er som refererer til KOE-saken
+        """
+        # Fast path: Use relation repository if available (O(1))
+        if self.relation_repository:
+            return self._finn_eoer_via_index(koe_sak_id)
+
+        # Slow path: Full scan (O(n)) - for JSON backend
+        return self._finn_eoer_via_scan(koe_sak_id)
+
+    def _finn_eoer_via_index(self, koe_sak_id: str) -> List[Dict[str, Any]]:
+        """
+        Find EOer using relation index (O(1) lookup).
+
+        Args:
+            koe_sak_id: KOE-sakens ID
+
+        Returns:
+            Liste med EO-er som refererer til KOE-saken
+        """
+        eoer = []
+
+        # Get EO sak_ids from index
+        eo_sak_ids = self.relation_repository.get_containers_for_sak(
+            target_sak_id=koe_sak_id,
+            relation_type="endringsordre",
+        )
+
+        if not eo_sak_ids:
+            logger.debug(f"No EOer found for {koe_sak_id} in index")
+            return []
+
+        # Fetch state for each EO
+        for eo_sak_id in eo_sak_ids:
+            if self.event_repository and self.timeline_service:
+                try:
+                    events_data, _version = self.event_repository.get_events(eo_sak_id)
+                    if events_data:
+                        events = [parse_event(e) for e in events_data]
+                        state = self.timeline_service.compute_state(events)
+
+                        if state.sakstype == 'endringsordre' and state.endringsordre_data:
+                            eoer.append({
+                                "eo_sak_id": eo_sak_id,
+                                "eo_nummer": state.endringsordre_data.eo_nummer,
+                                "dato_utstedt": state.endringsordre_data.dato_utstedt,
+                                "status": state.endringsordre_data.status,
+                            })
+                except Exception as e:
+                    logger.debug(f"Could not fetch state for EO {eo_sak_id}: {e}")
+
+        logger.info(f"Found {len(eoer)} EOer for KOE {koe_sak_id} (via index)")
+        return eoer
+
+    def _finn_eoer_via_scan(self, koe_sak_id: str) -> List[Dict[str, Any]]:
+        """
+        Find EOer by scanning all saker (O(n) fallback).
+
         Args:
             koe_sak_id: KOE-sakens ID
 
@@ -649,8 +762,9 @@ class EndringsordreService(BaseSakService):
         for candidate_sak_id in sak_ids_to_search:
             if self.event_repository and self.timeline_service:
                 try:
-                    events, _version = self.event_repository.get_events(candidate_sak_id)
-                    if events:
+                    events_data, _version = self.event_repository.get_events(candidate_sak_id)
+                    if events_data:
+                        events = [parse_event(e) for e in events_data]
                         state = self.timeline_service.compute_state(events)
 
                         # Sjekk om det er en endringsordresak
@@ -667,6 +781,6 @@ class EndringsordreService(BaseSakService):
                 except Exception as e:
                     logger.debug(f"Kunne ikke evaluere sak {candidate_sak_id}: {e}")
 
-        logger.info(f"Fant {len(eoer)} EOer som refererer til KOE {koe_sak_id}")
+        logger.info(f"Fant {len(eoer)} EOer som refererer til KOE {koe_sak_id} (via scan)")
         return eoer
 
