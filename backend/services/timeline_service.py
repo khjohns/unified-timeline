@@ -22,6 +22,7 @@ from models.events import (
     ForseringKostnaderOppdatertEvent,
     ForseringKoeHandlingEvent,
     SakOpprettetEvent,
+    EOOpprettetEvent,
     EOUtstedtEvent,
     EOAkseptertEvent,
     EOKoeHandlingEvent,
@@ -265,6 +266,7 @@ class TimelineService:
             EventType.FORSERING_KOSTNADER_OPPDATERT: self._handle_forsering_kostnader_oppdatert,
             EventType.FORSERING_KOE_LAGT_TIL: self._handle_forsering_koe_lagt_til,
             EventType.FORSERING_KOE_FJERNET: self._handle_forsering_koe_fjernet,
+            EventType.EO_OPPRETTET: self._handle_eo_opprettet,
             EventType.EO_UTSTEDT: self._handle_eo_utstedt,
             EventType.EO_AKSEPTERT: self._handle_eo_akseptert,
             EventType.EO_KOE_LAGT_TIL: self._handle_eo_koe_lagt_til,
@@ -778,6 +780,29 @@ class TimelineService:
         else:
             logger.warning(f"KOE {koe_sak_id} var ikke i forseringssak")
 
+        return state
+
+    # ============ ENDRINGSORDRE HANDLERS ============
+
+    def _handle_eo_opprettet(self, state: SakState, event: EOOpprettetEvent) -> SakState:
+        """Håndterer EO_OPPRETTET - endringsordre-sak opprettet.
+
+        Initialiserer grunnleggende EO-data. Fullstendig data settes ved EO_UTSTEDT.
+        """
+        data = event.data
+
+        # Sett sakstype til ENDRINGSORDRE
+        state.sakstype = SaksType.ENDRINGSORDRE
+
+        # Initialiser endringsordre_data med basisinfo
+        state.endringsordre_data = EndringsordreData(
+            eo_nummer=data.eo_nummer,
+            beskrivelse=data.beskrivelse,
+            relaterte_koe_saker=data.relaterte_koe_saker or [],
+            status=EOStatus.UTKAST,
+        )
+
+        logger.info(f"EO-sak {data.eo_nummer} opprettet")
         return state
 
     def _handle_eo_utstedt(self, state: SakState, event: EOUtstedtEvent) -> SakState:
