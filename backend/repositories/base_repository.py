@@ -5,8 +5,9 @@ This abstract base class defines the interface that all repositories must implem
 This allows us to swap between CSV (prototype) and Dataverse (production) without
 changing business logic in services.
 """
+
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any, List
+from typing import Any
 
 
 class BaseRepository(ABC):
@@ -19,7 +20,7 @@ class BaseRepository(ABC):
     """
 
     @abstractmethod
-    def get_case(self, case_id: str) -> Optional[Dict[str, Any]]:
+    def get_case(self, case_id: str) -> dict[str, Any] | None:
         """
         Get case by ID.
 
@@ -32,7 +33,7 @@ class BaseRepository(ABC):
         pass
 
     @abstractmethod
-    def update_case(self, case_id: str, data: Dict[str, Any]) -> None:
+    def update_case(self, case_id: str, data: dict[str, Any]) -> None:
         """
         Update case data.
 
@@ -46,7 +47,7 @@ class BaseRepository(ABC):
         pass
 
     @abstractmethod
-    def create_case(self, case_data: Dict[str, Any]) -> str:
+    def create_case(self, case_data: dict[str, Any]) -> str:
         """
         Create new case.
 
@@ -59,7 +60,7 @@ class BaseRepository(ABC):
         pass
 
     @abstractmethod
-    def list_cases(self, project_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_cases(self, project_id: str | None = None) -> list[dict[str, Any]]:
         """
         List cases, optionally filtered by project.
 
@@ -98,7 +99,7 @@ class BaseRepository(ABC):
         pass
 
     @abstractmethod
-    def get_cases_by_catenda_topic(self, topic_id: str) -> List[Dict[str, Any]]:
+    def get_cases_by_catenda_topic(self, topic_id: str) -> list[dict[str, Any]]:
         """
         Get cases linked to a Catenda topic.
 

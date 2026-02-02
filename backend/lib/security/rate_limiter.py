@@ -11,20 +11,21 @@ For produksjon:
 Referanser:
 - Flask-Limiter docs: https://flask-limiter.readthedocs.io/
 """
-import os
+
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
 # Rate limit verdier fra miljøvariabler (eller defaults)
-RATE_LIMIT_SUBMIT = os.getenv('RATE_LIMIT_SUBMIT', '10')  # per minutt
-RATE_LIMIT_WEBHOOK = os.getenv('RATE_LIMIT_WEBHOOK', '100')  # per minutt
-RATE_LIMIT_DEFAULT = os.getenv('RATE_LIMIT_DEFAULT', '2000 per day, 500 per hour')
+RATE_LIMIT_SUBMIT = os.getenv("RATE_LIMIT_SUBMIT", "10")  # per minutt
+RATE_LIMIT_WEBHOOK = os.getenv("RATE_LIMIT_WEBHOOK", "100")  # per minutt
+RATE_LIMIT_DEFAULT = os.getenv("RATE_LIMIT_DEFAULT", "2000 per day, 500 per hour")
 
 # Storage backend
 # For prototype: memory://
 # For produksjon: redis://host:port eller Azure Redis
-RATE_LIMIT_STORAGE = os.getenv('RATE_LIMIT_STORAGE', 'memory://')
+RATE_LIMIT_STORAGE = os.getenv("RATE_LIMIT_STORAGE", "memory://")
 
 # Limiter instance (initialized when Flask app is created)
 limiter = None
@@ -52,15 +53,17 @@ def init_limiter(app):
             app=app,
             key_func=get_remote_address,
             default_limits=[RATE_LIMIT_DEFAULT],
-            storage_uri=RATE_LIMIT_STORAGE
+            storage_uri=RATE_LIMIT_STORAGE,
         )
 
         # Only log once (skip in reloader parent process)
-        is_reloader = os.getenv('WERKZEUG_RUN_MAIN') == 'true'
-        is_debug = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
+        is_reloader = os.getenv("WERKZEUG_RUN_MAIN") == "true"
+        is_debug = os.getenv("FLASK_DEBUG", "false").lower() == "true"
         if is_reloader or not is_debug:
-            if RATE_LIMIT_STORAGE == 'memory://':
-                logger.warning("⚠️  Rate limiting: in-memory storage (bruk Redis i prod)")
+            if RATE_LIMIT_STORAGE == "memory://":
+                logger.warning(
+                    "⚠️  Rate limiting: in-memory storage (bruk Redis i prod)"
+                )
             else:
                 logger.info(f"✅ Rate limiting: {RATE_LIMIT_STORAGE}")
 

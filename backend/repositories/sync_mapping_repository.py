@@ -5,14 +5,16 @@ Tables:
 - dalux_catenda_sync_mappings: Per-project sync configuration
 - dalux_task_sync_records: Per-task sync status tracking
 """
+
 import os
 from datetime import datetime
-from typing import List, Optional
+
 from utils.logger import get_logger
 
 # Try to import Supabase
 try:
-    from supabase import create_client, Client
+    from supabase import Client, create_client
+
     SUPABASE_AVAILABLE = True
 except ImportError:
     SUPABASE_AVAILABLE = False
@@ -43,8 +45,8 @@ class SyncMappingRepository:
 
     def __init__(
         self,
-        url: Optional[str] = None,
-        key: Optional[str] = None,
+        url: str | None = None,
+        key: str | None = None,
     ):
         if not SUPABASE_AVAILABLE:
             raise ImportError(
@@ -52,7 +54,11 @@ class SyncMappingRepository:
             )
 
         self.url = url or os.environ.get("SUPABASE_URL")
-        self.key = key or os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_KEY")
+        self.key = (
+            key
+            or os.environ.get("SUPABASE_SECRET_KEY")
+            or os.environ.get("SUPABASE_KEY")
+        )
 
         if not self.url or not self.key:
             raise ValueError(
@@ -97,7 +103,7 @@ class SyncMappingRepository:
             logger.error(f"Failed to create sync mapping: {e}")
             raise
 
-    def get_sync_mapping(self, mapping_id: str) -> Optional[DaluxCatendaSyncMapping]:
+    def get_sync_mapping(self, mapping_id: str) -> DaluxCatendaSyncMapping | None:
         """
         Get a sync mapping by ID.
 
@@ -125,10 +131,8 @@ class SyncMappingRepository:
             return None
 
     def get_sync_mapping_by_project(
-        self,
-        project_id: str,
-        dalux_project_id: Optional[str] = None
-    ) -> Optional[DaluxCatendaSyncMapping]:
+        self, project_id: str, dalux_project_id: str | None = None
+    ) -> DaluxCatendaSyncMapping | None:
         """
         Get sync mapping by project ID.
 
@@ -161,10 +165,8 @@ class SyncMappingRepository:
             return None
 
     def list_sync_mappings(
-        self,
-        project_id: Optional[str] = None,
-        enabled_only: bool = False
-    ) -> List[DaluxCatendaSyncMapping]:
+        self, project_id: str | None = None, enabled_only: bool = False
+    ) -> list[DaluxCatendaSyncMapping]:
         """
         List sync mappings.
 
@@ -191,11 +193,7 @@ class SyncMappingRepository:
             logger.error(f"Failed to list sync mappings: {e}")
             return []
 
-    def update_sync_mapping(
-        self,
-        mapping_id: str,
-        updates: dict
-    ) -> bool:
+    def update_sync_mapping(self, mapping_id: str, updates: dict) -> bool:
         """
         Update a sync mapping.
 
@@ -210,7 +208,9 @@ class SyncMappingRepository:
         updates["updated_at"] = datetime.utcnow().isoformat()
 
         try:
-            self.client.table(self.SYNC_MAPPINGS_TABLE).update(updates).eq("id", mapping_id).execute()
+            self.client.table(self.SYNC_MAPPINGS_TABLE).update(updates).eq(
+                "id", mapping_id
+            ).execute()
             logger.info(f"Updated sync mapping {mapping_id}")
             return True
         except Exception as e:
@@ -218,10 +218,7 @@ class SyncMappingRepository:
             return False
 
     def update_sync_status(
-        self,
-        mapping_id: str,
-        status: str,
-        error: Optional[str] = None
+        self, mapping_id: str, status: str, error: str | None = None
     ) -> bool:
         """
         Update sync status after a sync operation.
@@ -255,7 +252,9 @@ class SyncMappingRepository:
         """
         try:
             # Task sync records are deleted via CASCADE
-            self.client.table(self.SYNC_MAPPINGS_TABLE).delete().eq("id", mapping_id).execute()
+            self.client.table(self.SYNC_MAPPINGS_TABLE).delete().eq(
+                "id", mapping_id
+            ).execute()
             logger.info(f"Deleted sync mapping {mapping_id}")
             return True
         except Exception as e:
@@ -307,7 +306,9 @@ class SyncMappingRepository:
         }
 
         try:
-            result = self.client.table(self.TASK_SYNC_RECORDS_TABLE).insert(data).execute()
+            result = (
+                self.client.table(self.TASK_SYNC_RECORDS_TABLE).insert(data).execute()
+            )
             if not result.data or len(result.data) == 0:
                 raise ValueError("Insert operation returned no data")
             record_id = result.data[0]["id"]
@@ -318,10 +319,8 @@ class SyncMappingRepository:
             raise
 
     def get_task_sync_record(
-        self,
-        mapping_id: str,
-        dalux_task_id: str
-    ) -> Optional[TaskSyncRecord]:
+        self, mapping_id: str, dalux_task_id: str
+    ) -> TaskSyncRecord | None:
         """
         Get task sync record by Dalux task ID.
 
@@ -351,9 +350,8 @@ class SyncMappingRepository:
             return None
 
     def get_task_sync_record_by_catenda_topic(
-        self,
-        catenda_topic_guid: str
-    ) -> Optional[TaskSyncRecord]:
+        self, catenda_topic_guid: str
+    ) -> TaskSyncRecord | None:
         """
         Get task sync record by Catenda topic GUID.
 
@@ -381,10 +379,8 @@ class SyncMappingRepository:
             return None
 
     def list_task_sync_records(
-        self,
-        mapping_id: str,
-        status: Optional[str] = None
-    ) -> List[TaskSyncRecord]:
+        self, mapping_id: str, status: str | None = None
+    ) -> list[TaskSyncRecord]:
         """
         List task sync records for a mapping.
 
@@ -413,11 +409,7 @@ class SyncMappingRepository:
             logger.error(f"Failed to list task sync records: {e}")
             return []
 
-    def update_task_sync_record(
-        self,
-        record_id: str,
-        updates: dict
-    ) -> bool:
+    def update_task_sync_record(self, record_id: str, updates: dict) -> bool:
         """
         Update a task sync record.
 
@@ -431,7 +423,9 @@ class SyncMappingRepository:
         updates["updated_at"] = datetime.utcnow().isoformat()
 
         try:
-            self.client.table(self.TASK_SYNC_RECORDS_TABLE).update(updates).eq("id", record_id).execute()
+            self.client.table(self.TASK_SYNC_RECORDS_TABLE).update(updates).eq(
+                "id", record_id
+            ).execute()
             logger.debug(f"Updated task sync record {record_id}")
             return True
         except Exception as e:
@@ -478,10 +472,7 @@ class SyncMappingRepository:
             raise
 
     def mark_task_synced(
-        self,
-        record_id: str,
-        dalux_updated_at: datetime,
-        catenda_updated_at: datetime
+        self, record_id: str, dalux_updated_at: datetime, catenda_updated_at: datetime
     ) -> bool:
         """
         Mark a task as successfully synced.
@@ -494,19 +485,18 @@ class SyncMappingRepository:
         Returns:
             True if successful
         """
-        return self.update_task_sync_record(record_id, {
-            "sync_status": "synced",
-            "dalux_updated_at": dalux_updated_at.isoformat(),
-            "catenda_updated_at": catenda_updated_at.isoformat(),
-            "last_error": None,
-            "retry_count": 0,
-        })
+        return self.update_task_sync_record(
+            record_id,
+            {
+                "sync_status": "synced",
+                "dalux_updated_at": dalux_updated_at.isoformat(),
+                "catenda_updated_at": catenda_updated_at.isoformat(),
+                "last_error": None,
+                "retry_count": 0,
+            },
+        )
 
-    def mark_task_failed(
-        self,
-        record_id: str,
-        error: str
-    ) -> bool:
+    def mark_task_failed(self, record_id: str, error: str) -> bool:
         """
         Mark a task sync as failed.
 
@@ -521,13 +511,16 @@ class SyncMappingRepository:
         existing = self._get_task_sync_record_by_id(record_id)
         retry_count = (existing.retry_count + 1) if existing else 1
 
-        return self.update_task_sync_record(record_id, {
-            "sync_status": "failed",
-            "last_error": error,
-            "retry_count": retry_count,
-        })
+        return self.update_task_sync_record(
+            record_id,
+            {
+                "sync_status": "failed",
+                "last_error": error,
+                "retry_count": retry_count,
+            },
+        )
 
-    def _get_task_sync_record_by_id(self, record_id: str) -> Optional[TaskSyncRecord]:
+    def _get_task_sync_record_by_id(self, record_id: str) -> TaskSyncRecord | None:
         """Get task sync record by ID."""
         try:
             result = (

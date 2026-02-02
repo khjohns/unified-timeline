@@ -25,15 +25,16 @@ import signal
 import subprocess
 import sys
 import time
-from typing import Optional
 
 # Server start time for uptime tracking
-SERVER_START_TIME: Optional[float] = None
+SERVER_START_TIME: float | None = None
 
 # Last .env fil (VIKTIG for sikkerhetsvariabler)
 from pathlib import Path
+
 from dotenv import load_dotenv
-dotenv_path = Path(__file__).resolve().parent / '.env'
+
+dotenv_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path=dotenv_path)
 
 # Flask
@@ -45,16 +46,16 @@ except ImportError:
 
 # Core modules
 from core.config import settings
-from core.logging_config import setup_logging
 from core.cors_config import setup_cors
+from core.logging_config import setup_logging
+
+# Request context
+from core.request_context import init_request_context
 from core.system_context import SystemContext
 from lib.auth.magic_link import MagicLinkManager
 
 # Security
 from lib.security.rate_limiter import init_limiter
-
-# Request context
-from core.request_context import init_request_context
 
 # Filtering
 from utils.filtering_config import get_filter_summary
@@ -79,15 +80,15 @@ def get_uptime() -> str:
 # Logging Setup
 # ============================================================================
 
-logger = setup_logging('unified_timeline.log')
+logger = setup_logging("unified_timeline.log")
 
 
 # ============================================================================
 # Global System Instance & Singletons
 # ============================================================================
 
-system: Optional[SystemContext] = None
-magic_link_manager: Optional[MagicLinkManager] = None
+system: SystemContext | None = None
+magic_link_manager: MagicLinkManager | None = None
 
 
 def get_magic_link_manager() -> MagicLinkManager:
@@ -107,8 +108,10 @@ def get_system() -> SystemContext:
     if system is None:
         try:
             config = settings.get_catenda_config()
-            if not config.get('catenda_client_id'):
-                logger.warning("⚠️  CATENDA_CLIENT_ID missing in .env - running without Catenda integration")
+            if not config.get("catenda_client_id"):
+                logger.warning(
+                    "⚠️  CATENDA_CLIENT_ID missing in .env - running without Catenda integration"
+                )
 
             # Pass the singleton manager to the context
             system = SystemContext(config, magic_link_manager=get_magic_link_manager())
@@ -120,7 +123,6 @@ def get_system() -> SystemContext:
     return system
 
 
-
 # ============================================================================
 # Flask App Setup
 # ============================================================================
@@ -128,12 +130,13 @@ def get_system() -> SystemContext:
 app = Flask(__name__)
 
 # Flask Secret Key (required for sessions and security features)
-app.config['SECRET_KEY'] = os.getenv(
-    'FLASK_SECRET_KEY',
-    'dev-only-secret-CHANGE-IN-PRODUCTION'
+app.config["SECRET_KEY"] = os.getenv(
+    "FLASK_SECRET_KEY", "dev-only-secret-CHANGE-IN-PRODUCTION"
 )
-if app.config['SECRET_KEY'] == 'dev-only-secret-CHANGE-IN-PRODUCTION':
-    logger.warning("⚠️  FLASK_SECRET_KEY not set - using dev default. Set in .env for production!")
+if app.config["SECRET_KEY"] == "dev-only-secret-CHANGE-IN-PRODUCTION":
+    logger.warning(
+        "⚠️  FLASK_SECRET_KEY not set - using dev default. Set in .env for production!"
+    )
 
 # CORS Configuration
 setup_cors(app)
@@ -149,17 +152,17 @@ init_request_context(app)
 # Register Blueprints
 # ============================================================================
 
-from routes.utility_routes import utility_bp
-from routes.event_routes import events_bp
-from routes.catenda_webhook_routes import webhook_bp  # Catenda-specific webhooks
-from routes.forsering_routes import forsering_bp
-from routes.endringsordre_routes import endringsordre_bp
-from routes.cloudevents_routes import cloudevents_bp
 from routes.analytics_routes import analytics_bp
-from routes.sync_routes import sync_bp
+from routes.catenda_webhook_routes import webhook_bp  # Catenda-specific webhooks
+from routes.cloudevents_routes import cloudevents_bp
+from routes.endringsordre_routes import endringsordre_bp
+from routes.error_handlers import register_error_handlers
+from routes.event_routes import events_bp
+from routes.forsering_routes import forsering_bp
 from routes.fravik_routes import fravik_bp
 from routes.letter_routes import letter_bp
-from routes.error_handlers import register_error_handlers
+from routes.sync_routes import sync_bp
+from routes.utility_routes import utility_bp
 
 # Register routes
 app.register_blueprint(utility_bp)
@@ -195,14 +198,14 @@ if __name__ == "__main__":
 
     # Startup validation
     warnings = []
-    if not os.getenv('FLASK_SECRET_KEY'):
+    if not os.getenv("FLASK_SECRET_KEY"):
         warnings.append("FLASK_SECRET_KEY ikke satt (bruker dev-default)")
-    if not os.getenv('CSRF_SECRET'):
+    if not os.getenv("CSRF_SECRET"):
         warnings.append("CSRF_SECRET ikke satt")
-    if os.getenv('EVENT_STORE_BACKEND') == 'supabase':
-        if not os.getenv('SUPABASE_URL'):
+    if os.getenv("EVENT_STORE_BACKEND") == "supabase":
+        if not os.getenv("SUPABASE_URL"):
             warnings.append("SUPABASE_URL mangler (EVENT_STORE_BACKEND=supabase)")
-        if not os.getenv('SUPABASE_KEY'):
+        if not os.getenv("SUPABASE_KEY"):
             warnings.append("SUPABASE_KEY mangler (EVENT_STORE_BACKEND=supabase)")
 
     # Graceful shutdown handler
@@ -222,27 +225,27 @@ if __name__ == "__main__":
 
     # Git version
     try:
-        git_commit = subprocess.getoutput('git rev-parse --short HEAD')
+        git_commit = subprocess.getoutput("git rev-parse --short HEAD")
     except Exception:
         git_commit = "unknown"
 
     # Port (Azure App Service sets PORT env var)
-    port = int(os.getenv('PORT', 8080))
+    port = int(os.getenv("PORT", 8080))
 
     # Count routes per blueprint
     blueprint_routes = {}
     for rule in app.url_map.iter_rules():
-        if '.' in rule.endpoint:
-            bp_name = rule.endpoint.split('.')[0]
+        if "." in rule.endpoint:
+            bp_name = rule.endpoint.split(".")[0]
             blueprint_routes[bp_name] = blueprint_routes.get(bp_name, 0) + 1
 
     total_routes = len(list(app.url_map.iter_rules()))
 
     # Configuration status
-    log_level = os.getenv('LOG_LEVEL', 'INFO')
-    log_format = os.getenv('LOG_FORMAT', 'json')
-    event_store = os.getenv('EVENT_STORE_BACKEND', 'csv')
-    entra_enabled = os.getenv('ENTRA_ENABLED', 'false').lower() == 'true'
+    log_level = os.getenv("LOG_LEVEL", "INFO")
+    log_format = os.getenv("LOG_FORMAT", "json")
+    event_store = os.getenv("EVENT_STORE_BACKEND", "csv")
+    entra_enabled = os.getenv("ENTRA_ENABLED", "false").lower() == "true"
     catenda_ok = settings.is_catenda_enabled
     dalux_ok = settings.is_dalux_enabled
 
@@ -252,16 +255,22 @@ if __name__ == "__main__":
     startup_ms = int((time.time() - start_time) * 1000)
 
     # Only print banner once (skip in reloader parent process)
-    is_reloader_process = os.getenv('WERKZEUG_RUN_MAIN') == 'true'
-    if is_reloader_process or not app.config['DEBUG']:
-        print(f"\n{DIM}{'─'*50}{RESET}")
+    is_reloader_process = os.getenv("WERKZEUG_RUN_MAIN") == "true"
+    if is_reloader_process or not app.config["DEBUG"]:
+        print(f"\n{DIM}{'─' * 50}{RESET}")
         print(f"{BOLD}  Unified Timeline API{RESET}  {DIM}{git_commit}{RESET}")
-        print(f"{DIM}{'─'*50}{RESET}")
+        print(f"{DIM}{'─' * 50}{RESET}")
         print(f"\n  {DIM}Server{RESET}       {CYAN}http://localhost:{port}{RESET}")
-        print(f"  {DIM}Environment{RESET}  {'Development' if app.config['DEBUG'] else 'Production'}")
+        print(
+            f"  {DIM}Environment{RESET}  {'Development' if app.config['DEBUG'] else 'Production'}"
+        )
         print(f"  {DIM}Log level{RESET}    {log_level} {DIM}({log_format}){RESET}")
         print(f"  {DIM}Data store{RESET}   {event_store}")
-        print(f"  {DIM}Auth{RESET}         {GREEN}Entra ID{RESET}" if entra_enabled else f"  {DIM}Auth{RESET}         {DIM}Disabled{RESET}")
+        print(
+            f"  {DIM}Auth{RESET}         {GREEN}Entra ID{RESET}"
+            if entra_enabled
+            else f"  {DIM}Auth{RESET}         {DIM}Disabled{RESET}"
+        )
         print(f"\n  {DIM}Integrations{RESET}")
         print(f"    Catenda    {status_color(catenda_ok)}")
         print(f"    Dalux      {status_color(dalux_ok)}")
@@ -275,25 +284,29 @@ if __name__ == "__main__":
             for warn in warnings:
                 print(f"    {YELLOW}!{RESET} {warn}")
 
-    print(f"{DIM}{'─'*50}{RESET}\n")
+    print(f"{DIM}{'─' * 50}{RESET}\n")
 
     # Set server start time for uptime tracking (both global and in app.config)
     SERVER_START_TIME = time.time()
-    app.config['SERVER_START_TIME'] = SERVER_START_TIME
+    app.config["SERVER_START_TIME"] = SERVER_START_TIME
 
     # Detect if running in cloud environment
-    is_cloud = any([
-        os.getenv('RENDER'),            # Render
-        os.getenv('WEBSITE_HOSTNAME'),  # Azure App Service
-        os.getenv('DYNO'),              # Heroku
-        os.getenv('GAE_ENV'),           # Google App Engine
-        os.getenv('AWS_EXECUTION_ENV'), # AWS
-    ])
+    is_cloud = any(
+        [
+            os.getenv("RENDER"),  # Render
+            os.getenv("WEBSITE_HOSTNAME"),  # Azure App Service
+            os.getenv("DYNO"),  # Heroku
+            os.getenv("GAE_ENV"),  # Google App Engine
+            os.getenv("AWS_EXECUTION_ENV"),  # AWS
+        ]
+    )
 
-    debug_mode = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
+    debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 
     if debug_mode and is_cloud:
         RED = "\033[31m"
-        logger.warning(f"{RED}ADVARSEL: debug=True i sky-miljø! Sett FLASK_DEBUG=false{RESET}")
+        logger.warning(
+            f"{RED}ADVARSEL: debug=True i sky-miljø! Sett FLASK_DEBUG=false{RESET}"
+        )
 
-    app.run(host='0.0.0.0', port=port, debug=debug_mode)
+    app.run(host="0.0.0.0", port=port, debug=debug_mode)

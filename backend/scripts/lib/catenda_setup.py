@@ -7,7 +7,7 @@ Reduces duplication across test_full_flow.py, catenda_menu.py, and similar scrip
 
 import sys
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from dotenv import load_dotenv
 
@@ -40,8 +40,7 @@ def setup_script_path() -> Path:
 
 
 def create_authenticated_client(
-    use_access_token: bool = True,
-    authenticate_if_needed: bool = True
+    use_access_token: bool = True, authenticate_if_needed: bool = True
 ) -> Optional["CatendaClient"]:
     """
     Create an authenticated CatendaClient instance from settings.
@@ -69,7 +68,7 @@ def create_authenticated_client(
 
     client = CatendaClient(
         client_id=settings.catenda_client_id,
-        client_secret=settings.catenda_client_secret
+        client_secret=settings.catenda_client_secret,
     )
 
     # Set topic board if configured
@@ -97,9 +96,8 @@ def create_authenticated_client(
 
 
 def select_topic_board(
-    client: "CatendaClient",
-    auto_select_single: bool = True
-) -> Optional[str]:
+    client: "CatendaClient", auto_select_single: bool = True
+) -> str | None:
     """
     Interactive selection of topic board from available boards.
 
@@ -130,7 +128,7 @@ def select_topic_board(
     if auto_select_single and len(boards) == 1:
         selected = boards[0]
         print_info(f"Velger eneste tilgjengelige: {selected['name']}")
-        return selected['project_id']
+        return selected["project_id"]
 
     # Interactive selection
     while True:
@@ -140,7 +138,7 @@ def select_topic_board(
             if 0 <= idx < len(boards):
                 selected = boards[idx]
                 print_ok(f"Valgte: {selected['name']}")
-                return selected['project_id']
+                return selected["project_id"]
             else:
                 print_warn(f"Ugyldig valg. Velg mellom 1 og {len(boards)}")
         except ValueError:
@@ -150,7 +148,7 @@ def select_topic_board(
             return None
 
 
-def select_project(client: "CatendaClient") -> Optional[str]:
+def select_project(client: "CatendaClient") -> str | None:
     """
     Interactive selection of project from available projects.
 
@@ -173,14 +171,14 @@ def select_project(client: "CatendaClient") -> Optional[str]:
 
     print_ok(f"Fant {len(projects)} prosjekt(er):")
     for i, project in enumerate(projects, 1):
-        marker = "[*]" if project.get('id') == current_project_id else "[ ]"
+        marker = "[*]" if project.get("id") == current_project_id else "[ ]"
         print(f"  {i}. {marker} {project.get('name')} ({project.get('id')})")
 
     # If we have a configured project, offer to use it
     if current_project_id:
         print_info(f"\nForhandsvalgt prosjekt fra .env: {current_project_id}")
         response = input("Bruk dette prosjektet? [J/n]: ").strip().lower()
-        if response != 'n':
+        if response != "n":
             return current_project_id
 
     # Interactive selection
@@ -191,7 +189,7 @@ def select_project(client: "CatendaClient") -> Optional[str]:
             if 0 <= idx < len(projects):
                 selected = projects[idx]
                 print_ok(f"Valgte: {selected.get('name')}")
-                return selected['id']
+                return selected["id"]
             else:
                 print_warn(f"Ugyldig valg. Velg mellom 1 og {len(projects)}")
         except ValueError:
@@ -204,6 +202,7 @@ def select_project(client: "CatendaClient") -> Optional[str]:
 # =============================================================================
 # Console Output Helpers
 # =============================================================================
+
 
 def print_header(title: str):
     """Print formatted header."""
@@ -253,7 +252,7 @@ def confirm(prompt: str, default: bool = True) -> bool:
         response = input(f"\n{prompt} {suffix}: ").strip().lower()
         if not response:
             return default
-        return response in ('j', 'ja', 'y', 'yes')
+        return response in ("j", "ja", "y", "yes")
     except KeyboardInterrupt:
         print("\nAvbrutt")
         return False

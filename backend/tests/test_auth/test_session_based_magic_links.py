@@ -4,8 +4,11 @@ Tests for Session-Based Magic Link Authentication.
 These tests verify that tokens can be used multiple times within their TTL
 (session-based authentication) instead of being one-time-use.
 """
-import pytest
+
 import tempfile
+
+import pytest
+
 from lib.auth.magic_link import MagicLinkManager
 
 
@@ -26,7 +29,9 @@ class TestSessionBasedMagicLinks:
     def test_token_can_be_used_multiple_times_in_session_mode(self, manager):
         """Test that a token can be verified multiple times when mark_as_used=False."""
         # Generate token
-        token = manager.generate(sak_id="TEST-001", email="test@example.com", ttl_hours=24)
+        token = manager.generate(
+            sak_id="TEST-001", email="test@example.com", ttl_hours=24
+        )
 
         # First verification (session-based)
         valid1, msg1, data1 = manager.verify(token, mark_as_used=False)
@@ -71,6 +76,7 @@ class TestSessionBasedMagicLinks:
 
         # Wait a tiny bit (in real use there would be time between requests)
         import time
+
         time.sleep(0.01)
 
         # Second access
@@ -97,7 +103,9 @@ class TestSessionBasedMagicLinks:
     def test_expired_token_fails_in_session_mode(self, manager):
         """Test that expired tokens fail even in session mode."""
         # Generate token with 0 hours TTL (immediately expired)
-        token = manager.generate(sak_id="TEST-005", email="test@example.com", ttl_hours=0)
+        token = manager.generate(
+            sak_id="TEST-005", email="test@example.com", ttl_hours=0
+        )
 
         # Should fail immediately
         valid, msg, data = manager.verify(token, mark_as_used=False)
@@ -118,12 +126,14 @@ class TestSessionBasedMagicLinks:
 
     def test_batch_operations_with_same_token(self, manager):
         """Test simulating multiple API calls with same token (real-world scenario)."""
-        token = manager.generate(sak_id="TEST-007", email="te@example.com", ttl_hours=24)
+        token = manager.generate(
+            sak_id="TEST-007", email="te@example.com", ttl_hours=24
+        )
 
         # Simulate 10 API calls in a session
         for i in range(10):
             valid, msg, data = manager.verify(token, mark_as_used=False)
-            assert valid is True, f"Request {i+1} should succeed"
+            assert valid is True, f"Request {i + 1} should succeed"
             assert data["sak_id"] == "TEST-007"
 
         # All should succeed in session mode

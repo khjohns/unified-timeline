@@ -20,10 +20,10 @@ def get_local_ip() -> str:
     s = None
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 1))
+        s.connect(("8.8.8.8", 1))
         IP = s.getsockname()[0]
     except Exception:
-        IP = '127.0.0.1'
+        IP = "127.0.0.1"
     finally:
         if s:
             s.close()

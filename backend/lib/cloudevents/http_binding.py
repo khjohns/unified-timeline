@@ -9,7 +9,9 @@ Key features:
 - Structured content mode (application/cloudevents+json)
 - Batch mode for multiple events
 """
-from typing import List, Dict, Any, Union, Optional
+
+from typing import Any
+
 from flask import request
 
 from .schemas import CloudEventsContentType, get_dataschema_uri
@@ -35,7 +37,7 @@ def wants_cloudevents_format() -> bool:
         >>> wants_cloudevents_format()
         False
     """
-    accept = request.headers.get('Accept', '')
+    accept = request.headers.get("Accept", "")
 
     # Check for CloudEvents content types
     cloudevents_types = [
@@ -57,15 +59,13 @@ def wants_batch_format() -> bool:
     Returns:
         True if batch format is requested
     """
-    accept = request.headers.get('Accept', '')
+    accept = request.headers.get("Accept", "")
     return CloudEventsContentType.CLOUDEVENTS_BATCH.value in accept
 
 
 def format_event_response(
-    event,
-    include_dataschema: bool = True,
-    base_url: Optional[str] = None
-) -> Dict[str, Any]:
+    event, include_dataschema: bool = True, base_url: str | None = None
+) -> dict[str, Any]:
     """
     Format a single event as CloudEvents structured content.
 
@@ -89,22 +89,22 @@ def format_event_response(
     ce = event.to_cloudevent()
 
     # Add dataschema if requested
-    if include_dataschema and hasattr(event, 'event_type'):
+    if include_dataschema and hasattr(event, "event_type"):
         event_type = event.event_type
-        if hasattr(event_type, 'value'):
+        if hasattr(event_type, "value"):
             event_type = event_type.value
-        ce['dataschema'] = get_dataschema_uri(event_type, base_url or '')
+        ce["dataschema"] = get_dataschema_uri(event_type, base_url or "")
 
     # Add spor (track) extension attribute
-    ce['spor'] = _get_spor_for_event(event)
+    ce["spor"] = _get_spor_for_event(event)
 
     # Add summary extension attribute
-    ce['summary'] = _get_event_summary(event)
+    ce["summary"] = _get_event_summary(event)
 
     return ce
 
 
-def _get_spor_for_event(event) -> Optional[str]:
+def _get_spor_for_event(event) -> str | None:
     """
     Determine which track (spor) an event belongs to.
 
@@ -112,17 +112,17 @@ def _get_spor_for_event(event) -> Optional[str]:
         'grunnlag', 'vederlag', 'frist', 'forsering', or None
     """
     event_type = event.event_type
-    if hasattr(event_type, 'value'):
+    if hasattr(event_type, "value"):
         event_type = event_type.value
 
-    if 'grunnlag' in event_type:
-        return 'grunnlag'
-    elif 'vederlag' in event_type:
-        return 'vederlag'
-    elif 'frist' in event_type:
-        return 'frist'
-    elif 'forsering' in event_type:
-        return 'forsering'
+    if "grunnlag" in event_type:
+        return "grunnlag"
+    elif "vederlag" in event_type:
+        return "vederlag"
+    elif "frist" in event_type:
+        return "frist"
+    elif "forsering" in event_type:
+        return "forsering"
     return None
 
 
@@ -131,13 +131,21 @@ def _get_event_summary(event) -> str:
     Generate a human-readable summary for the event.
     """
     from models.events import (
-        GrunnlagEvent, VederlagEvent, FristEvent,
-        ForseringVarselEvent, ResponsEvent, SakOpprettetEvent, EOUtstedtEvent
+        EOUtstedtEvent,
+        ForseringVarselEvent,
+        FristEvent,
+        GrunnlagEvent,
+        ResponsEvent,
+        SakOpprettetEvent,
+        VederlagEvent,
     )
 
     if isinstance(event, GrunnlagEvent):
         from constants.grunnlag_categories import get_grunnlag_sammendrag
-        return get_grunnlag_sammendrag(event.data.hovedkategori, event.data.underkategori)
+
+        return get_grunnlag_sammendrag(
+            event.data.hovedkategori, event.data.underkategori
+        )
     elif isinstance(event, VederlagEvent):
         belop = event.data.belop_direkte or event.data.kostnads_overslag or 0
         return f"Krav: {belop:,.0f} NOK"
@@ -151,7 +159,11 @@ def _get_event_summary(event) -> str:
         return event.sakstittel
     elif isinstance(event, EOUtstedtEvent):
         # Hent EO-nummer (prøv event først, så data)
-        eo_num = event.eo_nummer or (event.data.eo_nummer if event.data else None) or "ukjent"
+        eo_num = (
+            event.eo_nummer
+            or (event.data.eo_nummer if event.data else None)
+            or "ukjent"
+        )
         # Hent vederlag fra event.endelig_vederlag eller data.vederlag.netto_belop
         vederlag = event.endelig_vederlag
         if vederlag is None and event.data and event.data.vederlag:
@@ -165,27 +177,33 @@ def _get_event_summary(event) -> str:
 def _get_respons_summary(event) -> str:
     """Generate readable summary for ResponsEvent."""
     resultat_labels = {
-        'godkjent': 'Godkjent',
-        'delvis_godkjent': 'Delvis godkjent',
-        'avslatt': 'Avslått',
-        'frafalt': 'Pålegg frafalt',
+        "godkjent": "Godkjent",
+        "delvis_godkjent": "Delvis godkjent",
+        "avslatt": "Avslått",
+        "frafalt": "Pålegg frafalt",
     }
 
-    if hasattr(event.data, 'resultat'):
-        resultat_value = event.data.resultat.value if hasattr(event.data.resultat, 'value') else str(event.data.resultat)
-    elif hasattr(event.data, 'beregnings_resultat'):
-        resultat_value = event.data.beregnings_resultat.value if hasattr(event.data.beregnings_resultat, 'value') else str(event.data.beregnings_resultat)
+    if hasattr(event.data, "resultat"):
+        resultat_value = (
+            event.data.resultat.value
+            if hasattr(event.data.resultat, "value")
+            else str(event.data.resultat)
+        )
+    elif hasattr(event.data, "beregnings_resultat"):
+        resultat_value = (
+            event.data.beregnings_resultat.value
+            if hasattr(event.data.beregnings_resultat, "value")
+            else str(event.data.beregnings_resultat)
+        )
     else:
-        resultat_value = 'ukjent'
+        resultat_value = "ukjent"
 
     return resultat_labels.get(resultat_value, resultat_value)
 
 
 def format_timeline_response(
-    events: List,
-    include_dataschema: bool = True,
-    base_url: Optional[str] = None
-) -> List[Dict[str, Any]]:
+    events: list, include_dataschema: bool = True, base_url: str | None = None
+) -> list[dict[str, Any]]:
     """
     Format a list of events as CloudEvents array.
 
@@ -203,16 +221,13 @@ def format_timeline_response(
         2
     """
     return [
-        format_event_response(event, include_dataschema, base_url)
-        for event in events
+        format_event_response(event, include_dataschema, base_url) for event in events
     ]
 
 
 def format_batch_response(
-    events: List,
-    include_dataschema: bool = True,
-    base_url: Optional[str] = None
-) -> Dict[str, Any]:
+    events: list, include_dataschema: bool = True, base_url: str | None = None
+) -> dict[str, Any]:
     """
     Format events as CloudEvents batch format.
 
@@ -229,10 +244,7 @@ def format_batch_response(
     """
     cloudevents = format_timeline_response(events, include_dataschema, base_url)
 
-    return {
-        "batch": cloudevents,
-        "count": len(cloudevents)
-    }
+    return {"batch": cloudevents, "count": len(cloudevents)}
 
 
 def get_response_content_type() -> str:
@@ -250,10 +262,7 @@ def get_response_content_type() -> str:
         return CloudEventsContentType.JSON.value
 
 
-def create_cloudevents_response(
-    data: Union[Dict, List],
-    status_code: int = 200
-) -> tuple:
+def create_cloudevents_response(data: dict | list, status_code: int = 200) -> tuple:
     """
     Create a Flask response with proper CloudEvents content type.
 
@@ -266,8 +275,6 @@ def create_cloudevents_response(
     """
     content_type = get_response_content_type()
 
-    headers = {
-        'Content-Type': content_type
-    }
+    headers = {"Content-Type": content_type}
 
     return data, status_code, headers

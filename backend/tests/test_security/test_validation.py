@@ -17,13 +17,13 @@ import pytest
 
 from lib.security.validation import (
     ValidationError,
-    validate_guid,
     validate_csv_safe_string,
+    validate_date_string,
     validate_email,
-    validate_topic_status,
-    validate_sak_status,
+    validate_guid,
     validate_positive_number,
-    validate_date_string
+    validate_sak_status,
+    validate_topic_status,
 )
 
 
@@ -149,7 +149,9 @@ class TestValidateCsvSafeString:
 
     def test_validate_csv_safe_string_with_norwegian_characters(self):
         """Test validating text with Norwegian characters (æøå)."""
-        result = validate_csv_safe_string("Grunnforhold avviker fra prosjektert", "description")
+        result = validate_csv_safe_string(
+            "Grunnforhold avviker fra prosjektert", "description"
+        )
         assert result == "Grunnforhold avviker fra prosjektert"
 
     def test_validate_csv_safe_string_strips_whitespace(self):
@@ -226,13 +228,17 @@ class TestValidateCsvSafeString:
 
     def test_validate_csv_safe_string_allow_newlines_true(self):
         """Test that newlines are preserved when allow_newlines=True."""
-        result = validate_csv_safe_string("Line 1\nLine 2\nLine 3", "description", allow_newlines=True)
+        result = validate_csv_safe_string(
+            "Line 1\nLine 2\nLine 3", "description", allow_newlines=True
+        )
         assert result == "Line 1\nLine 2\nLine 3"
 
     def test_validate_csv_safe_string_allow_newlines_false(self):
         """Test that newlines are removed when allow_newlines=False."""
         # Note: newlines are removed by control char filter (line 155), not replaced
-        result = validate_csv_safe_string("Line 1\nLine 2\nLine 3", "description", allow_newlines=False)
+        result = validate_csv_safe_string(
+            "Line 1\nLine 2\nLine 3", "description", allow_newlines=False
+        )
         assert result == "Line 1Line 2Line 3"
 
     def test_validate_csv_safe_string_safe_after_trim(self):
@@ -420,9 +426,19 @@ class TestValidateSakStatus:
     def test_validate_sak_status_all_valid_statuses(self):
         """Test all valid sak statuses."""
         valid_statuses = [
-            '100000000', '100000001', '100000002', '100000003',
-            '100000005', '100000006', '100000007', '100000008',
-            '100000009', '100000011', '100000012', '100000013', ''
+            "100000000",
+            "100000001",
+            "100000002",
+            "100000003",
+            "100000005",
+            "100000006",
+            "100000007",
+            "100000008",
+            "100000009",
+            "100000011",
+            "100000012",
+            "100000013",
+            "",
         ]
 
         for status in valid_statuses:

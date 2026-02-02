@@ -33,17 +33,19 @@ Begrensninger:
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional, List, Any, Callable
+from collections.abc import Callable
+from dataclasses import dataclass
 from enum import Enum
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from repositories import EventRepository, SakMetadataRepository
     from core.container import Container
+    from repositories import EventRepository, SakMetadataRepository
 
 
 class OperationType(Enum):
     """Type of tracked operation for rollback."""
+
     METADATA_CREATE = "metadata_create"
     METADATA_UPDATE = "metadata_update"
     METADATA_DELETE = "metadata_delete"
@@ -61,10 +63,11 @@ class TrackedOperation:
         data: Operation-specific data for rollback
         rollback_fn: Optional custom rollback function
     """
+
     operation_type: OperationType
     sak_id: str
     data: Any = None
-    rollback_fn: Optional[Callable[[], None]] = None
+    rollback_fn: Callable[[], None] | None = None
 
 
 class UnitOfWork(ABC):
@@ -77,13 +80,13 @@ class UnitOfWork(ABC):
 
     @property
     @abstractmethod
-    def events(self) -> 'EventRepository':
+    def events(self) -> "EventRepository":
         """Event repository for this unit of work."""
         pass
 
     @property
     @abstractmethod
-    def metadata(self) -> 'SakMetadataRepository':
+    def metadata(self) -> "SakMetadataRepository":
         """Metadata repository for this unit of work."""
         pass
 
@@ -107,7 +110,7 @@ class UnitOfWork(ABC):
         """
         pass
 
-    def __enter__(self) -> 'UnitOfWork':
+    def __enter__(self) -> "UnitOfWork":
         """Enter context manager."""
         return self
 
@@ -142,7 +145,7 @@ class TrackingUnitOfWork(UnitOfWork):
             # If append fails, metadata.delete(sak_id) is called automatically
     """
 
-    def __init__(self, container: 'Container'):
+    def __init__(self, container: "Container"):
         """
         Initialize with DI container.
 
@@ -150,27 +153,25 @@ class TrackingUnitOfWork(UnitOfWork):
             container: DI container providing repositories
         """
         self._container = container
-        self._operations: List[TrackedOperation] = []
+        self._operations: list[TrackedOperation] = []
         self._committed = False
         self._rolled_back = False
 
         # Wrap repositories with tracking
         self._events_wrapper = TrackingEventRepository(
-            container.event_repository,
-            self._operations
+            container.event_repository, self._operations
         )
         self._metadata_wrapper = TrackingMetadataRepository(
-            container.metadata_repository,
-            self._operations
+            container.metadata_repository, self._operations
         )
 
     @property
-    def events(self) -> 'TrackingEventRepository':
+    def events(self) -> "TrackingEventRepository":
         """Tracking wrapper around event repository."""
         return self._events_wrapper
 
     @property
-    def metadata(self) -> 'TrackingMetadataRepository':
+    def metadata(self) -> "TrackingMetadataRepository":
         """Tracking wrapper around metadata repository."""
         return self._metadata_wrapper
 
@@ -196,6 +197,7 @@ class TrackingUnitOfWork(UnitOfWork):
             raise RuntimeError("Cannot rollback after commit")
 
         from utils.logger import get_logger
+
         logger = get_logger(__name__)
 
         # Execute compensating operations in reverse order
@@ -207,8 +209,7 @@ class TrackingUnitOfWork(UnitOfWork):
                     self._default_rollback(op)
             except Exception as e:
                 logger.error(
-                    f"Rollback failed for {op.operation_type.value} "
-                    f"on {op.sak_id}: {e}"
+                    f"Rollback failed for {op.operation_type.value} on {op.sak_id}: {e}"
                 )
                 # Continue with other rollbacks
 
@@ -232,6 +233,7 @@ class TrackingUnitOfWork(UnitOfWork):
             # Events are immutable - cannot truly rollback
             # Log for manual intervention
             from utils.logger import get_logger
+
             logger = get_logger(__name__)
             logger.warning(
                 f"Cannot rollback event append for {op.sak_id}. "
@@ -247,9 +249,7 @@ class TrackingEventRepository:
     """
 
     def __init__(
-        self,
-        repository: 'EventRepository',
-        operations: List[TrackedOperation]
+        self, repository: "EventRepository", operations: list[TrackedOperation]
     ):
         self._repo = repository
         self._operations = operations
@@ -258,24 +258,28 @@ class TrackingEventRepository:
         """Append event and track for potential rollback."""
         result = self._repo.append(event, expected_version, **kwargs)
 
-        self._operations.append(TrackedOperation(
-            operation_type=OperationType.EVENT_APPEND,
-            sak_id=event.sak_id,
-            data={"event": event, "version": result}
-        ))
+        self._operations.append(
+            TrackedOperation(
+                operation_type=OperationType.EVENT_APPEND,
+                sak_id=event.sak_id,
+                data={"event": event, "version": result},
+            )
+        )
 
         return result
 
-    def append_batch(self, events: List, expected_version: int, **kwargs) -> int:
+    def append_batch(self, events: list, expected_version: int, **kwargs) -> int:
         """Append batch and track for potential rollback."""
         result = self._repo.append_batch(events, expected_version, **kwargs)
 
         if events:
-            self._operations.append(TrackedOperation(
-                operation_type=OperationType.EVENT_APPEND,
-                sak_id=events[0].sak_id,
-                data={"events": events, "version": result}
-            ))
+            self._operations.append(
+                TrackedOperation(
+                    operation_type=OperationType.EVENT_APPEND,
+                    sak_id=events[0].sak_id,
+                    data={"events": events, "version": result},
+                )
+            )
 
         return result
 
@@ -296,9 +300,7 @@ class TrackingMetadataRepository:
     """
 
     def __init__(
-        self,
-        repository: 'SakMetadataRepository',
-        operations: List[TrackedOperation]
+        self, repository: "SakMetadataRepository", operations: list[TrackedOperation]
     ):
         self._repo = repository
         self._operations = operations
@@ -307,11 +309,13 @@ class TrackingMetadataRepository:
         """Create metadata and track for potential rollback."""
         self._repo.create(metadata)
 
-        self._operations.append(TrackedOperation(
-            operation_type=OperationType.METADATA_CREATE,
-            sak_id=metadata.sak_id,
-            data=metadata
-        ))
+        self._operations.append(
+            TrackedOperation(
+                operation_type=OperationType.METADATA_CREATE,
+                sak_id=metadata.sak_id,
+                data=metadata,
+            )
+        )
 
     def delete(self, sak_id: str) -> bool:
         """Delete metadata and track for potential rollback."""
@@ -321,11 +325,13 @@ class TrackingMetadataRepository:
         result = self._repo.delete(sak_id)
 
         if result:
-            self._operations.append(TrackedOperation(
-                operation_type=OperationType.METADATA_DELETE,
-                sak_id=sak_id,
-                data=existing  # Saved for restore on rollback
-            ))
+            self._operations.append(
+                TrackedOperation(
+                    operation_type=OperationType.METADATA_DELETE,
+                    sak_id=sak_id,
+                    data=existing,  # Saved for restore on rollback
+                )
+            )
 
         return result
 
@@ -367,27 +373,25 @@ class InMemoryUnitOfWork(UnitOfWork):
         """Initialize with in-memory storage."""
         self._events_store: dict = {}  # sak_id -> {"version": int, "events": []}
         self._metadata_store: dict = {}  # sak_id -> SakMetadata
-        self._pending_events: List = []
-        self._pending_metadata: List = []
+        self._pending_events: list = []
+        self._pending_metadata: list = []
         self._committed = False
 
     @property
-    def events(self) -> 'InMemoryEventRepository':
+    def events(self) -> "InMemoryEventRepository":
         """In-memory event repository."""
-        if not hasattr(self, '_events_repo'):
+        if not hasattr(self, "_events_repo"):
             self._events_repo = InMemoryEventRepository(
-                self._events_store,
-                self._pending_events
+                self._events_store, self._pending_events
             )
         return self._events_repo
 
     @property
-    def metadata(self) -> 'InMemoryMetadataRepository':
+    def metadata(self) -> "InMemoryMetadataRepository":
         """In-memory metadata repository."""
-        if not hasattr(self, '_metadata_repo'):
+        if not hasattr(self, "_metadata_repo"):
             self._metadata_repo = InMemoryMetadataRepository(
-                self._metadata_store,
-                self._pending_metadata
+                self._metadata_store, self._pending_metadata
             )
         return self._metadata_repo
 
@@ -417,7 +421,7 @@ class InMemoryUnitOfWork(UnitOfWork):
 class InMemoryEventRepository:
     """In-memory event repository for testing."""
 
-    def __init__(self, store: dict, pending: List):
+    def __init__(self, store: dict, pending: list):
         self._store = store
         self._pending = pending
 
@@ -433,13 +437,14 @@ class InMemoryEventRepository:
 
         if current != expected_version:
             from repositories.event_repository import ConcurrencyError
+
             raise ConcurrencyError(expected_version, current)
 
         new_version = expected_version + 1
         self._pending.append((sak_id, event, new_version))
         return new_version
 
-    def append_batch(self, events: List, expected_version: int) -> int:
+    def append_batch(self, events: list, expected_version: int) -> int:
         """Buffer batch for commit."""
         version = expected_version
         for event in events:
@@ -464,7 +469,7 @@ class InMemoryEventRepository:
 class InMemoryMetadataRepository:
     """In-memory metadata repository for testing."""
 
-    def __init__(self, store: dict, pending: List):
+    def __init__(self, store: dict, pending: list):
         self._store = store
         self._pending = pending
 

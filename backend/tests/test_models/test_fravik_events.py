@@ -3,37 +3,38 @@ Tests for Fravik event models.
 
 Tests event creation, validation, and parsing.
 """
+
 import pytest
 
 from models.fravik_events import (
-    FravikEventType,
-    FravikStatus,
-    FravikBeslutning,
-    FravikRolle,
-    MaskinType,
-    MaskinVekt,
+    ArbeidsgruppeVurderingData,
+    ArbeidsgruppeVurderingEvent,
     Arbeidskategori,
     Bruksintensitet,
-    FravikGrunn,
     Drivstoff,
+    EierAvslattEvent,
+    EierBeslutningData,
+    EierDelvisGodkjentEvent,
+    EierGodkjentEvent,
+    FravikBeslutning,
+    FravikEventType,
+    FravikGrunn,
+    FravikRolle,
+    FravikStatus,
     MaskinData,
-    SoknadOpprettetData,
+    MaskinLagtTilEvent,
+    MaskinType,
+    MaskinVekt,
     MaskinVurderingData,
     MiljoVurderingData,
-    ArbeidsgruppeVurderingData,
-    EierBeslutningData,
-    SoknadOpprettetEvent,
-    MaskinLagtTilEvent,
     MiljoVurderingEvent,
-    ArbeidsgruppeVurderingEvent,
-    EierGodkjentEvent,
-    EierAvslattEvent,
-    EierDelvisGodkjentEvent,
+    SoknadOpprettetData,
+    SoknadOpprettetEvent,
     parse_fravik_event,
 )
 
-
 # ============ ENUM TESTS ============
+
 
 class TestEnums:
     """Test Fravik enums."""
@@ -60,6 +61,7 @@ class TestEnums:
 
 
 # ============ DATA MODEL TESTS ============
+
 
 class TestMaskinData:
     """Tests for MaskinData model."""
@@ -208,6 +210,7 @@ class TestEierBeslutningData:
 
 
 # ============ EVENT TESTS ============
+
 
 class TestSoknadOpprettetEvent:
     """Tests for SoknadOpprettetEvent."""
@@ -383,6 +386,7 @@ class TestEierEvents:
 
 # ============ PARSE TESTS ============
 
+
 class TestParseFravikEvent:
     """Tests for parse_fravik_event helper."""
 
@@ -433,6 +437,7 @@ class TestParseFravikEvent:
 
 
 # ============ SERIALIZATION TESTS ============
+
 
 class TestEventSerialization:
     """Tests for event serialization."""

@@ -11,13 +11,14 @@ Kritisk usikkerhet som skal verifiseres:
 - Kan library-item-id fra v2 API brukes direkte som document_guid i BCF API?
 """
 
-import requests
 import json
+import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional, List, Tuple
-import logging
 from pathlib import Path
+from typing import Any
+
+import requests
 
 # Default timeout for HTTP requests (seconds)
 DEFAULT_TIMEOUT = 30
@@ -28,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 class CatendaAuthError(Exception):
     """Raised when Catenda authentication fails (e.g., token expired)."""
+
     pass
 
 
@@ -35,11 +37,16 @@ class CatendaClient:
     """
     Tester for Catenda API (REST v2 og BCF v3.0)
     """
-    
-    def __init__(self, client_id: str, client_secret: Optional[str] = None, access_token: Optional[str] = None):
+
+    def __init__(
+        self,
+        client_id: str,
+        client_secret: str | None = None,
+        access_token: str | None = None,
+    ):
         """
         Initialiser API tester med OAuth credentials.
-        
+
         Args:
             client_id: OAuth Client ID fra Catenda
             client_secret: OAuth Client Secret (kun for Boost-kunder)
@@ -48,126 +55,141 @@ class CatendaClient:
         self.client_id = client_id
         self.client_secret = client_secret
         self.base_url = "https://api.catenda.com"
-        self.access_token: Optional[str] = access_token
-        self.token_expiry: Optional[datetime] = None  # Ikke relevant for manuelt satt token
-        self.refresh_token: Optional[str] = None
-        
+        self.access_token: str | None = access_token
+        self.token_expiry: datetime | None = (
+            None  # Ikke relevant for manuelt satt token
+        )
+        self.refresh_token: str | None = None
+
         # Disse fylles inn under testing
-        self.project_id: Optional[str] = None
-        self.topic_board_id: Optional[str] = None
-        self.library_id: Optional[str] = None
-        self.test_topic_id: Optional[str] = None
-        
+        self.project_id: str | None = None
+        self.topic_board_id: str | None = None
+        self.library_id: str | None = None
+        self.test_topic_id: str | None = None
+
         logger.info("✅ CatendaClient initialisert")
-    
+
     # ==========================================
     # AUTHENTICATION
     # ==========================================
-    
+
     def authenticate(self) -> bool:
         """
         Hent OAuth access token via Client Credentials Grant.
-        
+
         OBS: Denne metoden fungerer kun for Catenda Boost-kunder!
-        
+
         For andre brukere, bruk get_authorization_url() og set_access_token()
         for Authorization Code Grant flow.
-        
+
         Returns:
             True hvis autentisering lyktes, False ellers
         """
         if not self.client_secret:
-            logger.error("❌ Client Secret mangler - kan ikke autentisere med Client Credentials Grant")
-            logger.info("ℹ️  Bruk get_authorization_url() for Authorization Code Grant i stedet")
+            logger.error(
+                "❌ Client Secret mangler - kan ikke autentisere med Client Credentials Grant"
+            )
+            logger.info(
+                "ℹ️  Bruk get_authorization_url() for Authorization Code Grant i stedet"
+            )
             return False
-        
+
         logger.info("🔐 Starter autentisering (Client Credentials Grant)...")
         logger.info("⚠️  Merk: Dette fungerer kun for Catenda Boost-kunder")
-        
+
         url = f"{self.base_url}/oauth2/token"
-        
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
-        
+
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+
         data = {
             "grant_type": "client_credentials",
             "client_id": self.client_id,
-            "client_secret": self.client_secret
+            "client_secret": self.client_secret,
         }
-        
+
         try:
-            response = requests.post(url, headers=headers, data=data, timeout=DEFAULT_TIMEOUT)
+            response = requests.post(
+                url, headers=headers, data=data, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
-            
+
             token_data = response.json()
             self.access_token = token_data["access_token"]
-            
+
             # Beregn utløpstidspunkt (legg til litt margin)
             expires_in = token_data.get("expires_in", 3600)
             self.token_expiry = datetime.now() + timedelta(seconds=expires_in - 300)
-            
-            logger.info(f"✅ Autentisering vellykket. Token utløper: {self.token_expiry}")
+
+            logger.info(
+                f"✅ Autentisering vellykket. Token utløper: {self.token_expiry}"
+            )
             return True
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Autentisering feilet: {e}")
-            
-            if hasattr(e, 'response') and e.response is not None:
+
+            if hasattr(e, "response") and e.response is not None:
                 error_text = e.response.text
                 logger.error(f"Response: {error_text}")
-                
+
                 # Spesifikk håndtering av unauthorized_client
                 if "unauthorized_client" in error_text:
                     logger.error("")
                     logger.error("=" * 80)
-                    logger.error("DIAGNOSE: Client Credentials Grant er ikke tilgjengelig")
+                    logger.error(
+                        "DIAGNOSE: Client Credentials Grant er ikke tilgjengelig"
+                    )
                     logger.error("=" * 80)
                     logger.error("")
-                    logger.error("Client Credentials Grant fungerer kun for Catenda Boost-kunder.")
+                    logger.error(
+                        "Client Credentials Grant fungerer kun for Catenda Boost-kunder."
+                    )
                     logger.error("")
                     logger.error("Du må bruke Authorization Code Grant i stedet:")
                     logger.error("1. Kjør: tester.get_authorization_url(redirect_uri)")
                     logger.error("2. Åpne URL-en i nettleser og godkjenn")
                     logger.error("3. Kopier 'code' fra redirect URL")
-                    logger.error("4. Kjør: tester.exchange_code_for_token(code, redirect_uri)")
+                    logger.error(
+                        "4. Kjør: tester.exchange_code_for_token(code, redirect_uri)"
+                    )
                     logger.error("")
                     logger.error("Se README.md for detaljert veiledning.")
                     logger.error("=" * 80)
-            
+
             return False
-    
+
     # ==========================================
     # AUTHORIZATION CODE GRANT (For ikke-Boost kunder)
     # ==========================================
-    
+
     def get_authorization_url(self, redirect_uri: str, state: str = None) -> str:
         """
         Generer authorization URL for Authorization Code Grant flow.
-        
+
         Bruk denne metoden hvis Client Credentials Grant ikke fungerer.
-        
+
         Args:
             redirect_uri: Din registrerte redirect URI
             state: Valgfri state parameter for sikkerhet
-        
+
         Returns:
             URL som brukeren må åpne i nettleser
         """
         params = {
             "client_id": self.client_id,
             "response_type": "code",
-            "redirect_uri": redirect_uri
+            "redirect_uri": redirect_uri,
         }
-        
+
         if state:
             params["state"] = state
-        
+
         # Bygg URL
         from urllib.parse import urlencode
+
         query_string = urlencode(params)
         auth_url = f"{self.base_url}/oauth2/authorize?{query_string}"
-        
+
         logger.info("🔗 Authorization URL generert:")
         logger.info(f"   {auth_url}")
         logger.info("")
@@ -176,61 +198,61 @@ class CatendaClient:
         logger.info("   2. Logg inn og godkjenn tilgang")
         logger.info("   3. Kopier 'code' fra redirect URL-en")
         logger.info("   4. Kjør: exchange_code_for_token(code, redirect_uri)")
-        
+
         return auth_url
-    
+
     def exchange_code_for_token(self, code: str, redirect_uri: str) -> bool:
         """
         Bytt authorization code mot access token.
-        
+
         Args:
             code: Authorization code fra redirect
             redirect_uri: Samme redirect URI som ble brukt i get_authorization_url()
-        
+
         Returns:
             True hvis vellykket
         """
         logger.info("🔄 Bytter authorization code mot access token...")
-        
+
         url = f"{self.base_url}/oauth2/token"
-        
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
-        
+
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+
         data = {
             "grant_type": "authorization_code",
             "client_id": self.client_id,
             "client_secret": self.client_secret,
             "code": code,
-            "redirect_uri": redirect_uri
+            "redirect_uri": redirect_uri,
         }
-        
+
         try:
-            response = requests.post(url, headers=headers, data=data, timeout=DEFAULT_TIMEOUT)
+            response = requests.post(
+                url, headers=headers, data=data, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
-            
+
             token_data = response.json()
             self.access_token = token_data["access_token"]
-            
+
             # Lagre refresh token hvis tilgjengelig
             if "refresh_token" in token_data:
                 self.refresh_token = token_data["refresh_token"]
                 logger.info("✅ Refresh token mottatt og lagret")
-            
+
             # Beregn utløpstidspunkt
             expires_in = token_data.get("expires_in", 3600)
             self.token_expiry = datetime.now() + timedelta(seconds=expires_in - 300)
-            
+
             logger.info(f"✅ Access token hentet! Utløper: {self.token_expiry}")
             return True
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved token exchange: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"Response: {e.response.text}")
             return False
-    
+
     def set_access_token(self, token: str, expires_in: int = 3600):
         """
         Sett access token manuelt (hvis du har hentet det på annen måte).
@@ -253,15 +275,16 @@ class CatendaClient:
             logger.info("✅ Access token satt manuelt (antatt utløpstid)")
         logger.info(f"   Utløper: {self.token_expiry}")
 
-    def _extract_jwt_expiry(self, token: str) -> Optional[datetime]:
+    def _extract_jwt_expiry(self, token: str) -> datetime | None:
         """
         Try to extract expiry time from JWT token without verification.
         Returns None if token is not a valid JWT or doesn't have exp claim.
         """
         try:
             import base64
+
             # JWT has 3 parts separated by dots
-            parts = token.split('.')
+            parts = token.split(".")
             if len(parts) != 3:
                 return None
 
@@ -269,12 +292,12 @@ class CatendaClient:
             payload_b64 = parts[1]
             padding = 4 - len(payload_b64) % 4
             if padding != 4:
-                payload_b64 += '=' * padding
+                payload_b64 += "=" * padding
 
             payload_bytes = base64.urlsafe_b64decode(payload_b64)
-            payload = json.loads(payload_bytes.decode('utf-8'))
+            payload = json.loads(payload_bytes.decode("utf-8"))
 
-            exp = payload.get('exp')
+            exp = payload.get("exp")
             if exp and isinstance(exp, (int, float)):
                 expiry = datetime.fromtimestamp(exp)
                 logger.debug(f"   JWT exp claim: {expiry}")
@@ -283,11 +306,11 @@ class CatendaClient:
         except Exception as e:
             logger.debug(f"   Could not extract JWT expiry: {e}")
             return None
-    
+
     # ==========================================
     # TOKEN MANAGEMENT
     # ==========================================
-    
+
     def ensure_authenticated(self) -> bool:
         """
         Sjekk om token er gyldig.
@@ -311,77 +334,79 @@ class CatendaClient:
             return False
 
         return True
-    
-    def get_headers(self) -> Dict[str, str]:
+
+    def get_headers(self) -> dict[str, str]:
         """
         Returner standard headers for API-kall.
         """
         if not self.ensure_authenticated():
             raise RuntimeError("Kunne ikke autentisere")
-        
+
         return {
             "Authorization": f"Bearer {self.access_token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
-    
+
     # ==========================================
     # PROJECT & TOPIC BOARD DISCOVERY
     # ==========================================
-    
-    def list_topic_boards(self) -> List[Dict]:
+
+    def list_topic_boards(self) -> list[dict]:
         """
         List alle tilgjengelige topic boards (BCF projects).
-        
+
         Returns:
             Liste med topic boards
         """
         logger.info("📋 Henter topic boards...")
-        
+
         url = f"{self.base_url}/opencde/bcf/3.0/projects"
-        
+
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
-            
+
             boards = response.json()
             logger.info(f"✅ Fant {len(boards)} topic board(s)")
-            
+
             for board in boards:
                 logger.info(f"  - {board['name']} (ID: {board['project_id']})")
-            
+
             return boards
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved henting av topic boards: {e}")
             return []
-    
+
     def select_topic_board(self, board_index: int = 0) -> bool:
         """
         Velg en topic board for testing.
-        
+
         Args:
             board_index: Index av board å bruke (default: 0)
-        
+
         Returns:
             True hvis vellykket
         """
         boards = self.list_topic_boards()
-        
+
         if not boards:
             logger.error("❌ Ingen topic boards funnet")
             return False
-        
+
         if board_index >= len(boards):
             logger.error(f"❌ Ugyldig board index: {board_index}")
             return False
-        
+
         selected = boards[board_index]
-        self.topic_board_id = selected['project_id']
-        
+        self.topic_board_id = selected["project_id"]
+
         logger.info(f"✅ Valgte topic board: {selected['name']}")
         return True
 
-    def get_topic_board(self, board_id: Optional[str] = None) -> Optional[Dict]:
+    def get_topic_board(self, board_id: str | None = None) -> dict | None:
         """
         Hent detaljer for et topic board.
 
@@ -400,7 +425,9 @@ class CatendaClient:
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}"
 
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             board = response.json()
@@ -411,7 +438,9 @@ class CatendaClient:
             logger.error(f"❌ Feil ved henting av topic board: {e}")
             return None
 
-    def create_topic_board(self, name: str, project_id: Optional[str] = None) -> Optional[Dict]:
+    def create_topic_board(
+        self, name: str, project_id: str | None = None
+    ) -> dict | None:
         """
         Opprett nytt topic board.
 
@@ -430,26 +459,27 @@ class CatendaClient:
         logger.info(f"📋 Oppretter topic board '{name}'...")
         url = f"{self.base_url}/opencde/bcf/3.0/projects"
 
-        payload = {
-            "name": name,
-            "bimsync_project_id": project_id
-        }
+        payload = {"name": name, "bimsync_project_id": project_id}
 
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
+            response = requests.post(
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             board = response.json()
-            logger.info(f"✅ Opprettet board: {board.get('name')} (ID: {board.get('project_id')})")
+            logger.info(
+                f"✅ Opprettet board: {board.get('name')} (ID: {board.get('project_id')})"
+            )
             return board
 
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved opprettelse av topic board: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"   Response: {e.response.text}")
             return None
 
-    def update_topic_board(self, name: str, board_id: Optional[str] = None) -> Optional[Dict]:
+    def update_topic_board(self, name: str, board_id: str | None = None) -> dict | None:
         """
         Oppdater navn på topic board.
 
@@ -471,7 +501,9 @@ class CatendaClient:
         payload = {"name": name}
 
         try:
-            response = requests.put(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
+            response = requests.put(
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             board = response.json()
@@ -482,7 +514,7 @@ class CatendaClient:
             logger.error(f"❌ Feil ved oppdatering av topic board: {e}")
             return None
 
-    def get_topic_board_extensions(self, board_id: Optional[str] = None) -> Optional[Dict]:
+    def get_topic_board_extensions(self, board_id: str | None = None) -> dict | None:
         """
         Hent extensions (statuser, typer, labels, prioriteter, brukere, etc) for et board.
 
@@ -501,7 +533,9 @@ class CatendaClient:
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions"
 
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             extensions = response.json()
@@ -513,10 +547,8 @@ class CatendaClient:
             return None
 
     def get_topic_board_with_custom_fields(
-        self,
-        board_id: Optional[str] = None,
-        project_id: Optional[str] = None
-    ) -> Optional[Dict]:
+        self, board_id: str | None = None, project_id: str | None = None
+    ) -> dict | None:
         """
         Hent topic board med custom fields (v2 API).
 
@@ -542,11 +574,15 @@ class CatendaClient:
         params = {"include": "customFields,customFieldInstances"}
 
         try:
-            response = requests.get(url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             board = response.json()
-            logger.info(f"✅ Hentet board med {len(board.get('customFieldInstances', []))} custom field(s)")
+            logger.info(
+                f"✅ Hentet board med {len(board.get('customFieldInstances', []))} custom field(s)"
+            )
             return board
 
         except requests.exceptions.RequestException as e:
@@ -558,11 +594,8 @@ class CatendaClient:
     # ------------------------------------------
 
     def _update_custom_fields(
-        self,
-        board_id: str,
-        project_id: str,
-        payload: Dict
-    ) -> Optional[Dict]:
+        self, board_id: str, project_id: str, payload: dict
+    ) -> dict | None:
         """
         Intern hjelpemetode for å oppdatere custom fields på et board.
 
@@ -578,7 +611,13 @@ class CatendaClient:
         params = {"include": "customFields,customFieldInstances"}
 
         try:
-            response = requests.patch(url, headers=self.get_headers(), json=payload, params=params, timeout=DEFAULT_TIMEOUT)
+            response = requests.patch(
+                url,
+                headers=self.get_headers(),
+                json=payload,
+                params=params,
+                timeout=DEFAULT_TIMEOUT,
+            )
             response.raise_for_status()
 
             board = response.json()
@@ -586,19 +625,19 @@ class CatendaClient:
 
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved oppdatering av custom fields: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"   Response: {e.response.text}")
             return None
 
     def add_custom_field_to_board(
         self,
         custom_field_id: str,
-        board_id: Optional[str] = None,
-        project_id: Optional[str] = None,
+        board_id: str | None = None,
+        project_id: str | None = None,
         required: bool = False,
-        default_value: Optional[Any] = None,
-        disabled: bool = False
-    ) -> Optional[Dict]:
+        default_value: Any | None = None,
+        disabled: bool = False,
+    ) -> dict | None:
         """
         Legg til et eksisterende custom field på et topic board.
 
@@ -625,7 +664,7 @@ class CatendaClient:
         field_config = {
             "id": custom_field_id,
             "required": required,
-            "disabled": disabled
+            "disabled": disabled,
         }
         if default_value is not None:
             field_config["defaultValue"] = default_value
@@ -640,12 +679,12 @@ class CatendaClient:
     def modify_custom_field_on_board(
         self,
         custom_field_id: str,
-        board_id: Optional[str] = None,
-        project_id: Optional[str] = None,
-        required: Optional[bool] = None,
-        default_value: Optional[Any] = None,
-        disabled: Optional[bool] = None
-    ) -> Optional[Dict]:
+        board_id: str | None = None,
+        project_id: str | None = None,
+        required: bool | None = None,
+        default_value: Any | None = None,
+        disabled: bool | None = None,
+    ) -> dict | None:
         """
         Endre innstillinger for et custom field på et board.
 
@@ -687,9 +726,9 @@ class CatendaClient:
     def disable_custom_field_on_board(
         self,
         custom_field_id: str,
-        board_id: Optional[str] = None,
-        project_id: Optional[str] = None
-    ) -> Optional[Dict]:
+        board_id: str | None = None,
+        project_id: str | None = None,
+    ) -> dict | None:
         """
         Deaktiver et custom field på et board.
 
@@ -720,9 +759,9 @@ class CatendaClient:
     def restore_custom_field_on_board(
         self,
         custom_field_id: str,
-        board_id: Optional[str] = None,
-        project_id: Optional[str] = None
-    ) -> Optional[Dict]:
+        board_id: str | None = None,
+        project_id: str | None = None,
+    ) -> dict | None:
         """
         Gjenopprett et deaktivert custom field på et board.
 
@@ -753,9 +792,9 @@ class CatendaClient:
     def delete_custom_field_from_board(
         self,
         custom_field_id: str,
-        board_id: Optional[str] = None,
-        project_id: Optional[str] = None
-    ) -> Optional[Dict]:
+        board_id: str | None = None,
+        project_id: str | None = None,
+    ) -> dict | None:
         """
         Fjern et custom field fra et board.
 
@@ -784,10 +823,8 @@ class CatendaClient:
         return result
 
     def list_available_custom_fields(
-        self,
-        board_id: Optional[str] = None,
-        project_id: Optional[str] = None
-    ) -> List[Dict]:
+        self, board_id: str | None = None, project_id: str | None = None
+    ) -> list[dict]:
         """
         List alle tilgjengelige custom fields (både aktive og ikke-aktive på boardet).
 
@@ -802,13 +839,13 @@ class CatendaClient:
         if not board:
             return []
 
-        return board.get('customFields', [])
+        return board.get("customFields", [])
 
     # ------------------------------------------
     # Project-level Custom Fields (v2 API)
     # ------------------------------------------
 
-    def list_project_custom_fields(self, project_id: Optional[str] = None) -> List[Dict]:
+    def list_project_custom_fields(self, project_id: str | None = None) -> list[dict]:
         """
         List alle custom fields definert på prosjektnivå.
 
@@ -827,7 +864,9 @@ class CatendaClient:
         url = f"{self.base_url}/v2/projects/{project_id}/custom-fields"
 
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             fields = response.json()
@@ -842,9 +881,9 @@ class CatendaClient:
         self,
         name: str,
         field_type: str = "text",
-        description: Optional[str] = None,
-        project_id: Optional[str] = None
-    ) -> Optional[Dict]:
+        description: str | None = None,
+        project_id: str | None = None,
+    ) -> dict | None:
         """
         Opprett ny custom field på prosjektnivå.
 
@@ -865,32 +904,31 @@ class CatendaClient:
         logger.info(f"📋 Oppretter custom field '{name}'...")
         url = f"{self.base_url}/v2/projects/{project_id}/custom-fields"
 
-        payload = {
-            "name": name,
-            "type": field_type
-        }
+        payload = {"name": name, "type": field_type}
         if description:
             payload["description"] = description
 
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
+            response = requests.post(
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             field = response.json()
-            logger.info(f"✅ Opprettet custom field: {field.get('name')} (ID: {field.get('id')})")
+            logger.info(
+                f"✅ Opprettet custom field: {field.get('name')} (ID: {field.get('id')})"
+            )
             return field
 
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved opprettelse av custom field: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"   Response: {e.response.text}")
             return None
 
     def get_project_custom_field(
-        self,
-        custom_field_id: str,
-        project_id: Optional[str] = None
-    ) -> Optional[Dict]:
+        self, custom_field_id: str, project_id: str | None = None
+    ) -> dict | None:
         """
         Hent én custom field fra prosjektnivå.
 
@@ -906,10 +944,14 @@ class CatendaClient:
             logger.error("❌ project_id er påkrevd")
             return None
 
-        url = f"{self.base_url}/v2/projects/{project_id}/custom-fields/{custom_field_id}"
+        url = (
+            f"{self.base_url}/v2/projects/{project_id}/custom-fields/{custom_field_id}"
+        )
 
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
             return response.json()
 
@@ -920,11 +962,11 @@ class CatendaClient:
     def update_project_custom_field(
         self,
         custom_field_id: str,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        archived: Optional[bool] = None,
-        project_id: Optional[str] = None
-    ) -> Optional[Dict]:
+        name: str | None = None,
+        description: str | None = None,
+        archived: bool | None = None,
+        project_id: str | None = None,
+    ) -> dict | None:
         """
         Oppdater custom field på prosjektnivå.
 
@@ -944,7 +986,9 @@ class CatendaClient:
             return None
 
         logger.info(f"📋 Oppdaterer custom field {custom_field_id}...")
-        url = f"{self.base_url}/v2/projects/{project_id}/custom-fields/{custom_field_id}"
+        url = (
+            f"{self.base_url}/v2/projects/{project_id}/custom-fields/{custom_field_id}"
+        )
 
         payload = {}
         if name is not None:
@@ -955,7 +999,9 @@ class CatendaClient:
             payload["archived"] = archived
 
         try:
-            response = requests.patch(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
+            response = requests.patch(
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             field = response.json()
@@ -967,11 +1013,8 @@ class CatendaClient:
             return None
 
     def add_enumeration_items(
-        self,
-        custom_field_id: str,
-        items: List[Dict],
-        project_id: Optional[str] = None
-    ) -> Optional[Dict]:
+        self, custom_field_id: str, items: list[dict], project_id: str | None = None
+    ) -> dict | None:
         """
         Legg til enumeration items på en custom field.
 
@@ -989,12 +1032,16 @@ class CatendaClient:
             return None
 
         logger.info(f"📋 Legger til {len(items)} enumeration items...")
-        url = f"{self.base_url}/v2/projects/{project_id}/custom-fields/{custom_field_id}"
+        url = (
+            f"{self.base_url}/v2/projects/{project_id}/custom-fields/{custom_field_id}"
+        )
 
         payload = {"enumerationItemsToAdd": items}
 
         try:
-            response = requests.patch(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
+            response = requests.patch(
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             field = response.json()
@@ -1003,7 +1050,7 @@ class CatendaClient:
 
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved tillegg av enumeration items: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"   Response: {e.response.text}")
             return None
 
@@ -1011,7 +1058,9 @@ class CatendaClient:
     # Topic Board Statuses
     # ------------------------------------------
 
-    def list_statuses(self, board_id: Optional[str] = None, include_unlinked: bool = False) -> List[Dict]:
+    def list_statuses(
+        self, board_id: str | None = None, include_unlinked: bool = False
+    ) -> list[dict]:
         """
         List statuser for et topic board.
 
@@ -1032,7 +1081,9 @@ class CatendaClient:
         params = {"includeUnlinked": str(include_unlinked).lower()}
 
         try:
-            response = requests.get(url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             statuses = response.json()
@@ -1046,10 +1097,10 @@ class CatendaClient:
     def create_status(
         self,
         name: str,
-        color: Optional[str] = None,
+        color: str | None = None,
         status_type: str = "open",
-        board_id: Optional[str] = None
-    ) -> Optional[Dict]:
+        board_id: str | None = None,
+    ) -> dict | None:
         """
         Opprett ny status for topic board.
 
@@ -1071,31 +1122,30 @@ class CatendaClient:
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions/statuses"
 
         # Bygg payload - color er valgfritt ifølge API spec
-        payload = {
-            "name": name,
-            "type": status_type
-        }
+        payload = {"name": name, "type": status_type}
 
         # Legg til farge hvis angitt, ellers la API velge standard
         if color:
             # Sørg for uppercase hex-farge med #
             final_color = color.upper()
-            if not final_color.startswith('#'):
-                final_color = '#' + final_color
+            if not final_color.startswith("#"):
+                final_color = "#" + final_color
             payload["color"] = final_color
         else:
             # Bruk standard farger fra API-dokumentasjonen
             default_colors = {
-                "open": "#DD7E6B",      # Fra API docs
-                "closed": "#57BB8A",    # Grønn
-                "candidate": "#FFD666"  # Gul
+                "open": "#DD7E6B",  # Fra API docs
+                "closed": "#57BB8A",  # Grønn
+                "candidate": "#FFD666",  # Gul
             }
             payload["color"] = default_colors.get(status_type, "#DD7E6B")
 
         logger.debug(f"   Create status payload: {payload}")
 
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
+            response = requests.post(
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             status = response.json()
@@ -1104,18 +1154,18 @@ class CatendaClient:
 
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved opprettelse av status: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"   Response: {e.response.text}")
             return None
 
     def update_status(
         self,
         existing_name: str,
-        new_name: Optional[str] = None,
-        color: Optional[str] = None,
-        status_type: Optional[str] = None,
-        board_id: Optional[str] = None
-    ) -> Optional[Dict]:
+        new_name: str | None = None,
+        color: str | None = None,
+        status_type: str | None = None,
+        board_id: str | None = None,
+    ) -> dict | None:
         """
         Oppdater status for topic board.
 
@@ -1146,7 +1196,9 @@ class CatendaClient:
             payload["type"] = status_type
 
         try:
-            response = requests.put(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
+            response = requests.put(
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             status = response.json()
@@ -1157,7 +1209,7 @@ class CatendaClient:
             logger.error(f"❌ Feil ved oppdatering av status: {e}")
             return None
 
-    def delete_status(self, name: str, board_id: Optional[str] = None) -> bool:
+    def delete_status(self, name: str, board_id: str | None = None) -> bool:
         """
         Slett status fra topic board.
 
@@ -1179,7 +1231,9 @@ class CatendaClient:
         payload = {"name": name}
 
         try:
-            response = requests.delete(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
+            response = requests.delete(
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             logger.info(f"✅ Slettet status: {name}")
@@ -1187,7 +1241,7 @@ class CatendaClient:
 
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved sletting av status: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"   Response: {e.response.text}")
             return False
 
@@ -1195,7 +1249,9 @@ class CatendaClient:
     # Topic Board Types
     # ------------------------------------------
 
-    def list_types(self, board_id: Optional[str] = None, include_unlinked: bool = False) -> List[Dict]:
+    def list_types(
+        self, board_id: str | None = None, include_unlinked: bool = False
+    ) -> list[dict]:
         """
         List typer for et topic board.
 
@@ -1216,7 +1272,9 @@ class CatendaClient:
         params = {"includeUnlinked": str(include_unlinked).lower()}
 
         try:
-            response = requests.get(url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             types = response.json()
@@ -1228,11 +1286,8 @@ class CatendaClient:
             return []
 
     def create_type(
-        self,
-        name: str,
-        color: Optional[str] = None,
-        board_id: Optional[str] = None
-    ) -> Optional[Dict]:
+        self, name: str, color: str | None = None, board_id: str | None = None
+    ) -> dict | None:
         """
         Opprett ny type for topic board.
 
@@ -1258,13 +1313,12 @@ class CatendaClient:
         # Sørg for uppercase hex-farge
         final_color = (color or default_color).upper()
 
-        payload = {
-            "name": name,
-            "color": final_color
-        }
+        payload = {"name": name, "color": final_color}
 
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
+            response = requests.post(
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             topic_type = response.json()
@@ -1273,17 +1327,17 @@ class CatendaClient:
 
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved opprettelse av type: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"   Response: {e.response.text}")
             return None
 
     def update_type(
         self,
         existing_name: str,
-        new_name: Optional[str] = None,
-        color: Optional[str] = None,
-        board_id: Optional[str] = None
-    ) -> Optional[Dict]:
+        new_name: str | None = None,
+        color: str | None = None,
+        board_id: str | None = None,
+    ) -> dict | None:
         """
         Oppdater type for topic board.
 
@@ -1311,7 +1365,9 @@ class CatendaClient:
             payload["color"] = color
 
         try:
-            response = requests.put(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
+            response = requests.put(
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             topic_type = response.json()
@@ -1322,7 +1378,7 @@ class CatendaClient:
             logger.error(f"❌ Feil ved oppdatering av type: {e}")
             return None
 
-    def delete_type(self, name: str, board_id: Optional[str] = None) -> bool:
+    def delete_type(self, name: str, board_id: str | None = None) -> bool:
         """
         Slett type fra topic board.
 
@@ -1344,7 +1400,9 @@ class CatendaClient:
         payload = {"name": name}
 
         try:
-            response = requests.delete(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
+            response = requests.delete(
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             logger.info(f"✅ Slettet type: {name}")
@@ -1352,7 +1410,7 @@ class CatendaClient:
 
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved sletting av type: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"   Response: {e.response.text}")
             return False
 
@@ -1360,7 +1418,7 @@ class CatendaClient:
     # PROJECT MANAGEMENT (v2 API)
     # ==========================================
 
-    def list_projects(self) -> List[Dict]:
+    def list_projects(self) -> list[dict]:
         """
         List alle prosjekter brukeren har tilgang til.
 
@@ -1380,32 +1438,34 @@ class CatendaClient:
             logger.error(f"❌ Feil ved listing av prosjekter: {e}")
             return []
 
-    def get_project_details(self, project_id: str) -> Optional[Dict]:
+    def get_project_details(self, project_id: str) -> dict | None:
         """
         Hent detaljer for et v2-prosjekt.
-        
+
         Args:
             project_id: Catenda project ID
-            
+
         Returns:
             Prosjektdata eller None
         """
         logger.info(f"Henter v2-prosjektdetaljer for {project_id}...")
         url = f"{self.base_url}/v2/projects/{project_id}"
-        
+
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
-            
+
             project_data = response.json()
             logger.info(f"✅ Prosjektdetaljer hentet for '{project_data['name']}'")
             return project_data
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved henting av prosjektdetaljer: {e}")
             return None
 
-    def find_user_in_project(self, project_id: str, email: str) -> Optional[Dict]:
+    def find_user_in_project(self, project_id: str, email: str) -> dict | None:
         """
         Finn en brukers detaljer i et prosjekt basert på e-post (username).
 
@@ -1419,17 +1479,21 @@ class CatendaClient:
         Returns:
             User-objekt med 'id', 'name', 'username', 'company' eller None
         """
-        logger.info(f"🔍 Søker etter bruker med e-post '{email}' i prosjekt {project_id}...")
+        logger.info(
+            f"🔍 Søker etter bruker med e-post '{email}' i prosjekt {project_id}..."
+        )
 
         # Valider e-post-format først
-        if not email or '@' not in email:
+        if not email or "@" not in email:
             logger.warning(f"⚠️ Ugyldig e-post-format: {email}")
             return None
 
         url = f"{self.base_url}/v2/projects/{project_id}/members"
 
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             members = response.json()
@@ -1440,14 +1504,16 @@ class CatendaClient:
             for member in members:
                 # KORRIGERING: Bruker nå det dedikerte 'email'-feltet for matching,
                 # som er mer robust enn å anta at 'username' er en e-post.
-                if 'user' in member and member['user']:
-                    user_details = member['user']
-                    email_from_api = user_details.get('email')
+                if "user" in member and member["user"]:
+                    user_details = member["user"]
+                    email_from_api = user_details.get("email")
 
                     if email_from_api:
                         user_email = email_from_api.lower().strip()
                         if user_email == normalized_email:
-                            logger.info(f"✅ Fant bruker: {user_details.get('name', 'Ukjent navn')} med rolle '{member.get('role')}'")
+                            logger.info(
+                                f"✅ Fant bruker: {user_details.get('name', 'Ukjent navn')} med rolle '{member.get('role')}'"
+                            )
                             return user_details
 
             logger.warning(f"⚠️ Fant ikke bruker med e-post '{email}' i prosjektet")
@@ -1460,77 +1526,81 @@ class CatendaClient:
     # ==========================================
     # LIBRARY MANAGEMENT (v2 API)
     # ==========================================
-    
-    def list_libraries(self, project_id: str) -> List[Dict]:
+
+    def list_libraries(self, project_id: str) -> list[dict]:
         """
         List alle document libraries i et prosjekt.
-        
+
         Args:
             project_id: Catenda project ID (ikke topic_board_id)
-        
+
         Returns:
             Liste med libraries
         """
         logger.info(f"📚 Henter libraries for prosjekt {project_id}...")
-        
+
         url = f"{self.base_url}/v2/projects/{project_id}/libraries"
-        
+
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
-            
+
             libraries = response.json()
             logger.info(f"✅ Fant {len(libraries)} library/libraries")
-            
+
             for lib in libraries:
                 logger.info(f"  - {lib['name']} (ID: {lib['id']}, Type: {lib['type']})")
-            
+
             return libraries
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved henting av libraries: {e}")
             return []
-    
+
     def select_library(self, project_id: str, library_name: str = "Documents") -> bool:
         """
         Velg en library for testing.
-        
+
         Args:
             project_id: Catenda project ID
             library_name: Navn på library (default: "Documents")
-        
+
         Returns:
             True hvis vellykket
         """
         libraries = self.list_libraries(project_id)
-        
+
         if not libraries:
             logger.error("❌ Ingen libraries funnet")
             return False
-        
+
         # Søk etter library med matching navn
         for lib in libraries:
-            if lib['name'].lower() == library_name.lower():
-                self.library_id = lib['id']
+            if lib["name"].lower() == library_name.lower():
+                self.library_id = lib["id"]
                 logger.info(f"✅ Valgte library: {lib['name']}")
                 return True
-        
+
         # Hvis ikke funnet, bruk første library
-        self.library_id = libraries[0]['id']
-        logger.warning(f"⚠️ Library '{library_name}' ikke funnet, bruker: {libraries[0]['name']}")
+        self.library_id = libraries[0]["id"]
+        logger.warning(
+            f"⚠️ Library '{library_name}' ikke funnet, bruker: {libraries[0]['name']}"
+        )
         return True
-    
+
     # ==========================================
     # TOPIC MANAGEMENT (BCF API)
     # ==========================================
 
-    def get_topic_board_details(self, topic_board_id: Optional[str] = None) -> Optional[Dict]:
+    def get_topic_board_details(self, topic_board_id: str | None = None) -> dict | None:
         """
         Hent detaljer om et spesifikt topic board (BCF prosjekt).
-        
+
         Args:
             topic_board_id: ID for topic board (bruker self.topic_board_id hvis None)
-            
+
         Returns:
             Topic board data eller None
         """
@@ -1543,9 +1613,11 @@ class CatendaClient:
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}"
 
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
-            
+
             board_data = response.json()
             logger.info(f"✅ Detaljer hentet for board '{board_data['name']}'")
             return board_data
@@ -1553,8 +1625,10 @@ class CatendaClient:
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved henting av topic board detaljer: {e}")
             return None
-    
-    def list_topics(self, limit: Optional[int] = None, fetch_all: bool = False) -> List[Dict]:
+
+    def list_topics(
+        self, limit: int | None = None, fetch_all: bool = False
+    ) -> list[dict]:
         """
         List topics i valgt topic board.
 
@@ -1582,7 +1656,12 @@ class CatendaClient:
 
                 while True:
                     params = {"$top": str(page_size), "$skip": str(skip)}
-                    response = requests.get(url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT)
+                    response = requests.get(
+                        url,
+                        headers=self.get_headers(),
+                        params=params,
+                        timeout=DEFAULT_TIMEOUT,
+                    )
                     response.raise_for_status()
 
                     batch = response.json()
@@ -1590,7 +1669,9 @@ class CatendaClient:
                         break
 
                     all_topics.extend(batch)
-                    logger.info(f"  Hentet {len(batch)} topics (totalt: {len(all_topics)})")
+                    logger.info(
+                        f"  Hentet {len(batch)} topics (totalt: {len(all_topics)})"
+                    )
 
                     if len(batch) < page_size:
                         break  # Siste side
@@ -1604,14 +1685,21 @@ class CatendaClient:
                 if limit:
                     params["$top"] = str(limit)
 
-                response = requests.get(url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT)
+                response = requests.get(
+                    url,
+                    headers=self.get_headers(),
+                    params=params,
+                    timeout=DEFAULT_TIMEOUT,
+                )
                 response.raise_for_status()
                 topics = response.json()
 
             logger.info(f"✅ Fant {len(topics)} topic(s)")
 
             for topic in topics[:10]:  # Log bare første 10
-                logger.info(f"  - {topic['title']} (ID: {topic['guid']}, Status: {topic.get('topic_status', 'N/A')})")
+                logger.info(
+                    f"  - {topic['title']} (ID: {topic['guid']}, Status: {topic.get('topic_status', 'N/A')})"
+                )
             if len(topics) > 10:
                 logger.info(f"  ... og {len(topics) - 10} til")
 
@@ -1620,62 +1708,64 @@ class CatendaClient:
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved henting av topics: {e}")
             return []
-    
+
     def select_topic(self, topic_index: int = 0) -> bool:
         """
         Velg en topic for testing.
-        
+
         Args:
             topic_index: Index av topic å bruke
-        
+
         Returns:
             True hvis vellykket
         """
         topics = self.list_topics()
-        
+
         if not topics:
             logger.error("❌ Ingen topics funnet")
             return False
-        
+
         if topic_index >= len(topics):
             logger.error(f"❌ Ugyldig topic index: {topic_index}")
             return False
-        
+
         selected = topics[topic_index]
-        self.test_topic_id = selected['guid']
-        
+        self.test_topic_id = selected["guid"]
+
         logger.info(f"✅ Valgte topic: {selected['title']}")
         return True
-    
-    def get_topic_details(self, topic_id: Optional[str] = None) -> Optional[Dict]:
+
+    def get_topic_details(self, topic_id: str | None = None) -> dict | None:
         """
         Hent detaljer om en spesifikk topic.
-        
+
         Args:
             topic_id: Topic GUID (bruker self.test_topic_id hvis None)
-        
+
         Returns:
             Topic data eller None
         """
         topic_id = topic_id or self.test_topic_id
-        
+
         if not topic_id:
             logger.error("❌ Ingen topic ID spesifisert")
             return None
-        
+
         logger.info(f"🔍 Henter detaljer for topic {topic_id}...")
-        
+
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}"
-        
+
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
-            
+
             topic = response.json()
             logger.info(f"✅ Topic hentet: {topic['title']}")
-            
+
             return topic
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved henting av topic: {e}")
             return None
@@ -1683,33 +1773,31 @@ class CatendaClient:
     def create_topic(
         self,
         title: str,
-        description: Optional[str] = None,
-        topic_type: Optional[str] = None,
-        topic_status: Optional[str] = None
-    ) -> Optional[Dict]:
+        description: str | None = None,
+        topic_type: str | None = None,
+        topic_status: str | None = None,
+    ) -> dict | None:
         """
         Opprett en ny topic i valgt topic board.
-        
+
         Args:
             title: Tittel på topic
             description: Beskrivelse
             topic_type: Type (f.eks. 'Error', 'Request')
             topic_status: Status (f.eks. 'Open', 'Closed')
-            
+
         Returns:
             Topic data eller None
         """
         if not self.topic_board_id:
             logger.error("❌ Ingen topic board valgt")
             return None
-        
+
         logger.info(f"📝 Oppretter ny topic i board {self.topic_board_id}...")
-        
+
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics"
-        
-        payload = {
-            "title": title
-        }
+
+        payload = {"title": title}
         if description:
             payload["description"] = description
         if topic_type:
@@ -1718,17 +1806,19 @@ class CatendaClient:
             payload["topic_status"] = topic_status
 
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
+            response = requests.post(
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
-            
+
             topic = response.json()
             logger.info(f"✅ Topic opprettet: {topic['title']} (GUID: {topic['guid']})")
-            
+
             return topic
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved oppretting av topic: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"Response: {e.response.text}")
             return None
 
@@ -1765,10 +1855,10 @@ class CatendaClient:
     def update_topic(
         self,
         topic_guid: str,
-        topic_status: Optional[str] = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None
-    ) -> Optional[Dict]:
+        topic_status: str | None = None,
+        title: str | None = None,
+        description: str | None = None,
+    ) -> dict | None:
         """
         Oppdater en topic (status, tittel, beskrivelse).
 
@@ -1819,28 +1909,30 @@ class CatendaClient:
             logger.info(f"   Status: {topic_status}")
 
         try:
-            response = requests.put(url, headers=self.get_headers(), json=payload, timeout=30)
+            response = requests.put(
+                url, headers=self.get_headers(), json=payload, timeout=30
+            )
             response.raise_for_status()
             result = response.json()
             logger.info(f"✅ Topic oppdatert: {topic_guid}")
             return result
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved oppdatering av topic: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"Response: {e.response.text}")
             return None
 
     # ==========================================
     # DOCUMENT UPLOAD (v2 API - CRITICAL TEST)
     # ==========================================
-    
+
     def upload_document(
         self,
         project_id: str,
         file_path: str,
-        document_name: Optional[str] = None,
-        folder_id: Optional[str] = None
-    ) -> Optional[Dict]:
+        document_name: str | None = None,
+        folder_id: str | None = None,
+    ) -> dict | None:
         """
         Last opp et dokument til Catenda document library.
 
@@ -1859,66 +1951,65 @@ class CatendaClient:
         if not self.library_id:
             logger.error("❌ Ingen library valgt")
             return None
-        
+
         file_path_obj = Path(file_path)
-        
+
         if not file_path_obj.exists():
             logger.error(f"❌ Fil ikke funnet: {file_path}")
             return None
-        
+
         document_name = document_name or file_path_obj.name
-        
+
         logger.info(f"📤 Laster opp dokument: {document_name}")
-        
+
         url = f"{self.base_url}/v2/projects/{project_id}/libraries/{self.library_id}/items"
-        
+
         # Les fil som binary
-        with open(file_path, 'rb') as f:
+        with open(file_path, "rb") as f:
             file_data = f.read()
-        
+
         # Bimsync-Params header (JSON)
         bimsync_params = {
             "name": document_name,
-            "document": {
-                "type": "file",
-                "filename": file_path_obj.name
-            },
-            "failOnDocumentExists": False
+            "document": {"type": "file", "filename": file_path_obj.name},
+            "failOnDocumentExists": False,
         }
 
         # Legg til parentId hvis mappe er spesifisert
         if folder_id:
             bimsync_params["parentId"] = folder_id
             logger.info(f"   📁 Laster opp til mappe: {folder_id}")
-        
+
         headers = self.get_headers()
         headers["Content-Type"] = "application/octet-stream"
         headers["Bimsync-Params"] = json.dumps(bimsync_params)
-        
+
         try:
-            response = requests.post(url, headers=headers, data=file_data, timeout=DEFAULT_TIMEOUT)
+            response = requests.post(
+                url, headers=headers, data=file_data, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
-            
+
             result = response.json()
-            
+
             # API returnerer en liste med ett element
             if isinstance(result, list) and len(result) > 0:
                 library_item = result[0]
             else:
                 library_item = result
-            
-            library_item_id = library_item['id']
-            
+
+            library_item_id = library_item["id"]
+
             logger.info("✅ Dokument lastet opp!")
             logger.info(f"   📌 library-item-id: {library_item_id}")
             logger.info(f"   📌 Navn: {library_item['name']}")
             logger.info(f"   📌 Type: {library_item['type']}")
-            
+
             return library_item
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved opplasting av dokument: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"Response: {e.response.text}")
                 # Raise specific error for 401 to allow proper handling upstream
                 if e.response.status_code == 401:
@@ -1932,9 +2023,9 @@ class CatendaClient:
     def list_folders(
         self,
         project_id: str,
-        parent_id: Optional[str] = None,
-        include_subfolders: bool = True
-    ) -> List[Dict]:
+        parent_id: str | None = None,
+        include_subfolders: bool = True,
+    ) -> list[dict]:
         """
         List mapper i biblioteket.
 
@@ -1953,8 +2044,8 @@ class CatendaClient:
         url = f"{self.base_url}/v2/projects/{project_id}/libraries/{self.library_id}/items"
 
         params = {
-            "scope": "all",      # Inkluder alle items (også upubliserte)
-            "pageSize": "1000"   # Maks antall per side
+            "scope": "all",  # Inkluder alle items (også upubliserte)
+            "pageSize": "1000",  # Maks antall per side
         }
 
         # parentId for å filtrere på nivå - "root" for root-mapper
@@ -1968,15 +2059,19 @@ class CatendaClient:
             params["subFolders"] = "true"
 
         try:
-            response = requests.get(url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             items = response.json()
 
             # Filtrer ut mapper - sjekk både item.type og document.type
             folders = [
-                item for item in items
-                if item.get('type') == 'folder' or item.get('document', {}).get('type') == 'folder'
+                item
+                for item in items
+                if item.get("type") == "folder"
+                or item.get("document", {}).get("type") == "folder"
             ]
 
             logger.info(f"📁 Totalt {len(items)} items, fant {len(folders)} mappe(r)")
@@ -1986,11 +2081,7 @@ class CatendaClient:
             logger.error(f"❌ Feil ved henting av mapper: {e}")
             return []
 
-    def get_library_item(
-        self,
-        project_id: str,
-        item_id: str
-    ) -> Optional[Dict]:
+    def get_library_item(self, project_id: str, item_id: str) -> dict | None:
         """
         Hent en spesifikk library item (dokument eller mappe) via ID.
 
@@ -2008,23 +2099,26 @@ class CatendaClient:
         url = f"{self.base_url}/v2/projects/{project_id}/libraries/{self.library_id}/items/{item_id}"
 
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
             item = response.json()
             # Sjekk både top-level type og document.type
-            doc_type = item.get('document', {}).get('type') if item.get('document') else None
-            logger.info(f"📄 Hentet item: {item.get('name')} (type={item.get('type')}, document.type={doc_type})")
+            doc_type = (
+                item.get("document", {}).get("type") if item.get("document") else None
+            )
+            logger.info(
+                f"📄 Hentet item: {item.get('name')} (type={item.get('type')}, document.type={doc_type})"
+            )
             return item
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved henting av item {item_id}: {e}")
             return None
 
     def create_folder(
-        self,
-        project_id: str,
-        folder_name: str,
-        parent_id: Optional[str] = None
-    ) -> Optional[Dict]:
+        self, project_id: str, folder_name: str, parent_id: str | None = None
+    ) -> dict | None:
         """
         Opprett en ny mappe i biblioteket.
 
@@ -2043,10 +2137,7 @@ class CatendaClient:
         url = f"{self.base_url}/v2/projects/{project_id}/libraries/{self.library_id}/items"
 
         # NB: Catenda API krever document.type, ikke bare type på toppnivå
-        payload = {
-            "name": folder_name,
-            "document": {"type": "folder"}
-        }
+        payload = {"name": folder_name, "document": {"type": "folder"}}
 
         if parent_id:
             payload["parentId"] = parent_id
@@ -2055,10 +2146,7 @@ class CatendaClient:
 
         try:
             response = requests.post(
-                url,
-                headers=self.get_headers(),
-                json=payload,
-                timeout=DEFAULT_TIMEOUT
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
             )
             response.raise_for_status()
 
@@ -2075,16 +2163,13 @@ class CatendaClient:
 
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved opprettelse av mappe: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"Response: {e.response.text}")
             return None
 
     def get_or_create_folder(
-        self,
-        project_id: str,
-        folder_name: str,
-        parent_id: Optional[str] = None
-    ) -> Optional[str]:
+        self, project_id: str, folder_name: str, parent_id: str | None = None
+    ) -> str | None:
         """
         Hent eksisterende mappe eller opprett ny.
 
@@ -2099,151 +2184,152 @@ class CatendaClient:
         # Sjekk om mappen allerede eksisterer
         folders = self.list_folders(project_id, parent_id)
         for folder in folders:
-            if folder.get('name') == folder_name:
+            if folder.get("name") == folder_name:
                 logger.info(f"📁 Fant eksisterende mappe: {folder['id']}")
-                return folder['id']
+                return folder["id"]
 
         # Opprett ny mappe
         new_folder = self.create_folder(project_id, folder_name, parent_id)
         if new_folder:
-            return new_folder['id']
+            return new_folder["id"]
 
         return None
 
     # ==========================================
     # DOCUMENT REFERENCES (BCF API - CRITICAL TEST)
     # ==========================================
-    
+
     def create_document_reference(
-        self,
-        topic_id: str,
-        document_guid: str,
-        description: Optional[str] = None
-    ) -> Optional[Dict]:
+        self, topic_id: str, document_guid: str, description: str | None = None
+    ) -> dict | None:
         """
         Opprett en document reference som knytter et dokument til en topic.
-        
+
         KRITISK TEST: Denne funksjonen mottar document_guid som MÅ være
         kompatibel med library-item-id fra upload_document().
-        
+
         Args:
             topic_id: Topic GUID
             document_guid: Document GUID (eller library-item-id?)
             description: Beskrivelse av dokumentet
-        
+
         Returns:
             Document reference data
         """
         if not self.topic_board_id:
             logger.error("❌ Ingen topic board valgt")
             return None
-        
+
         logger.info("🔗 Oppretter document reference...")
         logger.info(f"   Topic ID: {topic_id}")
         logger.info(f"   Document GUID: {document_guid}")
-        
-        url = (f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
-               f"/topics/{topic_id}/document_references")
-        
-        payload = {
-            "document_guid": document_guid
-        }
-        
+
+        url = (
+            f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
+            f"/topics/{topic_id}/document_references"
+        )
+
+        payload = {"document_guid": document_guid}
+
         if description:
             payload["description"] = description
-        
+
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
+            response = requests.post(
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
-            
+
             doc_ref = response.json()
-            
+
             logger.info("✅ Document reference opprettet!")
             logger.info(f"   📌 Reference GUID: {doc_ref['guid']}")
             logger.info(f"   📌 Document GUID: {doc_ref.get('document_guid', 'N/A')}")
-            
+
             return doc_ref
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved oppretting av document reference: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"Response: {e.response.text}")
             return None
-    
-    def list_document_references(self, topic_id: Optional[str] = None) -> List[Dict]:
+
+    def list_document_references(self, topic_id: str | None = None) -> list[dict]:
         """
         List alle document references for en topic.
-        
+
         Args:
             topic_id: Topic GUID (bruker self.test_topic_id hvis None)
-        
+
         Returns:
             Liste med document references
         """
         topic_id = topic_id or self.test_topic_id
-        
+
         if not topic_id:
             logger.error("❌ Ingen topic ID spesifisert")
             return []
-        
+
         logger.info(f"📄 Henter document references for topic {topic_id}...")
-        
-        url = (f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
-               f"/topics/{topic_id}/document_references")
-        
+
+        url = (
+            f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
+            f"/topics/{topic_id}/document_references"
+        )
+
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
-            
+
             doc_refs = response.json()
             logger.info(f"✅ Fant {len(doc_refs)} document reference(s)")
-            
+
             for ref in doc_refs:
                 logger.info(f"  - {ref.get('description', 'No description')}")
                 logger.info(f"    Document GUID: {ref.get('document_guid', 'N/A')}")
                 logger.info(f"    URL: {ref.get('url', 'N/A')}")
-            
+
             return doc_refs
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved henting av document references: {e}")
             return []
-    
+
     # ==========================================
     # COMMENTS (BCF API)
     # ==========================================
-    
-    def create_comment(
-        self,
-        topic_id: str,
-        comment_text: str
-    ) -> Optional[Dict]:
+
+    def create_comment(self, topic_id: str, comment_text: str) -> dict | None:
         """
         Opprett en kommentar på en topic.
-        
+
         Args:
             topic_id: Topic GUID
             comment_text: Kommentartekst
-        
+
         Returns:
             Comment data
         """
         if not self.topic_board_id:
             logger.error("❌ Ingen topic board valgt")
             return None
-        
+
         logger.info(f"💬 Oppretter kommentar på topic {topic_id}...")
-        
-        url = (f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
-               f"/topics/{topic_id}/comments")
-        
-        payload = {
-            "comment": comment_text
-        }
+
+        url = (
+            f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
+            f"/topics/{topic_id}/comments"
+        )
+
+        payload = {"comment": comment_text}
 
         try:
             # Add timeout to prevent hanging (30 seconds total)
-            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=30)
+            response = requests.post(
+                url, headers=self.get_headers(), json=payload, timeout=30
+            )
             response.raise_for_status()
 
             comment = response.json()
@@ -2251,43 +2337,47 @@ class CatendaClient:
             logger.info("✅ Kommentar opprettet!")
             logger.info(f"   📌 Comment GUID: {comment['guid']}")
             logger.info(f"   📌 Forfatter: {comment.get('author', 'N/A')}")
-            
+
             return comment
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved oppretting av kommentar: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"Response: {e.response.text}")
             return None
 
-    def get_comments(self, topic_id: str) -> List[Dict]:
+    def get_comments(self, topic_id: str) -> list[dict]:
         """
         Hent alle kommentarer for en topic.
-        
+
         Args:
             topic_id: Topic GUID
-        
+
         Returns:
             Liste med kommentarer
         """
         if not self.topic_board_id:
             logger.error("❌ Ingen topic board valgt")
             return []
-            
+
         logger.info(f"💬 Henter kommentarer for topic {topic_id}...")
-        
-        url = (f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
-               f"/topics/{topic_id}/comments")
-        
+
+        url = (
+            f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
+            f"/topics/{topic_id}/comments"
+        )
+
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
-            
+
             comments = response.json()
             logger.info(f"✅ Fant {len(comments)} kommentar(er)")
-            
+
             return comments
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved henting av kommentarer: {e}")
             return []
@@ -2296,10 +2386,10 @@ class CatendaClient:
     # BIM OBJECT EXTRACTION (BCF API)
     # ==========================================
 
-    def get_all_viewpoints(self, topic_id: str) -> List[Dict]:
+    def get_all_viewpoints(self, topic_id: str) -> list[dict]:
         """
         Henter ALLE viewpoints for en topic (både fra kommentarer og direkte på topic)
-        
+
         Returns:
             Liste med viewpoint-objekter, hver inneholder components.selection med IFC GUIDs
         """
@@ -2309,27 +2399,31 @@ class CatendaClient:
 
         logger.info(f"Henter viewpoints for topic {topic_id}...")
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}/viewpoints"
-        
+
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
             viewpoints = response.json()
             logger.info("✅ Fant {len(viewpoints)} viewpoint(s).")
             # Log the viewpoints for debugging
-            logger.debug(f"Raw viewpoints: {json.dumps(viewpoints, indent=2, ensure_ascii=False)}")
+            logger.debug(
+                f"Raw viewpoints: {json.dumps(viewpoints, indent=2, ensure_ascii=False)}"
+            )
             return viewpoints
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved henting av viewpoints: {e}")
             return []
 
-    def get_viewpoint_details(self, topic_id: str, viewpoint_id: str) -> Optional[Dict]:
+    def get_viewpoint_details(self, topic_id: str, viewpoint_id: str) -> dict | None:
         """
         Henter alle detaljer for ett enkelt viewpoint.
-        
+
         Args:
             topic_id: ID for topic viewpointet tilhører
             viewpoint_id: ID for viewpoint som skal hentes
-            
+
         Returns:
             Et komplett viewpoint-objekt eller None
         """
@@ -2339,22 +2433,26 @@ class CatendaClient:
 
         logger.info(f"Henter detaljer for viewpoint {viewpoint_id}...")
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}/viewpoints/{viewpoint_id}"
-        
+
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
             viewpoint = response.json()
             logger.info(f"✅ Detaljer hentet for viewpoint {viewpoint_id}.")
-            logger.debug(f"Viewpoint details: {json.dumps(viewpoint, indent=2, ensure_ascii=False)}")
+            logger.debug(
+                f"Viewpoint details: {json.dumps(viewpoint, indent=2, ensure_ascii=False)}"
+            )
             return viewpoint
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved henting av viewpoint-detaljer: {e}")
             return None
 
-    def extract_ifc_guids_from_viewpoints(self, viewpoints: List[Dict]) -> List[Dict]:
+    def extract_ifc_guids_from_viewpoints(self, viewpoints: list[dict]) -> list[dict]:
         """
         Ekstraherer alle IFC GUIDs fra en liste med viewpoints
-        
+
         Returns:
             Liste med dicts inneholdende:
             - ifc_guid: IfcGloballyUniqueId
@@ -2362,64 +2460,74 @@ class CatendaClient:
             - viewpoint_guid: Referanse til viewpoint
         """
         ifc_objects = []
-        
+
         for viewpoint in viewpoints:
-            viewpoint_guid = viewpoint.get('guid')
-            components = viewpoint.get('components', {})
-            
+            viewpoint_guid = viewpoint.get("guid")
+            components = viewpoint.get("components", {})
+
             # Hent fra selection (valgte objekter)
-            selection = components.get('selection', [])
+            selection = components.get("selection", [])
             for selected_obj in selection:
-                ifc_guid = selected_obj.get('ifc_guid')
+                ifc_guid = selected_obj.get("ifc_guid")
                 if ifc_guid:
-                    ifc_objects.append({
-                        'ifc_guid': ifc_guid,
-                        'originating_system': selected_obj.get('originating_system'),
-                        'authoring_tool_id': selected_obj.get('authoring_tool_id'),
-                        'viewpoint_guid': viewpoint_guid,
-                        'source': 'selection'
-                    })
-            
+                    ifc_objects.append(
+                        {
+                            "ifc_guid": ifc_guid,
+                            "originating_system": selected_obj.get(
+                                "originating_system"
+                            ),
+                            "authoring_tool_id": selected_obj.get("authoring_tool_id"),
+                            "viewpoint_guid": viewpoint_guid,
+                            "source": "selection",
+                        }
+                    )
+
             # Hent også fra coloring (fargelagte objekter)
-            coloring = components.get('coloring', [])
+            coloring = components.get("coloring", [])
             for color_group in coloring:
-                for component in color_group.get('components', []):
-                    ifc_guid = component.get('ifc_guid')
+                for component in color_group.get("components", []):
+                    ifc_guid = component.get("ifc_guid")
                     if ifc_guid:
-                        ifc_objects.append({
-                            'ifc_guid': ifc_guid,
-                            'originating_system': component.get('originating_system'),
-                            'authoring_tool_id': component.get('authoring_tool_id'),
-                            'viewpoint_guid': viewpoint_guid,
-                            'source': 'coloring',
-                            'color': color_group.get('color')
-                        })
-            
+                        ifc_objects.append(
+                            {
+                                "ifc_guid": ifc_guid,
+                                "originating_system": component.get(
+                                    "originating_system"
+                                ),
+                                "authoring_tool_id": component.get("authoring_tool_id"),
+                                "viewpoint_guid": viewpoint_guid,
+                                "source": "coloring",
+                                "color": color_group.get("color"),
+                            }
+                        )
+
             # Hent også fra visibility.exceptions (skjulte/viste objekter)
-            visibility = components.get('visibility', {})
-            exceptions = visibility.get('exceptions', [])
+            visibility = components.get("visibility", {})
+            exceptions = visibility.get("exceptions", [])
             for exception in exceptions:
-                ifc_guid = exception.get('ifc_guid')
+                ifc_guid = exception.get("ifc_guid")
                 if ifc_guid:
-                    ifc_objects.append({
-                        'ifc_guid': ifc_guid,
-                        'originating_system': exception.get('originating_system'),
-                        'authoring_tool_id': exception.get('authoring_tool_id'),
-                        'viewpoint_guid': viewpoint_guid,
-                        'source': 'visibility_exception'
-                    })
-        
+                    ifc_objects.append(
+                        {
+                            "ifc_guid": ifc_guid,
+                            "originating_system": exception.get("originating_system"),
+                            "authoring_tool_id": exception.get("authoring_tool_id"),
+                            "viewpoint_guid": viewpoint_guid,
+                            "source": "visibility_exception",
+                        }
+                    )
+
         # Returner unike objekter (basert på ifc_guid)
         unique_objects = {}
         for obj in ifc_objects:
-            guid = obj['ifc_guid']
+            guid = obj["ifc_guid"]
             if guid not in unique_objects:
                 unique_objects[guid] = obj
-        
+
         logger.info(f"✅ Ekstraherte {len(unique_objects)} unike BIM-objekt(er).")
         return list(unique_objects.values())
 
-    def get_viewpoint_selection(self, topic_id: str, viewpoint_id: str) -> List[Dict]:
+    def get_viewpoint_selection(self, topic_id: str, viewpoint_id: str) -> list[dict]:
         """
         Henter selection (IFC GUIDs) for et spesifikt viewpoint.
         Dette er nødvendig fordi hoved-viewpoint-endepunktet ikke returnerer komponenter.
@@ -2428,25 +2536,29 @@ class CatendaClient:
             return []
 
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}/viewpoints/{viewpoint_id}/selection"
-        
+
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             if response.status_code == 404:
                 return []
             response.raise_for_status()
-            
+
             data = response.json()
             # API returnerer et objekt: {"selection": [...]}
-            return data.get('selection', [])
+            return data.get("selection", [])
         except requests.exceptions.RequestException as e:
-            logger.error(f"⚠️ Kunne ikke hente selection for viewpoint {viewpoint_id}: {e}")
+            logger.error(
+                f"⚠️ Kunne ikke hente selection for viewpoint {viewpoint_id}: {e}"
+            )
             return []
 
-    def get_bim_objects_for_topic(self, topic_id: str) -> List[Dict]:
+    def get_bim_objects_for_topic(self, topic_id: str) -> list[dict]:
         """
         Komplett funksjon: Henter alle BIM-objekter koblet til en topic.
         Gjør ekstra oppslag mot /selection endepunktet.
-        
+
         Returns:
             Liste med BIM-objekter med IFC GUIDs og metadata
         """
@@ -2454,98 +2566,106 @@ class CatendaClient:
         viewpoints = self.get_all_viewpoints(topic_id)
         if not viewpoints:
             return []
-        
+
         all_bim_objects = []
-        
-        logger.info(f"🔄 Henter detaljert utvalg (selection) for {len(viewpoints)} viewpoint(s)...")
+
+        logger.info(
+            f"🔄 Henter detaljert utvalg (selection) for {len(viewpoints)} viewpoint(s)..."
+        )
 
         # 2. For hvert viewpoint, hent spesifikt utvalg (selection)
         for vp in viewpoints:
-            vp_guid = vp['guid']
-            
+            vp_guid = vp["guid"]
+
             # Hent selection via eget API-kall
             selection = self.get_viewpoint_selection(topic_id, vp_guid)
-            
+
             if selection:
-                logger.info(f"   ✅ Fant {len(selection)} objekt(er) i viewpoint {vp_guid}")
-                
+                logger.info(
+                    f"   ✅ Fant {len(selection)} objekt(er) i viewpoint {vp_guid}"
+                )
+
                 for obj in selection:
-                    ifc_guid = obj.get('ifc_guid')
+                    ifc_guid = obj.get("ifc_guid")
                     if ifc_guid:
-                        all_bim_objects.append({
-                            'ifc_guid': ifc_guid,
-                            'originating_system': obj.get('originating_system'),
-                            'authoring_tool_id': obj.get('authoring_tool_id'),
-                            'viewpoint_guid': vp_guid,
-                            'source': 'selection'
-                        })
+                        all_bim_objects.append(
+                            {
+                                "ifc_guid": ifc_guid,
+                                "originating_system": obj.get("originating_system"),
+                                "authoring_tool_id": obj.get("authoring_tool_id"),
+                                "viewpoint_guid": vp_guid,
+                                "source": "selection",
+                            }
+                        )
             else:
                 logger.info(f"   ℹ️  Ingen utvalg i viewpoint {vp_guid}")
 
         # 3. Fjern duplikater (samme objekt kan være i flere viewpoints)
         unique_objects = {}
         for obj in all_bim_objects:
-            guid = obj['ifc_guid']
+            guid = obj["ifc_guid"]
             if guid not in unique_objects:
                 unique_objects[guid] = obj
-        
+
         result = list(unique_objects.values())
         logger.info(f"✅ Totalt {len(result)} unike BIM-objekt(er) funnet.")
-        
+
         return result
 
-    def get_product_details_by_guid(self, project_id: str, ifc_guid: str) -> Optional[Dict]:
+    def get_product_details_by_guid(
+        self, project_id: str, ifc_guid: str
+    ) -> dict | None:
         """
         Henter full produktinformasjon (Psets, Qsets, Materialer) for en gitt IFC GUID.
         """
         logger.info(f"🔍 Slår opp produktdata for GUID: {ifc_guid}...")
-        
+
         # Vi bruker 'POST' for å søke (Query)
         url = f"{self.base_url}/v2/projects/{project_id}/ifc/products"
-        
+
         # Payload for å filtrere på GlobalId
         # Vi ber om å inkludere propertySets, quantitySets og materials i svaret
         payload = {
-            "query": {
-                "attributes.GlobalId": ifc_guid
-            },
+            "query": {"attributes.GlobalId": ifc_guid},
             # Vi kan også spesifisere hvilke felt vi vil ha med (1 = inkluder)
             # Hvis vi utelater 'fields', får vi alt som standard.
         }
-        
+
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
+            response = requests.post(
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
-            
+
             products = response.json()
-            
+
             if products and len(products) > 0:
                 product = products[0]
-                logger.info(f"✅ Fant produkt: {product.get('attributes', {}).get('Name', 'Uten navn')}")
+                logger.info(
+                    f"✅ Fant produkt: {product.get('attributes', {}).get('Name', 'Uten navn')}"
+                )
                 logger.info(f"   Type: {product.get('ifcType')}")
-                
+
                 # Logg antall property sets for oversikt
-                psets = product.get('propertySets', {})
+                psets = product.get("propertySets", {})
                 logger.info(f"   Property Sets: {len(psets)} stk funnet")
-                
+
                 return product
             else:
                 logger.warning(f"⚠️ Ingen produkter funnet med GUID {ifc_guid}")
                 return None
-                
+
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved produktsøk: {e}")
             return None
-    
+
     # ==========================================
     # TOPIC RELATIONS (BCF API - Catenda Extension)
     # ==========================================
 
     def list_related_topics(
-        self,
-        topic_id: str,
-        include_project_topics: bool = True
-    ) -> List[Dict]:
+        self, topic_id: str, include_project_topics: bool = True
+    ) -> list[dict]:
         """
         List alle relaterte topics for en gitt topic.
 
@@ -2562,22 +2682,28 @@ class CatendaClient:
 
         logger.info(f"🔗 Henter relaterte topics for {topic_id}...")
 
-        url = (f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
-               f"/topics/{topic_id}/related_topics")
+        url = (
+            f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
+            f"/topics/{topic_id}/related_topics"
+        )
 
         params = {}
         if include_project_topics:
             params["includeBimsyncProjectTopics"] = "true"
 
         try:
-            response = requests.get(url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             related = response.json()
             logger.info(f"✅ Fant {len(related)} relatert(e) topic(s)")
 
             for rel in related:
-                logger.info(f"  - {rel.get('related_topic_guid')} (Board: {rel.get('bimsync_issue_board_ref')})")
+                logger.info(
+                    f"  - {rel.get('related_topic_guid')} (Board: {rel.get('bimsync_issue_board_ref')})"
+                )
 
             return related
 
@@ -2586,9 +2712,7 @@ class CatendaClient:
             return []
 
     def create_topic_relations(
-        self,
-        topic_id: str,
-        related_topic_guids: List[str]
+        self, topic_id: str, related_topic_guids: list[str]
     ) -> bool:
         """
         Opprett relasjoner fra en topic til andre topics.
@@ -2606,16 +2730,22 @@ class CatendaClient:
             logger.error("❌ Ingen topic board valgt")
             return False
 
-        logger.info(f"🔗 Oppretter {len(related_topic_guids)} relasjon(er) for topic {topic_id}...")
+        logger.info(
+            f"🔗 Oppretter {len(related_topic_guids)} relasjon(er) for topic {topic_id}..."
+        )
 
-        url = (f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
-               f"/topics/{topic_id}/related_topics")
+        url = (
+            f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
+            f"/topics/{topic_id}/related_topics"
+        )
 
         # Payload er en liste med objekter
         payload = [{"related_topic_guid": guid} for guid in related_topic_guids]
 
         try:
-            response = requests.put(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
+            response = requests.put(
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             logger.info("✅ Relasjoner opprettet!")
@@ -2626,15 +2756,11 @@ class CatendaClient:
 
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved oppretting av topic-relasjoner: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"Response: {e.response.text}")
             return False
 
-    def delete_topic_relation(
-        self,
-        topic_id: str,
-        related_topic_id: str
-    ) -> bool:
+    def delete_topic_relation(self, topic_id: str, related_topic_id: str) -> bool:
         """
         Slett en relasjon mellom to topics.
 
@@ -2651,11 +2777,15 @@ class CatendaClient:
 
         logger.info(f"🗑️ Sletter relasjon {topic_id} → {related_topic_id}...")
 
-        url = (f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
-               f"/topics/{topic_id}/related_topics/{related_topic_id}")
+        url = (
+            f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
+            f"/topics/{topic_id}/related_topics/{related_topic_id}"
+        )
 
         try:
-            response = requests.delete(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.delete(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
 
             logger.info("✅ Relasjon slettet")
@@ -2668,83 +2798,86 @@ class CatendaClient:
     # ==========================================
     # WEBHOOK MANAGEMENT (v2 API)
     # ==========================================
-    
+
     def create_webhook(
         self,
         project_id: str,
         target_url: str,
         event: str = "issue.created",
-        name: Optional[str] = None
-    ) -> Optional[Dict]:
+        name: str | None = None,
+    ) -> dict | None:
         """
         Opprett en webhook for prosjektet.
-        
+
         Args:
             project_id: Catenda project ID
             target_url: URL som skal motta webhook notifications
             event: Event type (issue.created, issue.modified, issue.deleted)
             name: Webhook navn
-        
+
         Returns:
             Webhook data
         """
         logger.info(f"🪝 Oppretter webhook for event: {event}")
-        
+
         url = f"{self.base_url}/v2/projects/{project_id}/webhooks/user"
-        
-        payload = {
-            "event": event,
-            "target_url": target_url
-        }
-        
+
+        payload = {"event": event, "target_url": target_url}
+
         if name:
             payload["name"] = name
-        
+
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT)
+            response = requests.post(
+                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
-            
+
             webhook = response.json()
-            
+
             logger.info("✅ Webhook opprettet!")
             logger.info(f"   📌 Webhook ID: {webhook['id']}")
             logger.info(f"   📌 State: {webhook['state']}")
-            
+
             return webhook
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved oppretting av webhook: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"Response: {e.response.text}")
             return None
-    
-    def list_webhooks(self, project_id: str) -> List[Dict]:
+
+    def list_webhooks(self, project_id: str) -> list[dict]:
         """
         List alle webhooks for prosjektet.
-        
+
         Args:
             project_id: Catenda project ID
-        
+
         Returns:
             Liste med webhooks
         """
         logger.info(f"🪝 Henter webhooks for prosjekt {project_id}...")
-        
+
         url = f"{self.base_url}/v2/projects/{project_id}/webhooks/user"
-        
+
         try:
-            response = requests.get(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.get(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
-            
+
             webhooks = response.json()
             logger.info(f"✅ Fant {len(webhooks)} webhook(s)")
-            
+
             for hook in webhooks:
                 logger.info(f"  - {hook.get('name', 'Unnamed')} ({hook['event']})")
-                logger.info(f"    State: {hook['state']}, Failures: {hook.get('failureCount', 0)}")
-            
+                logger.info(
+                    f"    State: {hook['state']}, Failures: {hook.get('failureCount', 0)}"
+                )
+
             return webhooks
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved henting av webhooks: {e}")
             return []
@@ -2752,101 +2885,102 @@ class CatendaClient:
     def delete_webhook(self, project_id: str, webhook_id: str) -> bool:
         """
         Slett en webhook.
-        
+
         Args:
             project_id: Catenda project ID
             webhook_id: ID på webhook som skal slettes
-        
+
         Returns:
             True hvis sletting var vellykket
         """
         logger.info(f"🗑️ Sletter webhook {webhook_id}...")
-        
+
         url = f"{self.base_url}/v2/projects/{project_id}/webhooks/user/{webhook_id}"
-        
+
         try:
-            response = requests.delete(url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT)
+            response = requests.delete(
+                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
+            )
             response.raise_for_status()
-            
+
             if response.status_code == 204:
                 logger.info("✅ Webhook slettet")
                 return True
             else:
-                logger.warning(f"⚠️ Uventet statuskode ved sletting: {response.status_code}")
+                logger.warning(
+                    f"⚠️ Uventet statuskode ved sletting: {response.status_code}"
+                )
                 return False
 
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved sletting av webhook: {e}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logger.error(f"Response: {e.response.text}")
             return False
-    
+
     # ==========================================
     # CRITICAL TEST: ID MAPPING VERIFICATION
     # ==========================================
-    
+
     def test_id_mapping(
-        self,
-        project_id: str,
-        test_file_path: str,
-        topic_id: Optional[str] = None
-    ) -> Tuple[bool, str]:
+        self, project_id: str, test_file_path: str, topic_id: str | None = None
+    ) -> tuple[bool, str]:
         """
         KRITISK TEST: Verifiser om library-item-id kan brukes som document_guid.
-        
+
         Denne testen:
         1. Laster opp et dokument via v2 API (får library-item-id)
         2. Forsøker å bruke library-item-id som document_guid i BCF API
         3. Verifiserer om document reference ble opprettet korrekt
-        
+
         Args:
             project_id: Catenda project ID
             test_file_path: Path til testfil som skal lastes opp
             topic_id: Topic ID å knytte dokumentet til (bruker self.test_topic_id hvis None)
-        
+
         Returns:
             Tuple: (success: bool, message: str)
         """
         topic_id = topic_id or self.test_topic_id
-        
+
         if not topic_id:
             return False, "❌ Ingen topic ID spesifisert"
-        
+
         logger.info("=" * 80)
         logger.info("🔬 KRITISK TEST: ID MAPPING VERIFICATION")
         logger.info("=" * 80)
-        
+
         # Steg 1: Last opp dokument
         logger.info("\n📤 STEG 1: Laster opp testdokument via v2 API...")
-        
+
         library_item = self.upload_document(
             project_id=project_id,
             file_path=test_file_path,
-            document_name=f"TEST_ID_MAPPING_{int(time.time())}"
+            document_name=f"TEST_ID_MAPPING_{int(time.time())}",
         )
-        
+
         if not library_item:
             return False, "❌ Dokumentopplasting feilet"
-        
-        library_item_id = library_item['id']
-        
+
+        library_item_id = library_item["id"]
+
         logger.info(f"\n✅ Dokument lastet opp, library-item-id: {library_item_id}")
         logger.info(f"   Format: {len(library_item_id)} tegn")
-        
+
         # Steg 2: Forsøk å bruke library-item-id som document_guid
         logger.info("\n🔗 STEG 2: Forsøker å opprette document reference...")
         logger.info(f"   Bruker library-item-id som document_guid: {library_item_id}")
-        
+
         doc_ref = self.create_document_reference(
             topic_id=topic_id,
             document_guid=library_item_id,
-            description="TEST: ID Mapping Verification"
+            description="TEST: ID Mapping Verification",
         )
-        
+
         if not doc_ref:
             # Prøv med formatert UUID (legg til bindestreker)
             logger.info("\n🔄 Første forsøk feilet, prøver med formatert UUID...")
-            
+
             if len(library_item_id) == 32:
                 # Konverter fra kompakt til standard UUID-format
                 formatted_uuid = (
@@ -2856,15 +2990,15 @@ class CatendaClient:
                     f"{library_item_id[16:20]}-"
                     f"{library_item_id[20:32]}"
                 )
-                
+
                 logger.info(f"   Prøver med formatert UUID: {formatted_uuid}")
-                
+
                 doc_ref = self.create_document_reference(
                     topic_id=topic_id,
                     document_guid=formatted_uuid,
-                    description="TEST: ID Mapping Verification (formatted UUID)"
+                    description="TEST: ID Mapping Verification (formatted UUID)",
                 )
-                
+
                 if doc_ref:
                     logger.info("=" * 80)
                     logger.info("✅ SUKSESS: ID mapping fungerer med FORMATERT UUID!")
@@ -2873,17 +3007,17 @@ class CatendaClient:
                     logger.info("   Konklusjon: Konverter til standard UUID-format")
                     logger.info("=" * 80)
                     return True, "ID mapping fungerer med formatert UUID"
-            
+
             return False, "❌ ID mapping fungerer IKKE - begge formater feilet"
-        
+
         # Steg 3: Verifiser at document reference eksisterer
         logger.info("\n✅ Document reference opprettet!")
         logger.info("\n🔍 STEG 3: Verifiserer at dokumentet er synlig i topic...")
-        
+
         doc_refs = self.list_document_references(topic_id)
-        
-        found = any(ref.get('document_guid') == library_item_id for ref in doc_refs)
-        
+
+        found = any(ref.get("document_guid") == library_item_id for ref in doc_refs)
+
         if found:
             logger.info("=" * 80)
             logger.info("✅ SUKSESS: ID mapping fungerer direkte!")
@@ -2895,49 +3029,52 @@ class CatendaClient:
             logger.warning("⚠️ Document reference opprettet, men ikke funnet i liste")
             logger.warning("   Dette kan være en timing-issue. Venter 2 sekunder...")
             time.sleep(2)
-            
+
             doc_refs = self.list_document_references(topic_id)
-            found = any(ref.get('document_guid') == library_item_id for ref in doc_refs)
-            
+            found = any(ref.get("document_guid") == library_item_id for ref in doc_refs)
+
             if found:
                 logger.info("=" * 80)
                 logger.info("✅ SUKSESS (etter retry): ID mapping fungerer!")
                 logger.info("=" * 80)
                 return True, "ID mapping fungerer (kompakt UUID, bekreftet etter retry)"
             else:
-                return False, "⚠️ Usikker status - document reference opprettet men ikke verifisert"
+                return (
+                    False,
+                    "⚠️ Usikker status - document reference opprettet men ikke verifisert",
+                )
 
 
 def create_test_pdf(file_path: str = "test_document.pdf"):
     """
     Opprett en enkel test-PDF for testing.
-    
+
     Args:
         file_path: Path hvor PDF skal lagres
     """
     try:
         from reportlab.lib.pagesizes import letter
         from reportlab.pdfgen import canvas
-        
+
         c = canvas.Canvas(file_path, pagesize=letter)
         c.drawString(100, 750, "Catenda API Test Document")
         c.drawString(100, 730, f"Generated: {datetime.now().isoformat()}")
         c.drawString(100, 710, "This is a test document for API verification.")
         c.save()
-        
+
         logger.info(f"✅ Test-PDF opprettet: {file_path}")
         return True
-        
+
     except ImportError:
         logger.warning("⚠️ reportlab ikke installert, oppretter dummy tekstfil...")
-        
+
         # Fallback: opprett en tekstfil som kan brukes for testing
-        dummy_path = file_path.replace('.pdf', '.txt')
-        with open(dummy_path, 'w', encoding='utf-8') as f:
+        dummy_path = file_path.replace(".pdf", ".txt")
+        with open(dummy_path, "w", encoding="utf-8") as f:
             f.write("Catenda API Test Document\n")
             f.write(f"Generated: {datetime.now().isoformat()}\n")
             f.write("This is a test document for API verification.\n")
-        
+
         logger.info(f"✅ Test-fil opprettet: {dummy_path}")
         return dummy_path
 
@@ -2949,182 +3086,183 @@ def main():
     print("\n" + "=" * 80)
     print("CATENDA API TESTER - POC VERIFICATION")
     print("=" * 80 + "\n")
-    
+
     # ==========================================
     # KONFIGURASJON
     # ==========================================
     print("📝 Konfigurasjon:\n")
-    
+
     client_id = input("Client ID: ").strip()
-    
+
     if not client_id:
         print("❌ Client ID er påkrevd!")
         return
-    
+
     print("\n" + "=" * 80)
     print("VELG AUTENTISERINGSMETODE")
     print("=" * 80)
     print("\n1. Client Credentials Grant (kun for Catenda Boost-kunder)")
     print("2. Authorization Code Grant (for alle brukere)")
     print("3. Jeg har allerede et access token")
-    
+
     auth_choice = input("\nValg (1/2/3): ").strip()
-    
+
     tester = None
-    
+
     if auth_choice == "1":
         # Client Credentials Grant
         client_secret = input("Client Secret: ").strip()
-        
+
         if not client_secret:
             print("❌ Client Secret er påkrevd for Client Credentials Grant!")
             return
-        
+
         tester = CatendaClient(client_id, client_secret)
-        
+
         print("\n" + "=" * 80)
         print("TEST 1: AUTHENTICATION (CLIENT CREDENTIALS)")
         print("=" * 80)
-        
+
         if not tester.authenticate():
             print("\n⚠️  Hvis du ikke er Catenda Boost-kunde, kjør scriptet på nytt")
             print("   og velg Authorization Code Grant (alternativ 2)")
             return
-    
+
     elif auth_choice == "2":
         # Authorization Code Grant
-        client_secret = input("Client Secret (valgfritt, kan være tom): ").strip() or None
+        client_secret = (
+            input("Client Secret (valgfritt, kan være tom): ").strip() or None
+        )
         redirect_uri = input("Redirect URI: ").strip()
-        
+
         if not redirect_uri:
             print("❌ Redirect URI er påkrevd!")
             return
-        
+
         tester = CatendaClient(client_id, client_secret)
-        
+
         print("\n" + "=" * 80)
         print("TEST 1: AUTHENTICATION (AUTHORIZATION CODE)")
         print("=" * 80)
-        
+
         # Generer authorization URL
         auth_url = tester.get_authorization_url(redirect_uri)
-        
+
         print("\n🌐 Åpne denne URL-en i nettleser:")
         print(f"   {auth_url}\n")
-        
+
         input("Trykk ENTER når du har godkjent og er klar til å fortsette...")
-        
+
         code = input("\nLim inn authorization code fra redirect URL: ").strip()
-        
+
         if not code:
             print("❌ Authorization code er påkrevd!")
             return
-        
+
         if not tester.exchange_code_for_token(code, redirect_uri):
             print("❌ Kunne ikke bytte code mot token")
             return
-    
+
     elif auth_choice == "3":
         # Manuelt token
         access_token = input("Access Token: ").strip()
-        
+
         if not access_token:
             print("❌ Access Token er påkrevd!")
             return
-        
+
         tester = CatendaClient(client_id, access_token=access_token)
-        
+
         print("\n" + "=" * 80)
         print("TEST 1: AUTHENTICATION (MANUAL TOKEN)")
         print("=" * 80)
         print("✅ Access token satt manuelt")
-    
+
     else:
         print("❌ Ugyldig valg!")
         return
-    
+
     # ==========================================
     # TEST 2: PROJECT & TOPIC BOARD DISCOVERY
     # ==========================================
     print("\n" + "=" * 80)
     print("TEST 2: PROJECT & TOPIC BOARD DISCOVERY")
     print("=" * 80)
-    
+
     if not tester.select_topic_board(0):
         print("❌ Kunne ikke velge topic board - avbryter testing")
         return
-    
+
     # ==========================================
     # TEST 3: TOPIC LISTING
     # ==========================================
     print("\n" + "=" * 80)
     print("TEST 3: TOPIC LISTING")
     print("=" * 80)
-    
+
     if not tester.select_topic(0):
         print("❌ Kunne ikke velge topic - avbryter testing")
         return
-    
+
     # ==========================================
     # TEST 4: LIBRARY DISCOVERY
     # ==========================================
     print("\n" + "=" * 80)
     print("TEST 4: LIBRARY DISCOVERY")
     print("=" * 80)
-    
+
     # Merk: project_id er IKKE det samme som topic_board_id
     # For testing, be bruker oppgi project_id
     print("\n⚠️ VIKTIG: Du må oppgi Catenda PROJECT ID (ikke topic_board_id)")
     print("   Dette finner du i Catenda URL: https://catenda.com/projects/<PROJECT_ID>")
-    
+
     project_id = input("\nCatenda Project ID: ").strip()
-    
+
     if not project_id:
         print("❌ Project ID er påkrevd for dokumentopplasting")
         return
-    
+
     if not tester.select_library(project_id, "Documents"):
         print("❌ Kunne ikke velge library - avbryter testing")
         return
-    
+
     # ==========================================
     # TEST 5: CRITICAL ID MAPPING TEST
     # ==========================================
     print("\n" + "=" * 80)
     print("TEST 5: CRITICAL ID MAPPING VERIFICATION")
     print("=" * 80)
-    
+
     print("\nOppretter test-dokument...")
     test_file = create_test_pdf("catenda_test_doc.pdf")
-    
+
     if isinstance(test_file, str):
         test_file_path = test_file
     else:
         test_file_path = "catenda_test_doc.pdf"
-    
+
     success, message = tester.test_id_mapping(
-        project_id=project_id,
-        test_file_path=test_file_path
+        project_id=project_id, test_file_path=test_file_path
     )
-    
+
     print("\n" + "=" * 80)
     print("TEST RESULTAT:")
     print("=" * 80)
     print(f"\nStatus: {'✅ SUKSESS' if success else '❌ FEILET'}")
     print(f"Melding: {message}")
-    
+
     # ==========================================
     # TEST 6: COMMENT POSTING
     # ==========================================
     print("\n" + "=" * 80)
     print("TEST 6: COMMENT POSTING")
     print("=" * 80)
-    
+
     tester.create_comment(
         topic_id=tester.test_topic_id,
-        comment_text=f"🤖 Test-kommentar fra API tester ({datetime.now().strftime('%Y-%m-%d %H:%M')})"
+        comment_text=f"🤖 Test-kommentar fra API tester ({datetime.now().strftime('%Y-%m-%d %H:%M')})",
     )
-    
+
     # ==========================================
     # OPPSUMMERING
     # ==========================================
@@ -3138,5 +3276,3 @@ def main():
     print(f"  • Library valgt: {tester.library_id}")
     print(f"  • ID Mapping: {'✅' if success else '❌'} {message}")
     print("=" * 80 + "\n")
-
-

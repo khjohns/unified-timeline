@@ -4,11 +4,13 @@ Logger utility module.
 Delegates to centralized logging configuration in core/logging_config.py.
 Kept for backwards compatibility with existing imports.
 """
+
 import logging
-from typing import Optional
 
 
-def get_logger(name: str, level: Optional[str] = None, log_format: Optional[str] = None) -> logging.Logger:
+def get_logger(
+    name: str, level: str | None = None, log_format: str | None = None
+) -> logging.Logger:
     """
     Get logger for module.
 

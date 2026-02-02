@@ -11,16 +11,13 @@ Tests cover:
 - Error handling and edge cases
 """
 
-import pytest
 import json
-from unittest.mock import MagicMock, patch
 from datetime import datetime
+from unittest.mock import MagicMock, patch
 
-from lib.monitoring.audit import (
-    AuditLogger,
-    search_audit_log,
-    audit
-)
+import pytest
+
+from lib.monitoring.audit import AuditLogger, audit, search_audit_log
 
 
 class TestAuditLoggerInitialization:
@@ -75,103 +72,103 @@ class TestLogEvent:
         mock_req = MagicMock()
         mock_req.remote_addr = "192.168.1.100"
         mock_req.headers.get.side_effect = lambda key: {
-            'User-Agent': 'Mozilla/5.0 Test Browser',
-            'X-Forwarded-For': None,
-            'X-Real-IP': None
+            "User-Agent": "Mozilla/5.0 Test Browser",
+            "X-Forwarded-For": None,
+            "X-Real-IP": None,
         }.get(key)
         return mock_req
 
     def test_log_event_with_all_parameters(self, logger, mock_request):
         """Test logging event with all parameters."""
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             logger.log_event(
                 event_type="access",
                 user="test@example.com",
                 resource="case:ABC123",
                 action="read",
                 result="success",
-                details={"project_id": "550e8400"}
+                details={"project_id": "550e8400"},
             )
 
         # Verify log entry was written
-        with open(logger.log_file, 'r') as f:
+        with open(logger.log_file) as f:
             line = f.readline()
             entry = json.loads(line)
 
-        assert entry['event_type'] == "access"
-        assert entry['user'] == "test@example.com"
-        assert entry['resource'] == "case:ABC123"
-        assert entry['action'] == "read"
-        assert entry['result'] == "success"
-        assert entry['details'] == {"project_id": "550e8400"}
-        assert entry['ip'] == "192.168.1.100"
-        assert entry['user_agent'] == "Mozilla/5.0 Test Browser"
-        assert 'timestamp' in entry
+        assert entry["event_type"] == "access"
+        assert entry["user"] == "test@example.com"
+        assert entry["resource"] == "case:ABC123"
+        assert entry["action"] == "read"
+        assert entry["result"] == "success"
+        assert entry["details"] == {"project_id": "550e8400"}
+        assert entry["ip"] == "192.168.1.100"
+        assert entry["user_agent"] == "Mozilla/5.0 Test Browser"
+        assert "timestamp" in entry
 
     def test_log_event_without_details(self, logger, mock_request):
         """Test logging event without optional details."""
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             logger.log_event(
                 event_type="auth",
                 user="user@example.com",
                 resource="auth:token",
                 action="validate",
-                result="success"
+                result="success",
             )
 
-        with open(logger.log_file, 'r') as f:
+        with open(logger.log_file) as f:
             entry = json.loads(f.readline())
 
-        assert entry['details'] == {}
-        assert entry['event_type'] == "auth"
+        assert entry["details"] == {}
+        assert entry["event_type"] == "auth"
 
     def test_log_event_timestamp_format(self, logger, mock_request):
         """Test that timestamp is in ISO format with Z suffix."""
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             logger.log_event(
                 event_type="test",
                 user="test",
                 resource="test:123",
                 action="test",
-                result="success"
+                result="success",
             )
 
-        with open(logger.log_file, 'r') as f:
+        with open(logger.log_file) as f:
             entry = json.loads(f.readline())
 
         # Timestamp should be ISO format with Z suffix
-        assert entry['timestamp'].endswith('Z')
+        assert entry["timestamp"].endswith("Z")
         # Verify it's parseable as datetime
-        datetime.fromisoformat(entry['timestamp'].replace('Z', '+00:00'))
+        datetime.fromisoformat(entry["timestamp"].replace("Z", "+00:00"))
 
     def test_log_event_json_lines_format(self, logger, mock_request):
         """Test that multiple events are logged in JSON Lines format."""
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             logger.log_event("test", "user1", "res1", "action1", "success")
             logger.log_event("test", "user2", "res2", "action2", "denied")
             logger.log_event("test", "user3", "res3", "action3", "error")
 
-        with open(logger.log_file, 'r') as f:
+        with open(logger.log_file) as f:
             lines = f.readlines()
 
         assert len(lines) == 3
         # Each line should be valid JSON
         for line in lines:
             entry = json.loads(line)
-            assert 'event_type' in entry
-            assert 'user' in entry
+            assert "event_type" in entry
+            assert "user" in entry
 
     def test_log_event_handles_file_write_error(self, logger, mock_request, capsys):
         """Test that file write errors are handled gracefully."""
         # Mock open() to raise an exception
-        with patch('lib.monitoring.audit.request', mock_request):
-            with patch('builtins.open', side_effect=OSError("Permission denied")):
+        with patch("lib.monitoring.audit.request", mock_request):
+            with patch("builtins.open", side_effect=OSError("Permission denied")):
                 logger.log_event(
                     event_type="test",
                     user="test",
                     resource="test:123",
                     action="test",
-                    result="success"
+                    result="success",
                 )
 
         # Check that error was printed to stdout (fallback)
@@ -180,22 +177,22 @@ class TestLogEvent:
 
     def test_log_event_with_unicode_content(self, logger, mock_request):
         """Test logging with Unicode characters."""
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             logger.log_event(
                 event_type="access",
                 user="ødegård@example.com",
                 resource="case:ÆØÅ-123",
                 action="read",
                 result="success",
-                details={"comment": "Grunnforhold avviker fra prosjektert"}
+                details={"comment": "Grunnforhold avviker fra prosjektert"},
             )
 
-        with open(logger.log_file, 'r', encoding='utf-8') as f:
+        with open(logger.log_file, encoding="utf-8") as f:
             entry = json.loads(f.readline())
 
-        assert entry['user'] == "ødegård@example.com"
-        assert entry['resource'] == "case:ÆØÅ-123"
-        assert "Grunnforhold" in entry['details']['comment']
+        assert entry["user"] == "ødegård@example.com"
+        assert entry["resource"] == "case:ÆØÅ-123"
+        assert "Grunnforhold" in entry["details"]["comment"]
 
 
 class TestIPExtraction:
@@ -211,57 +208,59 @@ class TestIPExtraction:
         """Test extracting IP from X-Forwarded-For header (single IP)."""
         mock_request = MagicMock()
         mock_request.headers.get.side_effect = lambda key: {
-            'X-Forwarded-For': '203.0.113.42'
+            "X-Forwarded-For": "203.0.113.42"
         }.get(key)
 
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             ip = logger._get_client_ip()
 
-        assert ip == '203.0.113.42'
+        assert ip == "203.0.113.42"
 
     def test_get_client_ip_from_x_forwarded_for_multiple(self, logger):
         """Test extracting first IP from X-Forwarded-For with multiple IPs."""
         mock_request = MagicMock()
         mock_request.headers.get.side_effect = lambda key: {
-            'X-Forwarded-For': '203.0.113.42, 198.51.100.17, 192.0.2.1'
+            "X-Forwarded-For": "203.0.113.42, 198.51.100.17, 192.0.2.1"
         }.get(key)
 
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             ip = logger._get_client_ip()
 
-        assert ip == '203.0.113.42'
+        assert ip == "203.0.113.42"
 
     def test_get_client_ip_from_x_real_ip(self, logger):
         """Test extracting IP from X-Real-IP header (nginx)."""
         mock_request = MagicMock()
         mock_request.headers.get.side_effect = lambda key: {
-            'X-Forwarded-For': None,
-            'X-Real-IP': '198.51.100.99'
+            "X-Forwarded-For": None,
+            "X-Real-IP": "198.51.100.99",
         }.get(key)
 
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             ip = logger._get_client_ip()
 
-        assert ip == '198.51.100.99'
+        assert ip == "198.51.100.99"
 
     def test_get_client_ip_from_remote_addr(self, logger):
         """Test fallback to remote_addr for direct connection."""
         mock_request = MagicMock()
         mock_request.headers.get.return_value = None
-        mock_request.remote_addr = '192.168.1.123'
+        mock_request.remote_addr = "192.168.1.123"
 
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             ip = logger._get_client_ip()
 
-        assert ip == '192.168.1.123'
+        assert ip == "192.168.1.123"
 
     def test_get_client_ip_no_request_context(self, logger):
         """Test IP extraction when no request context available."""
         # Mock request.headers.get to raise RuntimeError (simulating no request context)
         mock_request = MagicMock()
-        mock_request.headers.get.side_effect = RuntimeError("Working outside of request context")
+        mock_request.headers.get.side_effect = RuntimeError(
+            "Working outside of request context"
+        )
 
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             ip = logger._get_client_ip()
 
         assert ip is None
@@ -270,13 +269,13 @@ class TestIPExtraction:
         """Test handling X-Forwarded-For with extra whitespace."""
         mock_request = MagicMock()
         mock_request.headers.get.side_effect = lambda key: {
-            'X-Forwarded-For': '  203.0.113.42  ,  198.51.100.17  '
+            "X-Forwarded-For": "  203.0.113.42  ,  198.51.100.17  "
         }.get(key)
 
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             ip = logger._get_client_ip()
 
-        assert ip == '203.0.113.42'
+        assert ip == "203.0.113.42"
 
 
 class TestUserAgentExtraction:
@@ -291,19 +290,21 @@ class TestUserAgentExtraction:
     def test_get_user_agent_success(self, logger):
         """Test extracting User-Agent from request."""
         mock_request = MagicMock()
-        mock_request.headers.get.return_value = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        mock_request.headers.get.return_value = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        )
 
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             ua = logger._get_user_agent()
 
-        assert ua == 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        assert ua == "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 
     def test_get_user_agent_missing(self, logger):
         """Test when User-Agent header is missing."""
         mock_request = MagicMock()
         mock_request.headers.get.return_value = None
 
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             ua = logger._get_user_agent()
 
         assert ua is None
@@ -312,9 +313,11 @@ class TestUserAgentExtraction:
         """Test User-Agent extraction when no request context."""
         # Mock request.headers.get to raise RuntimeError (simulating no request context)
         mock_request = MagicMock()
-        mock_request.headers.get.side_effect = RuntimeError("Working outside of request context")
+        mock_request.headers.get.side_effect = RuntimeError(
+            "Working outside of request context"
+        )
 
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             ua = logger._get_user_agent()
 
         assert ua is None
@@ -339,123 +342,126 @@ class TestConvenienceMethods:
 
     def test_log_auth_success(self, logger, mock_request):
         """Test log_auth_success convenience method."""
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             logger.log_auth_success("user@example.com", {"role": "admin"})
 
-        with open(logger.log_file, 'r') as f:
+        with open(logger.log_file) as f:
             entry = json.loads(f.readline())
 
-        assert entry['event_type'] == "auth"
-        assert entry['user'] == "user@example.com"
-        assert entry['resource'] == "auth:token"
-        assert entry['action'] == "validate"
-        assert entry['result'] == "success"
-        assert entry['details'] == {"role": "admin"}
+        assert entry["event_type"] == "auth"
+        assert entry["user"] == "user@example.com"
+        assert entry["resource"] == "auth:token"
+        assert entry["action"] == "validate"
+        assert entry["result"] == "success"
+        assert entry["details"] == {"role": "admin"}
 
     def test_log_auth_success_without_details(self, logger, mock_request):
         """Test log_auth_success without optional details."""
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             logger.log_auth_success("user@example.com")
 
-        with open(logger.log_file, 'r') as f:
+        with open(logger.log_file) as f:
             entry = json.loads(f.readline())
 
-        assert entry['user'] == "user@example.com"
-        assert entry['result'] == "success"
+        assert entry["user"] == "user@example.com"
+        assert entry["result"] == "success"
 
     def test_log_auth_failure(self, logger, mock_request):
         """Test log_auth_failure convenience method."""
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             logger.log_auth_failure("Invalid token")
 
-        with open(logger.log_file, 'r') as f:
+        with open(logger.log_file) as f:
             entry = json.loads(f.readline())
 
-        assert entry['event_type'] == "auth"
-        assert entry['user'] == "anonymous"
-        assert entry['resource'] == "auth:token"
-        assert entry['action'] == "validate"
-        assert entry['result'] == "denied"
-        assert entry['details']['reason'] == "Invalid token"
+        assert entry["event_type"] == "auth"
+        assert entry["user"] == "anonymous"
+        assert entry["resource"] == "auth:token"
+        assert entry["action"] == "validate"
+        assert entry["result"] == "denied"
+        assert entry["details"]["reason"] == "Invalid token"
 
     def test_log_auth_failure_with_details(self, logger, mock_request):
         """Test log_auth_failure with additional details."""
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             logger.log_auth_failure("Expired", {"token_age": "2h"})
 
-        with open(logger.log_file, 'r') as f:
+        with open(logger.log_file) as f:
             entry = json.loads(f.readline())
 
-        assert entry['details']['reason'] == "Expired"
-        assert entry['details']['token_age'] == "2h"
+        assert entry["details"]["reason"] == "Expired"
+        assert entry["details"]["token_age"] == "2h"
 
     def test_log_access_denied(self, logger, mock_request):
         """Test log_access_denied convenience method."""
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             logger.log_access_denied(
                 user="user@example.com",
                 resource="case:ABC123",
-                reason="Insufficient permissions"
+                reason="Insufficient permissions",
             )
 
-        with open(logger.log_file, 'r') as f:
+        with open(logger.log_file) as f:
             entry = json.loads(f.readline())
 
-        assert entry['event_type'] == "access"
-        assert entry['user'] == "user@example.com"
-        assert entry['resource'] == "case:ABC123"
-        assert entry['action'] == "access"
-        assert entry['result'] == "denied"
-        assert entry['details']['reason'] == "Insufficient permissions"
+        assert entry["event_type"] == "access"
+        assert entry["user"] == "user@example.com"
+        assert entry["resource"] == "case:ABC123"
+        assert entry["action"] == "access"
+        assert entry["result"] == "denied"
+        assert entry["details"]["reason"] == "Insufficient permissions"
 
     def test_log_webhook_received(self, logger, mock_request):
         """Test log_webhook_received convenience method."""
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             logger.log_webhook_received(
-                event_type="TopicCreated",
-                event_id="evt-123-456"
+                event_type="TopicCreated", event_id="evt-123-456"
             )
 
-        with open(logger.log_file, 'r') as f:
+        with open(logger.log_file) as f:
             entry = json.loads(f.readline())
 
-        assert entry['event_type'] == "webhook"
-        assert entry['user'] == "catenda"
-        assert entry['resource'] == "webhook:catenda"
-        assert entry['action'] == "received"
-        assert entry['result'] == "success"
-        assert entry['details']['event_type'] == "TopicCreated"
-        assert entry['details']['event_id'] == "evt-123-456"
+        assert entry["event_type"] == "webhook"
+        assert entry["user"] == "catenda"
+        assert entry["resource"] == "webhook:catenda"
+        assert entry["action"] == "received"
+        assert entry["result"] == "success"
+        assert entry["details"]["event_type"] == "TopicCreated"
+        assert entry["details"]["event_id"] == "evt-123-456"
 
     def test_log_security_event(self, logger, mock_request):
         """Test log_security_event convenience method."""
-        with patch('lib.monitoring.audit.request', mock_request):
-            with patch('lib.monitoring.audit.g', MagicMock(get=lambda x, default: {'email': 'attacker@example.com'})):
+        with patch("lib.monitoring.audit.request", mock_request):
+            with patch(
+                "lib.monitoring.audit.g",
+                MagicMock(get=lambda x, default: {"email": "attacker@example.com"}),
+            ):
                 logger.log_security_event(
-                    threat_type="csrf_fail",
-                    details={"endpoint": "/api/save"}
+                    threat_type="csrf_fail", details={"endpoint": "/api/save"}
                 )
 
-        with open(logger.log_file, 'r') as f:
+        with open(logger.log_file) as f:
             entry = json.loads(f.readline())
 
-        assert entry['event_type'] == "security"
-        assert entry['user'] == "attacker@example.com"
-        assert entry['resource'] == "security"
-        assert entry['action'] == "csrf_fail"
-        assert entry['result'] == "blocked"
-        assert entry['details']['endpoint'] == "/api/save"
+        assert entry["event_type"] == "security"
+        assert entry["user"] == "attacker@example.com"
+        assert entry["resource"] == "security"
+        assert entry["action"] == "csrf_fail"
+        assert entry["result"] == "blocked"
+        assert entry["details"]["endpoint"] == "/api/save"
 
     def test_log_security_event_anonymous_user(self, logger, mock_request):
         """Test log_security_event with anonymous user."""
-        with patch('lib.monitoring.audit.request', mock_request):
-            with patch('lib.monitoring.audit.g', MagicMock(get=lambda x, default: default)):
+        with patch("lib.monitoring.audit.request", mock_request):
+            with patch(
+                "lib.monitoring.audit.g", MagicMock(get=lambda x, default: default)
+            ):
                 logger.log_security_event("rate_limit_exceeded")
 
-        with open(logger.log_file, 'r') as f:
+        with open(logger.log_file) as f:
             entry = json.loads(f.readline())
 
-        assert entry['user'] == "anonymous"
+        assert entry["user"] == "anonymous"
 
 
 class TestSearchAuditLog:
@@ -471,14 +477,26 @@ class TestSearchAuditLog:
         mock_request.remote_addr = "192.168.1.100"
         mock_request.headers.get.return_value = None
 
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             # Add various test entries
-            logger.log_event("auth", "user1@example.com", "auth:token", "login", "success")
-            logger.log_event("auth", "user2@example.com", "auth:token", "login", "denied")
-            logger.log_event("access", "user1@example.com", "case:ABC123", "read", "success")
-            logger.log_event("access", "user3@example.com", "case:XYZ789", "read", "denied")
-            logger.log_event("modify", "user1@example.com", "case:ABC123", "update", "success")
-            logger.log_event("webhook", "catenda", "webhook:catenda", "received", "success")
+            logger.log_event(
+                "auth", "user1@example.com", "auth:token", "login", "success"
+            )
+            logger.log_event(
+                "auth", "user2@example.com", "auth:token", "login", "denied"
+            )
+            logger.log_event(
+                "access", "user1@example.com", "case:ABC123", "read", "success"
+            )
+            logger.log_event(
+                "access", "user3@example.com", "case:XYZ789", "read", "denied"
+            )
+            logger.log_event(
+                "modify", "user1@example.com", "case:ABC123", "update", "success"
+            )
+            logger.log_event(
+                "webhook", "catenda", "webhook:catenda", "received", "success"
+            )
 
         return str(log_file)
 
@@ -491,30 +509,26 @@ class TestSearchAuditLog:
         """Test filtering by event_type."""
         results = search_audit_log(populated_log, event_type="auth")
         assert len(results) == 2
-        assert all(r['event_type'] == 'auth' for r in results)
+        assert all(r["event_type"] == "auth" for r in results)
 
     def test_search_audit_log_filter_by_user(self, populated_log):
         """Test filtering by user."""
         results = search_audit_log(populated_log, user="user1@example.com")
         assert len(results) == 3
-        assert all(r['user'] == 'user1@example.com' for r in results)
+        assert all(r["user"] == "user1@example.com" for r in results)
 
     def test_search_audit_log_filter_by_result(self, populated_log):
         """Test filtering by result."""
         results = search_audit_log(populated_log, result="denied")
         assert len(results) == 2
-        assert all(r['result'] == 'denied' for r in results)
+        assert all(r["result"] == "denied" for r in results)
 
     def test_search_audit_log_multiple_filters(self, populated_log):
         """Test combining multiple filters."""
-        results = search_audit_log(
-            populated_log,
-            event_type="access",
-            result="success"
-        )
+        results = search_audit_log(populated_log, event_type="access", result="success")
         assert len(results) == 1
-        assert results[0]['event_type'] == 'access'
-        assert results[0]['result'] == 'success'
+        assert results[0]["event_type"] == "access"
+        assert results[0]["result"] == "success"
 
     def test_search_audit_log_with_limit(self, populated_log):
         """Test that limit parameter works."""
@@ -531,20 +545,20 @@ class TestSearchAuditLog:
         log_file = tmp_path / "malformed.log"
 
         # Create log with mix of valid and invalid JSON
-        with open(log_file, 'w') as f:
+        with open(log_file, "w") as f:
             f.write('{"event_type": "test", "user": "valid1"}\n')
-            f.write('this is not json\n')
+            f.write("this is not json\n")
             f.write('{"event_type": "test", "user": "valid2"}\n')
-            f.write('{incomplete json\n')
+            f.write("{incomplete json\n")
             f.write('{"event_type": "test", "user": "valid3"}\n')
 
         results = search_audit_log(str(log_file))
 
         # Should only return the 3 valid entries
         assert len(results) == 3
-        assert results[0]['user'] == 'valid1'
-        assert results[1]['user'] == 'valid2'
-        assert results[2]['user'] == 'valid3'
+        assert results[0]["user"] == "valid1"
+        assert results[1]["user"] == "valid2"
+        assert results[2]["user"] == "valid3"
 
     def test_search_audit_log_no_matches(self, populated_log):
         """Test searching with filter that matches nothing."""
@@ -564,20 +578,20 @@ class TestEdgeCases:
         mock_request.remote_addr = "127.0.0.1"
         mock_request.headers.get.return_value = None
 
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             logger.log_event(
                 event_type="test",
                 user="test",
                 resource="test:123",
                 action="test",
                 result="success",
-                details={}
+                details={},
             )
 
-        with open(log_file, 'r') as f:
+        with open(log_file) as f:
             entry = json.loads(f.readline())
 
-        assert entry['details'] == {}
+        assert entry["details"] == {}
 
     def test_log_event_with_complex_details(self, tmp_path):
         """Test logging with nested/complex details."""
@@ -592,20 +606,20 @@ class TestEdgeCases:
             "nested": {"key": "value", "number": 42},
             "list": [1, 2, 3],
             "bool": True,
-            "null": None
+            "null": None,
         }
 
-        with patch('lib.monitoring.audit.request', mock_request):
+        with patch("lib.monitoring.audit.request", mock_request):
             logger.log_event(
                 event_type="test",
                 user="test",
                 resource="test:123",
                 action="test",
                 result="success",
-                details=complex_details
+                details=complex_details,
             )
 
-        with open(log_file, 'r') as f:
+        with open(log_file) as f:
             entry = json.loads(f.readline())
 
-        assert entry['details'] == complex_details
+        assert entry["details"] == complex_details

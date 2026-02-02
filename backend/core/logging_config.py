@@ -42,11 +42,11 @@ class ColoredFormatter(logging.Formatter):
         # Dim the logger name
         record.name = f"{Colors.DIM}{record.name}{Colors.RESET}"
         # Add request_id with color
-        request_id = getattr(record, 'request_id', '-')
-        if request_id != '-':
+        request_id = getattr(record, "request_id", "-")
+        if request_id != "-":
             record.request_id = f"{Colors.CYAN}[{request_id}]{Colors.RESET}"
         else:
-            record.request_id = ''
+            record.request_id = ""
         return super().format(record)
 
 
@@ -55,14 +55,14 @@ class CustomJsonFormatter(jsonlogger.JsonFormatter):
 
     def add_fields(self, log_record, record, message_dict):
         super().add_fields(log_record, record, message_dict)
-        log_record['level'] = record.levelname
-        log_record['logger'] = record.name
-        log_record['request_id'] = getattr(record, 'request_id', None)
+        log_record["level"] = record.levelname
+        log_record["logger"] = record.name
+        log_record["request_id"] = getattr(record, "request_id", None)
         if record.exc_info:
-            log_record['exception'] = self.formatException(record.exc_info)
+            log_record["exception"] = self.formatException(record.exc_info)
 
 
-def setup_logging(log_file: str = 'unified_timeline.log') -> logging.Logger:
+def setup_logging(log_file: str = "unified_timeline.log") -> logging.Logger:
     """
     Configure application logging.
 
@@ -77,8 +77,8 @@ def setup_logging(log_file: str = 'unified_timeline.log') -> logging.Logger:
         Logger instance
     """
     # Determine log format from environment (defaults to json for production)
-    log_format = os.getenv('LOG_FORMAT', 'json').lower()
-    log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+    log_format = os.getenv("LOG_FORMAT", "json").lower()
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 
     # Clear any existing handlers
     root_logger = logging.getLogger()
@@ -88,30 +88,30 @@ def setup_logging(log_file: str = 'unified_timeline.log') -> logging.Logger:
     # Add request ID filter to root logger (lazy import to avoid circular deps)
     try:
         from core.request_context import RequestIdFilter
+
         root_logger.addFilter(RequestIdFilter())
     except ImportError:
         pass  # Request context not available yet
 
-    if log_format == 'json':
+    if log_format == "json":
         # JSON logging for production/Azure
         handler = logging.StreamHandler(sys.stdout)
         formatter = CustomJsonFormatter(
-            '%(asctime)s %(level)s %(name)s %(message)s',
-            timestamp=True
+            "%(asctime)s %(level)s %(name)s %(message)s", timestamp=True
         )
         handler.setFormatter(formatter)
         root_logger.addHandler(handler)
     else:
         # Text logging for development
-        log_fmt = '%(asctime)s  %(levelname)s  %(request_id)s  %(name)s  %(message)s'
-        date_fmt = '%H:%M:%S'
+        log_fmt = "%(asctime)s  %(levelname)s  %(request_id)s  %(name)s  %(message)s"
+        date_fmt = "%H:%M:%S"
 
         # Console handler with colors
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(ColoredFormatter(log_fmt, datefmt=date_fmt))
 
         # File handler without colors (simpler format)
-        file_fmt = '%(asctime)s  %(levelname)s  [%(request_id)s]  %(name)s  %(message)s'
+        file_fmt = "%(asctime)s  %(levelname)s  [%(request_id)s]  %(name)s  %(message)s"
         file_handler = logging.FileHandler(log_file)
         file_handler.setFormatter(logging.Formatter(file_fmt, datefmt=date_fmt))
 
@@ -119,7 +119,7 @@ def setup_logging(log_file: str = 'unified_timeline.log') -> logging.Logger:
         root_logger.addHandler(file_handler)
 
     # Silence noisy HTTP libraries (httpx, httpcore, hpack used by Supabase)
-    for noisy_logger in ['httpx', 'httpcore', 'hpack', 'h2', 'h11']:
+    for noisy_logger in ["httpx", "httpcore", "hpack", "h2", "h11"]:
         logging.getLogger(noisy_logger).setLevel(logging.WARNING)
 
     return logging.getLogger(__name__)

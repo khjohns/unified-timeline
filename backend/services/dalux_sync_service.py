@@ -7,20 +7,21 @@ Handles:
 - Attachment download and upload
 - Conflict resolution (Dalux wins)
 """
-from datetime import datetime
-from typing import Any, Dict, List, Optional
 
-from integrations.dalux import DaluxClient, DaluxAuthError, DaluxAPIError
+from datetime import datetime
+from typing import Any
+
 from integrations.catenda.client import CatendaClient
-from repositories.sync_mapping_repository import SyncMappingRepository
+from integrations.dalux import DaluxAPIError, DaluxAuthError, DaluxClient
 from models.sync_models import (
     DaluxCatendaSyncMapping,
-    TaskSyncRecord,
     SyncResult,
+    TaskSyncRecord,
     TaskSyncResult,
-    map_dalux_type_to_catenda,
     map_dalux_status_to_catenda,
+    map_dalux_type_to_catenda,
 )
+from repositories.sync_mapping_repository import SyncMappingRepository
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -53,10 +54,7 @@ class DaluxSyncService:
         self.sync_repo = sync_repo
 
     def sync_project(
-        self,
-        sync_mapping_id: str,
-        full_sync: bool = False,
-        limit: Optional[int] = None
+        self, sync_mapping_id: str, full_sync: bool = False, limit: int | None = None
     ) -> SyncResult:
         """
         Sync all tasks from Dalux to Catenda for a project.
@@ -114,10 +112,11 @@ class DaluxSyncService:
                 logger.info("Performing full sync...")
                 tasks = self.dalux.get_tasks(mapping.dalux_project_id)
             else:
-                logger.info(f"Performing incremental sync since {mapping.last_sync_at}...")
+                logger.info(
+                    f"Performing incremental sync since {mapping.last_sync_at}..."
+                )
                 tasks = self.dalux.get_task_changes(
-                    mapping.dalux_project_id,
-                    since=mapping.last_sync_at
+                    mapping.dalux_project_id, since=mapping.last_sync_at
                 )
 
             logger.info(f"Found {len(tasks)} tasks to process")
@@ -132,19 +131,29 @@ class DaluxSyncService:
             logger.info(f"After filtering: {len(tasks)} tasks")
 
             # Fetch all changes, attachments, users, companies, workpackages, and project name once (for enrichment)
-            logger.info("Fetching enrichment data (changes, attachments, users, companies, workpackages, project)...")
+            logger.info(
+                "Fetching enrichment data (changes, attachments, users, companies, workpackages, project)..."
+            )
             all_changes = self._fetch_all_changes(mapping.dalux_project_id)
             all_attachments = self._fetch_all_attachments(mapping.dalux_project_id)
             user_lookup = self._fetch_user_lookup(mapping.dalux_project_id)
             company_lookup = self._fetch_company_lookup(mapping.dalux_project_id)
-            workpackage_lookup = self._fetch_workpackage_lookup(mapping.dalux_project_id)
+            workpackage_lookup = self._fetch_workpackage_lookup(
+                mapping.dalux_project_id
+            )
             project_name = self._fetch_project_name(mapping.dalux_project_id)
 
             # Enrich user lookup with company names
-            user_lookup = self._enrich_user_lookup_with_company(user_lookup, company_lookup, mapping.dalux_project_id)
+            user_lookup = self._enrich_user_lookup_with_company(
+                user_lookup, company_lookup, mapping.dalux_project_id
+            )
 
-            logger.info(f"  Changes: {len(all_changes)}, Attachments: {len(all_attachments)}")
-            logger.info(f"  Users: {len(user_lookup)}, Companies: {len(company_lookup)}, Workpackages: {len(workpackage_lookup)}")
+            logger.info(
+                f"  Changes: {len(all_changes)}, Attachments: {len(all_attachments)}"
+            )
+            logger.info(
+                f"  Users: {len(user_lookup)}, Companies: {len(company_lookup)}, Workpackages: {len(workpackage_lookup)}"
+            )
             logger.info(f"  Project: {project_name or 'unknown'}")
 
             # Index by task ID for fast lookup
@@ -161,7 +170,13 @@ class DaluxSyncService:
                 task_attachments = attachments_by_task.get(task_id, [])
 
                 task_result = self._sync_task(
-                    task_data, mapping, task_changes, task_attachments, user_lookup, workpackage_lookup, project_name
+                    task_data,
+                    mapping,
+                    task_changes,
+                    task_attachments,
+                    user_lookup,
+                    workpackage_lookup,
+                    project_name,
                 )
 
                 result.tasks_processed += 1
@@ -211,13 +226,15 @@ class DaluxSyncService:
 
         # Finalize result
         result.completed_at = datetime.utcnow()
-        result.duration_seconds = (result.completed_at - result.started_at).total_seconds()
+        result.duration_seconds = (
+            result.completed_at - result.started_at
+        ).total_seconds()
 
         # Update sync mapping status
         self.sync_repo.update_sync_status(
             sync_mapping_id,
             status=result.status,
-            error=result.errors[0] if result.errors else None
+            error=result.errors[0] if result.errors else None,
         )
 
         logger.info(f"Sync completed: {result.status}")
@@ -231,10 +248,8 @@ class DaluxSyncService:
         return result
 
     def _apply_task_filters(
-        self,
-        tasks: List[Dict[str, Any]],
-        mapping: DaluxCatendaSyncMapping
-    ) -> List[Dict[str, Any]]:
+        self, tasks: list[dict[str, Any]], mapping: DaluxCatendaSyncMapping
+    ) -> list[dict[str, Any]]:
         """
         Filter tasks based on configured filters.
 
@@ -268,20 +283,24 @@ class DaluxSyncService:
             if type_name.lower() not in exclude_lower:
                 filtered.append(task_item)
             else:
-                logger.debug(f"Filtered out task {task_data.get('taskId')} (type: {type_name})")
+                logger.debug(
+                    f"Filtered out task {task_data.get('taskId')} (type: {type_name})"
+                )
 
-        logger.info(f"Filtered {len(tasks) - len(filtered)} tasks by type (excluded: {exclude_types})")
+        logger.info(
+            f"Filtered {len(tasks) - len(filtered)} tasks by type (excluded: {exclude_types})"
+        )
         return filtered
 
     def _sync_task(
         self,
-        dalux_task: Dict[str, Any],
+        dalux_task: dict[str, Any],
         mapping: DaluxCatendaSyncMapping,
-        task_changes: Optional[List[Dict[str, Any]]] = None,
-        task_attachments: Optional[List[Dict[str, Any]]] = None,
-        user_lookup: Optional[Dict[str, str]] = None,
-        workpackage_lookup: Optional[Dict[str, str]] = None,
-        project_name: Optional[str] = None,
+        task_changes: list[dict[str, Any]] | None = None,
+        task_attachments: list[dict[str, Any]] | None = None,
+        user_lookup: dict[str, str] | None = None,
+        workpackage_lookup: dict[str, str] | None = None,
+        project_name: str | None = None,
     ) -> TaskSyncResult:
         """
         Sync a single task from Dalux to Catenda.
@@ -299,13 +318,14 @@ class DaluxSyncService:
             TaskSyncResult with action taken
         """
         dalux_task_id = dalux_task.get("taskId", "unknown")
-        logger.debug(f"Processing task {dalux_task_id}: {dalux_task.get('title', 'untitled')}")
+        logger.debug(
+            f"Processing task {dalux_task_id}: {dalux_task.get('title', 'untitled')}"
+        )
 
         try:
             # Check if task already synced
             existing_record = self.sync_repo.get_task_sync_record(
-                mapping.id,
-                dalux_task_id
+                mapping.id, dalux_task_id
             )
 
             # Parse Dalux timestamp
@@ -319,7 +339,7 @@ class DaluxSyncService:
                 task_attachments or [],
                 user_lookup or {},
                 workpackage_lookup or {},
-                project_name
+                project_name,
             )
 
             if existing_record:
@@ -345,16 +365,12 @@ class DaluxSyncService:
                 if result:
                     now = datetime.utcnow()
                     self.sync_repo.mark_task_synced(
-                        existing_record.id,
-                        dalux_updated_at,
-                        now
+                        existing_record.id, dalux_updated_at, now
                     )
 
                     # Sync attachments
                     attachments_synced = self._sync_attachments(
-                        dalux_task_id,
-                        existing_record.catenda_topic_guid,
-                        mapping
+                        dalux_task_id, existing_record.catenda_topic_guid, mapping
                     )
 
                     return TaskSyncResult(
@@ -366,8 +382,7 @@ class DaluxSyncService:
                     )
                 else:
                     self.sync_repo.mark_task_failed(
-                        existing_record.id,
-                        "Failed to update topic in Catenda"
+                        existing_record.id, "Failed to update topic in Catenda"
                     )
                     return TaskSyncResult(
                         success=False,
@@ -411,9 +426,7 @@ class DaluxSyncService:
 
                 # Sync attachments
                 attachments_synced = self._sync_attachments(
-                    dalux_task_id,
-                    catenda_topic_guid,
-                    mapping
+                    dalux_task_id, catenda_topic_guid, mapping
                 )
 
                 return TaskSyncResult(
@@ -435,13 +448,13 @@ class DaluxSyncService:
 
     def _map_task_to_topic(
         self,
-        dalux_task: Dict[str, Any],
-        task_changes: Optional[List[Dict[str, Any]]] = None,
-        task_attachments: Optional[List[Dict[str, Any]]] = None,
-        user_lookup: Optional[Dict[str, str]] = None,
-        workpackage_lookup: Optional[Dict[str, str]] = None,
-        project_name: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        dalux_task: dict[str, Any],
+        task_changes: list[dict[str, Any]] | None = None,
+        task_attachments: list[dict[str, Any]] | None = None,
+        user_lookup: dict[str, str] | None = None,
+        workpackage_lookup: dict[str, str] | None = None,
+        project_name: str | None = None,
+    ) -> dict[str, Any]:
         """
         Map Dalux task to Catenda BCF topic structure.
 
@@ -522,7 +535,9 @@ class DaluxSyncService:
             metadata_parts.append(f"- **Tildelt:** {current_values['assignedToRole']}")
 
         if metadata_parts:
-            description_parts.append("\n---\n**Saksinfo:**\n" + "\n".join(metadata_parts))
+            description_parts.append(
+                "\n---\n**Saksinfo:**\n" + "\n".join(metadata_parts)
+            )
 
         # Add initial description from first change (if available)
         initial_description = current_values.get("initialDescription")
@@ -587,10 +602,7 @@ class DaluxSyncService:
             "topic_status": catenda_status,
         }
 
-    def _format_location_for_description(
-        self,
-        location: Dict[str, Any]
-    ) -> Optional[str]:
+    def _format_location_for_description(self, location: dict[str, Any]) -> str | None:
         """Format location data for inclusion in description."""
         parts = []
 
@@ -627,9 +639,8 @@ class DaluxSyncService:
         return None
 
     def _extract_deadline_from_changes(
-        self,
-        changes: List[Dict[str, Any]]
-    ) -> Optional[str]:
+        self, changes: list[dict[str, Any]]
+    ) -> str | None:
         """
         Extract deadline from changes data.
 
@@ -650,9 +661,8 @@ class DaluxSyncService:
         return None
 
     def _extract_current_values_from_changes(
-        self,
-        changes: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, changes: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """
         Extract current/latest values from changes data.
 
@@ -669,7 +679,7 @@ class DaluxSyncService:
             Dict with extracted values (keys: workpackageId, currentResponsible,
             assignedToRole, initialDescription)
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         # Sort by timestamp to process in order and get latest values
         sorted_changes = sorted(
@@ -706,9 +716,8 @@ class DaluxSyncService:
         return result
 
     def _format_attachments_for_description(
-        self,
-        attachments: List[Dict[str, Any]]
-    ) -> Optional[str]:
+        self, attachments: list[dict[str, Any]]
+    ) -> str | None:
         """
         Format attachments list for inclusion in description.
 
@@ -735,10 +744,10 @@ class DaluxSyncService:
 
     def _format_changes_for_description(
         self,
-        changes: List[Dict[str, Any]],
-        user_lookup: Optional[Dict[str, str]] = None,
-        workpackage_lookup: Optional[Dict[str, str]] = None
-    ) -> Optional[str]:
+        changes: list[dict[str, Any]],
+        user_lookup: dict[str, str] | None = None,
+        workpackage_lookup: dict[str, str] | None = None,
+    ) -> str | None:
         """
         Format changes/history for inclusion in description.
 
@@ -820,7 +829,7 @@ class DaluxSyncService:
         self,
         dalux_task_id: str,
         catenda_topic_guid: str,
-        mapping: DaluxCatendaSyncMapping
+        mapping: DaluxCatendaSyncMapping,
     ) -> int:
         """
         Sync attachments for a task.
@@ -849,7 +858,7 @@ class DaluxSyncService:
 
         return 0
 
-    def _parse_datetime(self, dt_str: Optional[str]) -> datetime:
+    def _parse_datetime(self, dt_str: str | None) -> datetime:
         """Parse datetime string from Dalux API."""
         if not dt_str:
             return datetime.utcnow()
@@ -863,7 +872,7 @@ class DaluxSyncService:
             logger.warning(f"Could not parse datetime: {dt_str}")
             return datetime.utcnow()
 
-    def _fetch_all_changes(self, project_id: str) -> List[Dict[str, Any]]:
+    def _fetch_all_changes(self, project_id: str) -> list[dict[str, Any]]:
         """
         Fetch all available changes from Dalux.
 
@@ -883,7 +892,7 @@ class DaluxSyncService:
             logger.warning(f"Could not fetch changes: {e}")
             return []
 
-    def _fetch_all_attachments(self, project_id: str) -> List[Dict[str, Any]]:
+    def _fetch_all_attachments(self, project_id: str) -> list[dict[str, Any]]:
         """
         Fetch all task attachments from Dalux.
 
@@ -899,7 +908,7 @@ class DaluxSyncService:
             logger.warning(f"Could not fetch attachments: {e}")
             return []
 
-    def _fetch_user_lookup(self, project_id: str) -> Dict[str, str]:
+    def _fetch_user_lookup(self, project_id: str) -> dict[str, str]:
         """
         Fetch project users and build a lookup table.
 
@@ -924,7 +933,7 @@ class DaluxSyncService:
             logger.warning(f"Could not fetch users: {e}")
             return {}
 
-    def _fetch_company_lookup(self, project_id: str) -> Dict[str, str]:
+    def _fetch_company_lookup(self, project_id: str) -> dict[str, str]:
         """
         Fetch project companies and build a lookup table.
 
@@ -947,7 +956,7 @@ class DaluxSyncService:
             logger.warning(f"Could not fetch companies: {e}")
             return {}
 
-    def _fetch_workpackage_lookup(self, project_id: str) -> Dict[str, str]:
+    def _fetch_workpackage_lookup(self, project_id: str) -> dict[str, str]:
         """
         Fetch project workpackages (entreprises) and build a lookup table.
 
@@ -970,7 +979,7 @@ class DaluxSyncService:
             logger.warning(f"Could not fetch workpackages: {e}")
             return {}
 
-    def _fetch_project_name(self, project_id: str) -> Optional[str]:
+    def _fetch_project_name(self, project_id: str) -> str | None:
         """
         Fetch project name from Dalux projects API.
 
@@ -993,10 +1002,10 @@ class DaluxSyncService:
 
     def _enrich_user_lookup_with_company(
         self,
-        user_lookup: Dict[str, str],
-        company_lookup: Dict[str, str],
-        project_id: str
-    ) -> Dict[str, str]:
+        user_lookup: dict[str, str],
+        company_lookup: dict[str, str],
+        project_id: str,
+    ) -> dict[str, str]:
         """
         Enrich user lookup with company names.
 
@@ -1037,9 +1046,8 @@ class DaluxSyncService:
             return user_lookup
 
     def _group_by_task_id(
-        self,
-        changes: List[Dict[str, Any]]
-    ) -> Dict[str, List[Dict[str, Any]]]:
+        self, changes: list[dict[str, Any]]
+    ) -> dict[str, list[dict[str, Any]]]:
         """
         Group changes by task ID.
 
@@ -1049,7 +1057,7 @@ class DaluxSyncService:
         Returns:
             Dict mapping task ID to list of changes
         """
-        result: Dict[str, List[Dict[str, Any]]] = {}
+        result: dict[str, list[dict[str, Any]]] = {}
         for change in changes:
             task_id = change.get("taskId")
             if task_id:
@@ -1059,9 +1067,8 @@ class DaluxSyncService:
         return result
 
     def _group_attachments_by_task_id(
-        self,
-        attachments: List[Dict[str, Any]]
-    ) -> Dict[str, List[Dict[str, Any]]]:
+        self, attachments: list[dict[str, Any]]
+    ) -> dict[str, list[dict[str, Any]]]:
         """
         Group attachments by task ID.
 
@@ -1071,7 +1078,7 @@ class DaluxSyncService:
         Returns:
             Dict mapping task ID to list of attachments
         """
-        result: Dict[str, List[Dict[str, Any]]] = {}
+        result: dict[str, list[dict[str, Any]]] = {}
         for att in attachments:
             task_id = att.get("taskId")
             if task_id:
@@ -1081,9 +1088,8 @@ class DaluxSyncService:
         return result
 
     def validate_sync_config(
-        self,
-        mapping: DaluxCatendaSyncMapping
-    ) -> tuple[bool, List[str]]:
+        self, mapping: DaluxCatendaSyncMapping
+    ) -> tuple[bool, list[str]]:
         """
         Validate sync configuration by testing API connections.
 
@@ -1120,8 +1126,8 @@ class DaluxSyncService:
 
 
 def create_dalux_sync_service(
-    catenda_client: Optional[CatendaClient] = None,
-    sync_repo: Optional[SyncMappingRepository] = None,
+    catenda_client: CatendaClient | None = None,
+    sync_repo: SyncMappingRepository | None = None,
 ) -> DaluxSyncService:
     """
     Factory function to create DaluxSyncService.

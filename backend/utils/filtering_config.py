@@ -31,11 +31,7 @@ Konfigurasjon av filtreringsregler for KOE Automation System
 # - "Krav om endringsordre" -> standard KOE-sak
 # - "Endringsordre" -> EO-sak
 # - "Forsering" -> Forsering-sak
-ALLOWED_TOPIC_TYPES = [
-    "Krav om endringsordre",
-    "Endringsordre",
-    "Forsering"
-]
+ALLOWED_TOPIC_TYPES = ["Krav om endringsordre", "Endringsordre", "Forsering"]
 
 
 # ----------------------------------------------------------------------------
@@ -107,13 +103,14 @@ REQUIRED_LABELS = None  # Ingen label-filtrering
 #     is_daytime = 8 <= hour < 17
 #     return has_koe and is_daytime
 
+
 def custom_filter(topic_data: dict) -> bool:
     """
     Custom filtreringsfunksjon for avanserte scenarioer.
-    
+
     Args:
         topic_data: Dictionary med topic-informasjon fra webhook
-        
+
     Returns:
         True hvis topic skal prosesseres, False ellers
     """
@@ -163,19 +160,22 @@ EMAIL_NOTIFICATION_ON_PROCESSED = False
 # VALIDERING
 # ============================================================================
 
+
 def validate_config():
     """Valider konfigurasjon ved oppstart"""
-    
+
     # Sjekk at ACTION_ON_FILTERED er gyldig
     valid_actions = ["ignore", "log", "comment", "label"]
     if ACTION_ON_FILTERED not in valid_actions:
         raise ValueError(f"ACTION_ON_FILTERED må være en av: {valid_actions}")
-    
+
     # Sjekk at email-konfig er OK hvis notifikasjoner er på
-    if (EMAIL_NOTIFICATION_ON_FILTERED or EMAIL_NOTIFICATION_ON_PROCESSED):
+    if EMAIL_NOTIFICATION_ON_FILTERED or EMAIL_NOTIFICATION_ON_PROCESSED:
         if not EMAIL_RECIPIENTS:
-            raise ValueError("EMAIL_RECIPIENTS må settes hvis e-postvarslinger er aktivert")
-    
+            raise ValueError(
+                "EMAIL_RECIPIENTS må settes hvis e-postvarslinger er aktivert"
+            )
+
     return True
 
 
@@ -183,66 +183,72 @@ def validate_config():
 # HELPER FUNCTIONS
 # ============================================================================
 
+
 def should_process_topic(topic_data: dict) -> tuple[bool, str]:
     """
     Sjekk om topic skal prosesseres basert på filtreringsregler.
-    
+
     Args:
         topic_data: Dictionary med topic-informasjon
-        
+
     Returns:
         (bool, str): (skal_prosesseres, årsak_hvis_ikke)
     """
-    
+
     # 1. Topic Type Filter
     if ALLOWED_TOPIC_TYPES:
-        topic_type = topic_data.get('topic_type') or topic_data.get('type')
+        topic_type = topic_data.get("topic_type") or topic_data.get("type")
         if topic_type not in ALLOWED_TOPIC_TYPES:
-            return False, f"Topic type '{topic_type}' ikke i allowed list: {ALLOWED_TOPIC_TYPES}"
-    
+            return (
+                False,
+                f"Topic type '{topic_type}' ikke i allowed list: {ALLOWED_TOPIC_TYPES}",
+            )
+
     # 2. Board Filter
     if ALLOWED_BOARD_IDS:
-        board_id = topic_data.get('board_id')
-        if board_id: # Ensure board_id is not None or empty
+        board_id = topic_data.get("board_id")
+        if board_id:  # Ensure board_id is not None or empty
             # Normalize the board_id from webhook (remove hyphens) for comparison
-            normalized_board_id = board_id.replace('-', '')
-            
+            normalized_board_id = board_id.replace("-", "")
+
             # Normalize the allowed IDs for comparison
-            normalized_allowed_board_ids = [id.replace('-', '') for id in ALLOWED_BOARD_IDS]
+            normalized_allowed_board_ids = [
+                id.replace("-", "") for id in ALLOWED_BOARD_IDS
+            ]
 
             if normalized_board_id not in normalized_allowed_board_ids:
                 return False, f"Board '{board_id}' ikke i allowed list"
         else:
             return False, "Board ID mangler i topic_data for filtrering"
-    
+
     # 3. Keyword Filter
     if REQUIRED_KEYWORDS:
-        title = (topic_data.get('title') or '').lower()
-        description = (topic_data.get('description') or '').lower()
+        title = (topic_data.get("title") or "").lower()
+        description = (topic_data.get("description") or "").lower()
         has_keyword = any(
             keyword.lower() in title or keyword.lower() in description
             for keyword in REQUIRED_KEYWORDS
         )
         if not has_keyword:
             return False, f"Ingen required keywords funnet: {REQUIRED_KEYWORDS}"
-    
+
     # 4. Author Filter
     if ALLOWED_AUTHORS:
-        author = topic_data.get('creation_author') or topic_data.get('author')
+        author = topic_data.get("creation_author") or topic_data.get("author")
         if author not in ALLOWED_AUTHORS:
             return False, f"Author '{author}' ikke i allowed list"
-    
+
     # 5. Label Filter
     if REQUIRED_LABELS:
-        labels = topic_data.get('labels', [])
+        labels = topic_data.get("labels", [])
         has_label = any(label in REQUIRED_LABELS for label in labels)
         if not has_label:
             return False, f"Ingen required labels funnet: {REQUIRED_LABELS}"
-    
+
     # 6. Custom Filter
     if not custom_filter(topic_data):
         return False, "Custom filter returnerte False"
-    
+
     # Alle filtre passert!
     return True, ""
 
@@ -281,14 +287,14 @@ def get_filter_summary() -> str:
 TOPIC_TYPE_TO_SAKSTYPE = {
     "Krav om endringsordre": "standard",
     "Endringsordre": "endringsordre",
-    "Forsering": "forsering"
+    "Forsering": "forsering",
 }
 
 # Mapping fra sakstype til frontend-rute
 SAKSTYPE_TO_FRONTEND_ROUTE = {
     "standard": "/saker/{sak_id}",
     "endringsordre": "/endringsordre/{sak_id}",
-    "forsering": "/forsering/{sak_id}"
+    "forsering": "/forsering/{sak_id}",
 }
 
 

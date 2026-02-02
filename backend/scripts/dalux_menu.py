@@ -13,24 +13,25 @@ Krever:
 
 import os
 import sys
-from pathlib import Path
-from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any
 
 # Legg til parent directory i path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Last .env
 from dotenv import load_dotenv
+
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 # Imports
 try:
-    from integrations.dalux import DaluxClient, DaluxAuthError, DaluxAPIError
+    from integrations.dalux import DaluxAPIError, DaluxAuthError, DaluxClient
+    from lib.catenda_factory import get_catenda_client
     from lib.dalux_factory import get_dalux_client
     from repositories.sync_mapping_repository import create_sync_mapping_repository
     from services.dalux_sync_service import DaluxSyncService
-    from lib.catenda_factory import get_catenda_client
 except ImportError as e:
     print(f"Import feilet: {e}")
     print("Sørg for at scriptet kjøres fra backend/-mappen.")
@@ -41,14 +42,14 @@ class DaluxInteractiveMenu:
     """Interaktiv meny for Dalux API-operasjoner"""
 
     def __init__(self):
-        self.client: Optional[DaluxClient] = None
-        self.current_project_id: Optional[str] = None
-        self.current_project_name: Optional[str] = None
-        self.projects: List[Dict[str, Any]] = []
+        self.client: DaluxClient | None = None
+        self.current_project_id: str | None = None
+        self.current_project_name: str | None = None
+        self.projects: list[dict[str, Any]] = []
 
     def clear_screen(self):
         """Tøm skjermen"""
-        os.system('clear' if os.name == 'posix' else 'cls')
+        os.system("clear" if os.name == "posix" else "cls")
 
     def pause(self):
         """Vent på brukerinput"""
@@ -67,7 +68,9 @@ class DaluxInteractiveMenu:
         if self.client:
             print("[Tilkoblet] ", end="")
             if self.current_project_name:
-                print(f"Prosjekt: {self.current_project_name} ({self.current_project_id})")
+                print(
+                    f"Prosjekt: {self.current_project_name} ({self.current_project_id})"
+                )
             else:
                 print("Ingen prosjekt valgt")
         else:
@@ -79,7 +82,9 @@ class DaluxInteractiveMenu:
         self.print_header("Koble til Dalux")
 
         print("Leser credentials fra .env...")
-        print(f"  DALUX_API_KEY: {'***' + os.environ.get('DALUX_API_KEY', '')[-4:] if os.environ.get('DALUX_API_KEY') else 'IKKE SATT'}")
+        print(
+            f"  DALUX_API_KEY: {'***' + os.environ.get('DALUX_API_KEY', '')[-4:] if os.environ.get('DALUX_API_KEY') else 'IKKE SATT'}"
+        )
         print(f"  DALUX_BASE_URL: {os.environ.get('DALUX_BASE_URL', 'IKKE SATT')}")
         print()
 
@@ -174,7 +179,11 @@ class DaluxInteractiveMenu:
                 number = data.get("number", "?")[:9]
                 task_id = data.get("taskId", "?")[:21]
                 type_obj = data.get("type", {})
-                type_name = type_obj.get("name", "?") if isinstance(type_obj, dict) else str(type_obj)[:11]
+                type_name = (
+                    type_obj.get("name", "?")
+                    if isinstance(type_obj, dict)
+                    else str(type_obj)[:11]
+                )
                 subject = data.get("subject", "Untitled")[:34]
                 print(f"{number:<10} {task_id:<22} {type_name:<12} {subject:<35}")
 
@@ -367,7 +376,9 @@ class DaluxInteractiveMenu:
 
             # 3. Hent alle attachments og filtrer
             all_attachments = self.client.get_task_attachments(self.current_project_id)
-            task_attachments = [a for a in all_attachments if a.get("taskId") == task_id]
+            task_attachments = [
+                a for a in all_attachments if a.get("taskId") == task_id
+            ]
 
         except DaluxAPIError as e:
             print(f"Feil ved henting av data: {e}")
@@ -496,9 +507,11 @@ class DaluxInteractiveMenu:
 
                 if description:
                     # Wrap long descriptions
-                    desc_lines = [description[i:i+60] for i in range(0, len(description), 60)]
+                    desc_lines = [
+                        description[i : i + 60] for i in range(0, len(description), 60)
+                    ]
                     for line in desc_lines[:3]:
-                        print(f"│       \"{line}\"")
+                        print(f'│       "{line}"')
                     if len(desc_lines) > 3:
                         print("│       ...")
 
@@ -557,9 +570,15 @@ class DaluxInteractiveMenu:
         print("DATATILGJENGELIGHET:")
         print("  Grunndata:        ✅")
         print(f"  Lokasjon:         {'✅' if has_location else '❌'}")
-        print(f"  Egendefinerte:    {'✅ ' + str(len(udf)) + ' felt' if has_udf else '❌'}")
-        print(f"  Historikk:        {'✅ ' + str(len(task_changes)) + ' endringer' if has_changes else '⚠️  Ikke i API-respons'}")
-        print(f"  Vedlegg:          {'✅ ' + str(len(task_attachments)) + ' stk' if has_attachments else '❌'}")
+        print(
+            f"  Egendefinerte:    {'✅ ' + str(len(udf)) + ' felt' if has_udf else '❌'}"
+        )
+        print(
+            f"  Historikk:        {'✅ ' + str(len(task_changes)) + ' endringer' if has_changes else '⚠️  Ikke i API-respons'}"
+        )
+        print(
+            f"  Vedlegg:          {'✅ ' + str(len(task_attachments)) + ' stk' if has_attachments else '❌'}"
+        )
         print("=" * 80)
 
         self.pause()
@@ -691,6 +710,7 @@ class DaluxInteractiveMenu:
         try:
             # Hent filområder via API direkte (ikke i DaluxClient ennå)
             import requests
+
             headers = {"X-API-KEY": self.client.api_key}
             base_url = self.client.base_url
 
@@ -795,7 +815,9 @@ class DaluxInteractiveMenu:
                     break
 
             if not mapping:
-                print(f"Ingen sync mapping funnet for prosjekt {self.current_project_id}")
+                print(
+                    f"Ingen sync mapping funnet for prosjekt {self.current_project_id}"
+                )
                 print("\nOpprett en mapping først med:")
                 print("  python scripts/dalux_sync.py create \\")
                 print("    --project-id <intern_id> \\")
@@ -820,7 +842,7 @@ class DaluxInteractiveMenu:
             if choice == "0" or choice == "":
                 return
 
-            full_sync = (choice == "2")
+            full_sync = choice == "2"
 
             print(f"\nStarter {'full' if full_sync else 'inkrementell'} synk...\n")
 

@@ -7,10 +7,12 @@ Follows the same patterns as CatendaClient for consistency.
 API Documentation: https://app.swaggerhub.com/apis-docs/Dalux/DaluxBuild-api/4.13
 """
 
-import requests
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
+
+import requests
+
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -18,11 +20,13 @@ logger = get_logger(__name__)
 
 class DaluxAuthError(Exception):
     """Raised when Dalux authentication fails (invalid or expired API key)."""
+
     pass
 
 
 class DaluxAPIError(Exception):
     """Raised when Dalux API returns an error."""
+
     pass
 
 
@@ -55,10 +59,10 @@ class DaluxClient:
             base_url: Customer-specific base URL (e.g., https://node1.field.dalux.com/service/api/)
         """
         self.api_key = api_key
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
 
         # Rate limiting
-        self._last_request_time: Optional[float] = None
+        self._last_request_time: float | None = None
         self._min_request_interval = 0.1  # 100ms between requests (10 req/sec)
 
         logger.info(f"DaluxClient initialized for {self.base_url}")
@@ -67,12 +71,12 @@ class DaluxClient:
     # HTTP HELPERS
     # ==========================================
 
-    def get_headers(self) -> Dict[str, str]:
+    def get_headers(self) -> dict[str, str]:
         """Return standard headers for API calls."""
         return {
             "X-API-KEY": self.api_key,
             "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Accept": "application/json",
         }
 
     def _rate_limit(self) -> None:
@@ -84,11 +88,7 @@ class DaluxClient:
         self._last_request_time = time.time()
 
     def _make_request(
-        self,
-        method: str,
-        url: str,
-        timeout: int = 30,
-        **kwargs
+        self, method: str, url: str, timeout: int = 30, **kwargs
     ) -> requests.Response:
         """
         Make HTTP request with rate limiting and error handling.
@@ -110,11 +110,7 @@ class DaluxClient:
 
         try:
             response = requests.request(
-                method,
-                url,
-                headers=self.get_headers(),
-                timeout=timeout,
-                **kwargs
+                method, url, headers=self.get_headers(), timeout=timeout, **kwargs
             )
 
             # Handle auth errors
@@ -133,8 +129,10 @@ class DaluxClient:
             raise DaluxAPIError(f"Request timeout: {url}")
         except requests.exceptions.RequestException as e:
             if isinstance(e, requests.exceptions.HTTPError):
-                if hasattr(e, 'response') and e.response is not None:
-                    logger.error(f"Dalux API error {e.response.status_code}: {e.response.text}")
+                if hasattr(e, "response") and e.response is not None:
+                    logger.error(
+                        f"Dalux API error {e.response.status_code}: {e.response.text}"
+                    )
             else:
                 logger.error(f"Dalux API request failed: {e}")
             raise DaluxAPIError(str(e))
@@ -143,7 +141,7 @@ class DaluxClient:
     # PROJECTS
     # ==========================================
 
-    def get_projects(self) -> List[Dict[str, Any]]:
+    def get_projects(self) -> list[dict[str, Any]]:
         """
         Get all available projects.
 
@@ -171,7 +169,9 @@ class DaluxClient:
 
             for item in items:
                 project_data = item.get("data", {})
-                logger.debug(f"  - {project_data.get('projectName')} (ID: {project_data.get('projectId')})")
+                logger.debug(
+                    f"  - {project_data.get('projectName')} (ID: {project_data.get('projectId')})"
+                )
 
             return items
 
@@ -181,7 +181,7 @@ class DaluxClient:
             logger.error(f"Failed to fetch projects: {e}")
             raise DaluxAPIError(f"Failed to fetch projects: {e}")
 
-    def get_project(self, project_id: str) -> Optional[Dict[str, Any]]:
+    def get_project(self, project_id: str) -> dict[str, Any] | None:
         """
         Get a specific project.
 
@@ -211,11 +211,8 @@ class DaluxClient:
     # ==========================================
 
     def get_tasks(
-        self,
-        project_id: str,
-        limit: Optional[int] = None,
-        offset: int = 0
-    ) -> List[Dict[str, Any]]:
+        self, project_id: str, limit: int | None = None, offset: int = 0
+    ) -> list[dict[str, Any]]:
         """
         Get all tasks for a project.
 
@@ -271,10 +268,8 @@ class DaluxClient:
         return all_tasks
 
     def get_task_changes(
-        self,
-        project_id: str,
-        since: datetime
-    ) -> List[Dict[str, Any]]:
+        self, project_id: str, since: datetime
+    ) -> list[dict[str, Any]]:
         """
         Get tasks that changed since a given timestamp.
 
@@ -308,7 +303,7 @@ class DaluxClient:
             logger.error(f"Failed to fetch task changes: {e}")
             raise DaluxAPIError(f"Failed to fetch task changes: {e}")
 
-    def get_task(self, project_id: str, task_id: str) -> Optional[Dict[str, Any]]:
+    def get_task(self, project_id: str, task_id: str) -> dict[str, Any] | None:
         """
         Get a specific task with full details.
 
@@ -338,7 +333,7 @@ class DaluxClient:
     # ATTACHMENTS
     # ==========================================
 
-    def get_task_attachments(self, project_id: str) -> List[Dict[str, Any]]:
+    def get_task_attachments(self, project_id: str) -> list[dict[str, Any]]:
         """
         Get all task attachments for a project.
 
@@ -374,7 +369,7 @@ class DaluxClient:
     COMPANIES_VERSION = "3.1"
     WORKPACKAGES_VERSION = "1.0"
 
-    def get_project_users(self, project_id: str) -> List[Dict[str, Any]]:
+    def get_project_users(self, project_id: str) -> list[dict[str, Any]]:
         """
         Get all users on a project.
 
@@ -402,7 +397,7 @@ class DaluxClient:
             logger.error(f"Failed to fetch users: {e}")
             raise DaluxAPIError(f"Failed to fetch users: {e}")
 
-    def get_project_companies(self, project_id: str) -> List[Dict[str, Any]]:
+    def get_project_companies(self, project_id: str) -> list[dict[str, Any]]:
         """
         Get all companies on a project.
 
@@ -413,7 +408,9 @@ class DaluxClient:
             List of company objects with companyId and name.
         """
         logger.info(f"Fetching companies for project {project_id}...")
-        url = f"{self.base_url}/{self.COMPANIES_VERSION}/projects/{project_id}/companies"
+        url = (
+            f"{self.base_url}/{self.COMPANIES_VERSION}/projects/{project_id}/companies"
+        )
 
         try:
             response = self._make_request("GET", url)
@@ -430,7 +427,7 @@ class DaluxClient:
             logger.error(f"Failed to fetch companies: {e}")
             raise DaluxAPIError(f"Failed to fetch companies: {e}")
 
-    def get_project_workpackages(self, project_id: str) -> List[Dict[str, Any]]:
+    def get_project_workpackages(self, project_id: str) -> list[dict[str, Any]]:
         """
         Get all workpackages (entreprises) on a project.
 
@@ -458,11 +455,7 @@ class DaluxClient:
             logger.error(f"Failed to fetch workpackages: {e}")
             raise DaluxAPIError(f"Failed to fetch workpackages: {e}")
 
-    def download_attachment(
-        self,
-        download_url: str,
-        timeout: int = 120
-    ) -> bytes:
+    def download_attachment(self, download_url: str, timeout: int = 120) -> bytes:
         """
         Download an attachment file.
 
@@ -492,7 +485,7 @@ class DaluxClient:
     # FILES & FILE AREAS
     # ==========================================
 
-    def get_file_areas(self, project_id: str) -> List[Dict[str, Any]]:
+    def get_file_areas(self, project_id: str) -> list[dict[str, Any]]:
         """
         Get all file areas for a project.
 
@@ -521,11 +514,8 @@ class DaluxClient:
             raise DaluxAPIError(f"Failed to fetch file areas: {e}")
 
     def get_files(
-        self,
-        project_id: str,
-        file_area_id: str,
-        since: Optional[datetime] = None
-    ) -> List[Dict[str, Any]]:
+        self, project_id: str, file_area_id: str, since: datetime | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get files from a file area.
 
@@ -565,7 +555,7 @@ class DaluxClient:
         file_area_id: str,
         file_id: str,
         revision: int,
-        timeout: int = 120
+        timeout: int = 120,
     ) -> bytes:
         """
         Download a file revision.
@@ -606,11 +596,8 @@ class DaluxClient:
     FORMS_VERSION = "2.1"
 
     def get_forms(
-        self,
-        project_id: str,
-        limit: Optional[int] = None,
-        offset: int = 0
-    ) -> List[Dict[str, Any]]:
+        self, project_id: str, limit: int | None = None, offset: int = 0
+    ) -> list[dict[str, Any]]:
         """
         Get all forms for a project.
 

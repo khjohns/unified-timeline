@@ -4,10 +4,12 @@ Tests for CatendaService.
 These tests verify the Catenda API integration service
 without making actual API calls (using mocks).
 """
-import pytest
-from unittest.mock import Mock
+
 import tempfile
 from pathlib import Path
+from unittest.mock import Mock
+
+import pytest
 
 from services.catenda_service import CatendaService
 
@@ -21,11 +23,19 @@ class TestCatendaService:
         client = Mock()
         client.topic_board_id = None
         client.library_id = None
-        client.create_comment = Mock(return_value={'guid': 'comment-123', 'author': 'Test User'})
-        client.upload_document = Mock(return_value={'library_item_id': 'doc-456', 'name': 'test.pdf'})
-        client.create_document_reference = Mock(return_value={'guid': 'ref-789'})
-        client.get_topic_details = Mock(return_value={'title': 'Test Topic', 'guid': 'topic-123'})
-        client.get_project_details = Mock(return_value={'name': 'Test Project', 'id': 'proj-123'})
+        client.create_comment = Mock(
+            return_value={"guid": "comment-123", "author": "Test User"}
+        )
+        client.upload_document = Mock(
+            return_value={"library_item_id": "doc-456", "name": "test.pdf"}
+        )
+        client.create_document_reference = Mock(return_value={"guid": "ref-789"})
+        client.get_topic_details = Mock(
+            return_value={"title": "Test Topic", "guid": "topic-123"}
+        )
+        client.get_project_details = Mock(
+            return_value={"name": "Test Project", "id": "proj-123"}
+        )
         return client
 
     @pytest.fixture
@@ -36,7 +46,7 @@ class TestCatendaService:
     @pytest.fixture
     def temp_file(self):
         """Create a temporary file for upload tests"""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.pdf', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".pdf", delete=False) as f:
             f.write("Test PDF content")
             temp_path = f.name
 
@@ -68,12 +78,14 @@ class TestCatendaService:
     def test_create_comment_success(self, service, mock_catenda_client):
         """Test successful comment creation"""
         # Act
-        result = service.create_comment('topic-123', 'Test comment')
+        result = service.create_comment("topic-123", "Test comment")
 
         # Assert
         assert result is not None
-        assert result['guid'] == 'comment-123'
-        mock_catenda_client.create_comment.assert_called_once_with('topic-123', 'Test comment')
+        assert result["guid"] == "comment-123"
+        mock_catenda_client.create_comment.assert_called_once_with(
+            "topic-123", "Test comment"
+        )
 
     def test_create_comment_with_markdown(self, service, mock_catenda_client):
         """Test comment with markdown formatting"""
@@ -81,11 +93,13 @@ class TestCatendaService:
         markdown_comment = "**Bold** and *italic* with [link](http://example.com)"
 
         # Act
-        result = service.create_comment('topic-123', markdown_comment)
+        result = service.create_comment("topic-123", markdown_comment)
 
         # Assert
         assert result is not None
-        mock_catenda_client.create_comment.assert_called_once_with('topic-123', markdown_comment)
+        mock_catenda_client.create_comment.assert_called_once_with(
+            "topic-123", markdown_comment
+        )
 
     def test_create_comment_without_client(self):
         """Test comment creation without configured client"""
@@ -93,7 +107,7 @@ class TestCatendaService:
         service = CatendaService()  # No client
 
         # Act
-        result = service.create_comment('topic-123', 'Test')
+        result = service.create_comment("topic-123", "Test")
 
         # Assert
         assert result is None  # Should return None gracefully
@@ -104,7 +118,7 @@ class TestCatendaService:
         mock_catenda_client.create_comment.return_value = None  # Simulate failure
 
         # Act
-        result = service.create_comment('topic-123', 'Test')
+        result = service.create_comment("topic-123", "Test")
 
         # Assert
         assert result is None
@@ -115,7 +129,7 @@ class TestCatendaService:
         mock_catenda_client.create_comment.side_effect = Exception("API error")
 
         # Act
-        result = service.create_comment('topic-123', 'Test')
+        result = service.create_comment("topic-123", "Test")
 
         # Assert
         assert result is None  # Should handle exception gracefully
@@ -127,17 +141,21 @@ class TestCatendaService:
     def test_upload_document_success(self, service, mock_catenda_client, temp_file):
         """Test successful document upload"""
         # Act
-        result = service.upload_document('proj-123', temp_file, 'custom-name.pdf')
+        result = service.upload_document("proj-123", temp_file, "custom-name.pdf")
 
         # Assert
         assert result is not None
-        assert result['library_item_id'] == 'doc-456'
-        mock_catenda_client.upload_document.assert_called_once_with('proj-123', temp_file, 'custom-name.pdf', None)
+        assert result["library_item_id"] == "doc-456"
+        mock_catenda_client.upload_document.assert_called_once_with(
+            "proj-123", temp_file, "custom-name.pdf", None
+        )
 
-    def test_upload_document_default_filename(self, service, mock_catenda_client, temp_file):
+    def test_upload_document_default_filename(
+        self, service, mock_catenda_client, temp_file
+    ):
         """Test upload with default filename (file basename)"""
         # Act
-        result = service.upload_document('proj-123', temp_file)
+        result = service.upload_document("proj-123", temp_file)
 
         # Assert
         assert result is not None
@@ -149,7 +167,7 @@ class TestCatendaService:
         """Test upload with non-existent file raises ValueError"""
         # Act & Assert
         with pytest.raises(ValueError, match="File not found"):
-            service.upload_document('proj-123', '/nonexistent/file.pdf')
+            service.upload_document("proj-123", "/nonexistent/file.pdf")
 
     def test_upload_document_without_client(self, temp_file):
         """Test upload without configured client"""
@@ -157,19 +175,21 @@ class TestCatendaService:
         service = CatendaService()  # No client
 
         # Act
-        result = service.upload_document('proj-123', temp_file)
+        result = service.upload_document("proj-123", temp_file)
 
         # Assert
         assert result is None
 
-    def test_upload_document_api_exception(self, service, mock_catenda_client, temp_file):
+    def test_upload_document_api_exception(
+        self, service, mock_catenda_client, temp_file
+    ):
         """Test handling of upload exception"""
         # Arrange
         mock_catenda_client.upload_document.side_effect = Exception("Upload failed")
 
         # Act & Assert
         with pytest.raises(Exception, match="Upload failed"):
-            service.upload_document('proj-123', temp_file)
+            service.upload_document("proj-123", temp_file)
 
     # ========================================================================
     # Test: create_document_reference
@@ -178,12 +198,14 @@ class TestCatendaService:
     def test_create_document_reference_success(self, service, mock_catenda_client):
         """Test successful document reference creation"""
         # Act
-        result = service.create_document_reference('topic-123', 'doc-456')
+        result = service.create_document_reference("topic-123", "doc-456")
 
         # Assert
         assert result is not None
-        assert result['guid'] == 'ref-789'
-        mock_catenda_client.create_document_reference.assert_called_once_with('topic-123', 'doc-456')
+        assert result["guid"] == "ref-789"
+        mock_catenda_client.create_document_reference.assert_called_once_with(
+            "topic-123", "doc-456"
+        )
 
     def test_create_document_reference_without_client(self):
         """Test reference creation without configured client"""
@@ -191,18 +213,22 @@ class TestCatendaService:
         service = CatendaService()
 
         # Act
-        result = service.create_document_reference('topic-123', 'doc-456')
+        result = service.create_document_reference("topic-123", "doc-456")
 
         # Assert
         assert result is None
 
-    def test_create_document_reference_api_exception(self, service, mock_catenda_client):
+    def test_create_document_reference_api_exception(
+        self, service, mock_catenda_client
+    ):
         """Test handling of reference creation exception"""
         # Arrange
-        mock_catenda_client.create_document_reference.side_effect = Exception("Reference failed")
+        mock_catenda_client.create_document_reference.side_effect = Exception(
+            "Reference failed"
+        )
 
         # Act
-        result = service.create_document_reference('topic-123', 'doc-456')
+        result = service.create_document_reference("topic-123", "doc-456")
 
         # Assert
         assert result is None  # Should handle exception gracefully
@@ -214,12 +240,12 @@ class TestCatendaService:
     def test_get_topic_details_success(self, service, mock_catenda_client):
         """Test getting topic details"""
         # Act
-        result = service.get_topic_details('topic-123')
+        result = service.get_topic_details("topic-123")
 
         # Assert
         assert result is not None
-        assert result['title'] == 'Test Topic'
-        mock_catenda_client.get_topic_details.assert_called_once_with('topic-123')
+        assert result["title"] == "Test Topic"
+        mock_catenda_client.get_topic_details.assert_called_once_with("topic-123")
 
     def test_get_topic_details_without_client(self):
         """Test getting topic details without client"""
@@ -227,7 +253,7 @@ class TestCatendaService:
         service = CatendaService()
 
         # Act
-        result = service.get_topic_details('topic-123')
+        result = service.get_topic_details("topic-123")
 
         # Assert
         assert result is None
@@ -239,12 +265,12 @@ class TestCatendaService:
     def test_get_project_details_success(self, service, mock_catenda_client):
         """Test getting project details"""
         # Act
-        result = service.get_project_details('proj-123')
+        result = service.get_project_details("proj-123")
 
         # Assert
         assert result is not None
-        assert result['name'] == 'Test Project'
-        mock_catenda_client.get_project_details.assert_called_once_with('proj-123')
+        assert result["name"] == "Test Project"
+        mock_catenda_client.get_project_details.assert_called_once_with("proj-123")
 
     def test_get_project_details_without_client(self):
         """Test getting project details without client"""
@@ -252,7 +278,7 @@ class TestCatendaService:
         service = CatendaService()
 
         # Act
-        result = service.get_project_details('proj-123')
+        result = service.get_project_details("proj-123")
 
         # Assert
         assert result is None
@@ -264,18 +290,18 @@ class TestCatendaService:
     def test_set_topic_board_id(self, service, mock_catenda_client):
         """Test setting topic board ID"""
         # Act
-        service.set_topic_board_id('board-123')
+        service.set_topic_board_id("board-123")
 
         # Assert
-        assert mock_catenda_client.topic_board_id == 'board-123'
+        assert mock_catenda_client.topic_board_id == "board-123"
 
     def test_set_library_id(self, service, mock_catenda_client):
         """Test setting library ID"""
         # Act
-        service.set_library_id('lib-456')
+        service.set_library_id("lib-456")
 
         # Assert
-        assert mock_catenda_client.library_id == 'lib-456'
+        assert mock_catenda_client.library_id == "lib-456"
 
     def test_is_configured_true(self, service):
         """Test is_configured returns True when client exists"""

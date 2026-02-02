@@ -13,17 +13,25 @@ Frontend-fanene:
 
 Hver fane har sin egen respons-type optimert for det visningen trenger.
 """
-from pydantic import BaseModel, computed_field
-from typing import Optional, List, Literal, Union
+
 from datetime import datetime
+from typing import Literal
 
-from models.events import SporType, GrunnlagResponsResultat, VederlagBeregningResultat, FristBeregningResultat
+from pydantic import BaseModel, computed_field
 
+from models.events import (
+    FristBeregningResultat,
+    GrunnlagResponsResultat,
+    SporType,
+    VederlagBeregningResultat,
+)
 
 # ============ COMMON TYPES ============
 
+
 class AktorInfo(BaseModel):
     """Info om en aktør (TE eller BH)"""
+
     navn: str
     rolle: Literal["TE", "BH"]
     tidsstempel: datetime
@@ -31,15 +39,18 @@ class AktorInfo(BaseModel):
 
 class StatusBadge(BaseModel):
     """Visuell status-badge for UI"""
+
     tekst: str
     farge: Literal["green", "yellow", "red", "blue", "gray"]
-    ikon: Optional[str] = None  # f.eks. "check", "clock", "x"
+    ikon: str | None = None  # f.eks. "check", "clock", "x"
 
 
 # ============ TAB: OVERSIKT ============
 
+
 class SporKort(BaseModel):
     """Kort sammendrag av ett spor for oversikt-fanen"""
+
     spor: SporType
     tittel: str  # "Grunnlag", "Vederlag", "Frist"
     status: StatusBadge
@@ -47,11 +58,11 @@ class SporKort(BaseModel):
 
     # Hovedverdi
     verdi_label: str  # "Krevd beløp", "Krevd dager"
-    verdi_krevd: Optional[str] = None  # "150 000 NOK", "14 dager"
-    verdi_godkjent: Optional[str] = None
+    verdi_krevd: str | None = None  # "150 000 NOK", "14 dager"
+    verdi_godkjent: str | None = None
 
     # Neste handling for dette sporet
-    neste_handling: Optional[str] = None
+    neste_handling: str | None = None
 
 
 class OversiktResponse(BaseModel):
@@ -60,6 +71,7 @@ class OversiktResponse(BaseModel):
 
     Gir et raskt overblikk over sakens status på alle spor.
     """
+
     sak_id: str
     sakstittel: str
 
@@ -68,48 +80,52 @@ class OversiktResponse(BaseModel):
     kan_utstede_eo: bool
 
     # De tre sporene
-    spor: List[SporKort]
+    spor: list[SporKort]
 
     # Neste handling globalt
     neste_handling: str
-    neste_handling_rolle: Optional[Literal["TE", "BH"]] = None
+    neste_handling_rolle: Literal["TE", "BH"] | None = None
 
     # Aggregerte verdier
     total_krevd: float
     total_godkjent: float
-    total_dager_krevd: Optional[int] = None
-    total_dager_godkjent: Optional[int] = None
+    total_dager_krevd: int | None = None
+    total_dager_godkjent: int | None = None
 
     # Metadata
     opprettet: datetime
     siste_aktivitet: datetime
 
     # Parter
-    entreprenor: Optional[str] = None
-    byggherre: Optional[str] = None
-    prosjekt_navn: Optional[str] = None
+    entreprenor: str | None = None
+    byggherre: str | None = None
+    prosjekt_navn: str | None = None
 
 
 # ============ TAB: GRUNNLAG ============
 
+
 class GrunnlagHistorikkEntry(BaseModel):
     """Én versjon av grunnlaget eller BH-respons i historikken"""
+
     versjon: int
     tidsstempel: datetime
     aktor: AktorInfo
-    endring_type: Literal["opprettet", "oppdatert", "trukket", "respons", "respons_oppdatert"]
+    endring_type: Literal[
+        "opprettet", "oppdatert", "trukket", "respons", "respons_oppdatert"
+    ]
     event_id: str
 
     # TE-krav felter (for opprettet/oppdatert/trukket)
-    hovedkategori: Optional[str] = None
-    underkategori: Optional[Union[str, List[str]]] = None
-    beskrivelse: Optional[str] = None
-    kontraktsreferanser: Optional[List[str]] = None
+    hovedkategori: str | None = None
+    underkategori: str | list[str] | None = None
+    beskrivelse: str | None = None
+    kontraktsreferanser: list[str] | None = None
 
     # BH-respons felter (for respons/respons_oppdatert)
-    bh_resultat: Optional[str] = None
-    bh_resultat_label: Optional[str] = None
-    bh_begrunnelse: Optional[str] = None
+    bh_resultat: str | None = None
+    bh_resultat_label: str | None = None
+    bh_begrunnelse: str | None = None
 
 
 class GrunnlagResponse(BaseModel):
@@ -118,6 +134,7 @@ class GrunnlagResponse(BaseModel):
 
     Viser juridisk/kontraktuelt grunnlag for saken.
     """
+
     sak_id: str
 
     # Nåværende tilstand
@@ -129,56 +146,61 @@ class GrunnlagResponse(BaseModel):
     underkategori: str
     beskrivelse: str
     dato_oppdaget: str
-    kontraktsreferanser: List[str]
-    vedlegg: List[dict]  # {id, navn, url}
+    kontraktsreferanser: list[str]
+    vedlegg: list[dict]  # {id, navn, url}
 
     # BH respons (hvis finnes)
     bh_har_svart: bool
-    bh_resultat: Optional[GrunnlagResponsResultat] = None
-    bh_begrunnelse: Optional[str] = None
-    bh_svart_dato: Optional[datetime] = None
-    bh_svart_av: Optional[str] = None
+    bh_resultat: GrunnlagResponsResultat | None = None
+    bh_begrunnelse: str | None = None
+    bh_svart_dato: datetime | None = None
+    bh_svart_av: str | None = None
 
     # Handlinger tilgjengelig
     kan_redigere: bool  # TE kan redigere hvis ikke låst
     kan_svare: bool  # BH kan svare hvis sendt og ikke besvart
 
     # Historikk (alle versjoner)
-    historikk: List[GrunnlagHistorikkEntry]
+    historikk: list[GrunnlagHistorikkEntry]
 
 
 # ============ TAB: VEDERLAG ============
 
+
 class VederlagPostering(BaseModel):
     """Én post i kostnadsoppstillingen"""
+
     beskrivelse: str
-    antall: Optional[float] = None
-    enhet: Optional[str] = None  # "timer", "stk", "m2"
-    enhetspris: Optional[float] = None
+    antall: float | None = None
+    enhet: str | None = None  # "timer", "stk", "m2"
+    enhetspris: float | None = None
     sum: float
 
 
 class VederlagHistorikkEntry(BaseModel):
     """Én versjon av vederlagskravet eller BH-respons"""
+
     versjon: int
     tidsstempel: datetime
     aktor: AktorInfo
-    endring_type: Literal["sendt", "oppdatert", "trukket", "respons", "respons_oppdatert"]
+    endring_type: Literal[
+        "sendt", "oppdatert", "trukket", "respons", "respons_oppdatert"
+    ]
     event_id: str
 
     # TE-krav felter (for sendt/oppdatert/trukket)
-    krav_belop: Optional[float] = None
-    metode: Optional[str] = None
-    metode_label: Optional[str] = None
-    begrunnelse: Optional[str] = None
-    inkluderer_rigg_drift: Optional[bool] = None
-    inkluderer_produktivitet: Optional[bool] = None
+    krav_belop: float | None = None
+    metode: str | None = None
+    metode_label: str | None = None
+    begrunnelse: str | None = None
+    inkluderer_rigg_drift: bool | None = None
+    inkluderer_produktivitet: bool | None = None
 
     # BH-respons felter (for respons/respons_oppdatert)
-    bh_resultat: Optional[str] = None
-    bh_resultat_label: Optional[str] = None
-    godkjent_belop: Optional[float] = None
-    bh_begrunnelse: Optional[str] = None
+    bh_resultat: str | None = None
+    bh_resultat_label: str | None = None
+    godkjent_belop: float | None = None
+    bh_begrunnelse: str | None = None
 
 
 class VederlagResponse(BaseModel):
@@ -187,6 +209,7 @@ class VederlagResponse(BaseModel):
 
     Viser økonomisk krav og forhandlingsstatus.
     """
+
     sak_id: str
 
     # Nåværende tilstand
@@ -199,31 +222,31 @@ class VederlagResponse(BaseModel):
     krav_begrunnelse: str
     inkluderer_produktivitetstap: bool
     inkluderer_rigg_drift: bool
-    rigg_drift_belop: Optional[float] = None
+    rigg_drift_belop: float | None = None
 
     # Detaljert spesifikasjon (hvis tilgjengelig)
-    spesifikasjon: Optional[List[VederlagPostering]] = None
+    spesifikasjon: list[VederlagPostering] | None = None
 
     # BH respons
     bh_har_svart: bool
-    bh_resultat: Optional[VederlagBeregningResultat] = None
-    bh_begrunnelse: Optional[str] = None
-    bh_godkjent_belop: Optional[float] = None
-    bh_godkjent_metode: Optional[str] = None
-    bh_godkjent_metode_label: Optional[str] = None
-    bh_svart_dato: Optional[datetime] = None
+    bh_resultat: VederlagBeregningResultat | None = None
+    bh_begrunnelse: str | None = None
+    bh_godkjent_belop: float | None = None
+    bh_godkjent_metode: str | None = None
+    bh_godkjent_metode_label: str | None = None
+    bh_svart_dato: datetime | None = None
 
     # Differanse-visning
     @computed_field
     @property
-    def differanse(self) -> Optional[float]:
+    def differanse(self) -> float | None:
         if self.bh_godkjent_belop is not None:
             return self.krav_belop - self.bh_godkjent_belop
         return None
 
     @computed_field
     @property
-    def godkjenningsgrad(self) -> Optional[float]:
+    def godkjenningsgrad(self) -> float | None:
         if self.krav_belop > 0 and self.bh_godkjent_belop is not None:
             return round((self.bh_godkjent_belop / self.krav_belop) * 100, 1)
         return None
@@ -234,31 +257,35 @@ class VederlagResponse(BaseModel):
     krever_grunnlag_godkjent: bool  # Advarsel hvis grunnlag ikke er godkjent
 
     # Historikk
-    historikk: List[VederlagHistorikkEntry]
+    historikk: list[VederlagHistorikkEntry]
 
 
 # ============ TAB: TID (FRIST) ============
 
+
 class FristHistorikkEntry(BaseModel):
     """Én versjon av fristkravet eller BH-respons"""
+
     versjon: int
     tidsstempel: datetime
     aktor: AktorInfo
-    endring_type: Literal["sendt", "oppdatert", "trukket", "respons", "respons_oppdatert"]
+    endring_type: Literal[
+        "sendt", "oppdatert", "trukket", "respons", "respons_oppdatert"
+    ]
     event_id: str
 
     # TE-krav felter (for sendt/oppdatert/trukket)
-    krav_dager: Optional[int] = None
-    varsel_type: Optional[str] = None
-    varsel_type_label: Optional[str] = None
-    begrunnelse: Optional[str] = None
-    ny_sluttdato: Optional[str] = None
+    krav_dager: int | None = None
+    varsel_type: str | None = None
+    varsel_type_label: str | None = None
+    begrunnelse: str | None = None
+    ny_sluttdato: str | None = None
 
     # BH-respons felter (for respons/respons_oppdatert)
-    bh_resultat: Optional[str] = None
-    bh_resultat_label: Optional[str] = None
-    godkjent_dager: Optional[int] = None
-    bh_begrunnelse: Optional[str] = None
+    bh_resultat: str | None = None
+    bh_resultat_label: str | None = None
+    godkjent_dager: int | None = None
+    bh_begrunnelse: str | None = None
 
 
 class FristResponse(BaseModel):
@@ -267,6 +294,7 @@ class FristResponse(BaseModel):
 
     Viser fristforlengelseskrav og status.
     """
+
     sak_id: str
 
     # Nåværende tilstand
@@ -275,20 +303,20 @@ class FristResponse(BaseModel):
     # TE sitt krav
     krav_dager: int
     krav_begrunnelse: str
-    foreslatt_ny_sluttdato: Optional[str] = None
+    foreslatt_ny_sluttdato: str | None = None
 
     # BH respons
     bh_har_svart: bool
-    bh_resultat: Optional[FristBeregningResultat] = None
-    bh_begrunnelse: Optional[str] = None
-    bh_godkjent_dager: Optional[int] = None
-    bh_ny_sluttdato: Optional[str] = None
-    bh_svart_dato: Optional[datetime] = None
+    bh_resultat: FristBeregningResultat | None = None
+    bh_begrunnelse: str | None = None
+    bh_godkjent_dager: int | None = None
+    bh_ny_sluttdato: str | None = None
+    bh_svart_dato: datetime | None = None
 
     # Differanse
     @computed_field
     @property
-    def differanse_dager(self) -> Optional[int]:
+    def differanse_dager(self) -> int | None:
         if self.bh_godkjent_dager is not None:
             return self.krav_dager - self.bh_godkjent_dager
         return None
@@ -298,18 +326,20 @@ class FristResponse(BaseModel):
     kan_svare: bool
 
     # Historikk
-    historikk: List[FristHistorikkEntry]
+    historikk: list[FristHistorikkEntry]
 
 
 # ============ TAB: TIDSLINJE ============
 
+
 class TidslinjeEntry(BaseModel):
     """Én hendelse i tidslinjen"""
+
     event_id: str
     tidsstempel: datetime
     type_label: str  # "Grunnlag sendt", "BH svarte på vederlag"
     aktor: AktorInfo
-    spor: Optional[SporType] = None
+    spor: SporType | None = None
 
     # Visuell info
     ikon: str  # "file", "money", "clock", "check", "x"
@@ -317,7 +347,7 @@ class TidslinjeEntry(BaseModel):
 
     # Detaljer (ekspanderbart)
     sammendrag: str
-    detaljer: Optional[dict] = None  # Full event-data for ekspandert visning
+    detaljer: dict | None = None  # Full event-data for ekspandert visning
 
 
 class TidslinjeResponse(BaseModel):
@@ -326,9 +356,10 @@ class TidslinjeResponse(BaseModel):
 
     Viser full historikk som en kronologisk tidslinje.
     """
+
     sak_id: str
     antall_events: int
-    events: List[TidslinjeEntry]
+    events: list[TidslinjeEntry]
 
     # Filtrering (frontend kan bruke dette for filter-knapper)
     har_grunnlag_events: bool
@@ -338,6 +369,7 @@ class TidslinjeResponse(BaseModel):
 
 # ============ FULL SAK RESPONSE ============
 
+
 class FullSakResponse(BaseModel):
     """
     Komplett API-respons med all informasjon.
@@ -345,6 +377,7 @@ class FullSakResponse(BaseModel):
     Brukes når frontend laster en sak første gang.
     Inneholder data for alle faner i én respons.
     """
+
     sak_id: str
     sakstittel: str
 
@@ -356,13 +389,15 @@ class FullSakResponse(BaseModel):
 
     # For å minimere re-fetch
     siste_oppdatert: datetime
-    etag: Optional[str] = None  # For caching
+    etag: str | None = None  # For caching
 
 
 # ============ MUTATION RESPONSES ============
 
+
 class EventCreatedResponse(BaseModel):
     """Respons når en ny event er opprettet"""
+
     success: bool
     event_id: str
     message: str
@@ -374,13 +409,15 @@ class EventCreatedResponse(BaseModel):
 
 class ValidationError(BaseModel):
     """Valideringsfeil"""
+
     felt: str
     melding: str
 
 
 class MutationErrorResponse(BaseModel):
     """Feilrespons for mutations"""
+
     success: Literal[False] = False
     error_code: str
     message: str
-    validation_errors: Optional[List[ValidationError]] = None
+    validation_errors: list[ValidationError] | None = None

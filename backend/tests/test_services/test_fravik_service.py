@@ -3,39 +3,41 @@ Tests for FravikService.
 
 Tests state computation from events through the approval chain.
 """
-import pytest
-from datetime import datetime, timezone, timedelta
 
-from services.fravik_service import FravikService
+from datetime import UTC, datetime, timedelta
+
+import pytest
+
 from models.fravik_events import (
-    FravikStatus,
-    FravikBeslutning,
-    FravikRolle,
-    MaskinType,
-    MaskinVekt,
+    ArbeidsgruppeVurderingData,
+    ArbeidsgruppeVurderingEvent,
     Arbeidskategori,
     Bruksintensitet,
-    FravikGrunn,
     Drivstoff,
-    MaskinData,
-    SoknadOpprettetData,
-    MaskinVurderingData,
-    MiljoVurderingData,
-    PLVurderingData,
-    ArbeidsgruppeVurderingData,
+    EierAvslattEvent,
     EierBeslutningData,
+    EierDelvisGodkjentEvent,
+    EierGodkjentEvent,
+    FravikBeslutning,
+    FravikGrunn,
+    FravikRolle,
+    FravikStatus,
+    MaskinData,
+    MaskinFjernetEvent,
+    MaskinLagtTilEvent,
+    MaskinType,
+    MaskinVekt,
+    MaskinVurderingData,
+    MiljoReturnertEvent,
+    MiljoVurderingData,
+    MiljoVurderingEvent,
+    PLVurderingData,
+    PLVurderingEvent,
+    SoknadOpprettetData,
     SoknadOpprettetEvent,
     SoknadSendtInnEvent,
-    MaskinLagtTilEvent,
-    MaskinFjernetEvent,
-    MiljoVurderingEvent,
-    MiljoReturnertEvent,
-    PLVurderingEvent,
-    ArbeidsgruppeVurderingEvent,
-    EierGodkjentEvent,
-    EierAvslattEvent,
-    EierDelvisGodkjentEvent,
 )
+from services.fravik_service import FravikService
 
 
 def make_maskin_data(maskin_id: str = "MASKIN-001", **kwargs) -> MaskinData:
@@ -70,6 +72,8 @@ def make_soknad_data(**kwargs) -> SoknadOpprettetData:
     }
     defaults.update(kwargs)
     return SoknadOpprettetData(**defaults)
+
+
 from models.fravik_state import (
     MaskinVurderingStatus,
 )
@@ -86,7 +90,7 @@ class TestFravikServiceBasics:
     @pytest.fixture
     def base_time(self):
         """Base timestamp for events."""
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     @pytest.fixture
     def soknad_opprettet_event(self, base_time):
@@ -136,7 +140,7 @@ class TestFravikServiceMaskiner:
 
     @pytest.fixture
     def base_time(self):
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     @pytest.fixture
     def events_with_maskin(self, base_time):
@@ -218,7 +222,7 @@ class TestFravikServiceGodkjenningsflyt:
 
     @pytest.fixture
     def base_time(self):
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     @pytest.fixture
     def sendt_inn_events(self, base_time):
@@ -279,7 +283,10 @@ class TestFravikServiceGodkjenningsflyt:
         assert state.status == FravikStatus.UNDER_PL_VURDERING
         assert state.godkjenningskjede.miljo_vurdering.fullfort is True
         assert state.maskiner["MASKIN-001"].miljo_vurdering is not None
-        assert state.maskiner["MASKIN-001"].miljo_vurdering.beslutning == FravikBeslutning.GODKJENT
+        assert (
+            state.maskiner["MASKIN-001"].miljo_vurdering.beslutning
+            == FravikBeslutning.GODKJENT
+        )
 
     def test_miljo_returnert(self, service, sendt_inn_events, base_time):
         """Test miljø return for missing documentation."""
@@ -296,7 +303,10 @@ class TestFravikServiceGodkjenningsflyt:
 
         assert state.status == FravikStatus.RETURNERT_FRA_MILJO
         assert state.godkjenningskjede.miljo_vurdering.fullfort is False
-        assert state.godkjenningskjede.miljo_vurdering.manglende_dokumentasjon == "Mangler markedsundersøkelse"
+        assert (
+            state.godkjenningskjede.miljo_vurdering.manglende_dokumentasjon
+            == "Mangler markedsundersøkelse"
+        )
 
     def test_full_approval_chain(self, service, sendt_inn_events, base_time):
         """Test full approval chain to GODKJENT."""
@@ -426,7 +436,9 @@ class TestFravikServiceGodkjenningsflyt:
 
         assert state.status == FravikStatus.AVSLATT
         assert state.endelig_beslutning == FravikBeslutning.AVSLATT
-        assert state.maskiner["MASKIN-001"].samlet_status == MaskinVurderingStatus.AVSLATT
+        assert (
+            state.maskiner["MASKIN-001"].samlet_status == MaskinVurderingStatus.AVSLATT
+        )
 
     def test_delvis_godkjent(self, service, base_time):
         """Test partial approval with multiple machines."""
@@ -471,8 +483,12 @@ class TestFravikServiceGodkjenningsflyt:
                 data=MiljoVurderingData(
                     dokumentasjon_tilstrekkelig=True,
                     maskin_vurderinger=[
-                        MaskinVurderingData(maskin_id="MASKIN-001", beslutning=FravikBeslutning.GODKJENT),
-                        MaskinVurderingData(maskin_id="MASKIN-002", beslutning=FravikBeslutning.AVSLATT),
+                        MaskinVurderingData(
+                            maskin_id="MASKIN-001", beslutning=FravikBeslutning.GODKJENT
+                        ),
+                        MaskinVurderingData(
+                            maskin_id="MASKIN-002", beslutning=FravikBeslutning.AVSLATT
+                        ),
                     ],
                     samlet_anbefaling=FravikBeslutning.DELVIS_GODKJENT,
                 ),
@@ -494,8 +510,12 @@ class TestFravikServiceGodkjenningsflyt:
                 tidsstempel=base_time + timedelta(minutes=6),
                 data=ArbeidsgruppeVurderingData(
                     maskin_vurderinger=[
-                        MaskinVurderingData(maskin_id="MASKIN-001", beslutning=FravikBeslutning.GODKJENT),
-                        MaskinVurderingData(maskin_id="MASKIN-002", beslutning=FravikBeslutning.AVSLATT),
+                        MaskinVurderingData(
+                            maskin_id="MASKIN-001", beslutning=FravikBeslutning.GODKJENT
+                        ),
+                        MaskinVurderingData(
+                            maskin_id="MASKIN-002", beslutning=FravikBeslutning.AVSLATT
+                        ),
                     ],
                     samlet_innstilling=FravikBeslutning.DELVIS_GODKJENT,
                 ),
@@ -509,8 +529,12 @@ class TestFravikServiceGodkjenningsflyt:
                     folger_arbeidsgruppen=True,
                     beslutning=FravikBeslutning.DELVIS_GODKJENT,
                     maskin_beslutninger=[
-                        MaskinVurderingData(maskin_id="MASKIN-001", beslutning=FravikBeslutning.GODKJENT),
-                        MaskinVurderingData(maskin_id="MASKIN-002", beslutning=FravikBeslutning.AVSLATT),
+                        MaskinVurderingData(
+                            maskin_id="MASKIN-001", beslutning=FravikBeslutning.GODKJENT
+                        ),
+                        MaskinVurderingData(
+                            maskin_id="MASKIN-002", beslutning=FravikBeslutning.AVSLATT
+                        ),
                     ],
                 ),
             ),
@@ -521,8 +545,12 @@ class TestFravikServiceGodkjenningsflyt:
         assert state.endelig_beslutning == FravikBeslutning.DELVIS_GODKJENT
         assert state.antall_godkjente_maskiner == 1
         assert state.antall_avslatte_maskiner == 1
-        assert state.maskiner["MASKIN-001"].samlet_status == MaskinVurderingStatus.GODKJENT
-        assert state.maskiner["MASKIN-002"].samlet_status == MaskinVurderingStatus.AVSLATT
+        assert (
+            state.maskiner["MASKIN-001"].samlet_status == MaskinVurderingStatus.GODKJENT
+        )
+        assert (
+            state.maskiner["MASKIN-002"].samlet_status == MaskinVurderingStatus.AVSLATT
+        )
 
 
 class TestFravikServiceComputedFields:
@@ -534,7 +562,7 @@ class TestFravikServiceComputedFields:
 
     @pytest.fixture
     def base_time(self):
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     def test_kan_sendes_inn_no_maskiner(self, service, base_time):
         """Test kan_sendes_inn is False without maskiner."""
@@ -611,7 +639,7 @@ class TestFravikServiceStateToListeItem:
     def test_conversion(self):
         """Test converting FravikState to FravikListeItem."""
         service = FravikService()
-        base_time = datetime.now(timezone.utc)
+        base_time = datetime.now(UTC)
 
         events = [
             SoknadOpprettetEvent(

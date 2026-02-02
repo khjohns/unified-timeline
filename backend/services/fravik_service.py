@@ -9,37 +9,36 @@ Design-prinsipper:
 2. State beregnes alltid fra scratch basert på events
 3. Godkjenningskjeden: Miljørådgiver → PL → Arbeidsgruppe → Eier
 """
-from typing import List
 
 from models.fravik_events import (
-    FravikEventType,
-    FravikStatus,
-    FravikBeslutning,
-    SoknadOpprettetEvent,
-    SoknadOppdatertEvent,
-    SoknadSendtInnEvent,
-    SoknadTrukketEvent,
-    MaskinLagtTilEvent,
-    MaskinOppdatertEvent,
-    MaskinFjernetEvent,
-    MiljoVurderingEvent,
-    MiljoReturnertEvent,
-    PLVurderingEvent,
-    PLReturnertevent,
+    AnyFravikEvent,
     ArbeidsgruppeVurderingEvent,
-    EierGodkjentEvent,
     EierAvslattEvent,
     EierDelvisGodkjentEvent,
-    AnyFravikEvent,
+    EierGodkjentEvent,
+    FravikBeslutning,
+    FravikEventType,
+    FravikStatus,
+    MaskinFjernetEvent,
+    MaskinLagtTilEvent,
+    MaskinOppdatertEvent,
+    MiljoReturnertEvent,
+    MiljoVurderingEvent,
+    PLReturnertevent,
+    PLVurderingEvent,
+    SoknadOppdatertEvent,
+    SoknadOpprettetEvent,
+    SoknadSendtInnEvent,
+    SoknadTrukketEvent,
 )
 from models.fravik_state import (
+    FravikListeItem,
     FravikState,
-    MaskinTilstand,
-    MaskinMiljoVurdering,
     MaskinArbeidsgruppeVurdering,
     MaskinEierBeslutning,
+    MaskinMiljoVurdering,
+    MaskinTilstand,
     VurderingSteg,
-    FravikListeItem,
 )
 from utils.logger import get_logger
 
@@ -58,7 +57,7 @@ class FravikService:
         """Initialize FravikService"""
         pass
 
-    def compute_state(self, events: List[AnyFravikEvent]) -> FravikState:
+    def compute_state(self, events: list[AnyFravikEvent]) -> FravikState:
         """
         Hovedmetode: Beregn FravikState fra event-liste.
 
@@ -388,13 +387,13 @@ class FravikService:
         for maskin_vurdering in data.maskin_vurderinger:
             maskin_id = maskin_vurdering.maskin_id
             if maskin_id in state.maskiner:
-                state.maskiner[maskin_id].arbeidsgruppe_vurdering = (
-                    MaskinArbeidsgruppeVurdering(
-                        beslutning=maskin_vurdering.beslutning,
-                        kommentar=maskin_vurdering.kommentar,
-                        vilkar=maskin_vurdering.vilkar or [],
-                        vurdert_tidspunkt=event.tidsstempel,
-                    )
+                state.maskiner[
+                    maskin_id
+                ].arbeidsgruppe_vurdering = MaskinArbeidsgruppeVurdering(
+                    beslutning=maskin_vurdering.beslutning,
+                    kommentar=maskin_vurdering.kommentar,
+                    vilkar=maskin_vurdering.vilkar or [],
+                    vurdert_tidspunkt=event.tidsstempel,
                 )
 
         # Gå videre til eier

@@ -7,16 +7,15 @@ versjonskontroll og respons-bygging fungerer korrekt.
 
 import pytest
 from flask import Flask
-from unittest.mock import MagicMock
 
+from lib.helpers.responses import (
+    error_response,
+    success_response,
+)
 from lib.helpers.version_control import (
     handle_concurrency_error,
     not_found_response,
     version_conflict_response,
-)
-from lib.helpers.responses import (
-    error_response,
-    success_response,
 )
 from repositories.event_repository import ConcurrencyError
 
@@ -25,7 +24,7 @@ from repositories.event_repository import ConcurrencyError
 def app():
     """Opprett Flask-app for testing."""
     app = Flask(__name__)
-    app.config['TESTING'] = True
+    app.config["TESTING"] = True
     return app
 
 
@@ -45,7 +44,7 @@ class TestHandleConcurrencyError:
             error = ConcurrencyError(expected=5, actual=7)
             response, status = handle_concurrency_error(error)
             data = response.get_json()
-            assert data['error'] == 'VERSION_CONFLICT'
+            assert data["error"] == "VERSION_CONFLICT"
 
     def test_includes_expected_version(self, app):
         """Skal inkludere expected_version i respons."""
@@ -53,7 +52,7 @@ class TestHandleConcurrencyError:
             error = ConcurrencyError(expected=5, actual=7)
             response, _ = handle_concurrency_error(error)
             data = response.get_json()
-            assert data['expected_version'] == 5
+            assert data["expected_version"] == 5
 
     def test_includes_current_version(self, app):
         """Skal inkludere current_version i respons."""
@@ -61,7 +60,7 @@ class TestHandleConcurrencyError:
             error = ConcurrencyError(expected=5, actual=7)
             response, _ = handle_concurrency_error(error)
             data = response.get_json()
-            assert data['current_version'] == 7
+            assert data["current_version"] == 7
 
     def test_includes_user_friendly_message(self, app):
         """Skal inkludere brukervennlig melding."""
@@ -69,7 +68,7 @@ class TestHandleConcurrencyError:
             error = ConcurrencyError(expected=5, actual=7)
             response, _ = handle_concurrency_error(error)
             data = response.get_json()
-            assert 'Samtidig endring oppdaget' in data['message']
+            assert "Samtidig endring oppdaget" in data["message"]
 
     def test_success_is_false(self, app):
         """Skal ha success=False."""
@@ -77,7 +76,7 @@ class TestHandleConcurrencyError:
             error = ConcurrencyError(expected=5, actual=7)
             response, _ = handle_concurrency_error(error)
             data = response.get_json()
-            assert data['success'] is False
+            assert data["success"] is False
 
 
 class TestNotFoundResponse:
@@ -94,22 +93,22 @@ class TestNotFoundResponse:
         with app.app_context():
             response, _ = not_found_response("Søknad", "SAK-123")
             data = response.get_json()
-            assert data['error'] == 'NOT_FOUND'
+            assert data["error"] == "NOT_FOUND"
 
     def test_includes_resource_in_message(self, app):
         """Skal inkludere ressurstype og ID i melding."""
         with app.app_context():
             response, _ = not_found_response("Søknad", "SAK-123")
             data = response.get_json()
-            assert "Søknad" in data['message']
-            assert "SAK-123" in data['message']
+            assert "Søknad" in data["message"]
+            assert "SAK-123" in data["message"]
 
     def test_success_is_false(self, app):
         """Skal ha success=False."""
         with app.app_context():
             response, _ = not_found_response("Sak", "123")
             data = response.get_json()
-            assert data['success'] is False
+            assert data["success"] is False
 
 
 class TestVersionConflictResponse:
@@ -126,22 +125,22 @@ class TestVersionConflictResponse:
         with app.app_context():
             response, _ = version_conflict_response(5, 7)
             data = response.get_json()
-            assert data['error'] == 'VERSION_CONFLICT'
+            assert data["error"] == "VERSION_CONFLICT"
 
     def test_includes_both_versions(self, app):
         """Skal inkludere både expected og current versjon."""
         with app.app_context():
             response, _ = version_conflict_response(5, 7)
             data = response.get_json()
-            assert data['expected_version'] == 5
-            assert data['current_version'] == 7
+            assert data["expected_version"] == 5
+            assert data["current_version"] == 7
 
     def test_includes_reload_message(self, app):
         """Skal inkludere melding om å laste inn på nytt."""
         with app.app_context():
             response, _ = version_conflict_response(5, 7)
             data = response.get_json()
-            assert 'last inn' in data['message'].lower()
+            assert "last inn" in data["message"].lower()
 
 
 class TestErrorResponse:
@@ -164,14 +163,14 @@ class TestErrorResponse:
         with app.app_context():
             response, _ = error_response("VALIDATION_ERROR", "Invalid data")
             data = response.get_json()
-            assert data['error'] == 'VALIDATION_ERROR'
+            assert data["error"] == "VALIDATION_ERROR"
 
     def test_includes_message(self, app):
         """Skal inkludere melding."""
         with app.app_context():
             response, _ = error_response("ERROR", "Custom message")
             data = response.get_json()
-            assert data['message'] == "Custom message"
+            assert data["message"] == "Custom message"
 
     def test_includes_extra_fields(self, app):
         """Skal kunne inkludere ekstra felt."""
@@ -179,17 +178,17 @@ class TestErrorResponse:
             response, _ = error_response(
                 "VALIDATION_ERROR",
                 "Missing fields",
-                missing_fields=["tittel", "beskrivelse"]
+                missing_fields=["tittel", "beskrivelse"],
             )
             data = response.get_json()
-            assert data['missing_fields'] == ["tittel", "beskrivelse"]
+            assert data["missing_fields"] == ["tittel", "beskrivelse"]
 
     def test_success_is_false(self, app):
         """Skal ha success=False."""
         with app.app_context():
             response, _ = error_response("ERROR", "msg")
             data = response.get_json()
-            assert data['success'] is False
+            assert data["success"] is False
 
 
 class TestSuccessResponse:
@@ -212,30 +211,26 @@ class TestSuccessResponse:
         with app.app_context():
             response, _ = success_response(message="Operasjon vellykket")
             data = response.get_json()
-            assert data['message'] == "Operasjon vellykket"
+            assert data["message"] == "Operasjon vellykket"
 
     def test_excludes_message_when_not_provided(self, app):
         """Skal ikke inkludere melding når ikke oppgitt."""
         with app.app_context():
             response, _ = success_response()
             data = response.get_json()
-            assert 'message' not in data
+            assert "message" not in data
 
     def test_includes_data_fields(self, app):
         """Skal kunne inkludere data-felt."""
         with app.app_context():
-            response, _ = success_response(
-                201,
-                sak_id="SAK-123",
-                version=5
-            )
+            response, _ = success_response(201, sak_id="SAK-123", version=5)
             data = response.get_json()
-            assert data['sak_id'] == "SAK-123"
-            assert data['version'] == 5
+            assert data["sak_id"] == "SAK-123"
+            assert data["version"] == 5
 
     def test_success_is_true(self, app):
         """Skal ha success=True."""
         with app.app_context():
             response, _ = success_response()
             data = response.get_json()
-            assert data['success'] is True
+            assert data["success"] is True

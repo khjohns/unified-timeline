@@ -8,13 +8,14 @@ Use Event Sourcing repository instead:
 This file is kept temporarily for data migration purposes only.
 DO NOT USE in new code.
 """
-import warnings
+
 import csv
 import json
+import warnings
 from datetime import datetime
 from pathlib import Path
 from threading import RLock
-from typing import Optional, Dict, Any, List
+from typing import Any
 
 from repositories.base_repository import BaseRepository
 from utils.logger import get_logger
@@ -23,21 +24,17 @@ from utils.logger import get_logger
 warnings.warn(
     "repositories.csv_repository is deprecated. Use repositories.event_repository instead.",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 # Legacy constants (from deleted generated_constants.py)
 SAK_STATUS = {
-    'OPPRETTET': '100000000',
-    'UNDER_VARSLING': '100000001',
-    'SENDT': '100000002',
-    'GODKJENT': '100000003'
+    "OPPRETTET": "100000000",
+    "UNDER_VARSLING": "100000001",
+    "SENDT": "100000002",
+    "GODKJENT": "100000003",
 }
-KOE_STATUS = {
-    'UTKAST': '100000000',
-    'SENDT': '100000001',
-    'GODKJENT': '100000002'
-}
+KOE_STATUS = {"UTKAST": "100000000", "SENDT": "100000001", "GODKJENT": "100000002"}
 
 logger = get_logger(__name__)
 
@@ -53,14 +50,21 @@ class CSVRepository(BaseRepository):
     """
 
     SAKER_FIELDNAMES = [
-        'sak_id', 'catenda_topic_id', 'catenda_project_id', 'catenda_board_id',
-        'sakstittel', 'opprettet_dato', 'opprettet_av', 'status', 'modus',
-        'byggherre', 'entreprenor', 'prosjekt_navn'
+        "sak_id",
+        "catenda_topic_id",
+        "catenda_project_id",
+        "catenda_board_id",
+        "sakstittel",
+        "opprettet_dato",
+        "opprettet_av",
+        "status",
+        "modus",
+        "byggherre",
+        "entreprenor",
+        "prosjekt_navn",
     ]
 
-    HISTORIKK_FIELDNAMES = [
-        'timestamp', 'sak_id', 'hendelse_type', 'beskrivelse'
-    ]
+    HISTORIKK_FIELDNAMES = ["timestamp", "sak_id", "hendelse_type", "beskrivelse"]
 
     def __init__(self, data_dir: str = "koe_data"):
         """
@@ -88,13 +92,13 @@ class CSVRepository(BaseRepository):
     def _initialize_files(self):
         """Create CSV files with headers if they don't exist"""
         if not self.saker_file.exists():
-            with open(self.saker_file, 'w', newline='', encoding='utf-8') as f:
+            with open(self.saker_file, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=self.SAKER_FIELDNAMES)
                 writer.writeheader()
             logger.info(f"Created saker.csv at {self.saker_file}")
 
         if not self.historikk_file.exists():
-            with open(self.historikk_file, 'w', newline='', encoding='utf-8') as f:
+            with open(self.historikk_file, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=self.HISTORIKK_FIELDNAMES)
                 writer.writeheader()
             logger.info(f"Created historikk.csv at {self.historikk_file}")
@@ -103,7 +107,7 @@ class CSVRepository(BaseRepository):
     # BaseRepository Implementation
     # ========================================================================
 
-    def get_case(self, case_id: str) -> Optional[Dict[str, Any]]:
+    def get_case(self, case_id: str) -> dict[str, Any] | None:
         """
         Get case by ID (returns full JSON data).
 
@@ -118,13 +122,13 @@ class CSVRepository(BaseRepository):
             return None
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"Error reading JSON for {case_id}: {e}")
             return None
 
-    def update_case(self, case_id: str, data: Dict[str, Any]) -> None:
+    def update_case(self, case_id: str, data: dict[str, Any]) -> None:
         """
         Update case data.
 
@@ -141,20 +145,20 @@ class CSVRepository(BaseRepository):
 
         # Save to JSON
         file_path = self.form_data_dir / f"{case_id}.json"
-        with open(file_path, 'w', encoding='utf-8') as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
         # Sync status and modus to CSV
-        sak_data = data.get('sak', {})
+        sak_data = data.get("sak", {})
         if sak_data:
-            status = sak_data.get('status')
-            modus = sak_data.get('modus')
+            status = sak_data.get("status")
+            modus = sak_data.get("modus")
             if status or modus:
                 self._update_sak_status(case_id, status, modus)
 
         logger.info(f"Updated case {case_id}")
 
-    def create_case(self, case_data: Dict[str, Any]) -> str:
+    def create_case(self, case_data: dict[str, Any]) -> str:
         """
         Create new case.
 
@@ -166,22 +170,22 @@ class CSVRepository(BaseRepository):
         """
         with self.lock:
             # Generate ID if not provided
-            if 'sak_id' not in case_data:
-                case_data['sak_id'] = f"KOE-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+            if "sak_id" not in case_data:
+                case_data["sak_id"] = f"KOE-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
 
             # Set defaults
-            case_data.setdefault('opprettet_dato', datetime.now().isoformat())
-            case_data.setdefault('opprettet_av', case_data.get('entreprenor', 'System'))
-            case_data.setdefault('status', SAK_STATUS['UNDER_VARSLING'])
-            case_data.setdefault('modus', 'varsel')
+            case_data.setdefault("opprettet_dato", datetime.now().isoformat())
+            case_data.setdefault("opprettet_av", case_data.get("entreprenor", "System"))
+            case_data.setdefault("status", SAK_STATUS["UNDER_VARSLING"])
+            case_data.setdefault("modus", "varsel")
 
             # Save to CSV
-            with open(self.saker_file, 'a', newline='', encoding='utf-8') as f:
+            with open(self.saker_file, "a", newline="", encoding="utf-8") as f:
                 filtered_data = {k: case_data.get(k) for k in self.SAKER_FIELDNAMES}
                 writer = csv.DictWriter(f, fieldnames=self.SAKER_FIELDNAMES)
                 writer.writerow(filtered_data)
 
-            case_data['sak_id_display'] = case_data['sak_id']
+            case_data["sak_id_display"] = case_data["sak_id"]
 
             # Create initial JSON file with first KOE revision
             initial_json = {
@@ -194,7 +198,7 @@ class CSVRepository(BaseRepository):
                         "koe_revisjonsnr": "0",
                         "dato_krav_sendt": "",
                         "for_entreprenor": "",
-                        "status": KOE_STATUS['UTKAST'],
+                        "status": KOE_STATUS["UTKAST"],
                         "vederlag": {
                             "krav_vederlag": False,
                             "krav_produktivitetstap": False,
@@ -211,21 +215,23 @@ class CSVRepository(BaseRepository):
                         },
                     }
                 ],
-                "bh_svar_revisjoner": []
+                "bh_svar_revisjoner": [],
             }
 
             # Save initial JSON
             file_path = self.form_data_dir / f"{case_data['sak_id']}.json"
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(initial_json, f, ensure_ascii=False, indent=2)
 
             # Log creation
-            self._log_historikk(case_data['sak_id'], 'sak_opprettet', 'Ny sak opprettet fra Catenda')
+            self._log_historikk(
+                case_data["sak_id"], "sak_opprettet", "Ny sak opprettet fra Catenda"
+            )
 
             logger.info(f"Created case {case_data['sak_id']}")
-            return case_data['sak_id']
+            return case_data["sak_id"]
 
-    def list_cases(self, project_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_cases(self, project_id: str | None = None) -> list[dict[str, Any]]:
         """
         List cases, optionally filtered by project.
 
@@ -237,10 +243,13 @@ class CSVRepository(BaseRepository):
         """
         with self.lock:
             cases = []
-            with open(self.saker_file, 'r', newline='', encoding='utf-8') as f:
+            with open(self.saker_file, newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    if project_id is None or row.get('catenda_project_id') == project_id:
+                    if (
+                        project_id is None
+                        or row.get("catenda_project_id") == project_id
+                    ):
                         cases.append(row)
             return cases
 
@@ -265,11 +274,11 @@ class CSVRepository(BaseRepository):
             # Remove from CSV
             rows = []
             found = False
-            with open(self.saker_file, 'r', newline='', encoding='utf-8') as f:
+            with open(self.saker_file, newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 fieldnames = reader.fieldnames
                 for row in reader:
-                    if row['sak_id'] != case_id:
+                    if row["sak_id"] != case_id:
                         rows.append(row)
                     else:
                         found = True
@@ -278,7 +287,7 @@ class CSVRepository(BaseRepository):
                 logger.warning(f"Case {case_id} not found in CSV (but JSON existed)")
 
             # Rewrite CSV
-            with open(self.saker_file, 'w', newline='', encoding='utf-8') as f:
+            with open(self.saker_file, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerows(rows)
@@ -298,7 +307,7 @@ class CSVRepository(BaseRepository):
         file_path = self.form_data_dir / f"{case_id}.json"
         return file_path.exists()
 
-    def get_cases_by_catenda_topic(self, topic_id: str) -> List[Dict[str, Any]]:
+    def get_cases_by_catenda_topic(self, topic_id: str) -> list[dict[str, Any]]:
         """
         Get cases linked to a Catenda topic.
 
@@ -310,17 +319,17 @@ class CSVRepository(BaseRepository):
         """
         with self.lock:
             cases = []
-            with open(self.saker_file, 'r', newline='', encoding='utf-8') as f:
+            with open(self.saker_file, newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    if row.get('catenda_topic_id') == topic_id:
+                    if row.get("catenda_topic_id") == topic_id:
                         # Get full JSON data
-                        full_data = self.get_case(row['sak_id'])
+                        full_data = self.get_case(row["sak_id"])
                         if full_data:
                             cases.append(full_data)
             return cases
 
-    def get_case_by_topic_id(self, topic_id: str) -> Optional[Dict[str, Any]]:
+    def get_case_by_topic_id(self, topic_id: str) -> dict[str, Any] | None:
         """
         Get case metadata (CSV row) by Catenda topic ID.
 
@@ -334,14 +343,14 @@ class CSVRepository(BaseRepository):
             Case metadata dict from CSV, or None if not found
         """
         with self.lock:
-            with open(self.saker_file, 'r', newline='', encoding='utf-8') as f:
+            with open(self.saker_file, newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    if row.get('catenda_topic_id') == topic_id:
+                    if row.get("catenda_topic_id") == topic_id:
                         return row
             return None
 
-    def update_case_status(self, case_id: str, status: str, modus: Optional[str] = None):
+    def update_case_status(self, case_id: str, status: str, modus: str | None = None):
         """
         Public method to update status (wraps _update_sak_status).
 
@@ -367,7 +376,7 @@ class CSVRepository(BaseRepository):
     # Additional helper methods (not in BaseRepository)
     # ========================================================================
 
-    def _update_sak_status(self, sak_id: str, status: str, modus: Optional[str] = None):
+    def _update_sak_status(self, sak_id: str, status: str, modus: str | None = None):
         """
         Update status and optionally modus in CSV.
 
@@ -381,24 +390,26 @@ class CSVRepository(BaseRepository):
             updated = False
             fieldnames = self.SAKER_FIELDNAMES
 
-            with open(self.saker_file, 'r', newline='', encoding='utf-8') as f:
+            with open(self.saker_file, newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 fieldnames = reader.fieldnames
                 for row in reader:
-                    if row['sak_id'] == sak_id:
+                    if row["sak_id"] == sak_id:
                         if status:
-                            row['status'] = status
+                            row["status"] = status
                         if modus:
-                            row['modus'] = modus
+                            row["modus"] = modus
                         updated = True
                     rows.append(row)
 
             if updated:
-                with open(self.saker_file, 'w', newline='', encoding='utf-8') as f:
+                with open(self.saker_file, "w", newline="", encoding="utf-8") as f:
                     writer = csv.DictWriter(f, fieldnames=fieldnames)
                     writer.writeheader()
                     writer.writerows(rows)
-                logger.debug(f"Updated status for {sak_id}: status={status}, modus={modus}")
+                logger.debug(
+                    f"Updated status for {sak_id}: status={status}, modus={modus}"
+                )
 
     def _log_historikk(self, sak_id: str, hendelse_type: str, beskrivelse: str):
         """
@@ -409,17 +420,19 @@ class CSVRepository(BaseRepository):
             hendelse_type: Event type
             beskrivelse: Event description
         """
-        with open(self.historikk_file, 'a', newline='', encoding='utf-8') as f:
+        with open(self.historikk_file, "a", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=self.HISTORIKK_FIELDNAMES)
-            writer.writerow({
-                'timestamp': datetime.now().isoformat(),
-                'sak_id': sak_id,
-                'hendelse_type': hendelse_type,
-                'beskrivelse': beskrivelse
-            })
+            writer.writerow(
+                {
+                    "timestamp": datetime.now().isoformat(),
+                    "sak_id": sak_id,
+                    "hendelse_type": hendelse_type,
+                    "beskrivelse": beskrivelse,
+                }
+            )
         logger.debug(f"Logged event: {sak_id} - {hendelse_type}")
 
-    def get_historikk(self, sak_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_historikk(self, sak_id: str | None = None) -> list[dict[str, Any]]:
         """
         Get event history, optionally filtered by case.
 
@@ -430,10 +443,10 @@ class CSVRepository(BaseRepository):
             List of history entries
         """
         historikk = []
-        with open(self.historikk_file, 'r', newline='', encoding='utf-8') as f:
+        with open(self.historikk_file, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                if sak_id is None or row.get('sak_id') == sak_id:
+                if sak_id is None or row.get("sak_id") == sak_id:
                     historikk.append(row)
         return historikk
 
@@ -441,7 +454,7 @@ class CSVRepository(BaseRepository):
     # Backward-compatibility aliases (for routes that use old method names)
     # ========================================================================
 
-    def save_form_data(self, sak_id: str, data: Dict[str, Any]):
+    def save_form_data(self, sak_id: str, data: dict[str, Any]):
         """
         Alias for update_case. Used by routes.
 
@@ -449,31 +462,31 @@ class CSVRepository(BaseRepository):
         without creating a CSV entry (to match old DataManager behavior).
         """
         file_path = self.form_data_dir / f"{sak_id}.json"
-        with open(file_path, 'w', encoding='utf-8') as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
         # Sync status and modus to CSV if case exists
-        sak_data = data.get('sak', {})
+        sak_data = data.get("sak", {})
         if sak_data:
-            status = sak_data.get('status')
-            modus = sak_data.get('modus')
+            status = sak_data.get("status")
+            modus = sak_data.get("modus")
             if status or modus:
                 self._update_sak_status(sak_id, status, modus)
 
         logger.debug(f"Saved form data for {sak_id}")
 
-    def get_form_data(self, sak_id: str) -> Optional[Dict[str, Any]]:
+    def get_form_data(self, sak_id: str) -> dict[str, Any] | None:
         """Alias for get_case. Used by routes."""
         return self.get_case(sak_id)
 
-    def get_sak_by_topic_id(self, topic_id: str) -> Optional[Dict[str, Any]]:
+    def get_sak_by_topic_id(self, topic_id: str) -> dict[str, Any] | None:
         """Alias for get_case_by_topic_id. Used by old code."""
         return self.get_case_by_topic_id(topic_id)
 
-    def create_sak(self, sak_data: Dict[str, Any]) -> str:
+    def create_sak(self, sak_data: dict[str, Any]) -> str:
         """Alias for create_case. Used by old code."""
         return self.create_case(sak_data)
 
-    def update_sak_status(self, sak_id: str, status: str, modus: Optional[str] = None):
+    def update_sak_status(self, sak_id: str, status: str, modus: str | None = None):
         """Alias for update_case_status. Used by old code."""
         self.update_case_status(sak_id, status, modus)

@@ -4,16 +4,14 @@ Generiske hjelpefunksjoner for HTTP-responser.
 Disse funksjonene standardiserer JSON-responser på tvers av alle routes.
 """
 
-from typing import Any, Optional, Tuple
+from typing import Any
+
 from flask import jsonify
 
 
 def error_response(
-    error_code: str,
-    message: str,
-    status_code: int = 400,
-    **extra_fields
-) -> Tuple[Any, int]:
+    error_code: str, message: str, status_code: int = 400, **extra_fields
+) -> tuple[Any, int]:
     """
     Bygger standard feilrespons.
 
@@ -38,16 +36,14 @@ def error_response(
         "success": False,
         "error": error_code,
         "message": message,
-        **extra_fields
+        **extra_fields,
     }
     return jsonify(response), status_code
 
 
 def success_response(
-    status_code: int = 200,
-    message: Optional[str] = None,
-    **data
-) -> Tuple[Any, int]:
+    status_code: int = 200, message: str | None = None, **data
+) -> tuple[Any, int]:
     """
     Bygger standard suksess-respons.
 

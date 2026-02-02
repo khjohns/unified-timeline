@@ -16,40 +16,43 @@ Endpoints:
 - POST /api/forsering/<sak_id>/stopp - Stopp forsering
 - PUT /api/forsering/<sak_id>/kostnader - Oppdater kostnader
 """
-from typing import Optional, Dict, Any
-from flask import Blueprint, request, jsonify
 
-from services.catenda_sync_service import CatendaSyncService, CatendaSyncResult
-from repositories.event_repository import ConcurrencyError
-from lib.helpers.version_control import handle_concurrency_error
-from lib.catenda_factory import get_catenda_client
-from lib.decorators import handle_service_errors
-from lib.auth.magic_link import require_magic_link
+from typing import Any
+
+from flask import Blueprint, jsonify, request
+
 from lib.auth.csrf_protection import require_csrf
-from routes.related_cases_utils import (
-    build_relaterte_response,
-    build_kontekst_response,
-    build_kandidater_response,
-    build_success_message,
-    validate_required_fields,
-    safe_find_related,
-)
-from utils.logger import get_logger
+from lib.auth.magic_link import require_magic_link
+from lib.decorators import handle_service_errors
+from lib.helpers.version_control import handle_concurrency_error
 from models.sak_state import SakState
+from repositories.event_repository import ConcurrencyError
+from routes.related_cases_utils import (
+    build_kandidater_response,
+    build_kontekst_response,
+    build_relaterte_response,
+    build_success_message,
+    safe_find_related,
+    validate_required_fields,
+)
+from services.catenda_sync_service import CatendaSyncResult, CatendaSyncService
+from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 # Create Blueprint
-forsering_bp = Blueprint('forsering', __name__)
+forsering_bp = Blueprint("forsering", __name__)
 
 
 # ---------------------------------------------------------------------------
 # Dependency access via Container
 # ---------------------------------------------------------------------------
 
+
 def _get_container():
     """Hent DI Container."""
     from core.container import get_container
+
     return get_container()
 
 
@@ -74,9 +77,8 @@ def _get_timeline_service():
 
 
 def _sync_forsering_to_catenda(
-    sak_id: str,
-    service_result: Dict[str, Any]
-) -> Optional[CatendaSyncResult]:
+    sak_id: str, service_result: dict[str, Any]
+) -> CatendaSyncResult | None:
     """
     Synkroniser forsering-event til Catenda hvis mulig.
 
@@ -95,13 +97,13 @@ def _sync_forsering_to_catenda(
             success=False,
             comment_posted=False,
             status_updated=False,
-            skipped_reason='no_topic_id'
+            skipped_reason="no_topic_id",
         )
 
     # Hent event og state fra resultat
-    event = service_result.get('event')
-    state_data = service_result.get('state')
-    old_status = service_result.get('old_status')
+    event = service_result.get("event")
+    state_data = service_result.get("state")
+    old_status = service_result.get("old_status")
 
     if not event or not state_data:
         logger.warning(f"Mangler event eller state for Catenda-synk av {sak_id}")
@@ -121,31 +123,30 @@ def _sync_forsering_to_catenda(
         state=state,
         event=event,
         topic_id=metadata.catenda_topic_id,
-        old_status=old_status
+        old_status=old_status,
     )
 
     if result.success:
         logger.info(f"Catenda-synk vellykket for forsering {sak_id}")
     else:
-        logger.warning(f"Catenda-synk feilet for forsering {sak_id}: {result.error or result.skipped_reason}")
+        logger.warning(
+            f"Catenda-synk feilet for forsering {sak_id}: {result.error or result.skipped_reason}"
+        )
 
     return result
 
 
-def _build_catenda_response(catenda_result: Optional[CatendaSyncResult]) -> Dict[str, Any]:
+def _build_catenda_response(catenda_result: CatendaSyncResult | None) -> dict[str, Any]:
     """Bygg Catenda-del av API-respons."""
     if catenda_result is None:
-        return {
-            "catenda_synced": False,
-            "catenda_skipped_reason": "sync_not_attempted"
-        }
+        return {"catenda_synced": False, "catenda_skipped_reason": "sync_not_attempted"}
 
     return {
         "catenda_synced": catenda_result.success,
         "catenda_comment_posted": catenda_result.comment_posted,
         "catenda_status_updated": catenda_result.status_updated,
         "catenda_skipped_reason": catenda_result.skipped_reason,
-        "catenda_error": catenda_result.error
+        "catenda_error": catenda_result.error,
     }
 
 
@@ -153,7 +154,8 @@ def _build_catenda_response(catenda_result: Optional[CatendaSyncResult]) -> Dict
 # OPPRETT
 # =============================================================================
 
-@forsering_bp.route('/api/forsering/opprett', methods=['POST'])
+
+@forsering_bp.route("/api/forsering/opprett", methods=["POST"])
 @require_csrf
 @require_magic_link
 @handle_service_errors
@@ -174,43 +176,42 @@ def opprett_forseringssak():
 
     # Valider påkrevde felter
     error = validate_required_fields(
-        payload,
-        ['avslatte_sak_ids', 'estimert_kostnad', 'dagmulktsats', 'begrunnelse']
+        payload, ["avslatte_sak_ids", "estimert_kostnad", "dagmulktsats", "begrunnelse"]
     )
     if error:
         return error
 
-    avslatte_sak_ids = payload['avslatte_sak_ids']
+    avslatte_sak_ids = payload["avslatte_sak_ids"]
     if not isinstance(avslatte_sak_ids, list) or len(avslatte_sak_ids) == 0:
-        return jsonify({
-            "success": False,
-            "error": "VALIDATION_ERROR",
-            "message": "avslatte_sak_ids må være en liste med minst én sak-ID"
-        }), 400
+        return jsonify(
+            {
+                "success": False,
+                "error": "VALIDATION_ERROR",
+                "message": "avslatte_sak_ids må være en liste med minst én sak-ID",
+            }
+        ), 400
 
     service = _get_forsering_service()
 
     result = service.opprett_forseringssak(
         avslatte_sak_ids=avslatte_sak_ids,
-        estimert_kostnad=float(payload['estimert_kostnad']),
-        dagmulktsats=float(payload['dagmulktsats']),
-        begrunnelse=payload['begrunnelse'],
-        avslatte_dager=payload.get('avslatte_dager')
+        estimert_kostnad=float(payload["estimert_kostnad"]),
+        dagmulktsats=float(payload["dagmulktsats"]),
+        begrunnelse=payload["begrunnelse"],
+        avslatte_dager=payload.get("avslatte_dager"),
     )
 
     logger.info(f"Forseringssak opprettet: {result['sak_id']}")
 
-    return jsonify({
-        "success": True,
-        **result
-    }), 201
+    return jsonify({"success": True, **result}), 201
 
 
 # =============================================================================
 # RELATERTE SAKER (bruker felles utilities)
 # =============================================================================
 
-@forsering_bp.route('/api/forsering/<sak_id>/relaterte', methods=['GET'])
+
+@forsering_bp.route("/api/forsering/<sak_id>/relaterte", methods=["GET"])
 @require_magic_link
 @handle_service_errors
 def hent_relaterte_saker(sak_id: str):
@@ -220,7 +221,7 @@ def hent_relaterte_saker(sak_id: str):
     return build_relaterte_response(sak_id, relasjoner)
 
 
-@forsering_bp.route('/api/forsering/<sak_id>/kontekst', methods=['GET'])
+@forsering_bp.route("/api/forsering/<sak_id>/kontekst", methods=["GET"])
 @require_magic_link
 @handle_service_errors
 def hent_forseringskontekst(sak_id: str):
@@ -240,7 +241,7 @@ def hent_forseringskontekst(sak_id: str):
     return build_kontekst_response(sak_id, kontekst, extra_fields=extra_fields)
 
 
-@forsering_bp.route('/api/forsering/kandidater', methods=['GET'])
+@forsering_bp.route("/api/forsering/kandidater", methods=["GET"])
 @handle_service_errors
 def hent_kandidat_koe_saker():
     """Hent KOE-saker som kan brukes i en forseringssak."""
@@ -249,19 +250,15 @@ def hent_kandidat_koe_saker():
     return build_kandidater_response(kandidater)
 
 
-@forsering_bp.route('/api/forsering/by-relatert/<sak_id>', methods=['GET'])
+@forsering_bp.route("/api/forsering/by-relatert/<sak_id>", methods=["GET"])
 @require_magic_link
 def finn_forseringer_for_sak(sak_id: str):
     """Finn forseringssaker som refererer til en gitt KOE-sak."""
     service = _get_forsering_service()
-    return safe_find_related(
-        service.finn_forseringer_for_sak,
-        sak_id,
-        "forseringer"
-    )
+    return safe_find_related(service.finn_forseringer_for_sak, sak_id, "forseringer")
 
 
-@forsering_bp.route('/api/forsering/<sak_id>/relatert', methods=['POST'])
+@forsering_bp.route("/api/forsering/<sak_id>/relatert", methods=["POST"])
 @require_csrf
 @require_magic_link
 @handle_service_errors
@@ -269,18 +266,18 @@ def legg_til_relatert_sak(sak_id: str):
     """Legg til en KOE-sak som relatert til forseringen."""
     payload = request.json
 
-    error = validate_required_fields(payload, ['koe_sak_id'])
+    error = validate_required_fields(payload, ["koe_sak_id"])
     if error:
         return error
 
     service = _get_forsering_service()
-    service.legg_til_relatert_sak(sak_id, payload['koe_sak_id'])
+    service.legg_til_relatert_sak(sak_id, payload["koe_sak_id"])
 
     logger.info(f"KOE {payload['koe_sak_id']} lagt til forsering {sak_id}")
     return build_success_message("KOE lagt til forsering")
 
 
-@forsering_bp.route('/api/forsering/<sak_id>/relatert/<koe_sak_id>', methods=['DELETE'])
+@forsering_bp.route("/api/forsering/<sak_id>/relatert/<koe_sak_id>", methods=["DELETE"])
 @require_csrf
 @require_magic_link
 @handle_service_errors
@@ -297,7 +294,8 @@ def fjern_relatert_sak(sak_id: str, koe_sak_id: str):
 # FORSERING-SPESIFIKKE ENDEPUNKTER
 # =============================================================================
 
-@forsering_bp.route('/api/forsering/valider', methods=['POST'])
+
+@forsering_bp.route("/api/forsering/valider", methods=["POST"])
 @require_magic_link
 @handle_service_errors
 def valider_forseringskostnad():
@@ -309,8 +307,7 @@ def valider_forseringskostnad():
     payload = request.json
 
     error = validate_required_fields(
-        payload,
-        ['estimert_kostnad', 'avslatte_dager', 'dagmulktsats']
+        payload, ["estimert_kostnad", "avslatte_dager", "dagmulktsats"]
     )
     if error:
         return error
@@ -318,18 +315,15 @@ def valider_forseringskostnad():
     service = _get_forsering_service()
 
     result = service.valider_30_prosent_regel(
-        estimert_kostnad=float(payload['estimert_kostnad']),
-        avslatte_dager=int(payload['avslatte_dager']),
-        dagmulktsats=float(payload['dagmulktsats'])
+        estimert_kostnad=float(payload["estimert_kostnad"]),
+        avslatte_dager=int(payload["avslatte_dager"]),
+        dagmulktsats=float(payload["dagmulktsats"]),
     )
 
-    return jsonify({
-        "success": True,
-        **result
-    }), 200
+    return jsonify({"success": True, **result}), 200
 
 
-@forsering_bp.route('/api/forsering/<sak_id>/bh-respons', methods=['POST'])
+@forsering_bp.route("/api/forsering/<sak_id>/bh-respons", methods=["POST"])
 @require_csrf
 @require_magic_link
 @handle_service_errors
@@ -365,59 +359,61 @@ def registrer_bh_respons(sak_id: str):
     """
     payload = request.json
 
-    error = validate_required_fields(payload, ['aksepterer', 'begrunnelse'])
+    error = validate_required_fields(payload, ["aksepterer", "begrunnelse"])
     if error:
         return error
 
-    aktor = getattr(request, 'magic_link_name', 'Ukjent BH')
-    expected_version = payload.get('expected_version')
+    aktor = getattr(request, "magic_link_name", "Ukjent BH")
+    expected_version = payload.get("expected_version")
 
     service = _get_forsering_service()
     try:
         result = service.registrer_bh_respons(
             sak_id=sak_id,
-            aksepterer=payload['aksepterer'],
-            godkjent_kostnad=payload.get('godkjent_kostnad'),
-            begrunnelse=payload['begrunnelse'],
+            aksepterer=payload["aksepterer"],
+            godkjent_kostnad=payload.get("godkjent_kostnad"),
+            begrunnelse=payload["begrunnelse"],
             aktor=aktor,
             expected_version=expected_version,
             # Tre-port felter
-            grunnlag_fortsatt_gyldig=payload.get('grunnlag_fortsatt_gyldig'),
-            grunnlag_begrunnelse=payload.get('grunnlag_begrunnelse'),
-            trettiprosent_overholdt=payload.get('trettiprosent_overholdt'),
-            trettiprosent_begrunnelse=payload.get('trettiprosent_begrunnelse'),
+            grunnlag_fortsatt_gyldig=payload.get("grunnlag_fortsatt_gyldig"),
+            grunnlag_begrunnelse=payload.get("grunnlag_begrunnelse"),
+            trettiprosent_overholdt=payload.get("trettiprosent_overholdt"),
+            trettiprosent_begrunnelse=payload.get("trettiprosent_begrunnelse"),
             # Særskilte krav (§34.1.3)
-            rigg_varslet_i_tide=payload.get('rigg_varslet_i_tide'),
-            produktivitet_varslet_i_tide=payload.get('produktivitet_varslet_i_tide'),
-            godkjent_rigg_drift=payload.get('godkjent_rigg_drift'),
-            godkjent_produktivitet=payload.get('godkjent_produktivitet'),
+            rigg_varslet_i_tide=payload.get("rigg_varslet_i_tide"),
+            produktivitet_varslet_i_tide=payload.get("produktivitet_varslet_i_tide"),
+            godkjent_rigg_drift=payload.get("godkjent_rigg_drift"),
+            godkjent_produktivitet=payload.get("godkjent_produktivitet"),
             # Subsidiært
-            subsidiaer_triggers=payload.get('subsidiaer_triggers'),
-            subsidiaer_godkjent_belop=payload.get('subsidiaer_godkjent_belop'),
-            subsidiaer_begrunnelse=payload.get('subsidiaer_begrunnelse'),
+            subsidiaer_triggers=payload.get("subsidiaer_triggers"),
+            subsidiaer_godkjent_belop=payload.get("subsidiaer_godkjent_belop"),
+            subsidiaer_begrunnelse=payload.get("subsidiaer_begrunnelse"),
         )
     except ConcurrencyError as e:
         return handle_concurrency_error(e)
 
-    status = "akseptert" if payload['aksepterer'] else "avslått"
+    status = "akseptert" if payload["aksepterer"] else "avslått"
     logger.info(f"BH respons på forsering {sak_id}: {status}")
 
     # Catenda-synkronisering
     catenda_result = _sync_forsering_to_catenda(sak_id, result)
 
     # Fjern interne felter fra respons
-    result.pop('event', None)
-    result.pop('old_status', None)
+    result.pop("event", None)
+    result.pop("old_status", None)
 
-    return jsonify({
-        "success": True,
-        "message": f"BH respons registrert ({status})",
-        **result,
-        **_build_catenda_response(catenda_result)
-    }), 200
+    return jsonify(
+        {
+            "success": True,
+            "message": f"BH respons registrert ({status})",
+            **result,
+            **_build_catenda_response(catenda_result),
+        }
+    ), 200
 
 
-@forsering_bp.route('/api/forsering/<sak_id>/valider-grunnlag', methods=['GET'])
+@forsering_bp.route("/api/forsering/<sak_id>/valider-grunnlag", methods=["GET"])
 @require_magic_link
 @handle_service_errors
 def valider_forseringsgrunnlag(sak_id: str):
@@ -438,13 +434,10 @@ def valider_forseringsgrunnlag(sak_id: str):
     service = _get_forsering_service()
     result = service.valider_grunnlag_fortsatt_gyldig(sak_id)
 
-    return jsonify({
-        "success": True,
-        **result
-    }), 200
+    return jsonify({"success": True, **result}), 200
 
 
-@forsering_bp.route('/api/forsering/<sak_id>/stopp', methods=['POST'])
+@forsering_bp.route("/api/forsering/<sak_id>/stopp", methods=["POST"])
 @require_csrf
 @require_magic_link
 @handle_service_errors
@@ -456,21 +449,21 @@ def stopp_forsering(sak_id: str):
     """
     payload = request.json
 
-    error = validate_required_fields(payload, ['begrunnelse'])
+    error = validate_required_fields(payload, ["begrunnelse"])
     if error:
         return error
 
-    aktor = getattr(request, 'magic_link_name', 'Ukjent TE')
-    expected_version = payload.get('expected_version')
+    aktor = getattr(request, "magic_link_name", "Ukjent TE")
+    expected_version = payload.get("expected_version")
 
     service = _get_forsering_service()
     try:
         result = service.stopp_forsering(
             sak_id=sak_id,
-            begrunnelse=payload['begrunnelse'],
-            paalopte_kostnader=payload.get('paalopte_kostnader'),
+            begrunnelse=payload["begrunnelse"],
+            paalopte_kostnader=payload.get("paalopte_kostnader"),
             aktor=aktor,
-            expected_version=expected_version
+            expected_version=expected_version,
         )
     except ConcurrencyError as e:
         return handle_concurrency_error(e)
@@ -481,18 +474,20 @@ def stopp_forsering(sak_id: str):
     catenda_result = _sync_forsering_to_catenda(sak_id, result)
 
     # Fjern interne felter fra respons
-    result.pop('event', None)
-    result.pop('old_status', None)
+    result.pop("event", None)
+    result.pop("old_status", None)
 
-    return jsonify({
-        "success": True,
-        "message": "Forsering stoppet",
-        **result,
-        **_build_catenda_response(catenda_result)
-    }), 200
+    return jsonify(
+        {
+            "success": True,
+            "message": "Forsering stoppet",
+            **result,
+            **_build_catenda_response(catenda_result),
+        }
+    ), 200
 
 
-@forsering_bp.route('/api/forsering/<sak_id>/kostnader', methods=['PUT'])
+@forsering_bp.route("/api/forsering/<sak_id>/kostnader", methods=["PUT"])
 @require_csrf
 @require_magic_link
 @handle_service_errors
@@ -504,37 +499,41 @@ def oppdater_kostnader(sak_id: str):
     """
     payload = request.json
 
-    error = validate_required_fields(payload, ['paalopte_kostnader'])
+    error = validate_required_fields(payload, ["paalopte_kostnader"])
     if error:
         return error
 
-    aktor = getattr(request, 'magic_link_name', 'Ukjent TE')
-    expected_version = payload.get('expected_version')
+    aktor = getattr(request, "magic_link_name", "Ukjent TE")
+    expected_version = payload.get("expected_version")
 
     service = _get_forsering_service()
     try:
         result = service.oppdater_kostnader(
             sak_id=sak_id,
-            paalopte_kostnader=float(payload['paalopte_kostnader']),
-            kommentar=payload.get('kommentar'),
+            paalopte_kostnader=float(payload["paalopte_kostnader"]),
+            kommentar=payload.get("kommentar"),
             aktor=aktor,
-            expected_version=expected_version
+            expected_version=expected_version,
         )
     except ConcurrencyError as e:
         return handle_concurrency_error(e)
 
-    logger.info(f"Forseringskostnader for {sak_id} oppdatert til {payload['paalopte_kostnader']}")
+    logger.info(
+        f"Forseringskostnader for {sak_id} oppdatert til {payload['paalopte_kostnader']}"
+    )
 
     # Catenda-synkronisering
     catenda_result = _sync_forsering_to_catenda(sak_id, result)
 
     # Fjern interne felter fra respons
-    result.pop('event', None)
-    result.pop('old_status', None)
+    result.pop("event", None)
+    result.pop("old_status", None)
 
-    return jsonify({
-        "success": True,
-        "message": "Kostnader oppdatert",
-        **result,
-        **_build_catenda_response(catenda_result)
-    }), 200
+    return jsonify(
+        {
+            "success": True,
+            "message": "Kostnader oppdatert",
+            **result,
+            **_build_catenda_response(catenda_result),
+        }
+    ), 200

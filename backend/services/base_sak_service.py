@@ -6,12 +6,13 @@ Inneholder felles funksjonalitet for:
 - Henting av relaterte saker
 - Delegering til RelatedCasesService
 """
-from typing import Dict, List, Optional, Any
 
-from utils.logger import get_logger
-from models.sak_state import SakRelasjon, SakState
+from typing import Any
+
 from models.events import AnyEvent, parse_event
+from models.sak_state import SakRelasjon, SakState
 from services.related_cases_service import RelatedCasesService
+from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -26,9 +27,9 @@ class BaseSakService:
 
     def __init__(
         self,
-        catenda_client: Optional[Any] = None,
-        event_repository: Optional[Any] = None,
-        timeline_service: Optional[Any] = None
+        catenda_client: Any | None = None,
+        event_repository: Any | None = None,
+        timeline_service: Any | None = None,
     ):
         """
         Initialiser BaseSakService.
@@ -44,8 +45,7 @@ class BaseSakService:
 
         # Gjenbrukbar helper for relaterte saker
         self.related_cases = RelatedCasesService(
-            event_repository=event_repository,
-            timeline_service=timeline_service
+            event_repository=event_repository, timeline_service=timeline_service
         )
 
     def _log_init_warnings(self, service_name: str) -> None:
@@ -57,7 +57,7 @@ class BaseSakService:
         if not self.timeline_service:
             logger.warning(f"{service_name} initialized without timeline service")
 
-    def _resolve_catenda_topic_id(self, sak_id: str) -> Optional[str]:
+    def _resolve_catenda_topic_id(self, sak_id: str) -> str | None:
         """
         Slår opp catenda_topic_id fra sakens state.
 
@@ -84,7 +84,7 @@ class BaseSakService:
             logger.warning(f"Kunne ikke slå opp catenda_topic_id for {sak_id}: {e}")
             return None
 
-    def hent_relaterte_saker(self, sak_id: str) -> List[SakRelasjon]:
+    def hent_relaterte_saker(self, sak_id: str) -> list[SakRelasjon]:
         """
         Henter alle relaterte saker for en gitt sak.
 
@@ -111,7 +111,7 @@ class BaseSakService:
 
         relasjoner = []
         for rel in related:
-            relatert_guid = rel.get('related_topic_guid')
+            relatert_guid = rel.get("related_topic_guid")
             if not relatert_guid:
                 continue
 
@@ -120,28 +120,31 @@ class BaseSakService:
             # Try to resolve Catenda GUID to local sak_id
             local_sak_id = None
             if self.event_repository:
-                local_sak_id = self.event_repository.find_sak_id_by_catenda_topic(relatert_guid)
+                local_sak_id = self.event_repository.find_sak_id_by_catenda_topic(
+                    relatert_guid
+                )
                 if local_sak_id:
-                    logger.debug(f"Resolved Catenda GUID {relatert_guid} -> local sak_id {local_sak_id}")
+                    logger.debug(
+                        f"Resolved Catenda GUID {relatert_guid} -> local sak_id {local_sak_id}"
+                    )
 
-            relasjoner.append(SakRelasjon(
-                relatert_sak_id=local_sak_id or relatert_guid,  # Prefer local sak_id
-                relatert_sak_tittel=topic.get('title') if topic else None,
-                bimsync_issue_board_ref=rel.get('bimsync_issue_board_ref'),
-                bimsync_issue_number=rel.get('bimsync_issue_number'),
-                catenda_topic_id=relatert_guid,  # Keep original GUID for reference
-            ))
+            relasjoner.append(
+                SakRelasjon(
+                    relatert_sak_id=local_sak_id
+                    or relatert_guid,  # Prefer local sak_id
+                    relatert_sak_tittel=topic.get("title") if topic else None,
+                    bimsync_issue_board_ref=rel.get("bimsync_issue_board_ref"),
+                    bimsync_issue_number=rel.get("bimsync_issue_number"),
+                    catenda_topic_id=relatert_guid,  # Keep original GUID for reference
+                )
+            )
 
         logger.info(f"Hentet {len(relasjoner)} relaterte saker for {sak_id}")
         return relasjoner
 
     def _create_topic_with_relations(
-        self,
-        title: str,
-        description: str,
-        topic_type: str,
-        related_sak_ids: List[str]
-    ) -> Optional[Dict[str, Any]]:
+        self, title: str, description: str, topic_type: str, related_sak_ids: list[str]
+    ) -> dict[str, Any] | None:
         """
         Oppretter topic i Catenda med toveis-relasjoner.
 
@@ -165,7 +168,7 @@ class BaseSakService:
             title=title,
             description=description,
             topic_type=topic_type,
-            topic_status="Open"
+            topic_status="Open",
         )
 
         if not topic:
@@ -175,34 +178,27 @@ class BaseSakService:
         if related_sak_ids:
             # Container → Relaterte (containersaken peker på relaterte saker)
             self.client.create_topic_relations(
-                topic_id=topic['guid'],
-                related_topic_guids=related_sak_ids
+                topic_id=topic["guid"], related_topic_guids=related_sak_ids
             )
             # Relaterte → Container (hver relatert sak peker tilbake)
             for sak_id in related_sak_ids:
                 self.client.create_topic_relations(
-                    topic_id=sak_id,
-                    related_topic_guids=[topic['guid']]
+                    topic_id=sak_id, related_topic_guids=[topic["guid"]]
                 )
 
         logger.info(f"✅ {topic_type} opprettet: {topic['guid']}")
         return topic
 
     def hent_hendelser_fra_relaterte_saker(
-        self,
-        sak_ids: List[str],
-        spor_filter: Optional[List[str]] = None
-    ) -> Dict[str, List[AnyEvent]]:
+        self, sak_ids: list[str], spor_filter: list[str] | None = None
+    ) -> dict[str, list[AnyEvent]]:
         """
         Henter alle hendelser fra en liste med saker.
         Delegerer til RelatedCasesService.
         """
         return self.related_cases.hent_hendelser_fra_saker(sak_ids, spor_filter)
 
-    def hent_state_fra_relaterte_saker(
-        self,
-        sak_ids: List[str]
-    ) -> Dict[str, SakState]:
+    def hent_state_fra_relaterte_saker(self, sak_ids: list[str]) -> dict[str, SakState]:
         """
         Henter SakState for en liste med saker.
         Delegerer til RelatedCasesService.
@@ -218,7 +214,9 @@ class BaseSakService:
         """
         return self.client is not None
 
-    def legg_til_relatert_sak(self, container_sak_id: str, relatert_sak_id: str) -> bool:
+    def legg_til_relatert_sak(
+        self, container_sak_id: str, relatert_sak_id: str
+    ) -> bool:
         """
         Legger til en sak som relatert til containersaken (toveis-relasjon).
 
@@ -239,15 +237,15 @@ class BaseSakService:
         try:
             # Toveis-relasjon: Container → Relatert
             self.client.create_topic_relations(
-                topic_id=container_sak_id,
-                related_topic_guids=[relatert_sak_id]
+                topic_id=container_sak_id, related_topic_guids=[relatert_sak_id]
             )
             # Toveis-relasjon: Relatert → Container
             self.client.create_topic_relations(
-                topic_id=relatert_sak_id,
-                related_topic_guids=[container_sak_id]
+                topic_id=relatert_sak_id, related_topic_guids=[container_sak_id]
             )
-            logger.info(f"✅ Sak {relatert_sak_id} lagt til {container_sak_id} (toveis)")
+            logger.info(
+                f"✅ Sak {relatert_sak_id} lagt til {container_sak_id} (toveis)"
+            )
             return True
         except Exception as e:
             logger.error(f"Feil ved tillegging av relatert sak: {e}")
@@ -274,15 +272,15 @@ class BaseSakService:
         try:
             # Fjern toveis-relasjon: Container → Relatert
             self.client.delete_topic_relation(
-                topic_id=container_sak_id,
-                related_topic_id=relatert_sak_id
+                topic_id=container_sak_id, related_topic_id=relatert_sak_id
             )
             # Fjern toveis-relasjon: Relatert → Container
             self.client.delete_topic_relation(
-                topic_id=relatert_sak_id,
-                related_topic_id=container_sak_id
+                topic_id=relatert_sak_id, related_topic_id=container_sak_id
             )
-            logger.info(f"✅ Sak {relatert_sak_id} fjernet fra {container_sak_id} (toveis)")
+            logger.info(
+                f"✅ Sak {relatert_sak_id} fjernet fra {container_sak_id} (toveis)"
+            )
             return True
         except Exception as e:
             logger.error(f"Feil ved fjerning av relatert sak: {e}")

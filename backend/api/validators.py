@@ -5,16 +5,18 @@ Validates event data against NS 8407 constants before persistence.
 These validators are called BEFORE parse_event_from_request() to ensure
 data integrity at the API boundary.
 """
-from typing import Dict, Any, Optional
-from models.events import (
-    VederlagsMetode,
-    FristVarselType,
-)
+
+from typing import Any
+
 from constants import (
-    validate_kategori_kombinasjon,
-    get_vederlag_metode,
-    get_underkategorier_for_hovedkategori,
     get_alle_hovedkategorier,
+    get_underkategorier_for_hovedkategori,
+    get_vederlag_metode,
+    validate_kategori_kombinasjon,
+)
+from models.events import (
+    FristVarselType,
+    VederlagsMetode,
 )
 
 
@@ -27,18 +29,19 @@ class ValidationError(Exception):
         valid_options: Dict of valid options for the failed field
         field: The field that failed validation
     """
+
     def __init__(
         self,
         message: str,
-        valid_options: Optional[Dict[str, Any]] = None,
-        field: Optional[str] = None
+        valid_options: dict[str, Any] | None = None,
+        field: str | None = None,
     ):
         super().__init__(message)
         self.message = message
         self.valid_options = valid_options or {}
         self.field = field
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dict for JSON response."""
         result = {"message": self.message}
         if self.valid_options:
@@ -52,11 +55,9 @@ class ValidationError(Exception):
 # Shared helper functions (reduces cyclomatic complexity)
 # ============================================================================
 
+
 def _validate_varsel_requirement(
-    data: Dict[str, Any],
-    flag_key: str,
-    varsel_key: str,
-    error_message: str
+    data: dict[str, Any], flag_key: str, varsel_key: str, error_message: str
 ) -> None:
     """
     Validate that a varsel (notice) is present and has required fields when flag is set.
@@ -79,11 +80,11 @@ def _validate_varsel_requirement(
         raise ValidationError(error_message)
 
     varsel = data.get(varsel_key)
-    if varsel and not varsel.get('dato_sendt'):
+    if varsel and not varsel.get("dato_sendt"):
         raise ValidationError(f"{varsel_key} må ha dato_sendt")
 
 
-def _normalize_to_upper(data: Dict[str, Any], *keys: str) -> None:
+def _normalize_to_upper(data: dict[str, Any], *keys: str) -> None:
     """
     Normalize string fields to UPPERCASE in-place.
 
@@ -105,7 +106,7 @@ def _normalize_to_upper(data: Dict[str, Any], *keys: str) -> None:
             data[key] = [v.upper() if isinstance(v, str) else v for v in val]
 
 
-def _validate_hovedkategori(hovedkategori: Optional[str], required: bool = True) -> None:
+def _validate_hovedkategori(hovedkategori: str | None, required: bool = True) -> None:
     """
     Validate hovedkategori against valid options.
 
@@ -123,7 +124,7 @@ def _validate_hovedkategori(hovedkategori: Optional[str], required: bool = True)
             raise ValidationError(
                 "hovedkategori er påkrevd",
                 valid_options={"hovedkategorier": valid_hovedkategorier},
-                field="hovedkategori"
+                field="hovedkategori",
             )
         return  # Not required and not present - OK
 
@@ -131,14 +132,12 @@ def _validate_hovedkategori(hovedkategori: Optional[str], required: bool = True)
         raise ValidationError(
             f"Ugyldig hovedkategori: {hovedkategori}",
             valid_options={"hovedkategorier": valid_hovedkategorier},
-            field="hovedkategori"
+            field="hovedkategori",
         )
 
 
 def _validate_underkategori(
-    hovedkategori: str,
-    underkategori: Any,
-    required: bool = True
+    hovedkategori: str, underkategori: Any, required: bool = True
 ) -> None:
     """
     Validate underkategori(er) against hovedkategori.
@@ -166,9 +165,9 @@ def _validate_underkategori(
                 "underkategori er påkrevd",
                 valid_options={
                     "hovedkategori": hovedkategori,
-                    "underkategorier": valid_underkategorier
+                    "underkategorier": valid_underkategorier,
                 },
-                field="underkategori"
+                field="underkategori",
             )
         return  # Not required and not present - OK
 
@@ -180,13 +179,13 @@ def _validate_underkategori(
                 f"Ugyldig underkategori '{uk}' for hovedkategori '{hovedkategori}'",
                 valid_options={
                     "hovedkategori": hovedkategori,
-                    "underkategorier": valid_underkategorier
+                    "underkategorier": valid_underkategorier,
                 },
-                field="underkategori"
+                field="underkategori",
             )
 
 
-def _validate_begrunnelse(data: Dict[str, Any]) -> None:
+def _validate_begrunnelse(data: dict[str, Any]) -> None:
     """
     Validate that begrunnelse field is present and non-empty.
 
@@ -196,15 +195,15 @@ def _validate_begrunnelse(data: Dict[str, Any]) -> None:
     Raises:
         ValidationError: If begrunnelse is missing or empty
     """
-    if not data.get('begrunnelse'):
+    if not data.get("begrunnelse"):
         raise ValidationError("begrunnelse er påkrevd")
 
 
 def _validate_antall_dager(
-    data: Dict[str, Any],
+    data: dict[str, Any],
     required: bool = True,
     allow_zero: bool = True,
-    context: str = ""
+    context: str = "",
 ) -> None:
     """
     Validate antall_dager field with configurable constraints.
@@ -218,7 +217,7 @@ def _validate_antall_dager(
     Raises:
         ValidationError: If validation fails
     """
-    antall_dager = data.get('antall_dager')
+    antall_dager = data.get("antall_dager")
 
     if antall_dager is None:
         if required:
@@ -235,10 +234,7 @@ def _validate_antall_dager(
             raise ValidationError(f"antall_dager må være > 0{suffix}")
 
 
-def _validate_varsel_type_field(
-    data: Dict[str, Any],
-    valid_varsel_types: list
-) -> str:
+def _validate_varsel_type_field(data: dict[str, Any], valid_varsel_types: list) -> str:
     """
     Validate varsel_type field and return its value.
 
@@ -252,26 +248,26 @@ def _validate_varsel_type_field(
     Raises:
         ValidationError: If varsel_type is missing or invalid
     """
-    varsel_type = data.get('varsel_type')
+    varsel_type = data.get("varsel_type")
 
     if not varsel_type:
         raise ValidationError(
             "varsel_type er påkrevd",
             valid_options={"varsel_typer": valid_varsel_types},
-            field="varsel_type"
+            field="varsel_type",
         )
 
     if varsel_type not in valid_varsel_types:
         raise ValidationError(
             f"Ugyldig varsel_type: {varsel_type}",
             valid_options={"varsel_typer": valid_varsel_types},
-            field="varsel_type"
+            field="varsel_type",
         )
 
     return varsel_type
 
 
-def _validate_frist_varsel_info(data: Dict[str, Any], varsel_type: str) -> None:
+def _validate_frist_varsel_info(data: dict[str, Any], varsel_type: str) -> None:
     """
     Validate required varsel info based on varsel_type.
 
@@ -283,13 +279,11 @@ def _validate_frist_varsel_info(data: Dict[str, Any], varsel_type: str) -> None:
         ValidationError: If required varsel info is missing
     """
     if varsel_type == FristVarselType.VARSEL.value:
-        if not data.get('frist_varsel'):
-            raise ValidationError(
-                "frist_varsel er påkrevd når varsel_type er 'varsel'"
-            )
+        if not data.get("frist_varsel"):
+            raise ValidationError("frist_varsel er påkrevd når varsel_type er 'varsel'")
 
     elif varsel_type == FristVarselType.SPESIFISERT.value:
-        if not data.get('spesifisert_varsel'):
+        if not data.get("spesifisert_varsel"):
             raise ValidationError(
                 "spesifisert_varsel er påkrevd når varsel_type er 'spesifisert'"
             )
@@ -297,7 +291,7 @@ def _validate_frist_varsel_info(data: Dict[str, Any], varsel_type: str) -> None:
         _validate_antall_dager(data, required=True, context="for spesifisert fristkrav")
 
 
-def _validate_required_text_fields(data: Dict[str, Any]) -> None:
+def _validate_required_text_fields(data: dict[str, Any]) -> None:
     """
     Validate required text fields for grunnlag create events.
 
@@ -307,22 +301,26 @@ def _validate_required_text_fields(data: Dict[str, Any]) -> None:
     Raises:
         ValidationError: If any required field is missing or invalid
     """
-    tittel = data.get('tittel')
+    tittel = data.get("tittel")
     if not tittel:
         raise ValidationError("tittel er påkrevd", field="tittel")
     if len(tittel) < 3:
         raise ValidationError("tittel må være minst 3 tegn", field="tittel")
     if len(tittel) > 100:
-        raise ValidationError("tittel kan ikke være lengre enn 100 tegn", field="tittel")
+        raise ValidationError(
+            "tittel kan ikke være lengre enn 100 tegn", field="tittel"
+        )
 
-    if not data.get('beskrivelse'):
+    if not data.get("beskrivelse"):
         raise ValidationError("beskrivelse er påkrevd", field="beskrivelse")
 
-    if not data.get('dato_oppdaget'):
-        raise ValidationError("dato_oppdaget er påkrevd (format: YYYY-MM-DD)", field="dato_oppdaget")
+    if not data.get("dato_oppdaget"):
+        raise ValidationError(
+            "dato_oppdaget er påkrevd (format: YYYY-MM-DD)", field="dato_oppdaget"
+        )
 
 
-def validate_grunnlag_event(data: Dict[str, Any], is_update: bool = False) -> None:
+def validate_grunnlag_event(data: dict[str, Any], is_update: bool = False) -> None:
     """
     Validate grunnlag-event data against constants.
 
@@ -337,10 +335,10 @@ def validate_grunnlag_event(data: Dict[str, Any], is_update: bool = False) -> No
         raise ValidationError("Grunnlag data mangler")
 
     # Normalize casing to UPPERCASE (backend standard)
-    _normalize_to_upper(data, 'hovedkategori', 'underkategori')
+    _normalize_to_upper(data, "hovedkategori", "underkategori")
 
-    hovedkategori = data.get('hovedkategori')
-    underkategori = data.get('underkategori')
+    hovedkategori = data.get("hovedkategori")
+    underkategori = data.get("underkategori")
 
     if is_update:
         # For updates: only validate fields that are present
@@ -355,7 +353,7 @@ def validate_grunnlag_event(data: Dict[str, Any], is_update: bool = False) -> No
     _validate_required_text_fields(data)
 
 
-def validate_vederlag_event(data: Dict[str, Any]) -> None:
+def validate_vederlag_event(data: dict[str, Any]) -> None:
     """
     Validate vederlag-event data against constants.
 
@@ -374,15 +372,15 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
         raise ValidationError("Vederlag data mangler")
 
     # Normalize metode to UPPERCASE (backend standard)
-    _normalize_to_upper(data, 'metode')
-    metode = data.get('metode')
+    _normalize_to_upper(data, "metode")
+    metode = data.get("metode")
 
     valid_metoder = [m.value for m in VederlagsMetode]
     if not metode:
         raise ValidationError(
             "metode er påkrevd",
             valid_options={"metoder": valid_metoder},
-            field="metode"
+            field="metode",
         )
 
     # Validate method exists
@@ -391,42 +389,52 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
         raise ValidationError(
             f"Ukjent vederlagsmetode: {metode}",
             valid_options={"metoder": valid_metoder},
-            field="metode"
+            field="metode",
         )
 
     # Validate amount based on method
     # - ENHETSPRISER/FASTPRIS_TILBUD: require belop_direkte (can be negative for fradrag)
     # - REGNINGSARBEID: kostnads_overslag is optional (work not done yet = estimate)
-    if metode in ['ENHETSPRISER', 'FASTPRIS_TILBUD']:
-        belop_direkte = data.get('belop_direkte')
+    if metode in ["ENHETSPRISER", "FASTPRIS_TILBUD"]:
+        belop_direkte = data.get("belop_direkte")
         if belop_direkte is None:
             raise ValidationError("belop_direkte er påkrevd for denne metoden")
     # Note: For REGNINGSARBEID, kostnads_overslag is optional per §30.2
 
     # Validate begrunnelse
-    if not data.get('begrunnelse'):
+    if not data.get("begrunnelse"):
         raise ValidationError("begrunnelse er påkrevd")
 
     # Validate NS 8407 specific warning requirements using shared helper
     _validate_varsel_requirement(
-        data, 'krever_regningsarbeid', 'regningsarbeid_varsel',
-        "Regningsarbeid krever varsel før oppstart (§30.1)"
+        data,
+        "krever_regningsarbeid",
+        "regningsarbeid_varsel",
+        "Regningsarbeid krever varsel før oppstart (§30.1)",
     )
     _validate_varsel_requirement(
-        data, 'inkluderer_rigg_drift', 'rigg_drift_varsel',
-        "Rigg/drift-kostnader krever særskilt varsel (§34.1.3)"
+        data,
+        "inkluderer_rigg_drift",
+        "rigg_drift_varsel",
+        "Rigg/drift-kostnader krever særskilt varsel (§34.1.3)",
     )
     _validate_varsel_requirement(
-        data, 'krever_justert_ep', 'justert_ep_varsel',
-        "Justerte enhetspriser krever varsel (§34.3.3)"
+        data,
+        "krever_justert_ep",
+        "justert_ep_varsel",
+        "Justerte enhetspriser krever varsel (§34.3.3)",
     )
     _validate_varsel_requirement(
-        data, 'inkluderer_produktivitetstap', 'produktivitetstap_varsel',
-        "Produktivitetstap krever særskilt varsel (§34.1.3, 2. ledd)"
+        data,
+        "inkluderer_produktivitetstap",
+        "produktivitetstap_varsel",
+        "Produktivitetstap krever særskilt varsel (§34.1.3, 2. ledd)",
     )
 
 
-def validate_frist_event(data: Dict[str, Any], is_update: bool = False, is_specification: bool = False) -> None:
+def validate_frist_event(
+    data: dict[str, Any], is_update: bool = False, is_specification: bool = False
+) -> None:
     """
     Validate frist-event data against constants.
 
@@ -455,13 +463,17 @@ def validate_frist_event(data: Dict[str, Any], is_update: bool = False, is_speci
     # Specification events: TE specifies days for neutral notice (§33.6.1/§33.6.2)
     if is_specification:
         _validate_begrunnelse(data)
-        _validate_antall_dager(data, required=True, allow_zero=False, context="for spesifisering")
+        _validate_antall_dager(
+            data, required=True, allow_zero=False, context="for spesifisering"
+        )
         return
 
     # Update events have simplified validation
     if is_update:
         _validate_begrunnelse(data)
-        _validate_antall_dager(data, required=True, allow_zero=True, context="for oppdatering")
+        _validate_antall_dager(
+            data, required=True, allow_zero=True, context="for oppdatering"
+        )
         return
 
     # Initial claim validation
@@ -471,7 +483,7 @@ def validate_frist_event(data: Dict[str, Any], is_update: bool = False, is_speci
     _validate_frist_varsel_info(data, varsel_type)
 
 
-def validate_respons_event(data: Dict[str, Any], spor_type: str) -> None:
+def validate_respons_event(data: dict[str, Any], spor_type: str) -> None:
     """
     Validate respons-event data.
 
@@ -486,23 +498,23 @@ def validate_respons_event(data: Dict[str, Any], spor_type: str) -> None:
         raise ValidationError("Respons data mangler")
 
     # Basic validation - detailed validation happens in business rules
-    if spor_type == 'grunnlag':
-        if not data.get('resultat'):
+    if spor_type == "grunnlag":
+        if not data.get("resultat"):
             raise ValidationError("resultat er påkrevd")
 
-        if not data.get('begrunnelse'):
+        if not data.get("begrunnelse"):
             raise ValidationError("begrunnelse er påkrevd")
 
-    elif spor_type == 'vederlag':
-        if not data.get('beregnings_resultat'):
+    elif spor_type == "vederlag":
+        if not data.get("beregnings_resultat"):
             raise ValidationError("beregnings_resultat er påkrevd")
 
-    elif spor_type == 'frist':
-        if not data.get('beregnings_resultat'):
+    elif spor_type == "frist":
+        if not data.get("beregnings_resultat"):
             raise ValidationError("beregnings_resultat er påkrevd")
 
-        if data.get('spesifisert_krav_ok') is None:
+        if data.get("spesifisert_krav_ok") is None:
             raise ValidationError("spesifisert_krav_ok er påkrevd")
 
-        if data.get('vilkar_oppfylt') is None:
+        if data.get("vilkar_oppfylt") is None:
             raise ValidationError("vilkar_oppfylt er påkrevd")

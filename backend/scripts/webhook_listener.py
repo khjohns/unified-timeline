@@ -4,16 +4,16 @@ Catenda Webhook Listener - Flask-server for å motta webhooks fra Catenda
 Lytter på events og logger/håndterer dem
 """
 
-import os
-import sys
 import json
 import logging
+import os
+import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any
 
 try:
-    from flask import Flask, request, jsonify
+    from flask import Flask, jsonify, request
 except ImportError:
     print("❌ Flask ikke installert. Installer med:")
     print("   pip install flask")
@@ -22,11 +22,11 @@ except ImportError:
 # Konfigurer logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler('catenda_webhook_listener.log'),
-        logging.StreamHandler()
-    ]
+        logging.FileHandler("catenda_webhook_listener.log"),
+        logging.StreamHandler(),
+    ],
 )
 logger = logging.getLogger(__name__)
 
@@ -40,37 +40,37 @@ WEBHOOK_DATA_DIR.mkdir(exist_ok=True)
 
 class WebhookHandler:
     """Håndterer logikk for ulike webhook-events"""
-    
+
     @staticmethod
-    def handle_bcf_issue_created(payload: Dict[str, Any]) -> Dict[str, Any]:
+    def handle_bcf_issue_created(payload: dict[str, Any]) -> dict[str, Any]:
         """
         Håndter ny BCF issue opprettet (tilsvarer ny sak i Catenda)
         Dette er triggeren for KOE/EO-flyten
         """
         logger.info("🆕 Ny BCF Issue opprettet!")
-        
+
         # Ekstraher relevant info
-        issue_data = payload.get('issue', {})
-        project_id = payload.get('project_id')
-        board_id = payload.get('board_id')
-        topic_id = issue_data.get('guid')
-        title = issue_data.get('title')
-        description = issue_data.get('description')
-        topic_type = issue_data.get('topic_type')
-        created_by = issue_data.get('creation_author')
-        
+        issue_data = payload.get("issue", {})
+        project_id = payload.get("project_id")
+        board_id = payload.get("board_id")
+        topic_id = issue_data.get("guid")
+        title = issue_data.get("title")
+        description = issue_data.get("description")
+        topic_type = issue_data.get("topic_type")
+        created_by = issue_data.get("creation_author")
+
         logger.info(f"   Project: {project_id}")
         logger.info(f"   Board: {board_id}")
         logger.info(f"   Topic ID: {topic_id}")
         logger.info(f"   Tittel: {title}")
         logger.info(f"   Type: {topic_type}")
         logger.info(f"   Opprettet av: {created_by}")
-        
+
         # Her ville man typisk:
         # 1. Opprette tilsvarende SAK-post i Dataverse
         # 2. Initiere KOE-prosessen
         # 3. Sende varsel til BH
-        
+
         response = {
             "status": "received",
             "action": "create_sak_in_dataverse",
@@ -81,26 +81,26 @@ class WebhookHandler:
                 "tittel": title,
                 "beskrivelse": description,
                 "opprettet_dato": datetime.utcnow().isoformat(),
-                "status": "Ny"
-            }
+                "status": "Ny",
+            },
         }
-        
+
         return response
-    
+
     @staticmethod
-    def handle_bcf_comment_created(payload: Dict[str, Any]) -> Dict[str, Any]:
+    def handle_bcf_comment_created(payload: dict[str, Any]) -> dict[str, Any]:
         """Håndter ny kommentar på BCF issue"""
         logger.info("💬 Ny kommentar på BCF Issue!")
-        
-        comment_data = payload.get('comment', {})
-        topic_id = payload.get('topic_guid')
-        comment_text = comment_data.get('comment')
-        author = comment_data.get('author')
-        
+
+        comment_data = payload.get("comment", {})
+        topic_id = payload.get("topic_guid")
+        comment_text = comment_data.get("comment")
+        author = comment_data.get("author")
+
         logger.info(f"   Topic ID: {topic_id}")
         logger.info(f"   Forfatter: {author}")
         logger.info(f"   Kommentar: {comment_text[:100]}...")
-        
+
         response = {
             "status": "received",
             "action": "log_comment",
@@ -108,26 +108,26 @@ class WebhookHandler:
                 "topic_id": topic_id,
                 "author": author,
                 "text": comment_text,
-                "timestamp": datetime.utcnow().isoformat()
-            }
+                "timestamp": datetime.utcnow().isoformat(),
+            },
         }
-        
+
         return response
-    
+
     @staticmethod
-    def handle_document_uploaded(payload: Dict[str, Any]) -> Dict[str, Any]:
+    def handle_document_uploaded(payload: dict[str, Any]) -> dict[str, Any]:
         """Håndter dokumentopplasting"""
         logger.info("📄 Nytt dokument lastet opp!")
-        
-        document_data = payload.get('document', {})
-        document_id = document_data.get('id')
-        filename = document_data.get('name')
-        project_id = payload.get('project_id')
-        
+
+        document_data = payload.get("document", {})
+        document_id = document_data.get("id")
+        filename = document_data.get("name")
+        project_id = payload.get("project_id")
+
         logger.info(f"   Project: {project_id}")
         logger.info(f"   Dokument ID: {document_id}")
         logger.info(f"   Filnavn: {filename}")
-        
+
         response = {
             "status": "received",
             "action": "index_document",
@@ -135,24 +135,24 @@ class WebhookHandler:
                 "document_id": document_id,
                 "filename": filename,
                 "project_id": project_id,
-                "uploaded_at": datetime.utcnow().isoformat()
-            }
+                "uploaded_at": datetime.utcnow().isoformat(),
+            },
         }
-        
+
         return response
-    
+
     @staticmethod
-    def handle_topic_status_changed(payload: Dict[str, Any]) -> Dict[str, Any]:
+    def handle_topic_status_changed(payload: dict[str, Any]) -> dict[str, Any]:
         """Håndter statusendring på topic"""
         logger.info("🔄 Topic status endret!")
-        
-        topic_id = payload.get('topic_guid')
-        old_status = payload.get('old_status')
-        new_status = payload.get('new_status')
-        
+
+        topic_id = payload.get("topic_guid")
+        old_status = payload.get("old_status")
+        new_status = payload.get("new_status")
+
         logger.info(f"   Topic ID: {topic_id}")
         logger.info(f"   Fra: {old_status} → Til: {new_status}")
-        
+
         response = {
             "status": "received",
             "action": "update_sak_status",
@@ -160,28 +160,30 @@ class WebhookHandler:
                 "topic_id": topic_id,
                 "old_status": old_status,
                 "new_status": new_status,
-                "changed_at": datetime.utcnow().isoformat()
-            }
+                "changed_at": datetime.utcnow().isoformat(),
+            },
         }
-        
+
         return response
-    
+
     @staticmethod
-    def handle_generic_event(event_type: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def handle_generic_event(
+        event_type: str, payload: dict[str, Any]
+    ) -> dict[str, Any]:
         """Håndter ukjente/generiske events"""
         logger.info(f"ℹ️  Generisk event: {event_type}")
-        
+
         response = {
             "status": "received",
             "action": "log_event",
             "event_type": event_type,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
-        
+
         return response
 
 
-@app.route('/webhook/catenda', methods=['POST'])
+@app.route("/webhook/catenda", methods=["POST"])
 def catenda_webhook():
     """
     Endepunkt for å motta webhooks fra Catenda
@@ -189,87 +191,90 @@ def catenda_webhook():
     try:
         # Les payload
         payload = request.get_json()
-        
+
         if not payload:
             logger.warning("⚠️ Mottok tom payload")
             return jsonify({"error": "Empty payload"}), 400
-        
+
         # Logg rå payload
-        logger.info("="*70)
+        logger.info("=" * 70)
         logger.info("📥 Webhook mottatt fra Catenda")
-        logger.info("="*70)
-        
+        logger.info("=" * 70)
+
         # Ekstraher event type
-        event_type = payload.get('event_type') or payload.get('type') or 'unknown'
+        event_type = payload.get("event_type") or payload.get("type") or "unknown"
         logger.info(f"Event Type: {event_type}")
-        
+
         # Lagre rå data til fil
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = WEBHOOK_DATA_DIR / f"{event_type}_{timestamp}.json"
-        with open(filename, 'w') as f:
+        with open(filename, "w") as f:
             json.dump(payload, f, indent=2)
         logger.info(f"💾 Lagret til: {filename}")
-        
+
         # Rute til riktig handler basert på event type
         handler = WebhookHandler()
-        
-        if event_type in ['bcf.issue.created', 'bcf.topic.created']:
+
+        if event_type in ["bcf.issue.created", "bcf.topic.created"]:
             response_data = handler.handle_bcf_issue_created(payload)
-        
-        elif event_type in ['bcf.comment.created']:
+
+        elif event_type in ["bcf.comment.created"]:
             response_data = handler.handle_bcf_comment_created(payload)
-        
-        elif event_type in ['document.uploaded', 'library.item.created']:
+
+        elif event_type in ["document.uploaded", "library.item.created"]:
             response_data = handler.handle_document_uploaded(payload)
-        
-        elif event_type in ['bcf.topic.status_changed', 'bcf.issue.status_changed']:
+
+        elif event_type in ["bcf.topic.status_changed", "bcf.issue.status_changed"]:
             response_data = handler.handle_topic_status_changed(payload)
-        
+
         else:
             response_data = handler.handle_generic_event(event_type, payload)
-        
+
         logger.info(f"✅ Event håndtert: {response_data.get('action')}")
-        logger.info("="*70)
-        
+        logger.info("=" * 70)
+
         # Returner suksess
-        return jsonify({
-            "status": "success",
-            "received_at": datetime.utcnow().isoformat(),
-            "event_type": event_type,
-            "response": response_data
-        }), 200
-    
+        return jsonify(
+            {
+                "status": "success",
+                "received_at": datetime.utcnow().isoformat(),
+                "event_type": event_type,
+                "response": response_data,
+            }
+        ), 200
+
     except Exception as e:
         logger.exception(f"❌ Feil ved håndtering av webhook: {e}")
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/webhook/test', methods=['GET', 'POST'])
+@app.route("/webhook/test", methods=["GET", "POST"])
 def test_webhook():
     """
     Test-endepunkt for å verifisere at serveren kjører
     """
-    if request.method == 'POST':
+    if request.method == "POST":
         payload = request.get_json() or {}
         logger.info(f"📬 Test webhook mottatt: {payload}")
-        return jsonify({
-            "status": "test_received",
-            "timestamp": datetime.utcnow().isoformat(),
-            "payload": payload
-        }), 200
-    else:
-        return jsonify({
-            "status": "running",
-            "message": "Catenda Webhook Listener er aktiv",
-            "timestamp": datetime.utcnow().isoformat(),
-            "endpoints": {
-                "webhook": "/webhook/catenda",
-                "test": "/webhook/test"
+        return jsonify(
+            {
+                "status": "test_received",
+                "timestamp": datetime.utcnow().isoformat(),
+                "payload": payload,
             }
-        }), 200
+        ), 200
+    else:
+        return jsonify(
+            {
+                "status": "running",
+                "message": "Catenda Webhook Listener er aktiv",
+                "timestamp": datetime.utcnow().isoformat(),
+                "endpoints": {"webhook": "/webhook/catenda", "test": "/webhook/test"},
+            }
+        ), 200
 
 
-@app.route('/webhook/history', methods=['GET'])
+@app.route("/webhook/history", methods=["GET"])
 def webhook_history():
     """
     Vis historikk over mottatte webhooks
@@ -277,42 +282,47 @@ def webhook_history():
     try:
         # Les alle webhook-filer
         webhook_files = sorted(WEBHOOK_DATA_DIR.glob("*.json"), reverse=True)
-        
+
         history = []
         for filepath in webhook_files[:50]:  # Siste 50
-            with open(filepath, 'r') as f:
+            with open(filepath) as f:
                 data = json.load(f)
-                history.append({
-                    "filename": filepath.name,
-                    "event_type": data.get('event_type') or data.get('type') or 'unknown',
-                    "timestamp": filepath.stem.split('_', 1)[1] if '_' in filepath.stem else 'unknown'
-                })
-        
-        return jsonify({
-            "count": len(history),
-            "webhooks": history
-        }), 200
-    
+                history.append(
+                    {
+                        "filename": filepath.name,
+                        "event_type": data.get("event_type")
+                        or data.get("type")
+                        or "unknown",
+                        "timestamp": filepath.stem.split("_", 1)[1]
+                        if "_" in filepath.stem
+                        else "unknown",
+                    }
+                )
+
+        return jsonify({"count": len(history), "webhooks": history}), 200
+
     except Exception as e:
         logger.exception(f"❌ Feil ved henting av historikk: {e}")
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/health', methods=['GET'])
+@app.route("/health", methods=["GET"])
 def health_check():
     """Health check endepunkt"""
-    return jsonify({
-        "status": "healthy",
-        "service": "catenda-webhook-listener",
-        "timestamp": datetime.utcnow().isoformat()
-    }), 200
+    return jsonify(
+        {
+            "status": "healthy",
+            "service": "catenda-webhook-listener",
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    ), 200
 
 
 def print_startup_info():
     """Print oppstartsinformasjon"""
-    print("="*70)
+    print("=" * 70)
     print("🔔 CATENDA WEBHOOK LISTENER")
-    print("="*70)
+    print("=" * 70)
     print()
     print("Serveren starter nå og lytter på:")
     print()
@@ -337,27 +347,23 @@ def print_startup_info():
     print("Loggfil: catenda_webhook_listener.log")
     print("Webhook data lagres i: ./webhook_data/")
     print()
-    print("="*70)
+    print("=" * 70)
     print()
 
 
 def main():
     """Hovedfunksjon"""
-    
+
     # Print oppstartsinformasjon
     print_startup_info()
-    
+
     # Les konfigurasjon
-    port = int(os.environ.get('WEBHOOK_PORT', 5000))
-    debug = os.environ.get('WEBHOOK_DEBUG', 'False').lower() == 'true'
-    
+    port = int(os.environ.get("WEBHOOK_PORT", 5000))
+    debug = os.environ.get("WEBHOOK_DEBUG", "False").lower() == "true"
+
     # Start Flask server
     try:
-        app.run(
-            host='0.0.0.0',
-            port=port,
-            debug=debug
-        )
+        app.run(host="0.0.0.0", port=port, debug=debug)
     except KeyboardInterrupt:
         print("\n\n👋 Server stoppet av bruker. Ha det!")
     except Exception as e:

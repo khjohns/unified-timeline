@@ -4,16 +4,17 @@ CatendaSyncService - Gjenbrukbar service for synkronisering av events til Catend
 Håndterer posting av kommentarer og oppdatering av status for alle sakstyper.
 Designet for å kunne utvides med PDF-støtte i fremtiden.
 """
-from dataclasses import dataclass
-from typing import Optional, Any
 
-from models.sak_state import SakState
-from models.events import AnyEvent
-from services.catenda_service import CatendaService
-from services.catenda_comment_generator import CatendaCommentGenerator
-from lib.catenda_factory import get_catenda_client
-from lib.auth import get_magic_link_manager
+from dataclasses import dataclass
+from typing import Any
+
 from core.config import settings
+from lib.auth import get_magic_link_manager
+from lib.catenda_factory import get_catenda_client
+from models.events import AnyEvent
+from models.sak_state import SakState
+from services.catenda_comment_generator import CatendaCommentGenerator
+from services.catenda_service import CatendaService
 from utils.filtering_config import get_frontend_route
 from utils.logger import get_logger
 
@@ -23,13 +24,14 @@ logger = get_logger(__name__)
 @dataclass
 class CatendaSyncResult:
     """Resultat fra Catenda-synkronisering."""
+
     success: bool
     comment_posted: bool
     status_updated: bool
     pdf_uploaded: bool = False
-    pdf_source: Optional[str] = None  # 'client', 'server', eller None
-    error: Optional[str] = None
-    skipped_reason: Optional[str] = None  # 'no_topic_id', 'not_authenticated', 'no_client'
+    pdf_source: str | None = None  # 'client', 'server', eller None
+    error: str | None = None
+    skipped_reason: str | None = None  # 'no_topic_id', 'not_authenticated', 'no_client'
 
 
 class CatendaSyncService:
@@ -44,9 +46,9 @@ class CatendaSyncService:
 
     def __init__(
         self,
-        catenda_service: Optional[CatendaService] = None,
-        comment_generator: Optional[CatendaCommentGenerator] = None,
-        magic_link_manager: Optional[Any] = None
+        catenda_service: CatendaService | None = None,
+        comment_generator: CatendaCommentGenerator | None = None,
+        magic_link_manager: Any | None = None,
     ):
         """
         Initialiser CatendaSyncService.
@@ -60,7 +62,7 @@ class CatendaSyncService:
         self._comment_generator = comment_generator or CatendaCommentGenerator()
         self._magic_link_manager = magic_link_manager
 
-    def _get_catenda_service(self) -> Optional[CatendaService]:
+    def _get_catenda_service(self) -> CatendaService | None:
         """Lazy-load CatendaService."""
         if self._catenda_service is None:
             client = get_catenda_client()
@@ -80,11 +82,11 @@ class CatendaSyncService:
         state: SakState,
         event: AnyEvent,
         topic_id: str,
-        old_status: Optional[str] = None,
+        old_status: str | None = None,
         # Reservert for fremtidig PDF-støtte
-        pdf_base64: Optional[str] = None,
-        _pdf_filename: Optional[str] = None,
-        _generate_pdf_on_server: bool = False
+        pdf_base64: str | None = None,
+        _pdf_filename: str | None = None,
+        _generate_pdf_on_server: bool = False,
     ) -> CatendaSyncResult:
         """
         Synkroniser et event til Catenda.
@@ -113,7 +115,7 @@ class CatendaSyncService:
                 success=False,
                 comment_posted=False,
                 status_updated=False,
-                skipped_reason='no_client'
+                skipped_reason="no_client",
             )
 
         comment_posted = False
@@ -149,7 +151,7 @@ class CatendaSyncService:
             success=success,
             comment_posted=comment_posted,
             status_updated=status_updated,
-            error=error
+            error=error,
         )
 
     def _post_comment(
@@ -158,7 +160,7 @@ class CatendaSyncService:
         sak_id: str,
         state: SakState,
         event: AnyEvent,
-        topic_id: str
+        topic_id: str,
     ) -> bool:
         """Post kommentar til Catenda topic."""
         try:
@@ -179,10 +181,7 @@ class CatendaSyncService:
             return False
 
     def _update_status(
-        self,
-        catenda_service: CatendaService,
-        topic_id: str,
-        new_status: str
+        self, catenda_service: CatendaService, topic_id: str, new_status: str
     ) -> bool:
         """Oppdater topic status i Catenda."""
         try:
@@ -193,7 +192,7 @@ class CatendaSyncService:
             logger.error(f"Failed to update status for topic {topic_id}: {e}")
             return False
 
-    def _generate_magic_link(self, sak_id: str, state: SakState) -> Optional[str]:
+    def _generate_magic_link(self, sak_id: str, state: SakState) -> str | None:
         """Generer magic link for saken."""
         try:
             magic_link_manager = self._get_magic_link_manager()
@@ -207,7 +206,7 @@ class CatendaSyncService:
                 return None
 
             # Bestem frontend-rute basert på sakstype
-            sakstype = getattr(state, 'sakstype', 'standard') or 'standard'
+            sakstype = getattr(state, "sakstype", "standard") or "standard"
             frontend_route = get_frontend_route(sakstype, sak_id)
 
             return f"{base_url}{frontend_route}?magicToken={magic_token}"

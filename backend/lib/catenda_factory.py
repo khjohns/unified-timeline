@@ -4,16 +4,15 @@ Catenda Client Factory
 Provides a centralized factory for creating authenticated CatendaClient instances.
 This eliminates duplication across routes that need Catenda integration.
 """
-from typing import Optional
 
-from integrations.catenda import CatendaClient
 from core.config import settings
+from integrations.catenda import CatendaClient
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-def get_catenda_client(with_auth: bool = True) -> Optional[CatendaClient]:
+def get_catenda_client(with_auth: bool = True) -> CatendaClient | None:
     """
     Factory for creating authenticated CatendaClient instances.
 
@@ -43,7 +42,7 @@ def get_catenda_client(with_auth: bool = True) -> Optional[CatendaClient]:
 
     client = CatendaClient(
         client_id=settings.catenda_client_id,
-        client_secret=settings.catenda_client_secret
+        client_secret=settings.catenda_client_secret,
     )
 
     if settings.catenda_topic_board_id:

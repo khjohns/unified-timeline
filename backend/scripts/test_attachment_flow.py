@@ -22,10 +22,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
-from integrations.dalux.client import DaluxClient
 from integrations.catenda.client import CatendaClient
+from integrations.dalux.client import DaluxClient
 
 
 def main():
@@ -95,8 +96,8 @@ def main():
 
     # Bruk første file area
     file_area = file_areas[0]
-    file_area_id = file_area.get('data', {}).get('fileAreaId')
-    file_area_name = file_area.get('data', {}).get('fileAreaName')
+    file_area_id = file_area.get("data", {}).get("fileAreaId")
+    file_area_name = file_area.get("data", {}).get("fileAreaName")
     print(f"✅ Bruker file area: {file_area_name} ({file_area_id})")
 
     try:
@@ -112,17 +113,17 @@ def main():
     # Vis første 3 filer
     print(f"\nFant {len(files)} filer. Viser første 3:")
     for i, f in enumerate(files[:3]):
-        data = f.get('data', {})
-        name = data.get('fileName', 'ukjent')
-        size = data.get('fileSize', 0)
-        print(f"   {i+1}. {name} ({size:,} bytes)")
+        data = f.get("data", {})
+        name = data.get("fileName", "ukjent")
+        size = data.get("fileSize", 0)
+        print(f"   {i + 1}. {name} ({size:,} bytes)")
 
     # Velg første fil for test
-    test_file = files[0].get('data', {})
-    file_id = test_file.get('fileId')
-    file_rev_id = test_file.get('fileRevisionId')
-    file_name = test_file.get('fileName', 'test_file')
-    file_size = test_file.get('fileSize', 0)
+    test_file = files[0].get("data", {})
+    file_id = test_file.get("fileId")
+    file_rev_id = test_file.get("fileRevisionId")
+    file_name = test_file.get("fileName", "test_file")
+    file_size = test_file.get("fileSize", 0)
 
     print("\n📎 Valgt fil for test:")
     print(f"   File ID:    {file_id}")
@@ -138,10 +139,7 @@ def main():
 
     try:
         file_content = dalux.download_file(
-            dalux_project_id,
-            file_area_id,
-            file_id,
-            file_rev_id
+            dalux_project_id, file_area_id, file_id, file_rev_id
         )
     except Exception as e:
         print(f"❌ Kunne ikke laste ned: {e}")
@@ -150,7 +148,7 @@ def main():
     print(f"✅ Lastet ned {len(file_content):,} bytes")
 
     # Lagre til midlertidig fil
-    suffix = Path(file_name).suffix or '.bin'
+    suffix = Path(file_name).suffix or ".bin"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(file_content)
         tmp_path = tmp.name
@@ -169,7 +167,7 @@ def main():
             project_id=catenda_project_id,
             file_path=tmp_path,
             document_name=f"Dalux_{file_name}",
-            folder_id=catenda_folder_id
+            folder_id=catenda_folder_id,
         )
     except Exception as e:
         print(f"❌ Opplasting feilet: {e}")
@@ -184,7 +182,7 @@ def main():
         print("❌ Opplasting returnerte None")
         return
 
-    document_id = upload_result.get('id')
+    document_id = upload_result.get("id")
     print("✅ Dokument lastet opp!")
     print(f"   Document ID: {document_id}")
     print(f"   Navn:        {upload_result.get('name', 'N/A')}")
@@ -208,8 +206,8 @@ def main():
             print("⚠️ Ingen topics funnet - hopper over document_reference test")
         else:
             test_topic = topics[0]
-            topic_guid = test_topic.get('guid')
-            topic_title = test_topic.get('title', 'Ukjent')
+            topic_guid = test_topic.get("guid")
+            topic_title = test_topic.get("title", "Ukjent")
 
             print(f"   Knytter til topic: {topic_title}")
             print(f"   Topic GUID: {topic_guid}")
@@ -219,7 +217,7 @@ def main():
                 doc_ref = catenda.create_document_reference(
                     topic_id=topic_guid,
                     document_guid=document_id,
-                    description=f"Fra Dalux: {file_name}"
+                    description=f"Fra Dalux: {file_name}",
                 )
 
                 # Hvis kompakt feilet, prøv med formatert UUID
@@ -235,7 +233,7 @@ def main():
                     doc_ref = catenda.create_document_reference(
                         topic_id=topic_guid,
                         document_guid=formatted_uuid,
-                        description=f"Fra Dalux: {file_name}"
+                        description=f"Fra Dalux: {file_name}",
                     )
 
                 if doc_ref:

@@ -3,11 +3,13 @@ Tests for ForseringService.
 
 This service handles forsering cases (§33.8 NS 8407).
 """
-import pytest
+
 from unittest.mock import Mock, patch
 
+import pytest
+
+from models.sak_state import ForseringData, FristTilstand, SakRelasjon, SakState
 from services.forsering_service import ForseringService
-from models.sak_state import SakState, SakRelasjon, ForseringData, FristTilstand
 
 
 class TestForseringService:
@@ -18,10 +20,14 @@ class TestForseringService:
         """Create mock Catenda client."""
         client = Mock()
         client.topic_board_id = "board-123"
-        client.create_topic = Mock(return_value={'guid': 'forsering-001', 'title': 'Forsering'})
+        client.create_topic = Mock(
+            return_value={"guid": "forsering-001", "title": "Forsering"}
+        )
         client.create_topic_relations = Mock(return_value=True)
         client.list_related_topics = Mock(return_value=[])
-        client.get_topic_details = Mock(return_value={'title': 'Related Case', 'guid': 'related-001'})
+        client.get_topic_details = Mock(
+            return_value={"title": "Related Case", "guid": "related-001"}
+        )
         client.list_topics = Mock(return_value=[])
         return client
 
@@ -37,31 +43,34 @@ class TestForseringService:
     def mock_timeline_service(self):
         """Create mock timeline service."""
         service = Mock()
-        service.compute_state = Mock(return_value=SakState(
-            sak_id="TEST-001",
-            sakstittel="Test Case"
-        ))
+        service.compute_state = Mock(
+            return_value=SakState(sak_id="TEST-001", sakstittel="Test Case")
+        )
         return service
 
     @pytest.fixture
-    def service(self, mock_catenda_client, mock_event_repository, mock_timeline_service):
+    def service(
+        self, mock_catenda_client, mock_event_repository, mock_timeline_service
+    ):
         """Create ForseringService with mocked dependencies."""
         return ForseringService(
             catenda_client=mock_catenda_client,
             event_repository=mock_event_repository,
-            timeline_service=mock_timeline_service
+            timeline_service=mock_timeline_service,
         )
 
     # ========================================================================
     # Test: Initialization
     # ========================================================================
 
-    def test_initialization_with_client(self, mock_catenda_client, mock_event_repository, mock_timeline_service):
+    def test_initialization_with_client(
+        self, mock_catenda_client, mock_event_repository, mock_timeline_service
+    ):
         """Test service initializes with Catenda client."""
         service = ForseringService(
             catenda_client=mock_catenda_client,
             event_repository=mock_event_repository,
-            timeline_service=mock_timeline_service
+            timeline_service=mock_timeline_service,
         )
         assert service.is_configured() is True
 
@@ -82,7 +91,7 @@ class TestForseringService:
             estimert_kostnad=100000.0,
             dagmulktsats=10000.0,
             begrunnelse="Test begrunnelse",
-            avslatte_dager=10
+            avslatte_dager=10,
         )
 
         # Assert
@@ -93,11 +102,13 @@ class TestForseringService:
         # Toveis-relasjoner: 1x Forsering→KOE + 2x KOE→Forsering = 3 kall
         assert mock_catenda_client.create_topic_relations.call_count == 3
 
-    def test_opprett_forseringssak_without_client(self, mock_event_repository, mock_timeline_service):
+    def test_opprett_forseringssak_without_client(
+        self, mock_event_repository, mock_timeline_service
+    ):
         """Test forsering creation returns mock data without client."""
         service = ForseringService(
             event_repository=mock_event_repository,
-            timeline_service=mock_timeline_service
+            timeline_service=mock_timeline_service,
         )
 
         result = service.opprett_forseringssak(
@@ -105,7 +116,7 @@ class TestForseringService:
             estimert_kostnad=100000.0,
             dagmulktsats=10000.0,
             begrunnelse="Test",
-            avslatte_dager=10  # 10 * 10000 * 1.3 = 130000 max
+            avslatte_dager=10,  # 10 * 10000 * 1.3 = 130000 max
         )
 
         # Should return mock data
@@ -120,7 +131,7 @@ class TestForseringService:
                 estimert_kostnad=100000.0,
                 dagmulktsats=10000.0,
                 begrunnelse="Test",
-                avslatte_dager=10
+                avslatte_dager=10,
             )
 
     def test_opprett_forseringssak_validation_over_30_percent(self, service):
@@ -132,7 +143,7 @@ class TestForseringService:
                 estimert_kostnad=200000.0,
                 dagmulktsats=10000.0,
                 begrunnelse="Test",
-                avslatte_dager=10
+                avslatte_dager=10,
             )
 
     # ========================================================================
@@ -143,12 +154,12 @@ class TestForseringService:
         """Test fetching related cases."""
         # Arrange
         mock_catenda_client.list_related_topics.return_value = [
-            {'related_topic_guid': 'SAK-001'},
-            {'related_topic_guid': 'SAK-002'}
+            {"related_topic_guid": "SAK-001"},
+            {"related_topic_guid": "SAK-002"},
         ]
         mock_catenda_client.get_topic_details.return_value = {
-            'title': 'Related Case',
-            'guid': 'SAK-001'
+            "title": "Related Case",
+            "guid": "SAK-001",
         }
 
         # Act
@@ -172,9 +183,7 @@ class TestForseringService:
         """Test 30% rule validation when within limit."""
         # 15 days * 10000 kr/day * 1.3 = 195000 kr max
         result = service.valider_30_prosent_regel(
-            estimert_kostnad=150000.0,
-            avslatte_dager=15,
-            dagmulktsats=10000.0
+            estimert_kostnad=150000.0, avslatte_dager=15, dagmulktsats=10000.0
         )
 
         assert result["er_gyldig"] is True
@@ -186,9 +195,7 @@ class TestForseringService:
         """Test 30% rule validation when over limit."""
         # 10 days * 10000 kr/day * 1.3 = 130000 kr max
         result = service.valider_30_prosent_regel(
-            estimert_kostnad=200000.0,
-            avslatte_dager=10,
-            dagmulktsats=10000.0
+            estimert_kostnad=200000.0, avslatte_dager=10, dagmulktsats=10000.0
         )
 
         assert result["er_gyldig"] is False
@@ -200,9 +207,7 @@ class TestForseringService:
         """Test 30% rule at exactly the limit."""
         # 10 days * 10000 kr/day * 1.3 = 130000 kr max
         result = service.valider_30_prosent_regel(
-            estimert_kostnad=130000.0,
-            avslatte_dager=10,
-            dagmulktsats=10000.0
+            estimert_kostnad=130000.0, avslatte_dager=10, dagmulktsats=10000.0
         )
 
         assert result["er_gyldig"] is True
@@ -211,9 +216,7 @@ class TestForseringService:
     def test_valider_30_prosent_regel_breakdown(self, service):
         """Test that breakdown values are correct."""
         result = service.valider_30_prosent_regel(
-            estimert_kostnad=100000.0,
-            avslatte_dager=10,
-            dagmulktsats=10000.0
+            estimert_kostnad=100000.0, avslatte_dager=10, dagmulktsats=10000.0
         )
 
         assert result["dagmulkt_grunnlag"] == 100000.0  # 10 * 10000
@@ -229,11 +232,11 @@ class TestForseringService:
         """Test fetching complete forsering context."""
         # Arrange
         mock_catenda_client.list_related_topics.return_value = [
-            {'related_topic_guid': 'SAK-001'}
+            {"related_topic_guid": "SAK-001"}
         ]
         mock_catenda_client.get_topic_details.return_value = {
-            'title': 'Related Case',
-            'guid': 'SAK-001'
+            "title": "Related Case",
+            "guid": "SAK-001",
         }
 
         mock_events = [Mock()]
@@ -243,10 +246,8 @@ class TestForseringService:
             sak_id="SAK-001",
             sakstittel="Test",
             frist=FristTilstand(
-                status="avslatt",
-                bh_resultat="avslatt",
-                krevd_dager=10
-            )
+                status="avslatt", bh_resultat="avslatt", krevd_dager=10
+            ),
         )
         mock_timeline_service.compute_state.return_value = mock_state
 
@@ -259,7 +260,9 @@ class TestForseringService:
         assert "hendelser" in result
         assert "oppsummering" in result
 
-    def test_hent_komplett_forseringskontekst_no_related(self, service, mock_catenda_client):
+    def test_hent_komplett_forseringskontekst_no_related(
+        self, service, mock_catenda_client
+    ):
         """Test context when no related cases."""
         # Arrange
         mock_catenda_client.list_related_topics.return_value = []
@@ -276,15 +279,18 @@ class TestForseringService:
     # Test: finn_forseringer_for_sak
     # ========================================================================
 
-    @patch('services.forsering_service.parse_event')
+    @patch("services.forsering_service.parse_event")
     def test_finn_forseringer_for_sak_found(
-        self, mock_parse_event, service, mock_catenda_client, mock_event_repository, mock_timeline_service
+        self,
+        mock_parse_event,
+        service,
+        mock_catenda_client,
+        mock_event_repository,
+        mock_timeline_service,
     ):
         """Test finding forseringer that reference a KOE case."""
         # Arrange
-        mock_catenda_client.list_topics.return_value = [
-            {'guid': 'forsering-001'}
-        ]
+        mock_catenda_client.list_topics.return_value = [{"guid": "forsering-001"}]
 
         mock_events = [{"event_type": "forsering_varsel"}]
         mock_event_repository.get_events.return_value = (mock_events, 1)
@@ -298,8 +304,8 @@ class TestForseringService:
                 avslatte_fristkrav=["SAK-001", "SAK-002"],
                 dato_varslet="2025-01-15",
                 estimert_kostnad=150000.0,
-                dagmulktsats=10000.0
-            )
+                dagmulktsats=10000.0,
+            ),
         )
         mock_timeline_service.compute_state.return_value = mock_state
 
@@ -315,9 +321,7 @@ class TestForseringService:
     ):
         """Test when no forseringer reference the KOE case."""
         # Arrange
-        mock_catenda_client.list_topics.return_value = [
-            {'guid': 'forsering-001'}
-        ]
+        mock_catenda_client.list_topics.return_value = [{"guid": "forsering-001"}]
 
         mock_events = [Mock()]
         mock_event_repository.get_events.return_value = (mock_events, 1)
@@ -330,8 +334,8 @@ class TestForseringService:
                 avslatte_fristkrav=["SAK-999"],  # Different case
                 dato_varslet="2025-01-15",
                 estimert_kostnad=150000.0,
-                dagmulktsats=10000.0
-            )
+                dagmulktsats=10000.0,
+            ),
         )
         mock_timeline_service.compute_state.return_value = mock_state
 
@@ -354,14 +358,14 @@ class TestForseringService:
     def test_hent_hendelser_delegates_to_related_cases(self, service):
         """Test that hent_hendelser_fra_relaterte_saker delegates correctly."""
         # The service should delegate to self.related_cases
-        with patch.object(service.related_cases, 'hent_hendelser_fra_saker') as mock:
+        with patch.object(service.related_cases, "hent_hendelser_fra_saker") as mock:
             mock.return_value = {"SAK-001": []}
             result = service.hent_hendelser_fra_relaterte_saker(["SAK-001"])
             mock.assert_called_once_with(["SAK-001"], None)
 
     def test_hent_state_delegates_to_related_cases(self, service):
         """Test that hent_state_fra_relaterte_saker delegates correctly."""
-        with patch.object(service.related_cases, 'hent_state_fra_saker') as mock:
+        with patch.object(service.related_cases, "hent_state_fra_saker") as mock:
             mock.return_value = {}
             result = service.hent_state_fra_relaterte_saker(["SAK-001"])
             mock.assert_called_once_with(["SAK-001"])

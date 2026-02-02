@@ -14,18 +14,18 @@ Architecture:
 - Uses Unit of Work for atomic metadata + event operations
 - Catenda comment posting is conditional on is_catenda_enabled
 """
-import os
-import base64
-import tempfile
-from datetime import datetime, timezone
-from typing import Dict, Any, Optional
 
-from repositories.event_repository import JsonFileEventRepository
-from repositories import create_metadata_repository
+import base64
+import os
+import tempfile
+from datetime import UTC, datetime
+from typing import Any
+
 from models.events import SakOpprettetEvent
-from models.sak_metadata import SakMetadata
-from services.timeline_service import TimelineService
+from repositories import create_metadata_repository
+from repositories.event_repository import JsonFileEventRepository
 from services.catenda_comment_generator import CatendaCommentGenerator
+from services.timeline_service import TimelineService
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -45,7 +45,7 @@ def format_guid_with_dashes(guid: str) -> str:
         GUID in UUID format with dashes
     """
     # Remove any existing dashes and lowercase
-    clean_guid = guid.replace('-', '').lower()
+    clean_guid = guid.replace("-", "").lower()
 
     # If it's 32 chars (compact), add dashes
     if len(clean_guid) == 32:
@@ -70,8 +70,8 @@ class WebhookService:
         self,
         event_repository: JsonFileEventRepository,
         catenda_client: Any,
-        config: Optional[Dict[str, Any]] = None,
-        magic_link_generator: Optional[Any] = None
+        config: dict[str, Any] | None = None,
+        magic_link_generator: Any | None = None,
     ):
         """
         Initialize WebhookService.
@@ -107,13 +107,15 @@ class WebhookService:
             return settings.dev_react_app_url
         if settings.react_app_url:
             return settings.react_app_url
-        if 'react_app_url' in self.config and self.config['react_app_url']:
-            return self.config['react_app_url']
+        if "react_app_url" in self.config and self.config["react_app_url"]:
+            return self.config["react_app_url"]
 
         # Fallback to localhost
         return "http://localhost:3000"
 
-    def handle_new_topic_created(self, webhook_payload: Dict[str, Any]) -> Dict[str, Any]:
+    def handle_new_topic_created(
+        self, webhook_payload: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Handles new Catenda topic by creating a SakOpprettetEvent.
 
@@ -135,19 +137,34 @@ class WebhookService:
         try:
             # Import filtering config (local to avoid circular deps)
             from utils.filtering_config import (
-                should_process_topic,
+                get_frontend_route,
                 get_sakstype_from_topic_type,
-                get_frontend_route
+                should_process_topic,
             )
 
             # Extract basic data from webhook payload
-            temp_topic_data = webhook_payload.get('issue', {}) or webhook_payload.get('topic', {})
-            raw_board_id = webhook_payload.get('project_id') or temp_topic_data.get('boardId') or temp_topic_data.get('topic_board_id')
-            raw_topic_id = temp_topic_data.get('id') or temp_topic_data.get('guid') or webhook_payload.get('guid')
+            temp_topic_data = webhook_payload.get("issue", {}) or webhook_payload.get(
+                "topic", {}
+            )
+            raw_board_id = (
+                webhook_payload.get("project_id")
+                or temp_topic_data.get("boardId")
+                or temp_topic_data.get("topic_board_id")
+            )
+            raw_topic_id = (
+                temp_topic_data.get("id")
+                or temp_topic_data.get("guid")
+                or webhook_payload.get("guid")
+            )
 
             if not raw_topic_id or not raw_board_id:
-                logger.error(f"Webhook missing 'topic_id' or 'board_id'. Payload: {webhook_payload}")
-                return {'success': False, 'error': 'Missing topic_id or board_id in webhook'}
+                logger.error(
+                    f"Webhook missing 'topic_id' or 'board_id'. Payload: {webhook_payload}"
+                )
+                return {
+                    "success": False,
+                    "error": "Missing topic_id or board_id in webhook",
+                }
 
             # Format GUIDs to UUID format with dashes (BCF API requirement)
             topic_id = format_guid_with_dashes(raw_topic_id)
@@ -160,60 +177,77 @@ class WebhookService:
             topic_data = self.catenda.get_topic_details(topic_id)
 
             if not topic_data:
-                logger.error(f"Failed to fetch topic details for ID {topic_id} from Catenda API.")
-                return {'success': False, 'error': f'Could not fetch topic details for {topic_id}'}
+                logger.error(
+                    f"Failed to fetch topic details for ID {topic_id} from Catenda API."
+                )
+                return {
+                    "success": False,
+                    "error": f"Could not fetch topic details for {topic_id}",
+                }
 
             # Now check filters with ACTUAL topic data (includes topic_type)
             filter_data = {
-                'board_id': board_id,
-                'topic_type': topic_data.get('topic_type'),
-                'type': topic_data.get('topic_type'),  # Alias for filtering
-                'title': topic_data.get('title'),
+                "board_id": board_id,
+                "topic_type": topic_data.get("topic_type"),
+                "type": topic_data.get("topic_type"),  # Alias for filtering
+                "title": topic_data.get("title"),
             }
 
             should_proc, reason = should_process_topic(filter_data)
             if not should_proc:
                 logger.info(f"⏭️  Ignoring topic (reason: {reason})")
-                return {'success': True, 'action': 'ignored_due_to_filter', 'reason': reason}
+                return {
+                    "success": True,
+                    "action": "ignored_due_to_filter",
+                    "reason": reason,
+                }
 
             # Extract metadata
-            title = topic_data.get('title', 'Untitled')
-            topic_type = topic_data.get('topic_type', '')
+            title = topic_data.get("title", "Untitled")
+            topic_type = topic_data.get("topic_type", "")
 
             # Determine sakstype from topic_type
             sakstype = get_sakstype_from_topic_type(topic_type)
             logger.info(f"📋 Topic type: '{topic_type}' -> Sakstype: '{sakstype}'")
 
-            byggherre = 'Not specified'
-            leverandor = 'Not specified'
-            project_name = 'Unknown project'
+            byggherre = "Not specified"
+            leverandor = "Not specified"
+            project_name = "Unknown project"
             v2_project_id = None
 
             # Get project details
             board_details = self.catenda.get_topic_board_details()
             if board_details:
-                v2_project_id = board_details.get('bimsync_project_id')
+                v2_project_id = board_details.get("bimsync_project_id")
                 if v2_project_id:
                     project_details = self.catenda.get_project_details(v2_project_id)
                     if project_details:
-                        project_name = project_details.get('name', project_name)
+                        project_name = project_details.get("name", project_name)
 
             # Extract custom fields (Byggherre, Leverandør)
-            custom_fields = topic_data.get('bimsync_custom_fields', [])
+            custom_fields = topic_data.get("bimsync_custom_fields", [])
             for field in custom_fields:
-                field_name = field.get('customFieldName')
-                field_value = field.get('value')
-                if field_name == 'Byggherre' and field_value:
+                field_name = field.get("customFieldName")
+                field_value = field.get("value")
+                if field_name == "Byggherre" and field_value:
                     byggherre = field_value
-                elif field_name == 'Leverandør' and field_value:
+                elif field_name == "Leverandør" and field_value:
                     leverandor = field_value
 
             # Extract author
-            author_name = topic_data.get('bimsync_creation_author', {}).get('user', {}).get('name', topic_data.get('creation_author', 'Unknown'))
-            author_email = topic_data.get('bimsync_creation_author', {}).get('user', {}).get('email')
+            author_name = (
+                topic_data.get("bimsync_creation_author", {})
+                .get("user", {})
+                .get("name", topic_data.get("creation_author", "Unknown"))
+            )
+            author_email = (
+                topic_data.get("bimsync_creation_author", {})
+                .get("user", {})
+                .get("email")
+            )
 
             # Generate sak_id (timestamp-based)
-            timestamp = datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')
+            timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
             sak_id = f"SAK-{timestamp}"
 
             # Create SakOpprettetEvent (Event Sourcing)
@@ -243,31 +277,38 @@ class WebhookService:
                     "created_by": author_name,
                     "cached_title": title,
                     "cached_status": "UNDER_VARSLING",
-                }
+                },
             )
 
             if not result.success:
-                return {'success': False, 'error': result.error}
+                return {"success": False, "error": result.error}
 
             # Generate magic link with correct route based on sakstype
             magic_token = None
             if self.magic_link_generator:
-                magic_token = self.magic_link_generator.generate(sak_id=sak_id, email=author_email)
+                magic_token = self.magic_link_generator.generate(
+                    sak_id=sak_id, email=author_email
+                )
 
             base_url = self.get_react_app_base_url()
             frontend_route = get_frontend_route(sakstype, sak_id)
-            magic_link = f"{base_url}{frontend_route}?magicToken={magic_token}" if magic_token else f"{base_url}{frontend_route}"
+            magic_link = (
+                f"{base_url}{frontend_route}?magicToken={magic_token}"
+                if magic_token
+                else f"{base_url}{frontend_route}"
+            )
 
             # Post comment to Catenda (synchronous - critical operation)
             # Only if Catenda is enabled and client is available
             from core.config import settings
+
             if settings.is_catenda_enabled and self.catenda and topic_id:
                 comment_generator = CatendaCommentGenerator()
                 comment_text = comment_generator.generate_creation_comment(
                     sak_id=sak_id,
                     sakstype=sakstype,
                     project_name=project_name,
-                    magic_link=magic_link
+                    magic_link=magic_link,
                 )
 
                 # Post comment synchronously - case is already created, so we log errors
@@ -282,17 +323,21 @@ class WebhookService:
                         f"Manual follow-up required. Error: {e}"
                     )
             else:
-                logger.info(f"ℹ️ Catenda disabled or not configured, skipping comment for {sak_id}")
+                logger.info(
+                    f"ℹ️ Catenda disabled or not configured, skipping comment for {sak_id}"
+                )
 
             logger.info(f"✅ Case {sak_id} created successfully.")
 
-            return {'success': True, 'sak_id': sak_id}
+            return {"success": True, "sak_id": sak_id}
 
         except Exception as e:
             logger.exception(f"Error in handle_new_topic_created: {e}")
-            return {'success': False, 'error': str(e)}
+            return {"success": False, "error": str(e)}
 
-    def handle_topic_modification(self, webhook_payload: Dict[str, Any]) -> Dict[str, Any]:
+    def handle_topic_modification(
+        self, webhook_payload: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Handles changes to Catenda topic.
 
@@ -310,8 +355,10 @@ class WebhookService:
         """
         try:
             # Extract topic data
-            topic_data = webhook_payload.get('issue', {}) or webhook_payload.get('topic', {})
-            raw_topic_id = topic_data.get('id') or topic_data.get('guid')
+            topic_data = webhook_payload.get("issue", {}) or webhook_payload.get(
+                "topic", {}
+            )
+            raw_topic_id = topic_data.get("id") or topic_data.get("guid")
 
             # Format topic_id to UUID format (BCF API requirement)
             topic_id = format_guid_with_dashes(raw_topic_id) if raw_topic_id else None
@@ -319,28 +366,32 @@ class WebhookService:
             # Find existing case by topic_id
             metadata = self.metadata_repo.get_by_topic_id(topic_id)
             if not metadata:
-                logger.info(f"Topic {topic_id} not found in our system, ignoring modification")
-                return {'success': True, 'action': 'ignored_unknown_topic'}
+                logger.info(
+                    f"Topic {topic_id} not found in our system, ignoring modification"
+                )
+                return {"success": True, "action": "ignored_unknown_topic"}
 
             sak_id = metadata.sak_id
 
             # Extract modification data
-            modification_data = webhook_payload.get('modification', {})
-            comment_data = webhook_payload.get('comment', {})
+            modification_data = webhook_payload.get("modification", {})
+            comment_data = webhook_payload.get("comment", {})
 
             # Log the modification for audit purposes
             modification_type = None
 
             # Check for status updates
-            if modification_data.get('event') == 'status_updated':
-                new_status_val = modification_data.get('value', '')
+            if modification_data.get("event") == "status_updated":
+                new_status_val = modification_data.get("value", "")
                 logger.info(f"📝 Catenda status changed for {sak_id}: {new_status_val}")
                 modification_type = f"catenda_status_changed: {new_status_val}"
 
             # Check for comments
-            elif 'comment' in comment_data:
-                comment_text = comment_data.get('comment', '')
-                logger.info(f"💬 New Catenda comment on {sak_id}: {comment_text[:100]}...")
+            elif "comment" in comment_data:
+                comment_text = comment_data.get("comment", "")
+                logger.info(
+                    f"💬 New Catenda comment on {sak_id}: {comment_text[:100]}..."
+                )
                 modification_type = "catenda_comment_added"
 
             # Note: We do NOT create events from Catenda status changes
@@ -348,16 +399,24 @@ class WebhookService:
 
             if modification_type:
                 # Could log to audit trail or history if needed
-                logger.info(f"ℹ️ Case {sak_id}: {modification_type} (not syncing to event log)")
-                return {'success': True, 'action': 'logged', 'modification': modification_type}
+                logger.info(
+                    f"ℹ️ Case {sak_id}: {modification_type} (not syncing to event log)"
+                )
+                return {
+                    "success": True,
+                    "action": "logged",
+                    "modification": modification_type,
+                }
 
-            return {'success': True, 'action': 'no_action_needed'}
+            return {"success": True, "action": "no_action_needed"}
 
         except Exception as e:
             logger.exception(f"Error in handle_topic_modification: {e}")
-            return {'success': False, 'error': str(e)}
+            return {"success": False, "error": str(e)}
 
-    def handle_pdf_upload(self, sak_id: str, pdf_base64: str, filename: str, topic_guid: str) -> Dict[str, Any]:
+    def handle_pdf_upload(
+        self, sak_id: str, pdf_base64: str, filename: str, topic_guid: str
+    ) -> dict[str, Any]:
         """
         Receives Base64 PDF, uploads to Catenda and links to topic.
 
@@ -393,8 +452,8 @@ class WebhookService:
             logger.info(f"PDF saved temporarily: {temp_path}")
 
             # Get project and library IDs from config
-            project_id = self.config.get('catenda_project_id')
-            library_id = self.config.get('catenda_library_id')
+            project_id = self.config.get("catenda_project_id")
+            library_id = self.config.get("catenda_library_id")
 
             # Set library ID or auto-select
             if library_id:
@@ -405,10 +464,10 @@ class WebhookService:
             # Upload document to Catenda
             doc_result = self.catenda.upload_document(project_id, temp_path, filename)
 
-            if not doc_result or 'id' not in doc_result:
+            if not doc_result or "id" not in doc_result:
                 raise Exception("Error uploading document to Catenda")
 
-            compact_doc_guid = doc_result['id']
+            compact_doc_guid = doc_result["id"]
             logger.info(f"PDF uploaded to Catenda. Compact GUID: {compact_doc_guid}")
 
             # Format GUID (add dashes if compact format)
@@ -430,24 +489,41 @@ class WebhookService:
                 self.catenda.select_topic_board(0)
 
             # Try to create document reference with formatted GUID
-            ref_result = self.catenda.create_document_reference(topic_guid, formatted_doc_guid)
+            ref_result = self.catenda.create_document_reference(
+                topic_guid, formatted_doc_guid
+            )
 
             if ref_result:
                 logger.info(f"PDF linked to topic {topic_guid}")
-                return {'success': True, 'documentGuid': formatted_doc_guid, 'filename': filename}
+                return {
+                    "success": True,
+                    "documentGuid": formatted_doc_guid,
+                    "filename": filename,
+                }
             else:
                 # Try compact GUID as fallback
-                logger.warning(f"Could not link with formatted GUID. Trying compact GUID: {compact_doc_guid}")
-                ref_result_compact = self.catenda.create_document_reference(topic_guid, compact_doc_guid)
+                logger.warning(
+                    f"Could not link with formatted GUID. Trying compact GUID: {compact_doc_guid}"
+                )
+                ref_result_compact = self.catenda.create_document_reference(
+                    topic_guid, compact_doc_guid
+                )
                 if ref_result_compact:
                     logger.info(f"PDF linked to topic {topic_guid} with compact GUID.")
-                    return {'success': True, 'documentGuid': compact_doc_guid, 'filename': filename}
+                    return {
+                        "success": True,
+                        "documentGuid": compact_doc_guid,
+                        "filename": filename,
+                    }
                 else:
-                    return {'success': False, 'error': 'Could not link document to topic (both GUID formats failed)'}
+                    return {
+                        "success": False,
+                        "error": "Could not link document to topic (both GUID formats failed)",
+                    }
 
         except Exception as e:
             logger.exception(f"Error handling PDF: {e}")
-            return {'success': False, 'error': str(e)}
+            return {"success": False, "error": str(e)}
         finally:
             # Clean up temporary file
             if temp_path and os.path.exists(temp_path):

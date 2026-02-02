@@ -8,24 +8,26 @@ These tests would have caught bugs like:
 - visningsstatus_vederlag failing when godkjent_belop is None
 - visningsstatus_frist failing when godkjent_dager is None
 """
+
 import pytest
-from models.sak_state import (
-    SakState,
-    GrunnlagTilstand,
-    VederlagTilstand,
-    FristTilstand,
-    SaksType,
-)
+
 from models.events import (
+    FristBeregningResultat,
     SporStatus,
     VederlagBeregningResultat,
-    FristBeregningResultat,
 )
-
+from models.sak_state import (
+    FristTilstand,
+    GrunnlagTilstand,
+    SakState,
+    SaksType,
+    VederlagTilstand,
+)
 
 # ============================================================================
 # Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def minimal_sak_state():
@@ -80,6 +82,7 @@ def sak_with_frist_delvis_godkjent():
 # ============================================================================
 # VederlagTilstand computed property tests
 # ============================================================================
+
 
 class TestVederlagTilstandComputed:
     """Tests for VederlagTilstand computed properties."""
@@ -182,6 +185,7 @@ class TestVederlagTilstandComputed:
 # FristTilstand computed property tests
 # ============================================================================
 
+
 class TestFristTilstandComputed:
     """Tests for FristTilstand computed properties."""
 
@@ -218,6 +222,7 @@ class TestFristTilstandComputed:
 # SakState.visningsstatus_vederlag tests (the bug we fixed)
 # ============================================================================
 
+
 class TestVisningsstatusVederlag:
     """
     Tests for SakState.visningsstatus_vederlag computed property.
@@ -240,7 +245,10 @@ class TestVisningsstatusVederlag:
                 godkjent_belop=150000,
             ),
         )
-        assert "150,000 kr" in sak.visningsstatus_vederlag or "150000" in sak.visningsstatus_vederlag
+        assert (
+            "150,000 kr" in sak.visningsstatus_vederlag
+            or "150000" in sak.visningsstatus_vederlag
+        )
 
     def test_godkjent_without_belop(self):
         """visningsstatus_vederlag handles None godkjent_belop for GODKJENT."""
@@ -365,6 +373,7 @@ class TestVisningsstatusVederlag:
 # ============================================================================
 # SakState.visningsstatus_frist tests
 # ============================================================================
+
 
 class TestVisningsstatusFrist:
     """
@@ -504,6 +513,7 @@ class TestVisningsstatusFrist:
 # SakState.overordnet_status tests
 # ============================================================================
 
+
 class TestOverordnetStatus:
     """Tests for SakState.overordnet_status computed property."""
 
@@ -587,6 +597,7 @@ class TestOverordnetStatus:
 # SakState.er_subsidiaert tests
 # ============================================================================
 
+
 class TestErSubsidiaert:
     """Tests for er_subsidiaert_vederlag and er_subsidiaert_frist."""
 
@@ -644,6 +655,7 @@ class TestErSubsidiaert:
 # SakState.kan_utstede_eo tests
 # ============================================================================
 
+
 class TestKanUtstedeEo:
     """Tests for SakState.kan_utstede_eo computed property."""
 
@@ -681,6 +693,7 @@ class TestKanUtstedeEo:
 # Model serialization tests (model_dump)
 # ============================================================================
 
+
 class TestModelSerialization:
     """
     Tests that model_dump() works correctly with computed properties.
@@ -697,26 +710,26 @@ class TestModelSerialization:
         THIS WAS THE EXACT SCENARIO CAUSING THE BUG.
         """
         # This should not raise TypeError
-        result = sak_with_vederlag_delvis_godkjent.model_dump(mode='json')
+        result = sak_with_vederlag_delvis_godkjent.model_dump(mode="json")
 
         assert isinstance(result, dict)
-        assert 'visningsstatus_vederlag' in result
-        assert isinstance(result['visningsstatus_vederlag'], str)
+        assert "visningsstatus_vederlag" in result
+        assert isinstance(result["visningsstatus_vederlag"], str)
 
     def test_model_dump_frist_none_values(self, sak_with_frist_delvis_godkjent):
         """model_dump() handles frist with None godkjent_dager."""
         # This should not raise
-        result = sak_with_frist_delvis_godkjent.model_dump(mode='json')
+        result = sak_with_frist_delvis_godkjent.model_dump(mode="json")
 
         assert isinstance(result, dict)
-        assert 'visningsstatus_frist' in result
+        assert "visningsstatus_frist" in result
 
     def test_model_dump_minimal(self, minimal_sak_state):
         """model_dump() works with minimal state."""
-        result = minimal_sak_state.model_dump(mode='json')
+        result = minimal_sak_state.model_dump(mode="json")
 
         assert isinstance(result, dict)
-        assert result['sak_id'] == 'TEST-001'
-        assert 'visningsstatus_vederlag' in result
-        assert 'visningsstatus_frist' in result
-        assert 'overordnet_status' in result
+        assert result["sak_id"] == "TEST-001"
+        assert "visningsstatus_vederlag" in result
+        assert "visningsstatus_frist" in result
+        assert "overordnet_status" in result

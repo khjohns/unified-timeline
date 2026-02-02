@@ -13,27 +13,30 @@ Endpoints:
 - GET /api/analytics/response-times  - Behandlingstider
 """
 
-from flask import Blueprint, jsonify, request
-from datetime import datetime, timezone, timedelta
 from collections import defaultdict
-from typing import Dict, List, Any
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from models.events import parse_event
+from flask import Blueprint, jsonify, request
+
 from lib.auth.magic_link import require_magic_link
+from models.events import parse_event
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-analytics_bp = Blueprint('analytics', __name__)
+analytics_bp = Blueprint("analytics", __name__)
 
 
 # ---------------------------------------------------------------------------
 # Dependency access via Container
 # ---------------------------------------------------------------------------
 
+
 def _get_container():
     """Hent DI Container."""
     from core.container import get_container
+
     return get_container()
 
 
@@ -56,7 +59,8 @@ def _get_timeline_service():
 # AGGREGATION HELPERS
 # ============================================================
 
-def _get_all_events_with_metadata() -> List[Dict[str, Any]]:
+
+def _get_all_events_with_metadata() -> list[dict[str, Any]]:
     """
     Hent alle events fra alle saker med metadata.
 
@@ -77,7 +81,7 @@ def _get_all_events_with_metadata() -> List[Dict[str, Any]]:
         try:
             events_data, version = _get_event_repo().get_events(sak_id)
             for evt in events_data:
-                evt['_sak_id'] = sak_id
+                evt["_sak_id"] = sak_id
                 all_events.append(evt)
         except Exception as e:
             logger.warning(f"Could not load events for {sak_id}: {e}")
@@ -85,7 +89,7 @@ def _get_all_events_with_metadata() -> List[Dict[str, Any]]:
     return all_events
 
 
-def _compute_all_states() -> Dict[str, Any]:
+def _compute_all_states() -> dict[str, Any]:
     """
     Beregn current state for alle saker.
 
@@ -116,7 +120,8 @@ def _compute_all_states() -> Dict[str, Any]:
 # API ENDPOINTS
 # ============================================================
 
-@analytics_bp.route('/api/analytics/summary', methods=['GET'])
+
+@analytics_bp.route("/api/analytics/summary", methods=["GET"])
 @require_magic_link
 def get_summary():
     """
@@ -156,12 +161,14 @@ def get_summary():
 
         for sak_id, state in states.items():
             # Sakstype - bruk enum value for riktig JSON-serialisering
-            sakstype_enum = getattr(state, 'sakstype', None)
-            sakstype = sakstype_enum.value if sakstype_enum else 'standard'
+            sakstype_enum = getattr(state, "sakstype", None)
+            sakstype = sakstype_enum.value if sakstype_enum else "standard"
             by_sakstype[sakstype] += 1
 
             # Status
-            status = str(state.overordnet_status) if state.overordnet_status else 'ukjent'
+            status = (
+                str(state.overordnet_status) if state.overordnet_status else "ukjent"
+            )
             by_status[status] += 1
 
             # Vederlag - bruk flate felter fra VederlagTilstand
@@ -176,34 +183,44 @@ def get_summary():
 
         # Finn siste aktivitet
         for evt in all_events:
-            ts = evt.get('tidsstempel') or evt.get('time')
+            ts = evt.get("tidsstempel") or evt.get("time")
             if ts:
                 if isinstance(ts, str):
                     try:
-                        ts = datetime.fromisoformat(ts.replace('Z', '+00:00').replace(' ', 'T'))
+                        ts = datetime.fromisoformat(
+                            ts.replace("Z", "+00:00").replace(" ", "T")
+                        )
                     except ValueError:
                         continue
                 if last_activity is None or ts > last_activity:
                     last_activity = ts
 
-        return jsonify({
-            "total_cases": len(states),
-            "by_sakstype": dict(by_sakstype),
-            "by_status": dict(by_status),
-            "total_events": len(all_events),
-            "total_vederlag_krevd": total_vederlag_krevd,
-            "total_vederlag_godkjent": total_vederlag_godkjent,
-            "godkjenningsgrad_vederlag": round(total_vederlag_godkjent / total_vederlag_krevd * 100, 1) if total_vederlag_krevd > 0 else 0,
-            "avg_events_per_case": round(len(all_events) / len(states), 1) if states else 0,
-            "last_activity": last_activity.isoformat() if last_activity else None
-        })
+        return jsonify(
+            {
+                "total_cases": len(states),
+                "by_sakstype": dict(by_sakstype),
+                "by_status": dict(by_status),
+                "total_events": len(all_events),
+                "total_vederlag_krevd": total_vederlag_krevd,
+                "total_vederlag_godkjent": total_vederlag_godkjent,
+                "godkjenningsgrad_vederlag": round(
+                    total_vederlag_godkjent / total_vederlag_krevd * 100, 1
+                )
+                if total_vederlag_krevd > 0
+                else 0,
+                "avg_events_per_case": round(len(all_events) / len(states), 1)
+                if states
+                else 0,
+                "last_activity": last_activity.isoformat() if last_activity else None,
+            }
+        )
 
     except Exception as e:
         logger.error(f"Analytics summary failed: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 
-@analytics_bp.route('/api/analytics/by-category', methods=['GET'])
+@analytics_bp.route("/api/analytics/by-category", methods=["GET"])
 @require_magic_link
 def get_by_category():
     """
@@ -228,47 +245,65 @@ def get_by_category():
         states = _compute_all_states()
 
         # Aggreger per kategori
-        by_category = defaultdict(lambda: {
-            'antall': 0,
-            'godkjent': 0,
-            'delvis_godkjent': 0,
-            'avslatt': 0,
-            'under_behandling': 0
-        })
+        by_category = defaultdict(
+            lambda: {
+                "antall": 0,
+                "godkjent": 0,
+                "delvis_godkjent": 0,
+                "avslatt": 0,
+                "under_behandling": 0,
+            }
+        )
 
         for sak_id, state in states.items():
             if state.grunnlag and state.grunnlag.hovedkategori:
-                kategori = state.grunnlag.hovedkategori or 'UKJENT'
-                by_category[kategori]['antall'] += 1
+                kategori = state.grunnlag.hovedkategori or "UKJENT"
+                by_category[kategori]["antall"] += 1
 
                 # Status for grunnlag - bruk status enum direkte
-                grunnlag_status = str(state.grunnlag.status.value) if state.grunnlag.status else ''
-                if 'godkjent' in grunnlag_status.lower() and 'delvis' not in grunnlag_status.lower():
-                    by_category[kategori]['godkjent'] += 1
-                elif 'delvis' in grunnlag_status.lower():
-                    by_category[kategori]['delvis_godkjent'] += 1
-                elif 'avslatt' in grunnlag_status.lower():
-                    by_category[kategori]['avslatt'] += 1
+                grunnlag_status = (
+                    str(state.grunnlag.status.value) if state.grunnlag.status else ""
+                )
+                if (
+                    "godkjent" in grunnlag_status.lower()
+                    and "delvis" not in grunnlag_status.lower()
+                ):
+                    by_category[kategori]["godkjent"] += 1
+                elif "delvis" in grunnlag_status.lower():
+                    by_category[kategori]["delvis_godkjent"] += 1
+                elif "avslatt" in grunnlag_status.lower():
+                    by_category[kategori]["avslatt"] += 1
                 else:
-                    by_category[kategori]['under_behandling'] += 1
+                    by_category[kategori]["under_behandling"] += 1
 
         # Beregn godkjenningsrate
         result = []
-        for kategori, data in sorted(by_category.items(), key=lambda x: -x[1]['antall']):
-            ferdigbehandlet = data['godkjent'] + data['delvis_godkjent'] + data['avslatt']
+        for kategori, data in sorted(
+            by_category.items(), key=lambda x: -x[1]["antall"]
+        ):
+            ferdigbehandlet = (
+                data["godkjent"] + data["delvis_godkjent"] + data["avslatt"]
+            )
             godkjenningsrate = 0
             if ferdigbehandlet > 0:
-                godkjenningsrate = round((data['godkjent'] + data['delvis_godkjent']) / ferdigbehandlet * 100, 1)
+                godkjenningsrate = round(
+                    (data["godkjent"] + data["delvis_godkjent"])
+                    / ferdigbehandlet
+                    * 100,
+                    1,
+                )
 
-            result.append({
-                'kategori': kategori,
-                'antall': data['antall'],
-                'godkjent': data['godkjent'],
-                'delvis_godkjent': data['delvis_godkjent'],
-                'avslatt': data['avslatt'],
-                'under_behandling': data['under_behandling'],
-                'godkjenningsrate': godkjenningsrate
-            })
+            result.append(
+                {
+                    "kategori": kategori,
+                    "antall": data["antall"],
+                    "godkjent": data["godkjent"],
+                    "delvis_godkjent": data["delvis_godkjent"],
+                    "avslatt": data["avslatt"],
+                    "under_behandling": data["under_behandling"],
+                    "godkjenningsrate": godkjenningsrate,
+                }
+            )
 
         return jsonify({"categories": result})
 
@@ -277,7 +312,7 @@ def get_by_category():
         return jsonify({"error": str(e)}), 500
 
 
-@analytics_bp.route('/api/analytics/timeline', methods=['GET'])
+@analytics_bp.route("/api/analytics/timeline", methods=["GET"])
 @require_magic_link
 def get_activity_timeline():
     """
@@ -298,23 +333,25 @@ def get_activity_timeline():
     }
     """
     try:
-        period = request.args.get('period', 'week')
-        days_back = int(request.args.get('days', 90))
+        period = request.args.get("period", "week")
+        days_back = int(request.args.get("days", 90))
 
         all_events = _get_all_events_with_metadata()
-        cutoff = datetime.now(timezone.utc) - timedelta(days=days_back)
+        cutoff = datetime.now(UTC) - timedelta(days=days_back)
 
         # Aggreger per periode
-        by_period = defaultdict(lambda: {'events': 0, 'new_cases': 0})
+        by_period = defaultdict(lambda: {"events": 0, "new_cases": 0})
 
         for evt in all_events:
-            ts = evt.get('tidsstempel') or evt.get('time')
+            ts = evt.get("tidsstempel") or evt.get("time")
             if not ts:
                 continue
 
             if isinstance(ts, str):
                 try:
-                    ts = datetime.fromisoformat(ts.replace('Z', '+00:00').replace(' ', 'T'))
+                    ts = datetime.fromisoformat(
+                        ts.replace("Z", "+00:00").replace(" ", "T")
+                    )
                 except ValueError:
                     continue
 
@@ -322,40 +359,36 @@ def get_activity_timeline():
                 continue
 
             # Bestem periode-nøkkel
-            if period == 'day':
-                key = ts.strftime('%Y-%m-%d')
-            elif period == 'week':
+            if period == "day":
+                key = ts.strftime("%Y-%m-%d")
+            elif period == "week":
                 # Start of week (Monday)
                 week_start = ts - timedelta(days=ts.weekday())
-                key = week_start.strftime('%Y-%m-%d')
+                key = week_start.strftime("%Y-%m-%d")
             else:  # month
-                key = ts.strftime('%Y-%m-01')
+                key = ts.strftime("%Y-%m-01")
 
-            by_period[key]['events'] += 1
+            by_period[key]["events"] += 1
 
             # Sjekk om dette er en ny sak
-            event_type = evt.get('event_type', '')
-            if event_type == 'sak_opprettet':
-                by_period[key]['new_cases'] += 1
+            event_type = evt.get("event_type", "")
+            if event_type == "sak_opprettet":
+                by_period[key]["new_cases"] += 1
 
         # Sorter og formater
         result = [
-            {'date': date, 'events': data['events'], 'new_cases': data['new_cases']}
+            {"date": date, "events": data["events"], "new_cases": data["new_cases"]}
             for date, data in sorted(by_period.items())
         ]
 
-        return jsonify({
-            "period": period,
-            "days_back": days_back,
-            "data": result
-        })
+        return jsonify({"period": period, "days_back": days_back, "data": result})
 
     except Exception as e:
         logger.error(f"Analytics timeline failed: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 
-@analytics_bp.route('/api/analytics/vederlag', methods=['GET'])
+@analytics_bp.route("/api/analytics/vederlag", methods=["GET"])
 @require_magic_link
 def get_vederlag_analytics():
     """
@@ -397,11 +430,9 @@ def get_vederlag_analytics():
         krav_count = 0
         godkjent_count = 0
 
-        by_metode = defaultdict(lambda: {
-            'antall': 0,
-            'total_krevd': 0,
-            'total_godkjent': 0
-        })
+        by_metode = defaultdict(
+            lambda: {"antall": 0, "total_krevd": 0, "total_godkjent": 0}
+        )
 
         krav_amounts = []
 
@@ -410,77 +441,91 @@ def get_vederlag_analytics():
                 continue
 
             # Bruk flate felter fra VederlagTilstand
-            metode = state.vederlag.metode or 'UKJENT'
+            metode = state.vederlag.metode or "UKJENT"
             belop = state.vederlag.krevd_belop or 0
 
             if belop > 0:
                 krav_count += 1
                 total_krevd += belop
-                by_metode[metode]['antall'] += 1
-                by_metode[metode]['total_krevd'] += belop
+                by_metode[metode]["antall"] += 1
+                by_metode[metode]["total_krevd"] += belop
                 krav_amounts.append(belop)
 
             godkjent = state.vederlag.godkjent_belop or 0
             if godkjent > 0:
                 godkjent_count += 1
                 total_godkjent += godkjent
-                by_metode[metode]['total_godkjent'] += godkjent
+                by_metode[metode]["total_godkjent"] += godkjent
 
         # Krav-distribusjon
         distribution = [
-            {'range': '0-50k', 'count': 0},
-            {'range': '50k-100k', 'count': 0},
-            {'range': '100k-500k', 'count': 0},
-            {'range': '500k-1M', 'count': 0},
-            {'range': '1M+', 'count': 0}
+            {"range": "0-50k", "count": 0},
+            {"range": "50k-100k", "count": 0},
+            {"range": "100k-500k", "count": 0},
+            {"range": "500k-1M", "count": 0},
+            {"range": "1M+", "count": 0},
         ]
 
         for amount in krav_amounts:
             if amount < 50000:
-                distribution[0]['count'] += 1
+                distribution[0]["count"] += 1
             elif amount < 100000:
-                distribution[1]['count'] += 1
+                distribution[1]["count"] += 1
             elif amount < 500000:
-                distribution[2]['count'] += 1
+                distribution[2]["count"] += 1
             elif amount < 1000000:
-                distribution[3]['count'] += 1
+                distribution[3]["count"] += 1
             else:
-                distribution[4]['count'] += 1
+                distribution[4]["count"] += 1
 
         # Formater metode-data
         metode_result = []
-        for metode, data in sorted(by_metode.items(), key=lambda x: -x[1]['total_krevd']):
+        for metode, data in sorted(
+            by_metode.items(), key=lambda x: -x[1]["total_krevd"]
+        ):
             godkjenningsgrad = 0
-            if data['total_krevd'] > 0:
-                godkjenningsgrad = round(data['total_godkjent'] / data['total_krevd'] * 100, 1)
+            if data["total_krevd"] > 0:
+                godkjenningsgrad = round(
+                    data["total_godkjent"] / data["total_krevd"] * 100, 1
+                )
 
-            metode_result.append({
-                'metode': metode,
-                'antall': data['antall'],
-                'total_krevd': data['total_krevd'],
-                'total_godkjent': data['total_godkjent'],
-                'godkjenningsgrad': godkjenningsgrad
-            })
+            metode_result.append(
+                {
+                    "metode": metode,
+                    "antall": data["antall"],
+                    "total_krevd": data["total_krevd"],
+                    "total_godkjent": data["total_godkjent"],
+                    "godkjenningsgrad": godkjenningsgrad,
+                }
+            )
 
-        return jsonify({
-            "summary": {
-                "total_krevd": total_krevd,
-                "total_godkjent": total_godkjent,
-                "godkjenningsgrad": round(total_godkjent / total_krevd * 100, 1) if total_krevd > 0 else 0,
-                "antall_krav": krav_count,
-                "avg_krav": round(total_krevd / krav_count) if krav_count > 0 else 0,
-                "avg_godkjent": round(total_godkjent / godkjent_count) if godkjent_count > 0 else 0
-            },
-            "by_metode": metode_result,
-            "krav_distribution": distribution
-        })
+        return jsonify(
+            {
+                "summary": {
+                    "total_krevd": total_krevd,
+                    "total_godkjent": total_godkjent,
+                    "godkjenningsgrad": round(total_godkjent / total_krevd * 100, 1)
+                    if total_krevd > 0
+                    else 0,
+                    "antall_krav": krav_count,
+                    "avg_krav": round(total_krevd / krav_count)
+                    if krav_count > 0
+                    else 0,
+                    "avg_godkjent": round(total_godkjent / godkjent_count)
+                    if godkjent_count > 0
+                    else 0,
+                },
+                "by_metode": metode_result,
+                "krav_distribution": distribution,
+            }
+        )
 
     except Exception as e:
         logger.error(f"Analytics vederlag failed: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 
-@analytics_bp.route('/api/analytics/response-times', methods=['GET'])
+@analytics_bp.route("/api/analytics/response-times", methods=["GET"])
 @require_magic_link
 def get_response_times():
     """
@@ -523,7 +568,9 @@ def get_response_times():
 
         # Logg statistikk for debugging
         total_events = sum(len(events) for events in all_cases_events.values())
-        logger.info(f"Response times calculation: {len(sak_ids)} cases, {len(all_cases_events)} with events, {total_events} total events")
+        logger.info(
+            f"Response times calculation: {len(sak_ids)} cases, {len(all_cases_events)} with events, {total_events} total events"
+        )
 
         # Beregn behandlingstider per spor
         def parse_timestamp(ts):
@@ -535,13 +582,13 @@ def get_response_times():
             if isinstance(ts, str):
                 try:
                     # Håndter ulike ISO 8601-formater
-                    ts = ts.replace('Z', '+00:00').replace(' ', 'T')
+                    ts = ts.replace("Z", "+00:00").replace(" ", "T")
                     return datetime.fromisoformat(ts)
                 except ValueError:
                     return None
             return None
 
-        def calculate_response_times(krav_type: str, respons_type: str) -> Dict:
+        def calculate_response_times(krav_type: str, respons_type: str) -> dict:
             times = []
             krav_count = 0
             respons_count = 0
@@ -551,13 +598,13 @@ def get_response_times():
                 respons_time = None
 
                 for evt in events:
-                    event_type = evt.get('event_type', '')
+                    event_type = evt.get("event_type", "")
                     # Hent tidsstempel - prøv flere kilder
-                    ts = evt.get('tidsstempel')
+                    ts = evt.get("tidsstempel")
                     if ts is None:
                         # Fallback til CloudEvents time
-                        ce = evt.get('_cloudevents', {})
-                        ts = ce.get('time') if ce else None
+                        ce = evt.get("_cloudevents", {})
+                        ts = ce.get("time") if ce else None
 
                     ts = parse_timestamp(ts)
                     if ts is None:
@@ -575,39 +622,47 @@ def get_response_times():
                     if delta >= 0:
                         times.append(delta)
 
-            logger.debug(f"Response times for {krav_type}->{respons_type}: "
-                        f"found {krav_count} krav, {respons_count} respons, {len(times)} pairs")
+            logger.debug(
+                f"Response times for {krav_type}->{respons_type}: "
+                f"found {krav_count} krav, {respons_count} respons, {len(times)} pairs"
+            )
 
             if not times:
                 return {
-                    'avg_days': None,
-                    'median_days': None,
-                    'min_days': None,
-                    'max_days': None,
-                    'sample_size': 0
+                    "avg_days": None,
+                    "median_days": None,
+                    "min_days": None,
+                    "max_days": None,
+                    "sample_size": 0,
                 }
 
             times.sort()
             return {
-                'avg_days': round(sum(times) / len(times), 1),
-                'median_days': times[len(times) // 2],
-                'min_days': min(times),
-                'max_days': max(times),
-                'sample_size': len(times)
+                "avg_days": round(sum(times) / len(times), 1),
+                "median_days": times[len(times) // 2],
+                "min_days": min(times),
+                "max_days": max(times),
+                "sample_size": len(times),
             }
 
-        return jsonify({
-            "grunnlag": calculate_response_times('grunnlag_opprettet', 'respons_grunnlag'),
-            "vederlag": calculate_response_times('vederlag_krav_sendt', 'respons_vederlag'),
-            "frist": calculate_response_times('frist_krav_sendt', 'respons_frist')
-        })
+        return jsonify(
+            {
+                "grunnlag": calculate_response_times(
+                    "grunnlag_opprettet", "respons_grunnlag"
+                ),
+                "vederlag": calculate_response_times(
+                    "vederlag_krav_sendt", "respons_vederlag"
+                ),
+                "frist": calculate_response_times("frist_krav_sendt", "respons_frist"),
+            }
+        )
 
     except Exception as e:
         logger.error(f"Analytics response-times failed: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 
-@analytics_bp.route('/api/analytics/actors', methods=['GET'])
+@analytics_bp.route("/api/analytics/actors", methods=["GET"])
 @require_magic_link
 def get_actor_analytics():
     """
@@ -628,38 +683,37 @@ def get_actor_analytics():
     try:
         all_events = _get_all_events_with_metadata()
 
-        by_role = defaultdict(lambda: {'events': 0, 'actors': set()})
-        by_actor = defaultdict(lambda: {'events': 0, 'role': None})
+        by_role = defaultdict(lambda: {"events": 0, "actors": set()})
+        by_actor = defaultdict(lambda: {"events": 0, "role": None})
 
         for evt in all_events:
-            actor = evt.get('aktor') or evt.get('actor') or 'Ukjent'
-            role = evt.get('aktor_rolle') or evt.get('actorrole') or 'Ukjent'
+            actor = evt.get("aktor") or evt.get("actor") or "Ukjent"
+            role = evt.get("aktor_rolle") or evt.get("actorrole") or "Ukjent"
 
-            by_role[role]['events'] += 1
-            by_role[role]['actors'].add(actor)
+            by_role[role]["events"] += 1
+            by_role[role]["actors"].add(actor)
 
-            by_actor[actor]['events'] += 1
-            by_actor[actor]['role'] = role
+            by_actor[actor]["events"] += 1
+            by_actor[actor]["role"] = role
 
         # Formater rolle-data
         role_result = {}
         for role, data in by_role.items():
             role_result[role] = {
-                'events': data['events'],
-                'unique_actors': len(data['actors'])
+                "events": data["events"],
+                "unique_actors": len(data["actors"]),
             }
 
         # Top aktører
         top_actors = sorted(
-            [{'name': name, 'role': data['role'], 'events': data['events']}
-             for name, data in by_actor.items()],
-            key=lambda x: -x['events']
+            [
+                {"name": name, "role": data["role"], "events": data["events"]}
+                for name, data in by_actor.items()
+            ],
+            key=lambda x: -x["events"],
         )[:10]
 
-        return jsonify({
-            "by_role": role_result,
-            "top_actors": top_actors
-        })
+        return jsonify({"by_role": role_result, "top_actors": top_actors})
 
     except Exception as e:
         logger.error(f"Analytics actors failed: {e}", exc_info=True)

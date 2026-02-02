@@ -7,6 +7,7 @@ Verifies that:
 3. Idempotency check works
 4. Event structure validation works
 """
+
 import json
 import os
 from unittest.mock import patch
@@ -18,12 +19,11 @@ class TestWebhookSecurity:
     def test_webhook_with_invalid_path_returns_404(self, client):
         """Test that webhook with wrong path returns 404"""
         response = client.post(
-            '/webhook/catenda/wrong-secret-path',
-            data=json.dumps({
-                'event': {'id': 'evt-123', 'type': 'issue.created'},
-                'issue': {}
-            }),
-            content_type='application/json'
+            "/webhook/catenda/wrong-secret-path",
+            data=json.dumps(
+                {"event": {"id": "evt-123", "type": "issue.created"}, "issue": {}}
+            ),
+            content_type="application/json",
         )
 
         # Should return 404 for invalid path
@@ -32,28 +32,29 @@ class TestWebhookSecurity:
     def test_webhook_without_secret_configured_returns_404(self, client):
         """Test that webhook returns 404 when secret is not configured"""
         # Clear the environment variable
-        with patch.dict(os.environ, {'WEBHOOK_SECRET_PATH': ''}, clear=False):
+        with patch.dict(os.environ, {"WEBHOOK_SECRET_PATH": ""}, clear=False):
             response = client.post(
-                '/webhook/catenda/any-path',
-                data=json.dumps({
-                    'event': {'id': 'evt-123', 'type': 'issue.created'},
-                    'issue': {}
-                }),
-                content_type='application/json'
+                "/webhook/catenda/any-path",
+                data=json.dumps(
+                    {"event": {"id": "evt-123", "type": "issue.created"}, "issue": {}}
+                ),
+                content_type="application/json",
             )
 
             assert response.status_code == 404
 
-    @patch.dict(os.environ, {'WEBHOOK_SECRET_PATH': 'test-secret-path'})
+    @patch.dict(os.environ, {"WEBHOOK_SECRET_PATH": "test-secret-path"})
     def test_webhook_with_valid_path_succeeds(self, client, mock_system):
         """Test that webhook with correct path is accepted"""
         response = client.post(
-            '/webhook/catenda/test-secret-path',
-            data=json.dumps({
-                'event': {'id': 'evt-123', 'type': 'issue.created'},
-                'issue': {'id': 'topic-123', 'guid': 'topic-123'}
-            }),
-            content_type='application/json'
+            "/webhook/catenda/test-secret-path",
+            data=json.dumps(
+                {
+                    "event": {"id": "evt-123", "type": "issue.created"},
+                    "issue": {"id": "topic-123", "guid": "topic-123"},
+                }
+            ),
+            content_type="application/json",
         )
 
         # Should succeed (or return 200 with result)
@@ -65,37 +66,40 @@ class TestWebhookSecurity:
 
         # Valid structure
         valid_payload = {
-            'event': {'id': 'evt-123', 'type': 'issue.created'},
-            'issue': {}
+            "event": {"id": "evt-123", "type": "issue.created"},
+            "issue": {},
         }
         is_valid, error = validate_webhook_event_structure(valid_payload)
         assert is_valid
         assert error is None or error == ""
 
         # Missing event
-        invalid_payload = {'issue': {}}
+        invalid_payload = {"issue": {}}
         is_valid, error = validate_webhook_event_structure(invalid_payload)
         assert not is_valid
-        assert 'event' in error.lower()
+        assert "event" in error.lower()
 
         # Missing event.id
-        invalid_payload = {'event': {'type': 'issue.created'}, 'issue': {}}
+        invalid_payload = {"event": {"type": "issue.created"}, "issue": {}}
         is_valid, error = validate_webhook_event_structure(invalid_payload)
         assert not is_valid
 
         # Missing event.type
-        invalid_payload = {'event': {'id': 'evt-123'}, 'issue': {}}
+        invalid_payload = {"event": {"id": "evt-123"}, "issue": {}}
         is_valid, error = validate_webhook_event_structure(invalid_payload)
         assert not is_valid
 
     def test_webhook_idempotency_check(self):
         """Test that duplicate events are detected"""
-        from lib.security.webhook_security import is_duplicate_event, clear_processed_events
+        from lib.security.webhook_security import (
+            clear_processed_events,
+            is_duplicate_event,
+        )
 
         # Clear processed events for clean test
         clear_processed_events()
 
-        event_id = 'test-event-idempotency-123'
+        event_id = "test-event-idempotency-123"
 
         # First call should not be duplicate
         assert not is_duplicate_event(event_id)
@@ -104,16 +108,16 @@ class TestWebhookSecurity:
         assert is_duplicate_event(event_id)
 
         # Different event ID should not be duplicate
-        assert not is_duplicate_event('different-event-456')
+        assert not is_duplicate_event("different-event-456")
 
     def test_get_webhook_event_id(self):
         """Test event ID extraction from payload"""
         from lib.security.webhook_security import get_webhook_event_id
 
         # Standard payload
-        payload = {'event': {'id': 'evt-abc-123', 'type': 'issue.created'}}
+        payload = {"event": {"id": "evt-abc-123", "type": "issue.created"}}
         event_id = get_webhook_event_id(payload)
-        assert event_id == 'evt-abc-123'
+        assert event_id == "evt-abc-123"
 
         # Missing event object
         payload = {}
@@ -121,7 +125,7 @@ class TestWebhookSecurity:
         assert event_id == ""
 
         # Missing id in event
-        payload = {'event': {'type': 'issue.created'}}
+        payload = {"event": {"type": "issue.created"}}
         event_id = get_webhook_event_id(payload)
         assert event_id == ""
 
@@ -135,17 +139,14 @@ class TestWebhookEventTypes:
 
         # These are the event types actually supported by the webhook security module
         known_types = [
-            'issue.created',
-            'issue.modified',
-            'issue.status.changed',
-            'issue.deleted'
+            "issue.created",
+            "issue.modified",
+            "issue.status.changed",
+            "issue.deleted",
         ]
 
         for event_type in known_types:
-            payload = {
-                'event': {'id': 'evt-123', 'type': event_type},
-                'issue': {}
-            }
+            payload = {"event": {"id": "evt-123", "type": event_type}, "issue": {}}
             is_valid, _ = validate_webhook_event_structure(payload)
             assert is_valid, f"Event type {event_type} should be valid"
 
@@ -154,9 +155,9 @@ class TestWebhookEventTypes:
         from lib.security.webhook_security import validate_webhook_event_structure
 
         payload = {
-            'event': {'id': 'evt-123', 'type': 'unknown.event.type'},
-            'issue': {}
+            "event": {"id": "evt-123", "type": "unknown.event.type"},
+            "issue": {},
         }
         is_valid, error = validate_webhook_event_structure(payload)
         assert not is_valid
-        assert 'unknown' in error.lower()
+        assert "unknown" in error.lower()

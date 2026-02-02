@@ -10,10 +10,11 @@ Fase 1: Kompatibilitetslag
 - Støtter eksport til CloudEvents-format via to_cloudevent()
 - Støtter import fra CloudEvents-format via from_cloudevent()
 """
-from pydantic import BaseModel, computed_field
-from typing import Optional, Any, Dict
-from datetime import datetime, timezone
 
+from datetime import UTC, datetime
+from typing import Any
+
+from pydantic import BaseModel, computed_field
 
 # CloudEvents namespace for dette prosjektet
 CLOUDEVENTS_NAMESPACE = "no.oslo.koe"
@@ -43,7 +44,7 @@ def parse_rfc3339(time_str: str) -> datetime:
     """
     if time_str.endswith("Z"):
         # UTC format: 2025-12-20T10:30:00Z
-        return datetime.fromisoformat(time_str[:-1]).replace(tzinfo=timezone.utc)
+        return datetime.fromisoformat(time_str[:-1]).replace(tzinfo=UTC)
     else:
         # Offset format: 2025-12-20T10:30:00+01:00
         # Python 3.11+ støtter dette direkte
@@ -76,7 +77,7 @@ class CloudEventMixin(BaseModel):
     """
 
     # Valgfritt felt for prosjekt-ID (brukes i source URI)
-    prosjekt_id: Optional[str] = None
+    prosjekt_id: str | None = None
 
     @computed_field
     @property
@@ -88,7 +89,7 @@ class CloudEventMixin(BaseModel):
     @property
     def ce_id(self) -> str:
         """CloudEvents id (maps to event_id)."""
-        return getattr(self, 'event_id', '')
+        return getattr(self, "event_id", "")
 
     @computed_field
     @property
@@ -104,8 +105,8 @@ class CloudEventMixin(BaseModel):
         # 1. Hent fra database: SakRepository.get_prosjekt_id(sak_id)
         # 2. Inkluder prosjekt_id som required felt i API-requests
         # 3. Legg til prosjekt_id i SakState og hent derfra
-        proj_id = getattr(self, 'prosjekt_id', None) or 'oslobygg'
-        sak_id = getattr(self, 'sak_id', 'unknown')
+        proj_id = getattr(self, "prosjekt_id", None) or "oslobygg"
+        sak_id = getattr(self, "sak_id", "unknown")
         return f"/projects/{proj_id}/cases/{sak_id}"
 
     @computed_field
@@ -117,11 +118,13 @@ class CloudEventMixin(BaseModel):
         Format: no.oslo.koe.{event_type}
         Følger reverse-DNS konvensjonen fra CloudEvents spec.
         """
-        event_type = getattr(self, 'event_type', None)
+        event_type = getattr(self, "event_type", None)
         if event_type is None:
             return f"{CLOUDEVENTS_NAMESPACE}.unknown"
         # Håndter både Enum og string
-        type_value = event_type.value if hasattr(event_type, 'value') else str(event_type)
+        type_value = (
+            event_type.value if hasattr(event_type, "value") else str(event_type)
+        )
         return f"{CLOUDEVENTS_NAMESPACE}.{type_value}"
 
     @computed_field
@@ -132,16 +135,16 @@ class CloudEventMixin(BaseModel):
 
         Returnerer tidsstempel med 'Z' suffix for UTC.
         """
-        tidsstempel = getattr(self, 'tidsstempel', None)
+        tidsstempel = getattr(self, "tidsstempel", None)
         if tidsstempel is None:
             return datetime.utcnow().isoformat() + "Z"
         if isinstance(tidsstempel, datetime):
             # Bruk isoformat og legg til Z for UTC
             iso = tidsstempel.isoformat()
             # Fjern eventuell timezone info og legg til Z
-            if '+' in iso:
-                iso = iso.split('+')[0]
-            elif iso.endswith('Z'):
+            if "+" in iso:
+                iso = iso.split("+")[0]
+            elif iso.endswith("Z"):
                 return iso
             return iso + "Z"
         return str(tidsstempel)
@@ -150,7 +153,7 @@ class CloudEventMixin(BaseModel):
     @property
     def ce_subject(self) -> str:
         """CloudEvents subject (maps to sak_id)."""
-        return getattr(self, 'sak_id', '')
+        return getattr(self, "sak_id", "")
 
     @computed_field
     @property
@@ -158,7 +161,7 @@ class CloudEventMixin(BaseModel):
         """CloudEvents data content type."""
         return "application/json"
 
-    def to_cloudevent(self) -> Dict[str, Any]:
+    def to_cloudevent(self) -> dict[str, Any]:
         """
         Eksporter event som CloudEvents-format.
 
@@ -179,39 +182,37 @@ class CloudEventMixin(BaseModel):
             "data": { ... }
         }
         """
-        ce: Dict[str, Any] = {
+        ce: dict[str, Any] = {
             # Required attributes
             "specversion": self.specversion,
             "id": self.ce_id,
             "source": self.ce_source,
             "type": self.ce_type,
-
             # Optional attributes
             "time": self.ce_time,
             "subject": self.ce_subject,
             "datacontenttype": self.ce_datacontenttype,
-
             # Extension attributes
-            "actor": getattr(self, 'aktor', None),
-            "actorrole": getattr(self, 'aktor_rolle', None),
+            "actor": getattr(self, "aktor", None),
+            "actorrole": getattr(self, "aktor_rolle", None),
         }
 
         # Legg til kommentar som extension hvis den finnes
-        kommentar = getattr(self, 'kommentar', None)
+        kommentar = getattr(self, "kommentar", None)
         if kommentar:
             ce["comment"] = kommentar
 
         # Legg til referanse hvis den finnes
-        refererer_til = getattr(self, 'refererer_til_event_id', None)
+        refererer_til = getattr(self, "refererer_til_event_id", None)
         if refererer_til:
             ce["referstoid"] = refererer_til
 
         # Legg til data payload
-        data = getattr(self, 'data', None)
+        data = getattr(self, "data", None)
         if data is not None:
-            if hasattr(data, 'model_dump'):
+            if hasattr(data, "model_dump"):
                 # Use mode='json' to convert enums to strings
-                ce["data"] = data.model_dump(mode='json', exclude_none=True)
+                ce["data"] = data.model_dump(mode="json", exclude_none=True)
             elif isinstance(data, dict):
                 ce["data"] = data
             else:
@@ -221,26 +222,37 @@ class CloudEventMixin(BaseModel):
             # extract event-specific fields and put them in data
             # Standard fields that should NOT be in data payload
             standard_fields = {
-                'event_id', 'sak_id', 'event_type', 'tidsstempel',
-                'aktor', 'aktor_rolle', 'kommentar', 'refererer_til_event_id',
+                "event_id",
+                "sak_id",
+                "event_type",
+                "tidsstempel",
+                "aktor",
+                "aktor_rolle",
+                "kommentar",
+                "refererer_til_event_id",
                 # Computed fields from CloudEventMixin
-                'specversion', 'ce_id', 'ce_source', 'ce_type', 'ce_time',
-                'ce_subject', 'ce_datacontenttype',
+                "specversion",
+                "ce_id",
+                "ce_source",
+                "ce_type",
+                "ce_time",
+                "ce_subject",
+                "ce_datacontenttype",
             }
             event_data = {}
-            for field_name, field_value in self.model_dump(mode='json').items():
+            for field_name, field_value in self.model_dump(mode="json").items():
                 if field_name not in standard_fields and field_value is not None:
                     event_data[field_name] = field_value
             if event_data:
                 ce["data"] = event_data
 
         # Fjern None-verdier fra ce dict (unntatt data som kan være tom dict)
-        ce = {k: v for k, v in ce.items() if v is not None or k == 'data'}
+        ce = {k: v for k, v in ce.items() if v is not None or k == "data"}
 
         return ce
 
     @classmethod
-    def from_cloudevent(cls, ce: Dict[str, Any], **kwargs):
+    def from_cloudevent(cls, ce: dict[str, Any], **kwargs):
         """
         Parse CloudEvent til intern event-struktur.
 
@@ -271,7 +283,7 @@ class CloudEventMixin(BaseModel):
         validate_cloudevent(ce)
 
         # Map CloudEvents attributter til interne felter
-        mapped: Dict[str, Any] = {
+        mapped: dict[str, Any] = {
             "event_id": ce.get("id"),
             "sak_id": ce.get("subject"),
             "aktor": ce.get("actor"),
@@ -292,7 +304,7 @@ class CloudEventMixin(BaseModel):
         ce_type = ce.get("type", "")
         prefix = f"{CLOUDEVENTS_NAMESPACE}."
         if ce_type.startswith(prefix):
-            mapped["event_type"] = ce_type[len(prefix):]
+            mapped["event_type"] = ce_type[len(prefix) :]
         else:
             mapped["event_type"] = ce_type
 
@@ -319,7 +331,7 @@ class CloudEventMixin(BaseModel):
         return cls.model_validate(mapped)
 
 
-def validate_cloudevent(ce: Dict[str, Any]) -> bool:
+def validate_cloudevent(ce: dict[str, Any]) -> bool:
     """
     Validerer at en dict følger CloudEvents v1.0 spec.
 
@@ -363,4 +375,4 @@ def validate_cloudevent(ce: Dict[str, Any]) -> bool:
 
 
 # Type alias for CloudEvents dict
-CloudEventDict = Dict[str, Any]
+CloudEventDict = dict[str, Any]

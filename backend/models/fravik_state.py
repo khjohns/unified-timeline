@@ -10,31 +10,33 @@ Støtter to søknadstyper:
 
 FravikState er READ-ONLY og regenereres hver gang fra events.
 """
-from enum import Enum
-from pydantic import BaseModel, Field, computed_field
-from typing import Optional, List, Dict
+
 from datetime import datetime
+from enum import Enum
+
+from pydantic import BaseModel, Field, computed_field
 
 from models.fravik_events import (
-    FravikStatus,
-    FravikBeslutning,
-    MaskinType,
-    MaskinVekt,
+    AggregatType,
     Arbeidskategori,
     Bruksintensitet,
-    FravikRolle,
-    StromtilgangStatus,
-    ProsjektforholdType,
-    AggregatType,
-    Euroklasse,
     Drivstoff,
+    Euroklasse,
+    FravikBeslutning,
+    FravikRolle,
+    FravikStatus,
+    MaskinType,
+    MaskinVekt,
+    ProsjektforholdType,
+    StromtilgangStatus,
 )
-
 
 # ============ MASKIN TILSTAND ============
 
+
 class MaskinVurderingStatus(str, Enum):
     """Status for vurdering av en maskin"""
+
     IKKE_VURDERT = "ikke_vurdert"
     GODKJENT = "godkjent"
     AVSLATT = "avslatt"
@@ -43,151 +45,94 @@ class MaskinVurderingStatus(str, Enum):
 
 class MaskinMiljoVurdering(BaseModel):
     """Miljørådgivers vurdering av en maskin"""
-    beslutning: FravikBeslutning = Field(
-        ...,
-        description="Miljørådgivers anbefaling"
+
+    beslutning: FravikBeslutning = Field(..., description="Miljørådgivers anbefaling")
+    kommentar: str | None = Field(
+        default=None, description="Kommentar fra miljørådgiver"
     )
-    kommentar: Optional[str] = Field(
-        default=None,
-        description="Kommentar fra miljørådgiver"
-    )
-    vilkar: List[str] = Field(
-        default_factory=list,
-        description="Eventuelle vilkår"
-    )
-    vurdert_av: Optional[str] = Field(
-        default=None,
-        description="Navn på miljørådgiver"
-    )
-    vurdert_tidspunkt: Optional[datetime] = Field(
-        default=None,
-        description="Når vurderingen ble gjort"
+    vilkar: list[str] = Field(default_factory=list, description="Eventuelle vilkår")
+    vurdert_av: str | None = Field(default=None, description="Navn på miljørådgiver")
+    vurdert_tidspunkt: datetime | None = Field(
+        default=None, description="Når vurderingen ble gjort"
     )
 
 
 class MaskinArbeidsgruppeVurdering(BaseModel):
     """Arbeidsgruppens vurdering av en maskin"""
-    beslutning: FravikBeslutning = Field(
-        ...,
-        description="Arbeidsgruppens innstilling"
+
+    beslutning: FravikBeslutning = Field(..., description="Arbeidsgruppens innstilling")
+    kommentar: str | None = Field(
+        default=None, description="Kommentar fra arbeidsgruppen"
     )
-    kommentar: Optional[str] = Field(
-        default=None,
-        description="Kommentar fra arbeidsgruppen"
-    )
-    vilkar: List[str] = Field(
-        default_factory=list,
-        description="Eventuelle vilkår"
-    )
-    vurdert_tidspunkt: Optional[datetime] = Field(
-        default=None,
-        description="Når vurderingen ble gjort"
+    vilkar: list[str] = Field(default_factory=list, description="Eventuelle vilkår")
+    vurdert_tidspunkt: datetime | None = Field(
+        default=None, description="Når vurderingen ble gjort"
     )
 
 
 class MaskinEierBeslutning(BaseModel):
     """Eiers beslutning for en maskin"""
-    beslutning: FravikBeslutning = Field(
-        ...,
-        description="Eiers beslutning"
-    )
-    kommentar: Optional[str] = Field(
-        default=None,
-        description="Kommentar fra eier"
-    )
-    besluttet_tidspunkt: Optional[datetime] = Field(
-        default=None,
-        description="Når beslutningen ble tatt"
+
+    beslutning: FravikBeslutning = Field(..., description="Eiers beslutning")
+    kommentar: str | None = Field(default=None, description="Kommentar fra eier")
+    besluttet_tidspunkt: datetime | None = Field(
+        default=None, description="Når beslutningen ble tatt"
     )
 
 
 class MaskinTilstand(BaseModel):
     """Aggregert tilstand for en maskin i søknaden"""
-    maskin_id: str = Field(
-        ...,
-        description="Unik ID for maskinen"
+
+    maskin_id: str = Field(..., description="Unik ID for maskinen")
+    maskin_type: MaskinType = Field(..., description="Type maskin")
+    annet_type: str | None = Field(
+        default=None, description="Spesifisering hvis type er 'Annet'"
     )
-    maskin_type: MaskinType = Field(
-        ...,
-        description="Type maskin"
+    vekt: MaskinVekt = Field(..., description="Vektkategori for maskinen")
+    registreringsnummer: str | None = Field(
+        default=None, description="Registreringsnummer"
     )
-    annet_type: Optional[str] = Field(
-        default=None,
-        description="Spesifisering hvis type er 'Annet'"
-    )
-    vekt: MaskinVekt = Field(
-        ...,
-        description="Vektkategori for maskinen"
-    )
-    registreringsnummer: Optional[str] = Field(
-        default=None,
-        description="Registreringsnummer"
-    )
-    start_dato: str = Field(
-        ...,
-        description="Start-dato for bruk (YYYY-MM-DD)"
-    )
-    slutt_dato: str = Field(
-        ...,
-        description="Slutt-dato for bruk (YYYY-MM-DD)"
-    )
-    grunner: List[str] = Field(
-        default_factory=list,
-        description="Grunner for fravik"
-    )
-    begrunnelse: str = Field(
-        ...,
-        description="Begrunnelse for fravik"
-    )
-    alternativer_vurdert: Optional[str] = Field(
-        default=None,
-        description="Alternativer som er vurdert"
+    start_dato: str = Field(..., description="Start-dato for bruk (YYYY-MM-DD)")
+    slutt_dato: str = Field(..., description="Slutt-dato for bruk (YYYY-MM-DD)")
+    grunner: list[str] = Field(default_factory=list, description="Grunner for fravik")
+    begrunnelse: str = Field(..., description="Begrunnelse for fravik")
+    alternativer_vurdert: str | None = Field(
+        default=None, description="Alternativer som er vurdert"
     )
     markedsundersokelse: bool = Field(
-        default=False,
-        description="Om markedsundersøkelse er gjennomført"
+        default=False, description="Om markedsundersøkelse er gjennomført"
     )
-    undersøkte_leverandorer: Optional[str] = Field(
-        default=None,
-        description="Undersøkte leverandører"
+    undersøkte_leverandorer: str | None = Field(
+        default=None, description="Undersøkte leverandører"
     )
-    erstatningsmaskin: Optional[str] = Field(
-        default=None,
-        description="Foreslått erstatningsmaskin"
+    erstatningsmaskin: str | None = Field(
+        default=None, description="Foreslått erstatningsmaskin"
     )
-    erstatningsdrivstoff: Optional[str] = Field(
-        default=None,
-        description="Drivstoff for erstatningsmaskin"
+    erstatningsdrivstoff: str | None = Field(
+        default=None, description="Drivstoff for erstatningsmaskin"
     )
-    arbeidsbeskrivelse: Optional[str] = Field(
-        default=None,
-        description="Beskrivelse av arbeidet"
+    arbeidsbeskrivelse: str | None = Field(
+        default=None, description="Beskrivelse av arbeidet"
     )
     arbeidskategori: Arbeidskategori = Field(
-        ...,
-        description="Hovedkategori for arbeidet maskinen skal utføre"
+        ..., description="Hovedkategori for arbeidet maskinen skal utføre"
     )
     bruksintensitet: Bruksintensitet = Field(
-        ...,
-        description="Hvor intensivt maskinen skal brukes"
+        ..., description="Hvor intensivt maskinen skal brukes"
     )
-    estimert_drivstofforbruk: Optional[float] = Field(
-        default=None,
-        description="Estimert drivstofforbruk i liter per dag"
+    estimert_drivstofforbruk: float | None = Field(
+        default=None, description="Estimert drivstofforbruk i liter per dag"
     )
 
     # Vurderinger
-    miljo_vurdering: Optional[MaskinMiljoVurdering] = Field(
-        default=None,
-        description="Miljørådgivers vurdering"
+    miljo_vurdering: MaskinMiljoVurdering | None = Field(
+        default=None, description="Miljørådgivers vurdering"
     )
-    arbeidsgruppe_vurdering: Optional[MaskinArbeidsgruppeVurdering] = Field(
-        default=None,
-        description="Arbeidsgruppens vurdering"
+    arbeidsgruppe_vurdering: MaskinArbeidsgruppeVurdering | None = Field(
+        default=None, description="Arbeidsgruppens vurdering"
     )
-    eier_beslutning: Optional[MaskinEierBeslutning] = Field(
-        default=None,
-        description="Eiers beslutning"
+    eier_beslutning: MaskinEierBeslutning | None = Field(
+        default=None, description="Eiers beslutning"
     )
 
     # Computed status
@@ -209,7 +154,9 @@ class MaskinTilstand(BaseModel):
 
         return MaskinVurderingStatus.IKKE_VURDERT
 
-    def _beslutning_til_status(self, beslutning: FravikBeslutning) -> MaskinVurderingStatus:
+    def _beslutning_til_status(
+        self, beslutning: FravikBeslutning
+    ) -> MaskinVurderingStatus:
         """Mapper FravikBeslutning til MaskinVurderingStatus"""
         mapping = {
             FravikBeslutning.GODKJENT: MaskinVurderingStatus.GODKJENT,
@@ -222,55 +169,41 @@ class MaskinTilstand(BaseModel):
 
 # ============ GODKJENNINGSKJEDE TILSTAND ============
 
+
 class VurderingSteg(BaseModel):
     """Et steg i godkjenningskjeden"""
-    fullfort: bool = Field(
-        default=False,
-        description="Om steget er fullført"
+
+    fullfort: bool = Field(default=False, description="Om steget er fullført")
+    beslutning: FravikBeslutning | None = Field(
+        default=None, description="Beslutningen som ble tatt"
     )
-    beslutning: Optional[FravikBeslutning] = Field(
-        default=None,
-        description="Beslutningen som ble tatt"
+    dokumentasjon_tilstrekkelig: bool | None = Field(
+        default=None, description="Om dokumentasjonen var tilstrekkelig"
     )
-    dokumentasjon_tilstrekkelig: Optional[bool] = Field(
-        default=None,
-        description="Om dokumentasjonen var tilstrekkelig"
+    kommentar: str | None = Field(default=None, description="Kommentar")
+    manglende_dokumentasjon: str | None = Field(
+        default=None, description="Hva som manglet (hvis returnert)"
     )
-    kommentar: Optional[str] = Field(
-        default=None,
-        description="Kommentar"
-    )
-    manglende_dokumentasjon: Optional[str] = Field(
-        default=None,
-        description="Hva som manglet (hvis returnert)"
-    )
-    vurdert_av: Optional[str] = Field(
-        default=None,
-        description="Hvem som vurderte"
-    )
-    vurdert_tidspunkt: Optional[datetime] = Field(
-        default=None,
-        description="Når vurderingen skjedde"
+    vurdert_av: str | None = Field(default=None, description="Hvem som vurderte")
+    vurdert_tidspunkt: datetime | None = Field(
+        default=None, description="Når vurderingen skjedde"
     )
 
 
 class GodkjenningsKjedeTilstand(BaseModel):
     """Tilstand for hele godkjenningskjeden"""
+
     miljo_vurdering: VurderingSteg = Field(
-        default_factory=VurderingSteg,
-        description="Miljørådgivers vurdering"
+        default_factory=VurderingSteg, description="Miljørådgivers vurdering"
     )
     pl_vurdering: VurderingSteg = Field(
-        default_factory=VurderingSteg,
-        description="Prosjektleders vurdering"
+        default_factory=VurderingSteg, description="Prosjektleders vurdering"
     )
     arbeidsgruppe_vurdering: VurderingSteg = Field(
-        default_factory=VurderingSteg,
-        description="Arbeidsgruppens vurdering"
+        default_factory=VurderingSteg, description="Arbeidsgruppens vurdering"
     )
     eier_beslutning: VurderingSteg = Field(
-        default_factory=VurderingSteg,
-        description="Eiers beslutning"
+        default_factory=VurderingSteg, description="Eiers beslutning"
     )
 
     @computed_field
@@ -289,7 +222,7 @@ class GodkjenningsKjedeTilstand(BaseModel):
 
     @computed_field
     @property
-    def neste_godkjenner_rolle(self) -> Optional[FravikRolle]:
+    def neste_godkjenner_rolle(self) -> FravikRolle | None:
         """Returnerer rollen som skal godkjenne neste"""
         steg = self.gjeldende_steg
         mapping = {
@@ -303,8 +236,10 @@ class GodkjenningsKjedeTilstand(BaseModel):
 
 # ============ INFRASTRUKTUR VURDERINGER ============
 
+
 class InfrastrukturVurderingStatus(str, Enum):
     """Status for vurdering av infrastruktur-søknad"""
+
     IKKE_VURDERT = "ikke_vurdert"
     GODKJENT = "godkjent"
     AVSLATT = "avslatt"
@@ -312,29 +247,20 @@ class InfrastrukturVurderingStatus(str, Enum):
 
 class InfrastrukturVurdering(BaseModel):
     """Vurdering av infrastruktur-søknad (samlet, ikke per-element)"""
-    beslutning: FravikBeslutning = Field(
-        ...,
-        description="Beslutning/anbefaling"
+
+    beslutning: FravikBeslutning = Field(..., description="Beslutning/anbefaling")
+    kommentar: str | None = Field(default=None, description="Kommentar til vurderingen")
+    vilkar: list[str] = Field(
+        default_factory=list, description="Eventuelle vilkår for godkjenning"
     )
-    kommentar: Optional[str] = Field(
-        default=None,
-        description="Kommentar til vurderingen"
-    )
-    vilkar: List[str] = Field(
-        default_factory=list,
-        description="Eventuelle vilkår for godkjenning"
-    )
-    vurdert_av: Optional[str] = Field(
-        default=None,
-        description="Hvem som vurderte"
-    )
-    vurdert_tidspunkt: Optional[datetime] = Field(
-        default=None,
-        description="Når vurderingen ble gjort"
+    vurdert_av: str | None = Field(default=None, description="Hvem som vurderte")
+    vurdert_tidspunkt: datetime | None = Field(
+        default=None, description="Når vurderingen ble gjort"
     )
 
 
 # ============ INFRASTRUKTUR TILSTAND ============
+
 
 class InfrastrukturTilstand(BaseModel):
     """
@@ -343,122 +269,91 @@ class InfrastrukturTilstand(BaseModel):
     Brukes når soknad_type='infrastructure'.
     Det er kun én infrastruktur-post per søknad (ikke liste som maskiner).
     """
+
     # Periode
-    start_dato: str = Field(
-        ...,
-        description="Start-dato for bruk (YYYY-MM-DD)"
-    )
-    slutt_dato: str = Field(
-        ...,
-        description="Slutt-dato for bruk (YYYY-MM-DD)"
-    )
+    start_dato: str = Field(..., description="Start-dato for bruk (YYYY-MM-DD)")
+    slutt_dato: str = Field(..., description="Slutt-dato for bruk (YYYY-MM-DD)")
 
     # Strømtilgang - strukturerte felter
     stromtilgang_status: StromtilgangStatus = Field(
-        ...,
-        description="Status for strømtilgang på byggeplassen"
+        ..., description="Status for strømtilgang på byggeplassen"
     )
-    avstand_til_tilkobling_meter: Optional[int] = Field(
-        default=None,
-        description="Avstand til nærmeste tilkoblingspunkt i meter"
+    avstand_til_tilkobling_meter: int | None = Field(
+        default=None, description="Avstand til nærmeste tilkoblingspunkt i meter"
     )
-    tilgjengelig_effekt_kw: Optional[float] = Field(
-        default=None,
-        description="Tilgjengelig elektrisk effekt i kW"
+    tilgjengelig_effekt_kw: float | None = Field(
+        default=None, description="Tilgjengelig elektrisk effekt i kW"
     )
-    effektbehov_kw: float = Field(
-        ...,
-        description="Nødvendig effektbehov i kW"
-    )
-    stromtilgang_tilleggsbeskrivelse: Optional[str] = Field(
-        default=None,
-        description="Valgfri tilleggsbeskrivelse av strømtilgang"
+    effektbehov_kw: float = Field(..., description="Nødvendig effektbehov i kW")
+    stromtilgang_tilleggsbeskrivelse: str | None = Field(
+        default=None, description="Valgfri tilleggsbeskrivelse av strømtilgang"
     )
 
     # Vurderte alternativer
     mobil_batteri_vurdert: bool = Field(
-        default=False,
-        description="Om mobile batteriløsninger er vurdert"
+        default=False, description="Om mobile batteriløsninger er vurdert"
     )
     midlertidig_nett_vurdert: bool = Field(
         default=False,
-        description="Om midlertidig nett (transformatorstasjon) er vurdert"
+        description="Om midlertidig nett (transformatorstasjon) er vurdert",
     )
     redusert_effekt_vurdert: bool = Field(
-        default=False,
-        description="Om redusert effektbehov er vurdert"
+        default=False, description="Om redusert effektbehov er vurdert"
     )
     faseinndeling_vurdert: bool = Field(
-        default=False,
-        description="Om faseinndeling av arbeid er vurdert"
+        default=False, description="Om faseinndeling av arbeid er vurdert"
     )
-    alternative_metoder: Optional[str] = Field(
-        default=None,
-        description="Andre vurderte alternative løsninger"
+    alternative_metoder: str | None = Field(
+        default=None, description="Andre vurderte alternative løsninger"
     )
 
     # Prosjektspesifikke forhold - strukturerte felter
-    prosjektforhold: List[ProsjektforholdType] = Field(
-        default_factory=list,
-        description="Prosjektspesifikke forhold som påvirker"
+    prosjektforhold: list[ProsjektforholdType] = Field(
+        default_factory=list, description="Prosjektspesifikke forhold som påvirker"
     )
-    prosjektforhold_beskrivelse: Optional[str] = Field(
-        default=None,
-        description="Tilleggsbeskrivelse av prosjektspesifikke forhold"
+    prosjektforhold_beskrivelse: str | None = Field(
+        default=None, description="Tilleggsbeskrivelse av prosjektspesifikke forhold"
     )
 
     # Kostnadsvurdering - strukturerte felter
     kostnad_utslippsfri_nok: int = Field(
-        ...,
-        description="Estimert kostnad for utslippsfri løsning i NOK"
+        ..., description="Estimert kostnad for utslippsfri løsning i NOK"
     )
     kostnad_fossil_nok: int = Field(
-        ...,
-        description="Estimert kostnad for fossil løsning i NOK"
+        ..., description="Estimert kostnad for fossil løsning i NOK"
     )
-    prosjektkostnad_nok: Optional[int] = Field(
+    prosjektkostnad_nok: int | None = Field(
         default=None,
-        description="Total prosjektkostnad i NOK (for beregning av merkostnad %)"
+        description="Total prosjektkostnad i NOK (for beregning av merkostnad %)",
     )
-    kostnad_tilleggsbeskrivelse: Optional[str] = Field(
-        default=None,
-        description="Valgfri tilleggsbeskrivelse av kostnadsvurdering"
+    kostnad_tilleggsbeskrivelse: str | None = Field(
+        default=None, description="Valgfri tilleggsbeskrivelse av kostnadsvurdering"
     )
 
     # Erstatningsløsning - strukturerte felter
     aggregat_type: AggregatType = Field(
-        ...,
-        description="Type aggregat/erstatningsløsning"
+        ..., description="Type aggregat/erstatningsløsning"
     )
-    aggregat_type_annet: Optional[str] = Field(
-        default=None,
-        description="Spesifisering hvis aggregat_type er 'annet'"
+    aggregat_type_annet: str | None = Field(
+        default=None, description="Spesifisering hvis aggregat_type er 'annet'"
     )
-    euroklasse: Euroklasse = Field(
-        ...,
-        description="Euroklasse for aggregatet"
-    )
+    euroklasse: Euroklasse = Field(..., description="Euroklasse for aggregatet")
     erstatningsdrivstoff: Drivstoff = Field(
-        ...,
-        description="Drivstoff for erstatningsløsning"
+        ..., description="Drivstoff for erstatningsløsning"
     )
-    aggregat_modell: Optional[str] = Field(
-        default=None,
-        description="Produsent og modell for aggregatet"
+    aggregat_modell: str | None = Field(
+        default=None, description="Produsent og modell for aggregatet"
     )
 
     # Vurderinger (samlet for hele infrastruktur-søknaden)
-    miljo_vurdering: Optional[InfrastrukturVurdering] = Field(
-        default=None,
-        description="Miljørådgivers vurdering"
+    miljo_vurdering: InfrastrukturVurdering | None = Field(
+        default=None, description="Miljørådgivers vurdering"
     )
-    arbeidsgruppe_vurdering: Optional[InfrastrukturVurdering] = Field(
-        default=None,
-        description="Arbeidsgruppens vurdering"
+    arbeidsgruppe_vurdering: InfrastrukturVurdering | None = Field(
+        default=None, description="Arbeidsgruppens vurdering"
     )
-    eier_beslutning: Optional[InfrastrukturVurdering] = Field(
-        default=None,
-        description="Eiers beslutning"
+    eier_beslutning: InfrastrukturVurdering | None = Field(
+        default=None, description="Eiers beslutning"
     )
 
     # Computed status
@@ -480,7 +375,9 @@ class InfrastrukturTilstand(BaseModel):
 
         return InfrastrukturVurderingStatus.IKKE_VURDERT
 
-    def _beslutning_til_status(self, beslutning: FravikBeslutning) -> InfrastrukturVurderingStatus:
+    def _beslutning_til_status(
+        self, beslutning: FravikBeslutning
+    ) -> InfrastrukturVurderingStatus:
         """Mapper FravikBeslutning til InfrastrukturVurderingStatus"""
         if beslutning in (FravikBeslutning.GODKJENT, FravikBeslutning.DELVIS_GODKJENT):
             return InfrastrukturVurderingStatus.GODKJENT
@@ -491,6 +388,7 @@ class InfrastrukturTilstand(BaseModel):
 
 # ============ HOVEDMODELL: FRAVIK STATE ============
 
+
 class FravikState(BaseModel):
     """
     Aggregert tilstand for en fravik-søknad.
@@ -498,140 +396,88 @@ class FravikState(BaseModel):
     Denne modellen representerer "nå-situasjonen" for søknaden
     og beregnes alltid fra event-loggen.
     """
+
     # Identifikasjon
-    sak_id: str = Field(
-        ...,
-        description="Unik ID for søknaden (sak)"
-    )
-    sakstype: str = Field(
-        default="fravik",
-        description="Type sak (alltid 'fravik')"
-    )
+    sak_id: str = Field(..., description="Unik ID for søknaden (sak)")
+    sakstype: str = Field(default="fravik", description="Type sak (alltid 'fravik')")
 
     # Prosjektinfo
-    prosjekt_navn: str = Field(
-        ...,
-        description="Prosjektnavn"
-    )
-    prosjekt_nummer: str = Field(
-        ...,
-        description="Prosjektnummer (unik identifikator)"
-    )
-    rammeavtale: Optional[str] = Field(
-        default=None,
-        description="Rammeavtale"
-    )
-    hovedentreprenor: Optional[str] = Field(
-        default=None,
-        description="Hovedentreprenør"
-    )
+    prosjekt_navn: str = Field(..., description="Prosjektnavn")
+    prosjekt_nummer: str = Field(..., description="Prosjektnummer (unik identifikator)")
+    rammeavtale: str | None = Field(default=None, description="Rammeavtale")
+    hovedentreprenor: str | None = Field(default=None, description="Hovedentreprenør")
 
     # Søkerinfo
-    soker_navn: str = Field(
-        ...,
-        description="Navn på søker"
-    )
-    soker_epost: Optional[str] = Field(
-        default=None,
-        description="E-post til søker"
-    )
+    soker_navn: str = Field(..., description="Navn på søker")
+    soker_epost: str | None = Field(default=None, description="E-post til søker")
 
     # Søknadsdetaljer
-    soknad_type: str = Field(
-        ...,
-        description="Type søknad (machine/infrastructure)"
+    soknad_type: str = Field(..., description="Type søknad (machine/infrastructure)")
+    frist_for_svar: str | None = Field(
+        default=None, description="Ønsket frist for svar"
     )
-    frist_for_svar: Optional[str] = Field(
-        default=None,
-        description="Ønsket frist for svar"
-    )
-    er_haste: bool = Field(
-        default=False,
-        description="Om søknaden haster"
-    )
-    haste_begrunnelse: Optional[str] = Field(
-        default=None,
-        description="Begrunnelse for hastebehandling"
+    er_haste: bool = Field(default=False, description="Om søknaden haster")
+    haste_begrunnelse: str | None = Field(
+        default=None, description="Begrunnelse for hastebehandling"
     )
 
     # Avbøtende tiltak og konsekvenser
-    avbotende_tiltak: Optional[str] = Field(
-        default=None,
-        description="Avbøtende tiltak"
-    )
-    konsekvenser_ved_avslag: Optional[str] = Field(
-        default=None,
-        description="Konsekvenser ved avslag"
+    avbotende_tiltak: str | None = Field(default=None, description="Avbøtende tiltak")
+    konsekvenser_ved_avslag: str | None = Field(
+        default=None, description="Konsekvenser ved avslag"
     )
 
     # Status
     status: FravikStatus = Field(
-        default=FravikStatus.UTKAST,
-        description="Nåværende status"
+        default=FravikStatus.UTKAST, description="Nåværende status"
     )
 
     # Maskiner (for maskin-søknader)
-    maskiner: Dict[str, MaskinTilstand] = Field(
-        default_factory=dict,
-        description="Maskin-tilstander (key: maskin_id)"
+    maskiner: dict[str, MaskinTilstand] = Field(
+        default_factory=dict, description="Maskin-tilstander (key: maskin_id)"
     )
 
     # Infrastruktur (for infrastruktur-søknader)
-    infrastruktur: Optional[InfrastrukturTilstand] = Field(
-        default=None,
-        description="Infrastruktur-tilstand"
+    infrastruktur: InfrastrukturTilstand | None = Field(
+        default=None, description="Infrastruktur-tilstand"
     )
 
     # Godkjenningskjede
     godkjenningskjede: GodkjenningsKjedeTilstand = Field(
         default_factory=GodkjenningsKjedeTilstand,
-        description="Tilstand for godkjenningskjeden"
+        description="Tilstand for godkjenningskjeden",
     )
 
     # Endelig beslutning
-    endelig_beslutning: Optional[FravikBeslutning] = Field(
-        default=None,
-        description="Eiers endelige beslutning"
+    endelig_beslutning: FravikBeslutning | None = Field(
+        default=None, description="Eiers endelige beslutning"
     )
-    endelig_beslutning_kommentar: Optional[str] = Field(
-        default=None,
-        description="Kommentar til endelig beslutning"
+    endelig_beslutning_kommentar: str | None = Field(
+        default=None, description="Kommentar til endelig beslutning"
     )
-    endelig_beslutning_tidspunkt: Optional[datetime] = Field(
-        default=None,
-        description="Når endelig beslutning ble tatt"
+    endelig_beslutning_tidspunkt: datetime | None = Field(
+        default=None, description="Når endelig beslutning ble tatt"
     )
-    endelig_beslutning_av: Optional[str] = Field(
-        default=None,
-        description="Hvem som tok endelig beslutning"
+    endelig_beslutning_av: str | None = Field(
+        default=None, description="Hvem som tok endelig beslutning"
     )
 
     # Metadata
-    opprettet: Optional[datetime] = Field(
-        default=None,
-        description="Når søknaden ble opprettet"
+    opprettet: datetime | None = Field(
+        default=None, description="Når søknaden ble opprettet"
     )
-    sendt_inn_tidspunkt: Optional[datetime] = Field(
-        default=None,
-        description="Når søknaden ble sendt inn"
+    sendt_inn_tidspunkt: datetime | None = Field(
+        default=None, description="Når søknaden ble sendt inn"
     )
-    siste_oppdatert: Optional[datetime] = Field(
-        default=None,
-        description="Siste oppdatering"
+    siste_oppdatert: datetime | None = Field(
+        default=None, description="Siste oppdatering"
     )
-    antall_events: int = Field(
-        default=0,
-        description="Antall events i loggen"
-    )
+    antall_events: int = Field(default=0, description="Antall events i loggen")
 
     # Catenda-integrasjon
-    catenda_topic_id: Optional[str] = Field(
-        default=None,
-        description="Catenda topic ID"
-    )
-    catenda_project_id: Optional[str] = Field(
-        default=None,
-        description="Catenda project ID"
+    catenda_topic_id: str | None = Field(default=None, description="Catenda topic ID")
+    catenda_project_id: str | None = Field(
+        default=None, description="Catenda project ID"
     )
 
     # ============ COMPUTED FIELDS ============
@@ -647,7 +493,8 @@ class FravikState(BaseModel):
     def antall_godkjente_maskiner(self) -> int:
         """Antall maskiner som er godkjent"""
         return sum(
-            1 for m in self.maskiner.values()
+            1
+            for m in self.maskiner.values()
             if m.samlet_status == MaskinVurderingStatus.GODKJENT
         )
 
@@ -656,7 +503,8 @@ class FravikState(BaseModel):
     def antall_avslatte_maskiner(self) -> int:
         """Antall maskiner som er avslått"""
         return sum(
-            1 for m in self.maskiner.values()
+            1
+            for m in self.maskiner.values()
             if m.samlet_status == MaskinVurderingStatus.AVSLATT
         )
 
@@ -673,7 +521,7 @@ class FravikState(BaseModel):
 
     @computed_field
     @property
-    def samlet_maskin_beslutning(self) -> Optional[FravikBeslutning]:
+    def samlet_maskin_beslutning(self) -> FravikBeslutning | None:
         """
         Beregner samlet beslutning basert på alle maskin-vurderinger.
 
@@ -766,7 +614,11 @@ class FravikState(BaseModel):
             }
 
         if self.status == FravikStatus.UNDER_ARBEIDSGRUPPE:
-            handling = "Gi innstilling for hver maskin" if self.soknad_type == "machine" else "Gi innstilling for søknaden"
+            handling = (
+                "Gi innstilling for hver maskin"
+                if self.soknad_type == "machine"
+                else "Gi innstilling for søknaden"
+            )
             return {
                 "rolle": FravikRolle.ARBEIDSGRUPPE,
                 "handling": handling,
@@ -806,22 +658,24 @@ class FravikState(BaseModel):
 
 # ============ LISTE-MODELL FOR OVERSIKTER ============
 
+
 class FravikListeItem(BaseModel):
     """
     Forenklet modell for listevisning.
 
     Inneholder bare det som trengs for tabelloversikter.
     """
+
     sak_id: str
     prosjekt_navn: str
-    prosjekt_nummer: Optional[str] = None
+    prosjekt_nummer: str | None = None
     soker_navn: str
     soknad_type: str
     status: FravikStatus
     antall_maskiner: int = 0
-    opprettet: Optional[datetime] = None
-    sendt_inn_tidspunkt: Optional[datetime] = None
-    siste_oppdatert: Optional[datetime] = None
+    opprettet: datetime | None = None
+    sendt_inn_tidspunkt: datetime | None = None
+    siste_oppdatert: datetime | None = None
 
     @computed_field
     @property

@@ -3,18 +3,14 @@ Tests for Event Repository with optimistic concurrency control.
 
 CRITICAL: These tests verify data integrity under concurrent access.
 """
-import pytest
+
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from repositories.event_repository import (
-    JsonFileEventRepository,
-    ConcurrencyError
-)
-from models.events import (
-    SakOpprettetEvent,
-    GrunnlagEvent,
-    GrunnlagData
-)
+
+import pytest
+
+from models.events import GrunnlagData, GrunnlagEvent, SakOpprettetEvent
+from repositories.event_repository import ConcurrencyError, JsonFileEventRepository
 
 
 class TestEventRepository:
@@ -39,7 +35,7 @@ class TestEventRepository:
             aktor="Test User",
             aktor_rolle="TE",
             sakstittel="Test Case",
-            prosjekt_id="PROJ-001"
+            prosjekt_id="PROJ-001",
         )
 
     def test_append_single_event_new_case(self, repo, sample_event):
@@ -61,7 +57,7 @@ class TestEventRepository:
                 sak_id="TEST-002",
                 aktor="User1",
                 aktor_rolle="TE",
-                sakstittel="Batch Test"
+                sakstittel="Batch Test",
             ),
             GrunnlagEvent(
                 sak_id="TEST-002",
@@ -72,9 +68,9 @@ class TestEventRepository:
                     hovedkategori="Risiko",
                     underkategori="Grunnforhold",
                     beskrivelse="Test beskrivelse",
-                    dato_oppdaget="2025-01-01"
-                )
-            )
+                    dato_oppdaget="2025-01-01",
+                ),
+            ),
         ]
 
         new_version = repo.append_batch(events, expected_version=0)
@@ -101,8 +97,8 @@ class TestEventRepository:
                 hovedkategori="Test",
                 underkategori="Test",
                 beskrivelse="Test",
-                dato_oppdaget="2025-01-01"
-            )
+                dato_oppdaget="2025-01-01",
+            ),
         )
 
         with pytest.raises(ConcurrencyError) as exc_info:
@@ -127,8 +123,8 @@ class TestEventRepository:
                 hovedkategori="Test",
                 underkategori="Test",
                 beskrivelse="Test",
-                dato_oppdaget="2025-01-01"
-            )
+                dato_oppdaget="2025-01-01",
+            ),
         )
 
         v2 = repo.append(new_event, expected_version=1)
@@ -157,7 +153,7 @@ class TestEventRepository:
             sak_id="TEST-CONCURRENT",
             aktor="InitialUser",
             aktor_rolle="TE",
-            sakstittel="Concurrency Test"
+            sakstittel="Concurrency Test",
         )
         repo.append(initial_event, expected_version=0)
 
@@ -172,8 +168,8 @@ class TestEventRepository:
                     hovedkategori="Test",
                     underkategori="Test",
                     beskrivelse=f"Event {event_data}",
-                    dato_oppdaget="2025-01-01"
-                )
+                    dato_oppdaget="2025-01-01",
+                ),
             )
             try:
                 return repo.append(event, expected_version=1)
@@ -202,10 +198,7 @@ class TestEventRepository:
         """Test that batch events must all belong to the same case."""
         events = [
             SakOpprettetEvent(
-                sak_id="TEST-003",
-                aktor="User1",
-                aktor_rolle="TE",
-                sakstittel="Test"
+                sak_id="TEST-003", aktor="User1", aktor_rolle="TE", sakstittel="Test"
             ),
             GrunnlagEvent(
                 sak_id="TEST-004",  # Different sak_id!
@@ -216,9 +209,9 @@ class TestEventRepository:
                     hovedkategori="Test",
                     underkategori="Test",
                     beskrivelse="Test",
-                    dato_oppdaget="2025-01-01"
-                )
-            )
+                    dato_oppdaget="2025-01-01",
+                ),
+            ),
         ]
 
         with pytest.raises(ValueError, match="samme sak_id"):
@@ -236,7 +229,7 @@ class TestEventRepository:
             sak_id="TEST/WITH\\SLASHES",
             aktor="User",
             aktor_rolle="TE",
-            sakstittel="Test"
+            sakstittel="Test",
         )
 
         repo.append(event, expected_version=0)
@@ -258,7 +251,7 @@ class TestEventRepository:
             sak_id="TEST-INTEGRITY",
             aktor="InitialUser",
             aktor_rolle="TE",
-            sakstittel="Integrity Test"
+            sakstittel="Integrity Test",
         )
         repo.append(initial_event, expected_version=0)
 
@@ -278,8 +271,8 @@ class TestEventRepository:
                         hovedkategori=f"Cat-{event_num}",
                         underkategori="Test",
                         beskrivelse=f"Event {event_num}",
-                        dato_oppdaget="2025-01-01"
-                    )
+                        dato_oppdaget="2025-01-01",
+                    ),
                 )
                 try:
                     repo.append(event, expected_version=current_version)
@@ -311,7 +304,7 @@ class TestEventRepository:
         repo.append(sample_event, expected_version=0)
 
         file_path = repo._get_file_path("TEST-001")
-        with open(file_path, 'r') as f:
+        with open(file_path) as f:
             data = json.load(f)
 
         assert "version" in data
@@ -322,6 +315,7 @@ class TestEventRepository:
 
 
 import json
+
 
 class TestConcurrencyError:
     """Test the ConcurrencyError exception."""

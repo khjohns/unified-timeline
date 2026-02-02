@@ -20,23 +20,21 @@ Environment:
 """
 
 import argparse
-import sys
 import os
+import sys
 
 # Add backend directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.logger import get_logger
-from repositories import create_event_repository, create_relation_repository
 from models.events import parse_event
+from repositories import create_event_repository, create_relation_repository
+from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
 def backfill_forsering_relations(
-    event_repository,
-    relation_repository,
-    dry_run: bool = False
+    event_repository, relation_repository, dry_run: bool = False
 ) -> tuple[int, int]:
     """
     Backfill forsering relations from forsering_events.
@@ -55,7 +53,9 @@ def backfill_forsering_relations(
 
     for sak_id in sak_ids:
         try:
-            events_data, _version = event_repository.get_events(sak_id, sakstype="forsering")
+            events_data, _version = event_repository.get_events(
+                sak_id, sakstype="forsering"
+            )
             if not events_data:
                 continue
 
@@ -65,28 +65,30 @@ def backfill_forsering_relations(
                 target_sak_ids = []
 
                 # Check direct avslatte_fristkrav in event.data (typed events)
-                if hasattr(event, 'data') and hasattr(event.data, 'avslatte_fristkrav'):
+                if hasattr(event, "data") and hasattr(event.data, "avslatte_fristkrav"):
                     target_sak_ids = event.data.avslatte_fristkrav or []
 
                 # Check nested forsering_data.avslatte_fristkrav (in SAK_OPPRETTET)
-                if not target_sak_ids and hasattr(event, 'data'):
+                if not target_sak_ids and hasattr(event, "data"):
                     data = event.data
                     # Handle dict data (SAK_OPPRETTET stores data as dict)
                     if isinstance(data, dict):
-                        fd = data.get('forsering_data', {})
+                        fd = data.get("forsering_data", {})
                         if isinstance(fd, dict):
-                            target_sak_ids = fd.get('avslatte_fristkrav', [])
+                            target_sak_ids = fd.get("avslatte_fristkrav", [])
                     # Handle object with forsering_data attribute
-                    elif hasattr(data, 'forsering_data') and data.forsering_data:
+                    elif hasattr(data, "forsering_data") and data.forsering_data:
                         fd = data.forsering_data
                         if isinstance(fd, dict):
-                            target_sak_ids = fd.get('avslatte_fristkrav', [])
-                        elif hasattr(fd, 'avslatte_fristkrav'):
+                            target_sak_ids = fd.get("avslatte_fristkrav", [])
+                        elif hasattr(fd, "avslatte_fristkrav"):
                             target_sak_ids = fd.avslatte_fristkrav or []
 
                 if target_sak_ids:
                     if dry_run:
-                        logger.info(f"[DRY RUN] Would add {len(target_sak_ids)} relations for forsering {sak_id}")
+                        logger.info(
+                            f"[DRY RUN] Would add {len(target_sak_ids)} relations for forsering {sak_id}"
+                        )
                         relations_added += len(target_sak_ids)
                     else:
                         added = relation_repository.add_relations_batch(
@@ -107,9 +109,7 @@ def backfill_forsering_relations(
 
 
 def backfill_endringsordre_relations(
-    event_repository,
-    relation_repository,
-    dry_run: bool = False
+    event_repository, relation_repository, dry_run: bool = False
 ) -> tuple[int, int]:
     """
     Backfill endringsordre relations from endringsordre_events.
@@ -128,7 +128,9 @@ def backfill_endringsordre_relations(
 
     for sak_id in sak_ids:
         try:
-            events_data, _version = event_repository.get_events(sak_id, sakstype="endringsordre")
+            events_data, _version = event_repository.get_events(
+                sak_id, sakstype="endringsordre"
+            )
             if not events_data:
                 continue
 
@@ -137,12 +139,16 @@ def backfill_endringsordre_relations(
                 event = parse_event(event_dict)
 
                 # Check for events which contain relaterte_koe_saker
-                if hasattr(event, 'data') and hasattr(event.data, 'relaterte_koe_saker'):
+                if hasattr(event, "data") and hasattr(
+                    event.data, "relaterte_koe_saker"
+                ):
                     target_sak_ids = event.data.relaterte_koe_saker or []
 
                     if target_sak_ids:
                         if dry_run:
-                            logger.info(f"[DRY RUN] Would add {len(target_sak_ids)} relations for EO {sak_id}")
+                            logger.info(
+                                f"[DRY RUN] Would add {len(target_sak_ids)} relations for EO {sak_id}"
+                            )
                             relations_added += len(target_sak_ids)
                         else:
                             added = relation_repository.add_relations_batch(
@@ -167,25 +173,25 @@ def main():
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Show what would be done without making changes"
+        help="Show what would be done without making changes",
     )
     parser.add_argument(
-        "--rebuild",
-        action="store_true",
-        help="Clear all relations before backfilling"
+        "--rebuild", action="store_true", help="Clear all relations before backfilling"
     )
     parser.add_argument(
         "--type",
         choices=["forsering", "endringsordre", "all"],
         default="all",
-        help="Type of relations to backfill (default: all)"
+        help="Type of relations to backfill (default: all)",
     )
     args = parser.parse_args()
 
     # Check backend
     backend = os.environ.get("EVENT_STORE_BACKEND")
     if backend != "supabase":
-        logger.error(f"This script requires EVENT_STORE_BACKEND=supabase (current: {backend})")
+        logger.error(
+            f"This script requires EVENT_STORE_BACKEND=supabase (current: {backend})"
+        )
         sys.exit(1)
 
     try:
@@ -227,9 +233,13 @@ def main():
 
     # Summary
     if args.dry_run:
-        logger.info(f"[DRY RUN] Would process {total_saker} saker, add {total_relations} relations")
+        logger.info(
+            f"[DRY RUN] Would process {total_saker} saker, add {total_relations} relations"
+        )
     else:
-        logger.info(f"Backfill complete: {total_saker} saker, {total_relations} relations")
+        logger.info(
+            f"Backfill complete: {total_saker} saker, {total_relations} relations"
+        )
 
         # Verify
         all_relations = relation_repository.get_all_relations()

@@ -159,20 +159,21 @@ GROUP BY sak_id;
 ```
 """
 
-from typing import List, Tuple, Optional, Literal
 import os
+from typing import Literal
 
 # Supabase Python client
 try:
-    from supabase import create_client, Client
+    from supabase import Client, create_client
+
     SUPABASE_AVAILABLE = True
 except ImportError:
     SUPABASE_AVAILABLE = False
     Client = None
 
-from .event_repository import EventRepository, ConcurrencyError
 from models.cloudevents import CLOUDEVENTS_NAMESPACE, CLOUDEVENTS_SPECVERSION
 
+from .event_repository import ConcurrencyError, EventRepository
 
 # Type for table selection
 SaksType = Literal["standard", "forsering", "endringsordre", "fravik"]
@@ -209,9 +210,9 @@ class SupabaseEventRepository(EventRepository):
 
     def __init__(
         self,
-        url: Optional[str] = None,
-        key: Optional[str] = None,
-        default_table: str = "koe_events"
+        url: str | None = None,
+        key: str | None = None,
+        default_table: str = "koe_events",
     ):
         if not SUPABASE_AVAILABLE:
             raise ImportError(
@@ -220,7 +221,11 @@ class SupabaseEventRepository(EventRepository):
 
         self.url = url or os.environ.get("SUPABASE_URL")
         # Support both SUPABASE_SECRET_KEY (new) and SUPABASE_KEY (legacy)
-        self.key = key or os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_KEY")
+        self.key = (
+            key
+            or os.environ.get("SUPABASE_SECRET_KEY")
+            or os.environ.get("SUPABASE_KEY")
+        )
         self.default_table = default_table
 
         if not self.url or not self.key:
@@ -231,7 +236,7 @@ class SupabaseEventRepository(EventRepository):
 
         self.client: Client = create_client(self.url, self.key)
 
-    def _get_table_name(self, sakstype: Optional[SaksType] = None) -> str:
+    def _get_table_name(self, sakstype: SaksType | None = None) -> str:
         """Get table name based on sakstype."""
         if sakstype is None:
             return self.default_table
@@ -243,24 +248,26 @@ class SupabaseEventRepository(EventRepository):
 
         Checks event_type or sakstype attribute to determine correct table.
         """
-        event_type = getattr(event, 'event_type', None)
+        event_type = getattr(event, "event_type", None)
         if event_type:
-            event_type_value = event_type.value if hasattr(event_type, 'value') else str(event_type)
+            event_type_value = (
+                event_type.value if hasattr(event_type, "value") else str(event_type)
+            )
 
             # Fravik events
-            if event_type_value.startswith('fravik_'):
+            if event_type_value.startswith("fravik_"):
                 return "fravik"
 
             # Forsering events
-            if event_type_value.startswith('forsering_'):
+            if event_type_value.startswith("forsering_"):
                 return "forsering"
 
             # Endringsordre events
-            if event_type_value.startswith('eo_'):
+            if event_type_value.startswith("eo_"):
                 return "endringsordre"
 
         # Check for sakstype attribute (on SakOpprettetEvent)
-        sakstype = getattr(event, 'sakstype', None)
+        sakstype = getattr(event, "sakstype", None)
         if sakstype:
             if sakstype in SAKSTYPE_TO_TABLE:
                 return sakstype
@@ -278,13 +285,13 @@ class SupabaseEventRepository(EventRepository):
         sak_id = event.sak_id
 
         # Try to use to_cloudevent() if available (from CloudEventMixin)
-        if hasattr(event, 'to_cloudevent'):
+        if hasattr(event, "to_cloudevent"):
             ce = event.to_cloudevent()
         else:
             # Manual construction for events without mixin
-            event_dict = event.model_dump(mode='json')
+            event_dict = event.model_dump(mode="json")
             event_type = event_dict.get("event_type")
-            if hasattr(event_type, 'value'):
+            if hasattr(event_type, "value"):
                 event_type = event_type.value
 
             ce = {
@@ -309,21 +316,17 @@ class SupabaseEventRepository(EventRepository):
             "event_id": str(ce.get("id")),
             "source": ce.get("source"),
             "type": ce.get("type"),
-
             # CloudEvents Optional
             "time": ce.get("time"),
             "subject": ce.get("subject", sak_id),
             "datacontenttype": ce.get("datacontenttype", "application/json"),
-
             # CloudEvents Extension
             "actor": ce.get("actor"),
             "actorrole": ce.get("actorrole"),
             "comment": ce.get("comment"),
             "referstoid": str(ce.get("referstoid")) if ce.get("referstoid") else None,
-
             # Data payload
             "data": ce.get("data", {}),
-
             # Internal fields
             "sak_id": sak_id,
             "event_type": ce.get("type", "").replace(f"{CLOUDEVENTS_NAMESPACE}.", ""),
@@ -354,13 +357,16 @@ class SupabaseEventRepository(EventRepository):
         return {
             "event_id": row.get("event_id"),
             "sak_id": row.get("sak_id") or row.get("subject"),
-            "event_type": row.get("event_type") or row.get("type", "").replace(f"{CLOUDEVENTS_NAMESPACE}.", ""),
+            "event_type": row.get("event_type")
+            or row.get("type", "").replace(f"{CLOUDEVENTS_NAMESPACE}.", ""),
             "tidsstempel": time_value,
             "aktor": row.get("actor"),
             "aktor_rolle": row.get("actorrole"),
             "data": row.get("data"),
             "kommentar": row.get("comment"),
-            "refererer_til_event_id": row.get("referstoid"),  # Fixed: was "referrer_til_event_id"
+            "refererer_til_event_id": row.get(
+                "referstoid"
+            ),  # Fixed: was "referrer_til_event_id"
             # Include CloudEvents attributes for clients that want them
             "_cloudevents": {
                 "specversion": row.get("specversion"),
@@ -368,23 +374,17 @@ class SupabaseEventRepository(EventRepository):
                 "type": row.get("type"),
                 "subject": row.get("subject"),
                 "datacontenttype": row.get("datacontenttype"),
-            }
+            },
         }
 
     def append(
-        self,
-        event,
-        expected_version: int,
-        sakstype: Optional[SaksType] = None
+        self, event, expected_version: int, sakstype: SaksType | None = None
     ) -> int:
         """Append single event with optimistic locking."""
         return self.append_batch([event], expected_version, sakstype)
 
     def append_batch(
-        self,
-        events: List,
-        expected_version: int,
-        sakstype: Optional[SaksType] = None
+        self, events: list, expected_version: int, sakstype: SaksType | None = None
     ) -> int:
         """
         Atomically append multiple events.
@@ -439,10 +439,8 @@ class SupabaseEventRepository(EventRepository):
             raise
 
     def get_events(
-        self,
-        sak_id: str,
-        sakstype: Optional[SaksType] = None
-    ) -> Tuple[List[dict], int]:
+        self, sak_id: str, sakstype: SaksType | None = None
+    ) -> tuple[list[dict], int]:
         """
         Get all events and current version for a case.
 
@@ -462,7 +460,12 @@ class SupabaseEventRepository(EventRepository):
             return self._get_events_from_table(sak_id, table_name)
 
         # Try all tables (for backwards compatibility)
-        for table in ["koe_events", "forsering_events", "endringsordre_events", "fravik_events"]:
+        for table in [
+            "koe_events",
+            "forsering_events",
+            "endringsordre_events",
+            "fravik_events",
+        ]:
             try:
                 events, version = self._get_events_from_table(sak_id, table)
                 if events:
@@ -473,14 +476,11 @@ class SupabaseEventRepository(EventRepository):
         return [], 0
 
     def _get_events_from_table(
-        self,
-        sak_id: str,
-        table_name: str
-    ) -> Tuple[List[dict], int]:
+        self, sak_id: str, table_name: str
+    ) -> tuple[list[dict], int]:
         """Get events from a specific table."""
         result = (
-            self.client
-            .table(table_name)
+            self.client.table(table_name)
             .select("*")
             .eq("sak_id", sak_id)
             .order("versjon", desc=False)
@@ -498,18 +498,13 @@ class SupabaseEventRepository(EventRepository):
 
         return formatted_events, current_version
 
-    def _get_current_version(
-        self,
-        sak_id: str,
-        table_name: Optional[str] = None
-    ) -> int:
+    def _get_current_version(self, sak_id: str, table_name: str | None = None) -> int:
         """Get current version for a case (0 if not exists)."""
         if table_name is None:
             table_name = self.default_table
 
         result = (
-            self.client
-            .table(table_name)
+            self.client.table(table_name)
             .select("versjon")
             .eq("sak_id", sak_id)
             .order("versjon", desc=True)
@@ -521,10 +516,7 @@ class SupabaseEventRepository(EventRepository):
             return result.data[0]["versjon"]
         return 0
 
-    def get_all_sak_ids(
-        self,
-        sakstype: Optional[SaksType] = None
-    ) -> List[str]:
+    def get_all_sak_ids(self, sakstype: SaksType | None = None) -> list[str]:
         """
         Get all unique sak_ids.
 
@@ -538,7 +530,12 @@ class SupabaseEventRepository(EventRepository):
 
         # Get from all tables
         all_ids = set()
-        for table in ["koe_events", "forsering_events", "endringsordre_events", "fravik_events"]:
+        for table in [
+            "koe_events",
+            "forsering_events",
+            "endringsordre_events",
+            "fravik_events",
+        ]:
             try:
                 ids = self._get_sak_ids_from_table(table)
                 all_ids.update(ids)
@@ -547,23 +544,15 @@ class SupabaseEventRepository(EventRepository):
 
         return list(all_ids)
 
-    def _get_sak_ids_from_table(self, table_name: str) -> List[str]:
+    def _get_sak_ids_from_table(self, table_name: str) -> list[str]:
         """Get unique sak_ids from a specific table."""
-        result = (
-            self.client
-            .table(table_name)
-            .select("sak_id")
-            .execute()
-        )
+        result = self.client.table(table_name).select("sak_id").execute()
 
         return list(set(row["sak_id"] for row in result.data))
 
     def get_events_by_type(
-        self,
-        sak_id: str,
-        event_type: str,
-        sakstype: Optional[SaksType] = None
-    ) -> List[dict]:
+        self, sak_id: str, event_type: str, sakstype: SaksType | None = None
+    ) -> list[dict]:
         """
         Get events of specific type (useful for debugging).
 
@@ -578,8 +567,7 @@ class SupabaseEventRepository(EventRepository):
         table_name = self._get_table_name(sakstype)
 
         result = (
-            self.client
-            .table(table_name)
+            self.client.table(table_name)
             .select("*")
             .eq("sak_id", sak_id)
             .eq("event_type", event_type)
@@ -594,19 +582,17 @@ class SupabaseEventRepository(EventRepository):
 
     def _detect_sakstype_from_event_type(self, event_type: str) -> SaksType:
         """Detect sakstype from event type string."""
-        if event_type.startswith('fravik_'):
+        if event_type.startswith("fravik_"):
             return "fravik"
-        if event_type.startswith('forsering_'):
+        if event_type.startswith("forsering_"):
             return "forsering"
-        if event_type.startswith('eo_'):
+        if event_type.startswith("eo_"):
             return "endringsordre"
         return "standard"
 
     def get_events_as_cloudevents(
-        self,
-        sak_id: str,
-        sakstype: Optional[SaksType] = None
-    ) -> List[dict]:
+        self, sak_id: str, sakstype: SaksType | None = None
+    ) -> list[dict]:
         """
         Get events in CloudEvents format (for external integrations).
 
@@ -621,10 +607,11 @@ class SupabaseEventRepository(EventRepository):
         for table in tables:
             try:
                 result = (
-                    self.client
-                    .table(table)
-                    .select("specversion, event_id, source, type, time, subject, "
-                            "datacontenttype, actor, actorrole, comment, referstoid, data")
+                    self.client.table(table)
+                    .select(
+                        "specversion, event_id, source, type, time, subject, "
+                        "datacontenttype, actor, actorrole, comment, referstoid, data"
+                    )
                     .eq("sak_id", sak_id)
                     .order("versjon", desc=False)
                     .execute()
@@ -654,7 +641,7 @@ class SupabaseEventRepository(EventRepository):
 
         return []
 
-    def find_sak_id_by_catenda_topic(self, catenda_topic_id: str) -> Optional[str]:
+    def find_sak_id_by_catenda_topic(self, catenda_topic_id: str) -> str | None:
         """
         Find local sak_id given a Catenda topic GUID.
 
@@ -675,8 +662,7 @@ class SupabaseEventRepository(EventRepository):
             try:
                 # Look for SAK_OPPRETTET events where data contains the topic_id
                 result = (
-                    self.client
-                    .table(table)
+                    self.client.table(table)
                     .select("sak_id, data")
                     .eq("event_type", "sak_opprettet")
                     .execute()
@@ -686,6 +672,7 @@ class SupabaseEventRepository(EventRepository):
                     data = row.get("data", {})
                     if isinstance(data, str):
                         import json
+
                         try:
                             data = json.loads(data)
                         except json.JSONDecodeError:
@@ -728,6 +715,7 @@ def create_event_repository(backend: str | None = None, **kwargs) -> EventReposi
         repo = create_event_repository("dataverse", environment_url="...")
     """
     import logging
+
     logger = logging.getLogger(__name__)
 
     if backend is None:
@@ -737,6 +725,7 @@ def create_event_repository(backend: str | None = None, **kwargs) -> EventReposi
 
     if backend == "json":
         from .event_repository import JsonFileEventRepository
+
         return JsonFileEventRepository(**kwargs)
 
     elif backend == "supabase":

@@ -6,7 +6,7 @@ Verifiserer at Settings:
 - is_azure_environment returnerer korrekt verdi
 - is_catenda_enabled auto-deteksjon og eksplisitt konfigurasjon
 """
-import pytest
+
 from core.config import Settings
 
 
@@ -44,7 +44,9 @@ class TestAzureConfig:
 
     def test_is_azure_environment_true_with_sql(self):
         """is_azure_environment should be True when SQL connection is set."""
-        settings = Settings(azure_sql_connection="Server=tcp:myserver.database.windows.net")
+        settings = Settings(
+            azure_sql_connection="Server=tcp:myserver.database.windows.net"
+        )
         assert settings.is_azure_environment is True
 
 
@@ -59,8 +61,7 @@ class TestCatendaConfig:
     def test_catenda_auto_enabled_with_credentials(self):
         """is_catenda_enabled should be True when credentials are set."""
         settings = Settings(
-            catenda_client_id="my-client-id",
-            catenda_client_secret="my-secret"
+            catenda_client_id="my-client-id", catenda_client_secret="my-secret"
         )
         assert settings.is_catenda_enabled is True
 
@@ -69,7 +70,7 @@ class TestCatendaConfig:
         settings = Settings(
             catenda_client_id="my-client-id",
             catenda_client_secret="my-secret",
-            catenda_enabled="false"
+            catenda_enabled="false",
         )
         assert settings.is_catenda_enabled is False
 

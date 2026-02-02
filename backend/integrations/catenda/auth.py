@@ -30,10 +30,11 @@ Referanser:
 """
 
 import os
-import requests
-from typing import Tuple, Dict, List, Optional, Protocol, Any, Callable
-from functools import wraps
 from dataclasses import dataclass
+from functools import wraps
+from typing import Any
+
+import requests
 
 # Catenda API base URL
 CATENDA_API_BASE = "https://api.catenda.com"
@@ -43,6 +44,7 @@ CATENDA_API_BASE = "https://api.catenda.com"
 # Framework-agnostisk abstraksjon
 # =============================================================================
 
+
 @dataclass
 class AuthResult:
     """
@@ -51,23 +53,26 @@ class AuthResult:
     Brukes som retur-type fra auth-funksjoner for å unngå
     framework-spesifikke response-objekter.
     """
+
     success: bool
-    user: Optional[Dict[str, Any]] = None
-    error: Optional[str] = None
+    user: dict[str, Any] | None = None
+    error: str | None = None
     error_code: int = 401
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Konverter til dict for JSON-serialisering."""
         if self.success:
             return {"authenticated": True, "user": self.user}
         return {
-            "error": "Authentication required" if self.error_code == 401 else "Forbidden",
+            "error": "Authentication required"
+            if self.error_code == 401
+            else "Forbidden",
             "detail": self.error,
-            "hint": "Provide valid Catenda OAuth token in Authorization header"
+            "hint": "Provide valid Catenda OAuth token in Authorization header",
         }
 
 
-def extract_token_from_headers(headers: Dict[str, str]) -> str:
+def extract_token_from_headers(headers: dict[str, str]) -> str:
     """
     Hent Catenda OAuth token fra HTTP headers.
 
@@ -83,12 +88,13 @@ def extract_token_from_headers(headers: Dict[str, str]) -> str:
     normalized = {k.lower(): v for k, v in headers.items()}
 
     # Sjekk standard Authorization header
-    auth_header = normalized.get('authorization', '')
-    if auth_header.startswith('Bearer '):
+    auth_header = normalized.get("authorization", "")
+    if auth_header.startswith("Bearer "):
         return auth_header[7:]
 
     # Sjekk custom header (fallback)
-    return normalized.get('x-catenda-token', '')
+    return normalized.get("x-catenda-token", "")
+
 
 # Field access control lists
 # TE (Teknisk Entreprenør) kan ikke redigere disse feltene (BH-only)
@@ -102,7 +108,7 @@ BH_ONLY_FIELDS = [
     "bh_frist_for_spesifisering",
     "bh_begrunnelse_frist",
     "for_byggherre",  # BH signature
-    "dato_svar_bh"
+    "dato_svar_bh",
 ]
 
 # TE kan ikke redigere disse feltene etter at de er submitted
@@ -114,11 +120,11 @@ TE_LOCKED_AFTER_SUBMIT_FIELDS = [
     "krav_vederlag",
     "krav_vederlag_belop",
     "krav_fristforlengelse",
-    "krav_frist_antall_dager"
+    "krav_frist_antall_dager",
 ]
 
 
-def authenticate_from_headers(headers: Dict[str, str]) -> AuthResult:
+def authenticate_from_headers(headers: dict[str, str]) -> AuthResult:
     """
     Autentiser bruker fra HTTP headers.
 
@@ -151,10 +157,7 @@ def authenticate_from_headers(headers: Dict[str, str]) -> AuthResult:
     return AuthResult(success=True, user=user_info)
 
 
-def check_project_access(
-    user: Dict[str, Any],
-    project_id: Optional[str]
-) -> AuthResult:
+def check_project_access(user: dict[str, Any], project_id: str | None) -> AuthResult:
     """
     Sjekk om bruker har tilgang til et prosjekt.
 
@@ -172,14 +175,12 @@ def check_project_access(
         return AuthResult(success=True, user=user)
 
     # Hent brukerens prosjekter
-    user_projects = get_user_projects(user.get('catenda_token', ''))
+    user_projects = get_user_projects(user.get("catenda_token", ""))
 
     # Sjekk tilgang
     if project_id not in user_projects:
         return AuthResult(
-            success=False,
-            error="You don't have access to this project",
-            error_code=403
+            success=False, error="You don't have access to this project", error_code=403
         )
 
     return AuthResult(success=True, user=user)
@@ -188,6 +189,7 @@ def check_project_access(
 # =============================================================================
 # Flask-spesifikke funksjoner (deprecated, bruk authenticate_from_headers)
 # =============================================================================
+
 
 def get_catenda_token_from_request() -> str:
     """
@@ -204,10 +206,11 @@ def get_catenda_token_from_request() -> str:
     """
     # Importer Flask request kun når funksjonen kalles
     from flask import request
+
     return extract_token_from_headers(dict(request.headers))
 
 
-def validate_catenda_token(token: str) -> Tuple[bool, str, Dict]:
+def validate_catenda_token(token: str) -> tuple[bool, str, dict]:
     """
     Valider Catenda OAuth token via OpenCDE Foundation API.
 
@@ -251,11 +254,8 @@ def validate_catenda_token(token: str) -> Tuple[bool, str, Dict]:
 
         response = requests.get(
             url,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Accept": "application/json"
-            },
-            timeout=10  # 10 second timeout
+            headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+            timeout=10,  # 10 second timeout
         )
 
         # Token expired or invalid
@@ -271,10 +271,10 @@ def validate_catenda_token(token: str) -> Tuple[bool, str, Dict]:
 
         # Map response to our user info structure
         user_info = {
-            "id": user_data.get("id"),           # User ID (email/username)
-            "email": user_data.get("id"),        # OpenCDE uses 'id' as email
-            "name": user_data.get("name"),       # Full name
-            "catenda_token": token               # Store token for later use
+            "id": user_data.get("id"),  # User ID (email/username)
+            "email": user_data.get("id"),  # OpenCDE uses 'id' as email
+            "name": user_data.get("name"),  # Full name
+            "catenda_token": token,  # Store token for later use
         }
 
         return True, "", user_info
@@ -287,7 +287,7 @@ def validate_catenda_token(token: str) -> Tuple[bool, str, Dict]:
         return False, f"Unexpected error: {str(e)}", {}
 
 
-def get_user_projects(catenda_token: str) -> List[str]:
+def get_user_projects(catenda_token: str) -> list[str]:
     """
     Hent liste over prosjekter brukeren har tilgang til.
 
@@ -311,9 +311,7 @@ def get_user_projects(catenda_token: str) -> List[str]:
         url = f"{CATENDA_API_BASE}/v2/projects"
 
         response = requests.get(
-            url,
-            headers={"Authorization": f"Bearer {catenda_token}"},
-            timeout=10
+            url, headers={"Authorization": f"Bearer {catenda_token}"}, timeout=10
         )
 
         if response.status_code != 200:
@@ -368,9 +366,7 @@ def get_user_role_in_project(catenda_token: str, project_id: str, user_id: str) 
 
         # 1. Hent alle teams i prosjektet
         teams_resp = requests.get(
-            f"{base_url}/projects/{project_id}/teams",
-            headers=headers,
-            timeout=10
+            f"{base_url}/projects/{project_id}/teams", headers=headers, timeout=10
         )
 
         if teams_resp.status_code != 200:
@@ -381,17 +377,23 @@ def get_user_role_in_project(catenda_token: str, project_id: str, user_id: str) 
 
         # 2. Sjekk hvert team for rolle-indikatorer
         for team in all_teams:
-            team_name = team.get('name', '').upper()
-            team_id = team.get('id')
+            team_name = team.get("name", "").upper()
+            team_id = team.get("id")
 
             if not team_id:
                 continue
 
             # Identifiser mulig rolle basert på team-navn
             possible_role = None
-            if any(keyword in team_name for keyword in ["TE", "ENTREPRENØR", "TECHNICAL", "CONTRACTOR"]):
+            if any(
+                keyword in team_name
+                for keyword in ["TE", "ENTREPRENØR", "TECHNICAL", "CONTRACTOR"]
+            ):
                 possible_role = "TE"
-            elif any(keyword in team_name for keyword in ["BH", "BYGGHERRE", "CLIENT", "OWNER"]):
+            elif any(
+                keyword in team_name
+                for keyword in ["BH", "BYGGHERRE", "CLIENT", "OWNER"]
+            ):
                 possible_role = "BH"
 
             # Hvis dette teamet indikerer en rolle, sjekk medlemskap
@@ -400,7 +402,7 @@ def get_user_role_in_project(catenda_token: str, project_id: str, user_id: str) 
                 member_resp = requests.get(
                     f"{base_url}/projects/{project_id}/teams/{team_id}/members/{user_id}",
                     headers=headers,
-                    timeout=10
+                    timeout=10,
                 )
 
                 # Status 200 = medlem, 404 = ikke medlem
@@ -416,10 +418,8 @@ def get_user_role_in_project(catenda_token: str, project_id: str, user_id: str) 
 
 
 def validate_field_access(
-    role: str,
-    payload: Dict,
-    current_status: Optional[str] = None
-) -> Tuple[bool, str]:
+    role: str, payload: dict, current_status: str | None = None
+) -> tuple[bool, str]:
     """
     Valider at bruker har tilgang til å oppdatere de oppgitte feltene.
 
@@ -469,7 +469,10 @@ def validate_field_access(
         if current_status in submitted_statuses:
             for field in TE_LOCKED_AFTER_SUBMIT_FIELDS:
                 if field in payload:
-                    return False, f"BH cannot modify TE-locked field after submission: {field}"
+                    return (
+                        False,
+                        f"BH cannot modify TE-locked field after submission: {field}",
+                    )
 
     # Alt ok
     return True, ""
@@ -505,10 +508,11 @@ def require_catenda_auth(f):
             "detail": "årsak"
         }
     """
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Importer Flask kun når decorator brukes
-        from flask import request, jsonify, g
+        from flask import g, jsonify, request
 
         # Bruk framework-agnostisk autentisering
         result = authenticate_from_headers(dict(request.headers))
@@ -563,21 +567,22 @@ def require_project_access(f):
             "detail": "You don't have access to this project"
         }
     """
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Importer Flask kun når decorator brukes
-        from flask import request, jsonify, g
+        from flask import g, jsonify, request
 
-        user = g.get('user')
+        user = g.get("user")
         if not user:
             return jsonify({"error": "Unauthorized"}), 401
 
         # Hent sakId fra path eller body
-        sak_id = kwargs.get('sakId')
+        sak_id = kwargs.get("sakId")
         if not sak_id:
             try:
                 body = request.get_json() or {}
-                sak_id = body.get('sakId')
+                sak_id = body.get("sakId")
             except Exception:
                 pass
 
@@ -586,6 +591,7 @@ def require_project_access(f):
 
         # Hent project_id fra metadata via Container
         from core.container import get_container
+
         metadata_repo = get_container().metadata_repository
         metadata = metadata_repo.get(sak_id)
 
@@ -593,7 +599,7 @@ def require_project_access(f):
             return jsonify({"error": "Case not found"}), 404
 
         # Hent project_id fra metadata
-        project_id = getattr(metadata, 'catenda_project_id', None)
+        project_id = getattr(metadata, "catenda_project_id", None)
 
         # Bruk framework-agnostisk sjekk
         result = check_project_access(user, project_id)
@@ -635,7 +641,7 @@ def _test_auth():
 
     if projects:
         # Test role check on first project
-        role = get_user_role_in_project(token, projects[0], user['id'])
+        role = get_user_role_in_project(token, projects[0], user["id"])
         print(f"✓ User role in first project: {role}")
 
     print("✅ Auth tests completed!")

@@ -7,31 +7,35 @@ Endpoints for:
 Uses CatendaWebhookService for business logic (framework-agnostic).
 Note: These routes are only active when Catenda integration is enabled.
 """
-import os
-import logging
-from flask import Blueprint, request, jsonify
 
-from lib.security.webhook_security import (
-    validate_webhook_event_structure,
-    is_duplicate_event,
-    get_webhook_event_id
-)
-from lib.security.rate_limiter import limit_webhook
-from lib.monitoring.audit import audit
-from services.catenda_webhook_service import WebhookService
-from repositories import create_event_repository
-from lib.catenda_factory import get_catenda_client
+import logging
+import os
+
+from flask import Blueprint, jsonify, request
+
 from core.config import settings
+from lib.catenda_factory import get_catenda_client
+from lib.monitoring.audit import audit
+from lib.security.rate_limiter import limit_webhook
+from lib.security.webhook_security import (
+    get_webhook_event_id,
+    is_duplicate_event,
+    validate_webhook_event_structure,
+)
+from repositories import create_event_repository
+from services.catenda_webhook_service import WebhookService
 
 logger = logging.getLogger(__name__)
 
 # Create Blueprint
-webhook_bp = Blueprint('webhook', __name__)
+webhook_bp = Blueprint("webhook", __name__)
 
 # Get webhook secret path from environment
 WEBHOOK_SECRET_PATH = os.getenv("WEBHOOK_SECRET_PATH")
 if not WEBHOOK_SECRET_PATH:
-    logger.warning("⚠️  WEBHOOK_SECRET_PATH er ikke satt i .env. Webhook-endepunktet er deaktivert.")
+    logger.warning(
+        "⚠️  WEBHOOK_SECRET_PATH er ikke satt i .env. Webhook-endepunktet er deaktivert."
+    )
     # Bruk en placeholder-path som alltid returnerer 404 for sikkerhet
     WEBHOOK_SECRET_PATH = "__disabled__"
 
@@ -51,6 +55,7 @@ def get_webhook_service() -> WebhookService:
     """
     # Import here to avoid circular dependencies
     from app import get_magic_link_manager
+
     magic_link_mgr = get_magic_link_manager()
 
     # Get config from settings
@@ -64,11 +69,11 @@ def get_webhook_service() -> WebhookService:
         event_repository=event_repository,
         catenda_client=get_catenda_client(),
         config=config,
-        magic_link_generator=magic_link_mgr
+        magic_link_generator=magic_link_mgr,
     )
 
 
-@webhook_bp.route('/webhook/catenda/<secret_path>', methods=['POST'])
+@webhook_bp.route("/webhook/catenda/<secret_path>", methods=["POST"])
 @limit_webhook  # Rate limiting (100/min default)
 def webhook(secret_path):
     """
@@ -114,7 +119,9 @@ def webhook(secret_path):
     valid_structure, structure_error = validate_webhook_event_structure(payload)
     if not valid_structure:
         logger.warning(f"Invalid webhook structure: {structure_error}")
-        return jsonify({"error": "Invalid event structure", "detail": structure_error}), 400
+        return jsonify(
+            {"error": "Invalid event structure", "detail": structure_error}
+        ), 400
 
     # 3. Idempotency check (forhindre duplikat-prosessering)
     event_id = get_webhook_event_id(payload)
@@ -123,23 +130,22 @@ def webhook(secret_path):
         return jsonify({"status": "already_processed"}), 202
 
     # 4. Hent event type
-    event_obj = payload.get('event', {})
-    event_type = event_obj.get('type')
+    event_obj = payload.get("event", {})
+    event_type = event_obj.get("type")
 
     # 5. Log webhook mottatt
     audit.log_webhook_received(event_type=event_type, event_id=event_id)
     logger.info(f"✅ Processing webhook event: {event_type} (ID: {event_id})")
 
     # 6. Prosesser event basert på type (using WebhookService)
-    if event_type in ['issue.created', 'bcf.issue.created']:
+    if event_type in ["issue.created", "bcf.issue.created"]:
         result = webhook_service.handle_new_topic_created(payload)
         return jsonify(result), 200
 
-    elif event_type in ['issue.modified', 'bcf.comment.created']:
-        result = webhook_service.handle_topic_modification(payload)
-        return jsonify(result), 200
-
-    elif event_type == 'issue.status.changed':
+    elif (
+        event_type in ["issue.modified", "bcf.comment.created"]
+        or event_type == "issue.status.changed"
+    ):
         result = webhook_service.handle_topic_modification(payload)
         return jsonify(result), 200
 

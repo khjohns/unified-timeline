@@ -13,9 +13,9 @@ Fordeler:
 - Testbar: Kan mocke SakCreationService i tester
 """
 
-from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any
 
 from models.sak_metadata import SakMetadata
 from utils.logger import get_logger
@@ -26,11 +26,12 @@ logger = get_logger(__name__)
 @dataclass
 class SakCreationResult:
     """Resultat fra saksopprettelse."""
+
     sak_id: str
     version: int
     metadata: SakMetadata
     success: bool = True
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class SakCreationService:
@@ -59,12 +60,12 @@ class SakCreationService:
         self,
         sak_id: str,
         sakstype: str,
-        events: List[Any],
-        metadata_kwargs: Optional[Dict[str, Any]] = None,
-        catenda_topic_id: Optional[str] = None,
-        catenda_board_id: Optional[str] = None,
-        catenda_project_id: Optional[str] = None,
-        prosjekt_id: Optional[str] = None,
+        events: list[Any],
+        metadata_kwargs: dict[str, Any] | None = None,
+        catenda_topic_id: str | None = None,
+        catenda_board_id: str | None = None,
+        catenda_project_id: str | None = None,
+        prosjekt_id: str | None = None,
     ) -> SakCreationResult:
         """
         Opprett en ny sak med metadata og events atomisk.
@@ -93,11 +94,11 @@ class SakCreationService:
                 version=0,
                 metadata=None,
                 success=False,
-                error="Ingen events å lagre"
+                error="Ingen events å lagre",
             )
 
         # Bygg metadata
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         meta_kwargs = metadata_kwargs or {}
 
         metadata = SakMetadata(
@@ -129,29 +130,24 @@ class SakCreationService:
                 else:
                     new_version = uow.events.append_batch(events, expected_version=0)
 
-                logger.info(f"✅ {len(events)} event(s) lagret for {sak_id}, versjon: {new_version}")
+                logger.info(
+                    f"✅ {len(events)} event(s) lagret for {sak_id}, versjon: {new_version}"
+                )
 
             return SakCreationResult(
-                sak_id=sak_id,
-                version=new_version,
-                metadata=metadata,
-                success=True
+                sak_id=sak_id, version=new_version, metadata=metadata, success=True
             )
 
         except Exception as e:
             logger.error(f"❌ Feil ved opprettelse av sak {sak_id}: {e}")
             return SakCreationResult(
-                sak_id=sak_id,
-                version=0,
-                metadata=None,
-                success=False,
-                error=str(e)
+                sak_id=sak_id, version=0, metadata=None, success=False, error=str(e)
             )
 
     def create_sak_with_metadata(
         self,
         metadata: SakMetadata,
-        events: List[Any],
+        events: list[Any],
     ) -> SakCreationResult:
         """
         Opprett sak med ferdig konstruert metadata.
@@ -173,7 +169,7 @@ class SakCreationService:
                 version=0,
                 metadata=None,
                 success=False,
-                error="Ingen events å lagre"
+                error="Ingen events å lagre",
             )
 
         container = get_container()
@@ -188,13 +184,15 @@ class SakCreationService:
                 else:
                     new_version = uow.events.append_batch(events, expected_version=0)
 
-                logger.info(f"✅ {len(events)} event(s) lagret for {metadata.sak_id}, versjon: {new_version}")
+                logger.info(
+                    f"✅ {len(events)} event(s) lagret for {metadata.sak_id}, versjon: {new_version}"
+                )
 
             return SakCreationResult(
                 sak_id=metadata.sak_id,
                 version=new_version,
                 metadata=metadata,
-                success=True
+                success=True,
             )
 
         except Exception as e:
@@ -204,12 +202,12 @@ class SakCreationService:
                 version=0,
                 metadata=None,
                 success=False,
-                error=str(e)
+                error=str(e),
             )
 
 
 # Singleton instance for enkel tilgang
-_sak_creation_service: Optional[SakCreationService] = None
+_sak_creation_service: SakCreationService | None = None
 
 
 def get_sak_creation_service() -> SakCreationService:

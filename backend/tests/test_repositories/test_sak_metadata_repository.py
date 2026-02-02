@@ -1,13 +1,16 @@
 """
 Tests for SakMetadataRepository.
 """
-import pytest
-import tempfile
+
 import os
-from pathlib import Path
+import tempfile
 from datetime import datetime
-from repositories.sak_metadata_repository import SakMetadataRepository
+from pathlib import Path
+
+import pytest
+
 from models.sak_metadata import SakMetadata
+from repositories.sak_metadata_repository import SakMetadataRepository
 
 
 class TestSakMetadataRepository:
@@ -16,7 +19,7 @@ class TestSakMetadataRepository:
     @pytest.fixture
     def temp_csv(self):
         """Create a temporary CSV file for testing."""
-        fd, path = tempfile.mkstemp(suffix='.csv')
+        fd, path = tempfile.mkstemp(suffix=".csv")
         os.close(fd)
         # Delete the file so repository can create it fresh
         os.unlink(path)
@@ -42,7 +45,7 @@ class TestSakMetadataRepository:
             created_by="Test User",
             cached_title="Test Case Title",
             cached_status="UTKAST",
-            last_event_at=datetime(2025, 1, 1, 12, 30, 0)
+            last_event_at=datetime(2025, 1, 1, 12, 30, 0),
         )
 
     def test_initialization_creates_file_with_headers(self, temp_csv):
@@ -51,14 +54,21 @@ class TestSakMetadataRepository:
 
         assert Path(temp_csv).exists()
 
-        with open(temp_csv, 'r', encoding='utf-8') as f:
+        with open(temp_csv, encoding="utf-8") as f:
             header_line = f.readline().strip()
             expected_headers = [
-                'sak_id', 'prosjekt_id', 'catenda_topic_id',
-                'catenda_board_id', 'catenda_project_id', 'created_at', 'created_by',
-                'cached_title', 'cached_status', 'last_event_at'
+                "sak_id",
+                "prosjekt_id",
+                "catenda_topic_id",
+                "catenda_board_id",
+                "catenda_project_id",
+                "created_at",
+                "created_by",
+                "cached_title",
+                "cached_status",
+                "last_event_at",
             ]
-            assert header_line == ','.join(expected_headers)
+            assert header_line == ",".join(expected_headers)
 
     def test_create_metadata_entry(self, repo, sample_metadata):
         """Test creating a new metadata entry."""
@@ -85,7 +95,7 @@ class TestSakMetadataRepository:
             created_by="Another User",
             cached_title=None,
             cached_status=None,
-            last_event_at=None
+            last_event_at=None,
         )
 
         repo.create(metadata)
@@ -110,10 +120,7 @@ class TestSakMetadataRepository:
 
         # Update title
         new_title = "Updated Title"
-        repo.update_cache(
-            sak_id="TEST-001",
-            cached_title=new_title
-        )
+        repo.update_cache(sak_id="TEST-001", cached_title=new_title)
 
         # Verify update
         retrieved = repo.get("TEST-001")
@@ -127,10 +134,7 @@ class TestSakMetadataRepository:
 
         # Update status
         new_status = "SENDT"
-        repo.update_cache(
-            sak_id="TEST-001",
-            cached_status=new_status
-        )
+        repo.update_cache(sak_id="TEST-001", cached_status=new_status)
 
         # Verify update
         retrieved = repo.get("TEST-001")
@@ -143,10 +147,7 @@ class TestSakMetadataRepository:
 
         # Update timestamp
         new_timestamp = datetime(2025, 1, 2, 14, 0, 0)
-        repo.update_cache(
-            sak_id="TEST-001",
-            last_event_at=new_timestamp
-        )
+        repo.update_cache(sak_id="TEST-001", last_event_at=new_timestamp)
 
         # Verify update
         retrieved = repo.get("TEST-001")
@@ -165,7 +166,7 @@ class TestSakMetadataRepository:
             sak_id="TEST-001",
             cached_title=new_title,
             cached_status=new_status,
-            last_event_at=new_timestamp
+            last_event_at=new_timestamp,
         )
 
         # Verify all updates
@@ -177,10 +178,7 @@ class TestSakMetadataRepository:
     def test_update_cache_nonexistent_case(self, repo):
         """Test updating cache for a case that doesn't exist (should not error)."""
         # This should not raise an error, just silently do nothing
-        repo.update_cache(
-            sak_id="NONEXISTENT",
-            cached_title="Should Not Appear"
-        )
+        repo.update_cache(sak_id="NONEXISTENT", cached_title="Should Not Appear")
 
         result = repo.get("NONEXISTENT")
         assert result is None
@@ -207,11 +205,11 @@ class TestSakMetadataRepository:
                 prosjekt_id=f"PROJ-{i}",
                 catenda_topic_id=None,
                 catenda_project_id=None,
-                created_at=datetime(2025, 1, i+1, 12, 0, 0),
+                created_at=datetime(2025, 1, i + 1, 12, 0, 0),
                 created_by=f"User {i}",
                 cached_title=f"Case {i}",
                 cached_status="UTKAST",
-                last_event_at=None
+                last_event_at=None,
             )
             repo.create(metadata)
 
@@ -230,10 +228,7 @@ class TestSakMetadataRepository:
         repo.create(sample_metadata)
 
         def update_title(title_suffix):
-            repo.update_cache(
-                sak_id="TEST-001",
-                cached_title=f"Title {title_suffix}"
-            )
+            repo.update_cache(sak_id="TEST-001", cached_title=f"Title {title_suffix}")
 
         # Run multiple concurrent updates
         threads = []
@@ -255,16 +250,16 @@ class TestSakMetadataRepository:
         repo.create(sample_metadata)
 
         # Read the CSV file directly
-        with open(repo.csv_path, 'r', encoding='utf-8') as f:
+        with open(repo.csv_path, encoding="utf-8") as f:
             lines = f.readlines()
 
         # Should have header + 1 data row
         assert len(lines) == 2
 
         # Verify header
-        assert 'sak_id' in lines[0]
-        assert 'cached_title' in lines[0]
+        assert "sak_id" in lines[0]
+        assert "cached_title" in lines[0]
 
         # Verify data row contains expected values
-        assert 'TEST-001' in lines[1]
-        assert 'Test User' in lines[1]
+        assert "TEST-001" in lines[1]
+        assert "Test User" in lines[1]

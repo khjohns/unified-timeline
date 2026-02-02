@@ -3,9 +3,11 @@ Sync Models - Data models for Dalux → Catenda synchronization.
 
 These models define the structure for sync configuration and tracking.
 """
-from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, Literal, Dict, Any
+
 from datetime import datetime
+from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DaluxCatendaSyncMapping(BaseModel):
@@ -14,18 +16,20 @@ class DaluxCatendaSyncMapping(BaseModel):
 
     Stores API credentials and sync settings per project.
     """
+
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat() if v else None
-        }
+        json_encoders={datetime: lambda v: v.isoformat() if v else None}
     )
 
-    id: Optional[str] = Field(default=None, description="Database ID (UUID)")
+    id: str | None = Field(default=None, description="Database ID (UUID)")
     project_id: str = Field(..., description="Internal project ID")
 
     # Dalux configuration
     dalux_project_id: str = Field(..., description="Dalux project ID")
-    dalux_base_url: str = Field(..., description="Dalux API base URL (e.g., https://node1.field.dalux.com/service/api/)")
+    dalux_base_url: str = Field(
+        ...,
+        description="Dalux API base URL (e.g., https://node1.field.dalux.com/service/api/)",
+    )
     # Note: API key is read from DALUX_API_KEY environment variable, not stored in database
 
     # Catenda configuration
@@ -34,25 +38,30 @@ class DaluxCatendaSyncMapping(BaseModel):
 
     # Sync settings
     sync_enabled: bool = Field(default=True, description="Whether sync is enabled")
-    sync_interval_minutes: int = Field(default=15, description="Polling interval in minutes")
+    sync_interval_minutes: int = Field(
+        default=15, description="Polling interval in minutes"
+    )
 
     # Task filters
-    task_filters: Optional[Dict[str, Any]] = Field(
+    task_filters: dict[str, Any] | None = Field(
         default=None,
-        description="Task type filter configuration (e.g., {'exclude_types': ['RUH']})"
+        description="Task type filter configuration (e.g., {'exclude_types': ['RUH']})",
     )
 
     # Sync status
-    last_sync_at: Optional[datetime] = Field(default=None, description="Last sync timestamp")
-    last_sync_status: Optional[Literal["success", "failed", "partial"]] = Field(
-        default=None,
-        description="Last sync result"
+    last_sync_at: datetime | None = Field(
+        default=None, description="Last sync timestamp"
     )
-    last_sync_error: Optional[str] = Field(default=None, description="Last sync error message")
+    last_sync_status: Literal["success", "failed", "partial"] | None = Field(
+        default=None, description="Last sync result"
+    )
+    last_sync_error: str | None = Field(
+        default=None, description="Last sync error message"
+    )
 
     # Timestamps
-    created_at: Optional[datetime] = Field(default=None, description="Created timestamp")
-    updated_at: Optional[datetime] = Field(default=None, description="Updated timestamp")
+    created_at: datetime | None = Field(default=None, description="Created timestamp")
+    updated_at: datetime | None = Field(default=None, description="Updated timestamp")
 
 
 class TaskSyncRecord(BaseModel):
@@ -61,14 +70,15 @@ class TaskSyncRecord(BaseModel):
 
     Links a Dalux task ID to a Catenda topic GUID and tracks sync status.
     """
+
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat() if v else None
-        }
+        json_encoders={datetime: lambda v: v.isoformat() if v else None}
     )
 
-    id: Optional[str] = Field(default=None, description="Database ID (UUID)")
-    sync_mapping_id: str = Field(..., description="Reference to DaluxCatendaSyncMapping")
+    id: str | None = Field(default=None, description="Database ID (UUID)")
+    sync_mapping_id: str = Field(
+        ..., description="Reference to DaluxCatendaSyncMapping"
+    )
 
     # Dalux reference
     dalux_task_id: str = Field(..., description="Dalux task ID")
@@ -80,15 +90,14 @@ class TaskSyncRecord(BaseModel):
 
     # Sync status
     sync_status: Literal["synced", "pending", "failed"] = Field(
-        default="pending",
-        description="Current sync status"
+        default="pending", description="Current sync status"
     )
-    last_error: Optional[str] = Field(default=None, description="Last error message")
+    last_error: str | None = Field(default=None, description="Last error message")
     retry_count: int = Field(default=0, description="Number of retry attempts")
 
     # Timestamps
-    created_at: Optional[datetime] = Field(default=None, description="Created timestamp")
-    updated_at: Optional[datetime] = Field(default=None, description="Updated timestamp")
+    created_at: datetime | None = Field(default=None, description="Created timestamp")
+    updated_at: datetime | None = Field(default=None, description="Updated timestamp")
 
 
 class AttachmentSyncRecord(BaseModel):
@@ -97,57 +106,60 @@ class AttachmentSyncRecord(BaseModel):
 
     Links a Dalux media file to a Catenda document.
     """
+
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat() if v else None
-        }
+        json_encoders={datetime: lambda v: v.isoformat() if v else None}
     )
 
-    id: Optional[str] = Field(default=None, description="Database ID (UUID)")
+    id: str | None = Field(default=None, description="Database ID (UUID)")
     task_sync_record_id: str = Field(..., description="Reference to TaskSyncRecord")
 
     # Dalux reference
     dalux_media_file_id: str = Field(..., description="Dalux media file ID")
-    dalux_filename: Optional[str] = Field(default=None, description="Original filename")
+    dalux_filename: str | None = Field(default=None, description="Original filename")
 
     # Catenda reference
     catenda_document_guid: str = Field(..., description="Catenda document GUID")
 
     # Sync status
     sync_status: Literal["synced", "pending", "failed"] = Field(
-        default="pending",
-        description="Current sync status"
+        default="pending", description="Current sync status"
     )
-    last_error: Optional[str] = Field(default=None, description="Last error message")
+    last_error: str | None = Field(default=None, description="Last error message")
 
     # Timestamps
-    created_at: Optional[datetime] = Field(default=None, description="Created timestamp")
-    updated_at: Optional[datetime] = Field(default=None, description="Updated timestamp")
+    created_at: datetime | None = Field(default=None, description="Created timestamp")
+    updated_at: datetime | None = Field(default=None, description="Updated timestamp")
 
 
 # ==========================================
 # SYNC RESULT MODELS
 # ==========================================
 
+
 class TaskSyncResult(BaseModel):
     """Result of syncing a single task."""
+
     success: bool = Field(..., description="Whether sync succeeded")
     action: Literal["created", "updated", "skipped", "failed"] = Field(
-        ...,
-        description="Action taken"
+        ..., description="Action taken"
     )
     dalux_task_id: str = Field(..., description="Dalux task ID")
-    catenda_topic_guid: Optional[str] = Field(default=None, description="Catenda topic GUID")
-    error: Optional[str] = Field(default=None, description="Error message if failed")
-    attachments_synced: int = Field(default=0, description="Number of attachments synced")
+    catenda_topic_guid: str | None = Field(
+        default=None, description="Catenda topic GUID"
+    )
+    error: str | None = Field(default=None, description="Error message if failed")
+    attachments_synced: int = Field(
+        default=0, description="Number of attachments synced"
+    )
 
 
 class SyncResult(BaseModel):
     """Result of syncing a project."""
+
     success: bool = Field(..., description="Whether overall sync succeeded")
     status: Literal["success", "partial", "failed"] = Field(
-        ...,
-        description="Overall sync status"
+        ..., description="Overall sync status"
     )
     sync_mapping_id: str = Field(..., description="Sync mapping ID")
 
@@ -162,30 +174,42 @@ class SyncResult(BaseModel):
     # Details
     errors: list[str] = Field(default_factory=list, description="Error messages")
     task_results: list[TaskSyncResult] = Field(
-        default_factory=list,
-        description="Per-task results"
+        default_factory=list, description="Per-task results"
     )
 
     # Timing
     started_at: datetime = Field(..., description="Sync start time")
-    completed_at: Optional[datetime] = Field(default=None, description="Sync completion time")
-    duration_seconds: Optional[float] = Field(default=None, description="Total duration")
+    completed_at: datetime | None = Field(
+        default=None, description="Sync completion time"
+    )
+    duration_seconds: float | None = Field(default=None, description="Total duration")
 
 
 # ==========================================
 # MAPPING MODELS
 # ==========================================
 
+
 class TypeMapping(BaseModel):
     """Mapping from Dalux type to Catenda topic_type."""
-    dalux_type: str = Field(..., description="Dalux task type (e.g., 'task', 'approval')")
-    catenda_topic_type: str = Field(..., description="Catenda topic type (e.g., 'Task', 'Approval')")
+
+    dalux_type: str = Field(
+        ..., description="Dalux task type (e.g., 'task', 'approval')"
+    )
+    catenda_topic_type: str = Field(
+        ..., description="Catenda topic type (e.g., 'Task', 'Approval')"
+    )
 
 
 class StatusMapping(BaseModel):
     """Mapping from Dalux status to Catenda topic_status."""
-    dalux_status: str = Field(..., description="Dalux task status (e.g., 'Open', 'Resolved')")
-    catenda_topic_status: str = Field(..., description="Catenda topic status (e.g., 'Open', 'Closed')")
+
+    dalux_status: str = Field(
+        ..., description="Dalux task status (e.g., 'Open', 'Resolved')"
+    )
+    catenda_topic_status: str = Field(
+        ..., description="Catenda topic status (e.g., 'Open', 'Closed')"
+    )
 
 
 # ==========================================

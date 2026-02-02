@@ -4,30 +4,32 @@ Tests for Business Rule Validators.
 These tests ensure that business logic is properly enforced
 before events can be persisted.
 """
+
 import pytest
+
+from models.events import (
+    EOUtstedtData,
+    EOUtstedtEvent,
+    EventType,
+    FristData,
+    FristEvent,
+    FristVarselType,
+    GrunnlagData,
+    GrunnlagEvent,
+    GrunnlagResponsData,
+    GrunnlagResponsResultat,
+    ResponsEvent,
+    SakOpprettetEvent,
+    SporType,
+    VarselInfo,
+    VederlagBeregningResultat,
+    VederlagData,
+    VederlagEvent,
+    VederlagResponsData,
+    VederlagsMetode,
+)
 from services.business_rules import BusinessRuleValidator, ValidationResult
 from services.timeline_service import TimelineService
-from models.events import (
-    SakOpprettetEvent,
-    GrunnlagEvent,
-    GrunnlagData,
-    VederlagEvent,
-    VederlagData,
-    VederlagsMetode,
-    FristEvent,
-    FristData,
-    FristVarselType,
-    VarselInfo,
-    ResponsEvent,
-    GrunnlagResponsData,
-    VederlagResponsData,
-    EOUtstedtEvent,
-    EOUtstedtData,
-    EventType,
-    SporType,
-    GrunnlagResponsResultat,
-    VederlagBeregningResultat
-)
 
 
 class TestBusinessRuleValidator:
@@ -51,7 +53,7 @@ class TestBusinessRuleValidator:
                 sak_id="TEST-001",
                 aktor="TE User",
                 aktor_rolle="TE",
-                sakstittel="Test Case"
+                sakstittel="Test Case",
             ),
             GrunnlagEvent(
                 sak_id="TEST-001",
@@ -62,9 +64,9 @@ class TestBusinessRuleValidator:
                     hovedkategori="Risiko",
                     underkategori="Grunnforhold",
                     beskrivelse="Test beskrivelse",
-                    dato_oppdaget="2025-01-01"
-                )
-            )
+                    dato_oppdaget="2025-01-01",
+                ),
+            ),
         ]
         return timeline_service.compute_state(events)
 
@@ -81,8 +83,8 @@ class TestBusinessRuleValidator:
                 hovedkategori="Test",
                 underkategori="Test",
                 beskrivelse="Test",
-                dato_oppdaget="2025-01-01"
-            )
+                dato_oppdaget="2025-01-01",
+            ),
         )
 
         result = validator.validate(event, base_state)
@@ -99,8 +101,8 @@ class TestBusinessRuleValidator:
                 hovedkategori="Test",
                 underkategori="Test",
                 beskrivelse="Test",
-                dato_oppdaget="2025-01-01"
-            )
+                dato_oppdaget="2025-01-01",
+            ),
         )
 
         result = validator.validate(event, base_state)
@@ -117,9 +119,8 @@ class TestBusinessRuleValidator:
             aktor_rolle="TE",  # Wrong role!
             spor=SporType.GRUNNLAG,
             data=GrunnlagResponsData(
-                resultat=GrunnlagResponsResultat.GODKJENT,
-                begrunnelse="Test"
-            )
+                resultat=GrunnlagResponsResultat.GODKJENT, begrunnelse="Test"
+            ),
         )
 
         result = validator.validate(event, base_state)
@@ -136,9 +137,8 @@ class TestBusinessRuleValidator:
             aktor_rolle="BH",
             spor=SporType.GRUNNLAG,
             data=GrunnlagResponsData(
-                resultat=GrunnlagResponsResultat.GODKJENT,
-                begrunnelse="Test"
-            )
+                resultat=GrunnlagResponsResultat.GODKJENT, begrunnelse="Test"
+            ),
         )
 
         result = validator.validate(event, base_state)
@@ -151,10 +151,7 @@ class TestBusinessRuleValidator:
         # State with NO grunnlag
         events = [
             SakOpprettetEvent(
-                sak_id="TEST-002",
-                aktor="TE User",
-                aktor_rolle="TE",
-                sakstittel="Test"
+                sak_id="TEST-002", aktor="TE User", aktor_rolle="TE", sakstittel="Test"
             )
         ]
         state = timeline_service.compute_state(events)
@@ -168,8 +165,8 @@ class TestBusinessRuleValidator:
             data=VederlagData(
                 kostnads_overslag=100000.0,
                 metode=VederlagsMetode.REGNINGSARBEID,
-                begrunnelse="Test"
-            )
+                begrunnelse="Test",
+            ),
         )
 
         result = validator.validate(vederlag_event, state)
@@ -187,8 +184,8 @@ class TestBusinessRuleValidator:
             data=VederlagData(
                 kostnads_overslag=100000.0,
                 metode=VederlagsMetode.REGNINGSARBEID,
-                begrunnelse="Test"
-            )
+                begrunnelse="Test",
+            ),
         )
 
         result = validator.validate(vederlag_event, base_state)
@@ -199,10 +196,7 @@ class TestBusinessRuleValidator:
         # State with NO grunnlag
         events = [
             SakOpprettetEvent(
-                sak_id="TEST-003",
-                aktor="TE User",
-                aktor_rolle="TE",
-                sakstittel="Test"
+                sak_id="TEST-003", aktor="TE User", aktor_rolle="TE", sakstittel="Test"
             )
         ]
         state = timeline_service.compute_state(events)
@@ -215,10 +209,12 @@ class TestBusinessRuleValidator:
             versjon=1,
             data=FristData(
                 varsel_type=FristVarselType.SPESIFISERT,
-                spesifisert_varsel=VarselInfo(dato_sendt="2025-01-01", metode=["epost"]),
+                spesifisert_varsel=VarselInfo(
+                    dato_sendt="2025-01-01", metode=["epost"]
+                ),
                 antall_dager=14,
-                begrunnelse="Test"
-            )
+                begrunnelse="Test",
+            ),
         )
 
         result = validator.validate(frist_event, state)
@@ -240,8 +236,8 @@ class TestBusinessRuleValidator:
             data=VederlagResponsData(
                 beregnings_resultat=VederlagBeregningResultat.GODKJENT,
                 begrunnelse="Test",
-                total_godkjent_belop=100000.0
-            )
+                total_godkjent_belop=100000.0,
+            ),
         )
 
         result = validator.validate(response_event, base_state)
@@ -254,10 +250,7 @@ class TestBusinessRuleValidator:
         # Create state with vederlag sent
         events = [
             SakOpprettetEvent(
-                sak_id="TEST-004",
-                aktor="TE User",
-                aktor_rolle="TE",
-                sakstittel="Test"
+                sak_id="TEST-004", aktor="TE User", aktor_rolle="TE", sakstittel="Test"
             ),
             GrunnlagEvent(
                 sak_id="TEST-004",
@@ -268,8 +261,8 @@ class TestBusinessRuleValidator:
                     hovedkategori="Test",
                     underkategori="Test",
                     beskrivelse="Test",
-                    dato_oppdaget="2025-01-01"
-                )
+                    dato_oppdaget="2025-01-01",
+                ),
             ),
             VederlagEvent(
                 sak_id="TEST-004",
@@ -279,9 +272,9 @@ class TestBusinessRuleValidator:
                 data=VederlagData(
                     kostnads_overslag=100000.0,
                     metode=VederlagsMetode.REGNINGSARBEID,
-                    begrunnelse="Test"
-                )
-            )
+                    begrunnelse="Test",
+                ),
+            ),
         ]
         state = timeline_service.compute_state(events)
 
@@ -294,8 +287,8 @@ class TestBusinessRuleValidator:
             data=VederlagResponsData(
                 beregnings_resultat=VederlagBeregningResultat.GODKJENT,
                 begrunnelse="Approved",
-                total_godkjent_belop=100000.0
-            )
+                total_godkjent_belop=100000.0,
+            ),
         )
 
         result = validator.validate(response_event, state)
@@ -309,10 +302,7 @@ class TestBusinessRuleValidator:
         # This keeps the case active (not OMFORENT) while grunnlag is locked
         events = [
             SakOpprettetEvent(
-                sak_id="TEST-005",
-                aktor="TE User",
-                aktor_rolle="TE",
-                sakstittel="Test"
+                sak_id="TEST-005", aktor="TE User", aktor_rolle="TE", sakstittel="Test"
             ),
             GrunnlagEvent(
                 sak_id="TEST-005",
@@ -323,8 +313,8 @@ class TestBusinessRuleValidator:
                     hovedkategori="Test",
                     underkategori="Test",
                     beskrivelse="Test",
-                    dato_oppdaget="2025-01-01"
-                )
+                    dato_oppdaget="2025-01-01",
+                ),
             ),
             ResponsEvent(
                 event_type=EventType.RESPONS_GRUNNLAG,
@@ -334,8 +324,8 @@ class TestBusinessRuleValidator:
                 spor=SporType.GRUNNLAG,
                 data=GrunnlagResponsData(
                     resultat=GrunnlagResponsResultat.GODKJENT,  # This locks it!
-                    begrunnelse="Approved"
-                )
+                    begrunnelse="Approved",
+                ),
             ),
             # Add vederlag to keep case active
             VederlagEvent(
@@ -346,9 +336,9 @@ class TestBusinessRuleValidator:
                 data=VederlagData(
                     kostnads_overslag=100000.0,
                     metode=VederlagsMetode.REGNINGSARBEID,
-                    begrunnelse="Test"
-                )
-            )
+                    begrunnelse="Test",
+                ),
+            ),
         ]
         state = timeline_service.compute_state(events)
         assert state.grunnlag.laast  # Verify it's locked
@@ -365,8 +355,8 @@ class TestBusinessRuleValidator:
                 hovedkategori="Updated",
                 underkategori="Updated",
                 beskrivelse="Updated",
-                dato_oppdaget="2025-01-02"
-            )
+                dato_oppdaget="2025-01-02",
+            ),
         )
 
         result = validator.validate(update_event, state)
@@ -389,8 +379,8 @@ class TestBusinessRuleValidator:
             data=VederlagData(
                 kostnads_overslag=150000.0,
                 metode=VederlagsMetode.REGNINGSARBEID,
-                begrunnelse="Updated"
-            )
+                begrunnelse="Updated",
+            ),
         )
 
         result = validator.validate(update_event, base_state)
@@ -409,10 +399,12 @@ class TestBusinessRuleValidator:
             versjon=2,  # Trying to update
             data=FristData(
                 varsel_type=FristVarselType.SPESIFISERT,
-                spesifisert_varsel=VarselInfo(dato_sendt="2025-01-01", metode=["epost"]),
+                spesifisert_varsel=VarselInfo(
+                    dato_sendt="2025-01-01", metode=["epost"]
+                ),
                 antall_dager=21,
-                begrunnelse="Updated"
-            )
+                begrunnelse="Updated",
+            ),
         )
 
         result = validator.validate(update_event, base_state)
@@ -432,8 +424,8 @@ class TestBusinessRuleValidator:
             data=EOUtstedtData(
                 eo_nummer="EO-001",
                 beskrivelse="Test endringsordre",
-                kompensasjon_belop=100000.0
-            )
+                kompensasjon_belop=100000.0,
+            ),
         )
 
         result = validator.validate(eo_event, base_state)
@@ -445,10 +437,7 @@ class TestBusinessRuleValidator:
         # Create state with all tracks approved
         events = [
             SakOpprettetEvent(
-                sak_id="TEST-006",
-                aktor="TE User",
-                aktor_rolle="TE",
-                sakstittel="Test"
+                sak_id="TEST-006", aktor="TE User", aktor_rolle="TE", sakstittel="Test"
             ),
             GrunnlagEvent(
                 sak_id="TEST-006",
@@ -459,8 +448,8 @@ class TestBusinessRuleValidator:
                     hovedkategori="Test",
                     underkategori="Test",
                     beskrivelse="Test",
-                    dato_oppdaget="2025-01-01"
-                )
+                    dato_oppdaget="2025-01-01",
+                ),
             ),
             ResponsEvent(
                 event_type=EventType.RESPONS_GRUNNLAG,
@@ -469,10 +458,9 @@ class TestBusinessRuleValidator:
                 aktor_rolle="BH",
                 spor=SporType.GRUNNLAG,
                 data=GrunnlagResponsData(
-                    resultat=GrunnlagResponsResultat.GODKJENT,
-                    begrunnelse="Approved"
-                )
-            )
+                    resultat=GrunnlagResponsResultat.GODKJENT, begrunnelse="Approved"
+                ),
+            ),
         ]
         state = timeline_service.compute_state(events)
         assert state.kan_utstede_eo  # Verify ready for EO
@@ -484,8 +472,8 @@ class TestBusinessRuleValidator:
             data=EOUtstedtData(
                 eo_nummer="EO-001",
                 beskrivelse="Test endringsordre",
-                kompensasjon_belop=100000.0
-            )
+                kompensasjon_belop=100000.0,
+            ),
         )
 
         result = validator.validate(eo_event, state)
@@ -505,9 +493,7 @@ class TestValidationResult:
     def test_invalid_result_with_message(self):
         """Test creating an invalid result with message."""
         result = ValidationResult(
-            is_valid=False,
-            message="Test error message",
-            violated_rule="TEST_RULE"
+            is_valid=False, message="Test error message", violated_rule="TEST_RULE"
         )
         assert not result.is_valid
         assert result.message == "Test error message"

@@ -9,35 +9,38 @@ Provides JSON Schema definitions for:
 These schemas can be used with the CloudEvents `dataschema` attribute
 to provide type information for event consumers.
 """
-from typing import Dict, Any, Optional
+
 from enum import Enum
+from typing import Any
+
+from models.cloudevents import CLOUDEVENTS_NAMESPACE, CLOUDEVENTS_SPECVERSION
 
 # Import Pydantic models for schema generation
 from models.events import (
-    GrunnlagData,
-    VederlagData,
-    FristData,
-    GrunnlagResponsData,
-    VederlagResponsData,
-    FristResponsData,
-    EOOpprettetData,
-    EOKoeHandlingData,
-    EOUtstedtData,
     EOAkseptertData,
     EOBestridtData,
+    EOKoeHandlingData,
+    EOOpprettetData,
     EORevidertData,
-    ForseringVarselData,
+    EOUtstedtData,
+    EventType,
+    ForseringKoeHandlingData,
+    ForseringKostnaderOppdatertData,
     ForseringResponsData,
     ForseringStoppetData,
-    ForseringKostnaderOppdatertData,
-    ForseringKoeHandlingData,
-    EventType,
+    ForseringVarselData,
+    FristData,
+    FristResponsData,
+    GrunnlagData,
+    GrunnlagResponsData,
+    VederlagData,
+    VederlagResponsData,
 )
-from models.cloudevents import CLOUDEVENTS_NAMESPACE, CLOUDEVENTS_SPECVERSION
 
 
 class CloudEventsContentType(str, Enum):
     """Content types for CloudEvents."""
+
     CLOUDEVENTS_JSON = "application/cloudevents+json"
     CLOUDEVENTS_BATCH = "application/cloudevents-batch+json"
     JSON = "application/json"
@@ -85,7 +88,7 @@ EVENT_TYPE_TO_DATA_MODEL = {
 }
 
 
-def get_event_json_schema(event_type: str) -> Optional[Dict[str, Any]]:
+def get_event_json_schema(event_type: str) -> dict[str, Any] | None:
     """
     Get JSON Schema for a specific event type's data payload.
 
@@ -105,15 +108,15 @@ def get_event_json_schema(event_type: str) -> Optional[Dict[str, Any]]:
         return None
 
     # Generate JSON Schema from Pydantic model
-    schema = data_model.model_json_schema(mode='serialization')
+    schema = data_model.model_json_schema(mode="serialization")
 
     # Add $id for CloudEvents dataschema reference
-    schema['$id'] = f"{CLOUDEVENTS_NAMESPACE}/{event_type}/data"
+    schema["$id"] = f"{CLOUDEVENTS_NAMESPACE}/{event_type}/data"
 
     return schema
 
 
-def get_all_data_schemas() -> Dict[str, Dict[str, Any]]:
+def get_all_data_schemas() -> dict[str, dict[str, Any]]:
     """
     Get all event data schemas indexed by event type.
 
@@ -128,13 +131,13 @@ def get_all_data_schemas() -> Dict[str, Dict[str, Any]]:
     schemas = {}
     for event_type, model in EVENT_TYPE_TO_DATA_MODEL.items():
         if model is not None:
-            schema = model.model_json_schema(mode='serialization')
-            schema['$id'] = f"{CLOUDEVENTS_NAMESPACE}/{event_type}/data"
+            schema = model.model_json_schema(mode="serialization")
+            schema["$id"] = f"{CLOUDEVENTS_NAMESPACE}/{event_type}/data"
             schemas[event_type] = schema
     return schemas
 
 
-def get_cloudevent_envelope_schema() -> Dict[str, Any]:
+def get_cloudevent_envelope_schema() -> dict[str, Any]:
     """
     Get JSON Schema for the CloudEvents envelope structure.
 
@@ -156,72 +159,69 @@ def get_cloudevent_envelope_schema() -> Dict[str, Any]:
             "specversion": {
                 "type": "string",
                 "const": CLOUDEVENTS_SPECVERSION,
-                "description": "CloudEvents specification version"
+                "description": "CloudEvents specification version",
             },
             "id": {
                 "type": "string",
-                "description": "Unique identifier for this event (UUID)"
+                "description": "Unique identifier for this event (UUID)",
             },
             "source": {
                 "type": "string",
                 "format": "uri-reference",
                 "description": "Source URI: /projects/{prosjekt_id}/cases/{sak_id}",
-                "pattern": "^/projects/[^/]+/cases/[^/]+$"
+                "pattern": "^/projects/[^/]+/cases/[^/]+$",
             },
             "type": {
                 "type": "string",
                 "description": f"Event type with namespace: {CLOUDEVENTS_NAMESPACE}.<event_type>",
-                "pattern": "^no\\.oslo\\.koe\\.[a-z_]+$"
+                "pattern": "^no\\.oslo\\.koe\\.[a-z_]+$",
             },
             # Optional CloudEvents attributes
             "time": {
                 "type": "string",
                 "format": "date-time",
-                "description": "Timestamp in RFC 3339 format (ISO 8601 with Z suffix)"
+                "description": "Timestamp in RFC 3339 format (ISO 8601 with Z suffix)",
             },
-            "subject": {
-                "type": "string",
-                "description": "Subject identifier (sak_id)"
-            },
+            "subject": {"type": "string", "description": "Subject identifier (sak_id)"},
             "datacontenttype": {
                 "type": "string",
                 "const": "application/json",
-                "description": "Content type of data attribute"
+                "description": "Content type of data attribute",
             },
             "dataschema": {
                 "type": "string",
                 "format": "uri",
-                "description": "URI to JSON Schema for data payload"
+                "description": "URI to JSON Schema for data payload",
             },
             # Extension attributes (project-specific)
             "actor": {
                 "type": "string",
-                "description": "Name of person who performed the action"
+                "description": "Name of person who performed the action",
             },
             "actorrole": {
                 "type": "string",
                 "enum": ["TE", "BH"],
-                "description": "Role: TE=Totalentreprenor, BH=Byggherre"
+                "description": "Role: TE=Totalentreprenor, BH=Byggherre",
             },
             "comment": {
                 "type": "string",
-                "description": "Optional comment on the event"
+                "description": "Optional comment on the event",
             },
             "referstoid": {
                 "type": "string",
-                "description": "Reference to another event ID (for responses)"
+                "description": "Reference to another event ID (for responses)",
             },
             # Data payload
             "data": {
                 "type": "object",
-                "description": "Event-specific data payload (see dataschema for structure)"
-            }
+                "description": "Event-specific data payload (see dataschema for structure)",
+            },
         },
-        "additionalProperties": True
+        "additionalProperties": True,
     }
 
 
-def get_openapi_cloudevent_schema() -> Dict[str, Any]:
+def get_openapi_cloudevent_schema() -> dict[str, Any]:
     """
     Get OpenAPI 3.0 compatible schema for CloudEvents.
 
@@ -237,7 +237,7 @@ def get_openapi_cloudevent_schema() -> Dict[str, Any]:
     def clean_for_openapi(obj):
         if isinstance(obj, dict):
             # Remove unsupported keys
-            keys_to_remove = ['$schema', '$id', 'const', 'pattern']
+            keys_to_remove = ["$schema", "$id", "const", "pattern"]
             for key in keys_to_remove:
                 obj.pop(key, None)
             # Recursively clean nested objects

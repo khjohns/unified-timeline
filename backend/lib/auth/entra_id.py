@@ -14,26 +14,26 @@ HR-systemet er master for:
 """
 
 import logging
-from functools import wraps
-from typing import Optional, Dict, List, Literal
 from dataclasses import dataclass, field
+from functools import wraps
+from typing import Literal
 
 import jwt
+from flask import g, jsonify, request
 from jwt import PyJWKClient
-from flask import request, jsonify, g
 
 from core.config import settings
 
 logger = logging.getLogger(__name__)
 
 # Cache for JWKS client (reused across requests)
-_jwks_client: Optional[PyJWKClient] = None
+_jwks_client: PyJWKClient | None = None
 
 # Organisasjoner som regnes som BH (Byggherre) - resten er TE
 # Konfigureres basert på IDA-oppsett
 BH_ORGANIZATIONS = [
     "obf.oslo.kommune.no",  # Oslobygg KF
-    "oslo.kommune.no",      # Oslo kommune generelt
+    "oslo.kommune.no",  # Oslo kommune generelt
     # Legg til flere domener/organisasjoner etter behov
 ]
 
@@ -48,11 +48,12 @@ class EntraUser:
     - department: Avdeling/seksjon fra HR
     - Leder-relasjoner hentes via Graph API (/me/manager)
     """
+
     id: str  # oid claim
     email: str  # preferred_username
     name: str  # name claim
-    groups: List[str] = field(default_factory=list)  # group IDs/names
-    roles: List[str] = field(default_factory=list)  # app roles
+    groups: list[str] = field(default_factory=list)  # group IDs/names
+    roles: list[str] = field(default_factory=list)  # app roles
     tenant_id: str = ""  # tid claim
 
     # HR-synkroniserte felter
@@ -92,7 +93,7 @@ class EntraUser:
         return "TE"
 
     @property
-    def approval_role(self) -> Optional[str]:
+    def approval_role(self) -> str | None:
         """
         Map stillingstittel/grupper til godkjenningsrolle.
 
@@ -102,21 +103,21 @@ class EntraUser:
 
         Returnerer høyeste rolle hvis bruker har flere.
         """
-        role_hierarchy = ['AD', 'DU', 'AL', 'SL', 'PL']
+        role_hierarchy = ["AD", "DU", "AL", "SL", "PL"]
 
         # 1. Sjekk stillingstittel fra HR (primær kilde)
         if self.job_title:
             title_lower = self.job_title.lower()
             title_mappings = {
-                'administrerende direktør': 'AD',
-                'adm. direktør': 'AD',
-                'direktør utbygging': 'DU',
-                'avdelingsleder': 'AL',
-                'avdelingsdirektør': 'AL',
-                'seksjonsleder': 'SL',
-                'seksjonssjef': 'SL',
-                'prosjektleder': 'PL',
-                'prosjektsjef': 'PL',
+                "administrerende direktør": "AD",
+                "adm. direktør": "AD",
+                "direktør utbygging": "DU",
+                "avdelingsleder": "AL",
+                "avdelingsdirektør": "AL",
+                "seksjonsleder": "SL",
+                "seksjonssjef": "SL",
+                "prosjektleder": "PL",
+                "prosjektsjef": "PL",
             }
             for title_pattern, role in title_mappings.items():
                 if title_pattern in title_lower:
@@ -124,11 +125,11 @@ class EntraUser:
 
         # 2. Sjekk Entra ID-grupper (fallback)
         role_groups = {
-            'KOE-Godkjenner-AD': 'AD',
-            'KOE-Godkjenner-DU': 'DU',
-            'KOE-Godkjenner-AL': 'AL',
-            'KOE-Godkjenner-SL': 'SL',
-            'KOE-Godkjenner-PL': 'PL',
+            "KOE-Godkjenner-AD": "AD",
+            "KOE-Godkjenner-DU": "DU",
+            "KOE-Godkjenner-AL": "AL",
+            "KOE-Godkjenner-SL": "SL",
+            "KOE-Godkjenner-PL": "PL",
         }
 
         user_roles = []
@@ -143,24 +144,24 @@ class EntraUser:
 
         return None
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Konverter til dict for JSON-serialisering."""
         return {
-            'id': self.id,
-            'email': self.email,
-            'name': self.name,
-            'groups': self.groups,
-            'roles': self.roles,
-            'tenant_id': self.tenant_id,
-            'job_title': self.job_title,
-            'department': self.department,
-            'company': self.company,
-            'organization_role': self.organization_role,
-            'approval_role': self.approval_role,
+            "id": self.id,
+            "email": self.email,
+            "name": self.name,
+            "groups": self.groups,
+            "roles": self.roles,
+            "tenant_id": self.tenant_id,
+            "job_title": self.job_title,
+            "department": self.department,
+            "company": self.company,
+            "organization_role": self.organization_role,
+            "approval_role": self.approval_role,
         }
 
 
-def _get_jwks_client() -> Optional[PyJWKClient]:
+def _get_jwks_client() -> PyJWKClient | None:
     """Hent eller opprett JWKS client for token-validering."""
     global _jwks_client
 
@@ -171,13 +172,13 @@ def _get_jwks_client() -> Optional[PyJWKClient]:
         _jwks_client = PyJWKClient(
             settings.entra_jwks_url,
             cache_jwk_set=True,
-            lifespan=3600  # Cache keys for 1 hour
+            lifespan=3600,  # Cache keys for 1 hour
         )
 
     return _jwks_client
 
 
-def validate_entra_token(token: str) -> Optional[EntraUser]:
+def validate_entra_token(token: str) -> EntraUser | None:
     """
     Valider et Entra ID JWT token.
 
@@ -215,7 +216,7 @@ def validate_entra_token(token: str) -> Optional[EntraUser]:
                 "verify_exp": True,
                 "verify_aud": True,
                 "verify_iss": True,
-            }
+            },
         )
 
         # Ekstraher brukerinformasjon inkludert HR-synkroniserte felter
@@ -258,33 +259,39 @@ def require_entra_auth(f):
 
     Hvis Entra ID ikke er aktivert, faller tilbake til magic link auth.
     """
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Sjekk om Entra ID er aktivert
         if not settings.entra_enabled:
             # Fall tilbake til magic link auth
             from .magic_link import require_magic_link
+
             return require_magic_link(f)(*args, **kwargs)
 
         # Hent token fra Authorization header
-        auth_header = request.headers.get('Authorization', '')
+        auth_header = request.headers.get("Authorization", "")
 
-        if not auth_header.startswith('Bearer '):
-            return jsonify({
-                "success": False,
-                "error": "UNAUTHORIZED",
-                "message": "Mangler Authorization header"
-            }), 401
+        if not auth_header.startswith("Bearer "):
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "UNAUTHORIZED",
+                    "message": "Mangler Authorization header",
+                }
+            ), 401
 
-        token = auth_header.split(' ')[1]
+        token = auth_header.split(" ")[1]
         user = validate_entra_token(token)
 
         if not user:
-            return jsonify({
-                "success": False,
-                "error": "UNAUTHORIZED",
-                "message": "Ugyldig eller utløpt token"
-            }), 401
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "UNAUTHORIZED",
+                    "message": "Ugyldig eller utløpt token",
+                }
+            ), 401
 
         # Sett bruker i Flask g object
         g.entra_user = user
@@ -303,7 +310,7 @@ def require_entra_auth(f):
     return decorated_function
 
 
-def require_approval_role(required_roles: List[str]):
+def require_approval_role(required_roles: list[str]):
     """
     Decorator som krever spesifikk godkjenningsrolle.
 
@@ -315,32 +322,39 @@ def require_approval_role(required_roles: List[str]):
         def approve_package():
             ...
     """
+
     def decorator(f):
         @wraps(f)
         @require_entra_auth
         def decorated_function(*args, **kwargs):
-            user = getattr(g, 'entra_user', None)
+            user = getattr(g, "entra_user", None)
 
             if not user:
-                return jsonify({
-                    "success": False,
-                    "error": "UNAUTHORIZED",
-                    "message": "Krever Entra ID-autentisering"
-                }), 401
+                return jsonify(
+                    {
+                        "success": False,
+                        "error": "UNAUTHORIZED",
+                        "message": "Krever Entra ID-autentisering",
+                    }
+                ), 401
 
             if not user.approval_role:
-                return jsonify({
-                    "success": False,
-                    "error": "FORBIDDEN",
-                    "message": "Bruker har ingen godkjenningsrolle"
-                }), 403
+                return jsonify(
+                    {
+                        "success": False,
+                        "error": "FORBIDDEN",
+                        "message": "Bruker har ingen godkjenningsrolle",
+                    }
+                ), 403
 
             if user.approval_role not in required_roles:
-                return jsonify({
-                    "success": False,
-                    "error": "FORBIDDEN",
-                    "message": f"Krever en av følgende roller: {', '.join(required_roles)}"
-                }), 403
+                return jsonify(
+                    {
+                        "success": False,
+                        "error": "FORBIDDEN",
+                        "message": f"Krever en av følgende roller: {', '.join(required_roles)}",
+                    }
+                ), 403
 
             return f(*args, **kwargs)
 
@@ -361,35 +375,40 @@ def require_bh_role(f):
         def submit_bh_response():
             ...
     """
+
     @wraps(f)
     @require_entra_auth
     def decorated_function(*args, **kwargs):
-        user = getattr(g, 'entra_user', None)
+        user = getattr(g, "entra_user", None)
 
         if not user:
-            return jsonify({
-                "success": False,
-                "error": "UNAUTHORIZED",
-                "message": "Krever Entra ID-autentisering"
-            }), 401
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "UNAUTHORIZED",
+                    "message": "Krever Entra ID-autentisering",
+                }
+            ), 401
 
         if user.organization_role != "BH":
-            return jsonify({
-                "success": False,
-                "error": "FORBIDDEN",
-                "message": "Kun tilgjengelig for Oslobygg-ansatte (BH)"
-            }), 403
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "FORBIDDEN",
+                    "message": "Kun tilgjengelig for Oslobygg-ansatte (BH)",
+                }
+            ), 403
 
         return f(*args, **kwargs)
 
     return decorated_function
 
 
-def get_entra_user() -> Optional[EntraUser]:
+def get_entra_user() -> EntraUser | None:
     """
     Hent nåværende Entra ID-autentiserte bruker fra Flask g object.
 
     Returns:
         EntraUser eller None hvis ikke autentisert
     """
-    return getattr(g, 'entra_user', None)
+    return getattr(g, "entra_user", None)

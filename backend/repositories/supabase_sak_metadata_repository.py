@@ -48,13 +48,13 @@ USING (auth.role() = 'authenticated');
 ```
 """
 
-from typing import Optional, List
 import os
 from datetime import datetime
 
 # Supabase Python client
 try:
-    from supabase import create_client, Client
+    from supabase import Client, create_client
+
     SUPABASE_AVAILABLE = True
 except ImportError:
     SUPABASE_AVAILABLE = False
@@ -76,11 +76,7 @@ class SupabaseSakMetadataRepository:
 
     TABLE_NAME = "sak_metadata"
 
-    def __init__(
-        self,
-        url: Optional[str] = None,
-        key: Optional[str] = None
-    ):
+    def __init__(self, url: str | None = None, key: str | None = None):
         if not SUPABASE_AVAILABLE:
             raise ImportError(
                 "Supabase client not installed. Run: pip install supabase"
@@ -88,7 +84,11 @@ class SupabaseSakMetadataRepository:
 
         self.url = url or os.environ.get("SUPABASE_URL")
         # Support both SUPABASE_SECRET_KEY (new) and SUPABASE_KEY (legacy)
-        self.key = key or os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_KEY")
+        self.key = (
+            key
+            or os.environ.get("SUPABASE_SECRET_KEY")
+            or os.environ.get("SUPABASE_KEY")
+        )
 
         if not self.url or not self.key:
             raise ValueError(
@@ -107,14 +107,17 @@ class SupabaseSakMetadataRepository:
             catenda_board_id=row.get("catenda_board_id"),
             catenda_project_id=row.get("catenda_project_id"),
             created_at=datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
-                if isinstance(row["created_at"], str) else row["created_at"],
+            if isinstance(row["created_at"], str)
+            else row["created_at"],
             created_by=row["created_by"],
             sakstype=row.get("sakstype", "standard"),
             cached_title=row.get("cached_title"),
             cached_status=row.get("cached_status"),
-            last_event_at=datetime.fromisoformat(row["last_event_at"].replace("Z", "+00:00"))
-                if row.get("last_event_at") and isinstance(row["last_event_at"], str)
-                else row.get("last_event_at"),
+            last_event_at=datetime.fromisoformat(
+                row["last_event_at"].replace("Z", "+00:00")
+            )
+            if row.get("last_event_at") and isinstance(row["last_event_at"], str)
+            else row.get("last_event_at"),
         )
 
     def _metadata_to_row(self, metadata: SakMetadata) -> dict:
@@ -130,7 +133,9 @@ class SupabaseSakMetadataRepository:
             "sakstype": metadata.sakstype,
             "cached_title": metadata.cached_title,
             "cached_status": metadata.cached_status,
-            "last_event_at": metadata.last_event_at.isoformat() if metadata.last_event_at else None,
+            "last_event_at": metadata.last_event_at.isoformat()
+            if metadata.last_event_at
+            else None,
         }
 
     def create(self, metadata: SakMetadata) -> None:
@@ -138,11 +143,10 @@ class SupabaseSakMetadataRepository:
         row = self._metadata_to_row(metadata)
         self.client.table(self.TABLE_NAME).insert(row).execute()
 
-    def get(self, sak_id: str) -> Optional[SakMetadata]:
+    def get(self, sak_id: str) -> SakMetadata | None:
         """Get case metadata by ID."""
         result = (
-            self.client
-            .table(self.TABLE_NAME)
+            self.client.table(self.TABLE_NAME)
             .select("*")
             .eq("sak_id", sak_id)
             .limit(1)
@@ -156,9 +160,9 @@ class SupabaseSakMetadataRepository:
     def update_cache(
         self,
         sak_id: str,
-        cached_title: Optional[str] = None,
-        cached_status: Optional[str] = None,
-        last_event_at: Optional[datetime] = None
+        cached_title: str | None = None,
+        cached_status: str | None = None,
+        last_event_at: datetime | None = None,
     ) -> None:
         """
         Update cached fields for a case.
@@ -175,13 +179,14 @@ class SupabaseSakMetadataRepository:
             updates["last_event_at"] = last_event_at.isoformat()
 
         if updates:
-            self.client.table(self.TABLE_NAME).update(updates).eq("sak_id", sak_id).execute()
+            self.client.table(self.TABLE_NAME).update(updates).eq(
+                "sak_id", sak_id
+            ).execute()
 
-    def get_by_topic_id(self, topic_id: str) -> Optional[SakMetadata]:
+    def get_by_topic_id(self, topic_id: str) -> SakMetadata | None:
         """Get case metadata by Catenda topic ID."""
         result = (
-            self.client
-            .table(self.TABLE_NAME)
+            self.client.table(self.TABLE_NAME)
             .select("*")
             .eq("catenda_topic_id", topic_id)
             .limit(1)
@@ -192,11 +197,10 @@ class SupabaseSakMetadataRepository:
             return self._row_to_metadata(result.data[0])
         return None
 
-    def list_all(self) -> List[SakMetadata]:
+    def list_all(self) -> list[SakMetadata]:
         """List all cases (for case list view)."""
         result = (
-            self.client
-            .table(self.TABLE_NAME)
+            self.client.table(self.TABLE_NAME)
             .select("*")
             .order("last_event_at", desc=True, nullsfirst=False)
             .execute()
@@ -204,11 +208,10 @@ class SupabaseSakMetadataRepository:
 
         return [self._row_to_metadata(row) for row in result.data]
 
-    def list_by_sakstype(self, sakstype: str) -> List[SakMetadata]:
+    def list_by_sakstype(self, sakstype: str) -> list[SakMetadata]:
         """List cases filtered by sakstype."""
         result = (
-            self.client
-            .table(self.TABLE_NAME)
+            self.client.table(self.TABLE_NAME)
             .select("*")
             .eq("sakstype", sakstype)
             .order("last_event_at", desc=True, nullsfirst=False)
@@ -220,11 +223,7 @@ class SupabaseSakMetadataRepository:
     def delete(self, sak_id: str) -> bool:
         """Delete case metadata by ID."""
         result = (
-            self.client
-            .table(self.TABLE_NAME)
-            .delete()
-            .eq("sak_id", sak_id)
-            .execute()
+            self.client.table(self.TABLE_NAME).delete().eq("sak_id", sak_id).execute()
         )
 
         # Supabase returns the deleted rows
@@ -233,8 +232,7 @@ class SupabaseSakMetadataRepository:
     def exists(self, sak_id: str) -> bool:
         """Check if case exists."""
         result = (
-            self.client
-            .table(self.TABLE_NAME)
+            self.client.table(self.TABLE_NAME)
             .select("sak_id")
             .eq("sak_id", sak_id)
             .limit(1)
@@ -279,12 +277,12 @@ def create_metadata_repository(backend: str | None = None, **kwargs):
     if backend is None:
         # Check METADATA_STORE_BACKEND first, then fall back to EVENT_STORE_BACKEND
         backend = os.environ.get(
-            "METADATA_STORE_BACKEND",
-            os.environ.get("EVENT_STORE_BACKEND", "csv")
+            "METADATA_STORE_BACKEND", os.environ.get("EVENT_STORE_BACKEND", "csv")
         )
 
     if backend == "csv" or backend == "json":
         from .sak_metadata_repository import SakMetadataRepository
+
         return SakMetadataRepository(**kwargs)
 
     elif backend == "supabase":

@@ -4,8 +4,9 @@ CatendaService - Business logic for Catenda API integration.
 This service wraps the CatendaClient and provides a clean interface
 for posting comments, uploading documents, and managing references.
 """
-from typing import Dict, Any, Optional
+
 from pathlib import Path
+from typing import Any
 
 from utils.logger import get_logger
 
@@ -46,7 +47,7 @@ class CatendaService:
     hiding implementation details and making it easy to mock for testing.
     """
 
-    def __init__(self, catenda_api_client: Optional[Any] = None):
+    def __init__(self, catenda_api_client: Any | None = None):
         """
         Initialize CatendaService.
 
@@ -57,7 +58,9 @@ class CatendaService:
         if not self.client:
             logger.warning("CatendaService initialized without API client")
 
-    def create_comment(self, topic_guid: str, comment_text: str) -> Optional[Dict[str, Any]]:
+    def create_comment(
+        self, topic_guid: str, comment_text: str
+    ) -> dict[str, Any] | None:
         """
         Create a comment on a Catenda topic.
 
@@ -74,7 +77,9 @@ class CatendaService:
 
         return self._post_comment_sync(topic_guid, comment_text)
 
-    def _post_comment_sync(self, topic_guid: str, comment_text: str) -> Optional[Dict[str, Any]]:
+    def _post_comment_sync(
+        self, topic_guid: str, comment_text: str
+    ) -> dict[str, Any] | None:
         """
         Post comment synchronously.
 
@@ -90,7 +95,9 @@ class CatendaService:
             result = self.client.create_comment(topic_guid, comment_text)
 
             if result:
-                logger.info(f"✅ Comment posted successfully: {result.get('guid', 'N/A')}")
+                logger.info(
+                    f"✅ Comment posted successfully: {result.get('guid', 'N/A')}"
+                )
                 return result
             else:
                 logger.error("❌ Failed to post comment (no result)")
@@ -104,9 +111,9 @@ class CatendaService:
         self,
         project_id: str,
         file_path: str,
-        filename: Optional[str] = None,
-        folder_id: Optional[str] = None
-    ) -> Optional[Dict[str, Any]]:
+        filename: str | None = None,
+        folder_id: str | None = None,
+    ) -> dict[str, Any] | None:
         """
         Upload a document to Catenda.
 
@@ -136,11 +143,18 @@ class CatendaService:
         upload_filename = filename or path.name
 
         try:
-            logger.info(f"Uploading document {upload_filename} to project {project_id}" + (f" folder {folder_id}" if folder_id else ""))
-            result = self.client.upload_document(project_id, file_path, upload_filename, folder_id)
+            logger.info(
+                f"Uploading document {upload_filename} to project {project_id}"
+                + (f" folder {folder_id}" if folder_id else "")
+            )
+            result = self.client.upload_document(
+                project_id, file_path, upload_filename, folder_id
+            )
 
             if result:
-                logger.info(f"✅ Document uploaded: {result.get('library_item_id', 'N/A')}")
+                logger.info(
+                    f"✅ Document uploaded: {result.get('library_item_id', 'N/A')}"
+                )
                 return result
             else:
                 logger.error("❌ Failed to upload document")
@@ -151,10 +165,8 @@ class CatendaService:
             raise
 
     def create_document_reference(
-        self,
-        topic_guid: str,
-        document_guid: str
-    ) -> Optional[Dict[str, Any]]:
+        self, topic_guid: str, document_guid: str
+    ) -> dict[str, Any] | None:
         """
         Create a document reference linking a document to a topic.
 
@@ -173,7 +185,9 @@ class CatendaService:
             return None
 
         try:
-            logger.info(f"Creating document reference: topic={topic_guid}, doc={document_guid}")
+            logger.info(
+                f"Creating document reference: topic={topic_guid}, doc={document_guid}"
+            )
             result = self.client.create_document_reference(topic_guid, document_guid)
 
             if result:
@@ -187,7 +201,7 @@ class CatendaService:
             logger.error(f"❌ Exception creating document reference: {e}")
             return None
 
-    def get_topic_details(self, topic_guid: str) -> Optional[Dict[str, Any]]:
+    def get_topic_details(self, topic_guid: str) -> dict[str, Any] | None:
         """
         Get details about a Catenda topic.
 
@@ -216,7 +230,7 @@ class CatendaService:
             logger.error(f"❌ Exception getting topic details: {e}")
             return None
 
-    def get_project_details(self, project_id: str) -> Optional[Dict[str, Any]]:
+    def get_project_details(self, project_id: str) -> dict[str, Any] | None:
         """
         Get details about a Catenda project.
 
@@ -235,7 +249,9 @@ class CatendaService:
             result = self.client.get_project_details(project_id)
 
             if result:
-                logger.info(f"✅ Project details retrieved: {result.get('name', 'N/A')}")
+                logger.info(
+                    f"✅ Project details retrieved: {result.get('name', 'N/A')}"
+                )
                 return result
             else:
                 logger.error("❌ Failed to get project details")
@@ -277,10 +293,8 @@ class CatendaService:
         return self.client is not None
 
     def update_topic_status(
-        self,
-        topic_guid: str,
-        overordnet_status: str
-    ) -> Optional[Dict[str, Any]]:
+        self, topic_guid: str, overordnet_status: str
+    ) -> dict[str, Any] | None:
         """
         Update topic status in Catenda based on internal overordnet_status.
 
@@ -298,7 +312,9 @@ class CatendaService:
         catenda_status = map_status_to_catenda(overordnet_status)
 
         try:
-            logger.info(f"Updating topic {topic_guid} status to: {catenda_status} (from {overordnet_status})")
+            logger.info(
+                f"Updating topic {topic_guid} status to: {catenda_status} (from {overordnet_status})"
+            )
             result = self.client.update_topic(topic_guid, topic_status=catenda_status)
 
             if result:

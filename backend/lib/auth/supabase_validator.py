@@ -6,16 +6,16 @@ Uses the JWT secret from Supabase dashboard (Settings → API → JWT Secret).
 """
 
 import os
-import jwt
 from functools import wraps
-from flask import request, jsonify, g
-from typing import Optional, Dict
+
+import jwt
+from flask import g, jsonify, request
 
 # Supabase JWT secret from environment
 SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
 
 
-def validate_supabase_token(token: str) -> Optional[Dict]:
+def validate_supabase_token(token: str) -> dict | None:
     """
     Validate a Supabase JWT token.
 
@@ -54,38 +54,48 @@ def require_supabase_auth(f):
     Falls back to magic link auth if Supabase is not configured.
     Set DISABLE_AUTH=true to bypass authentication (for testing only).
     """
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Allow bypassing auth for testing (NOT for production!)
-        if os.environ.get('DISABLE_AUTH', '').lower() == 'true':
-            g.current_user = {"id": "test-user", "email": "test@example.com", "role": "authenticated"}
+        if os.environ.get("DISABLE_AUTH", "").lower() == "true":
+            g.current_user = {
+                "id": "test-user",
+                "email": "test@example.com",
+                "role": "authenticated",
+            }
             return f(*args, **kwargs)
 
         # Check if Supabase JWT secret is configured
         if not SUPABASE_JWT_SECRET:
             # Fall back to magic link auth or allow if not configured
             from .magic_link import require_magic_link
+
             return require_magic_link(f)(*args, **kwargs)
 
         # Get token from Authorization header
-        auth_header = request.headers.get('Authorization', '')
+        auth_header = request.headers.get("Authorization", "")
 
-        if not auth_header.startswith('Bearer '):
-            return jsonify({
-                "success": False,
-                "error": "UNAUTHORIZED",
-                "message": "Missing authorization header"
-            }), 401
+        if not auth_header.startswith("Bearer "):
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "UNAUTHORIZED",
+                    "message": "Missing authorization header",
+                }
+            ), 401
 
-        token = auth_header.split(' ')[1]
+        token = auth_header.split(" ")[1]
         claims = validate_supabase_token(token)
 
         if not claims:
-            return jsonify({
-                "success": False,
-                "error": "UNAUTHORIZED",
-                "message": "Invalid or expired token"
-            }), 401
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "UNAUTHORIZED",
+                    "message": "Invalid or expired token",
+                }
+            ), 401
 
         # Set current user in Flask g object
         g.current_user = {
@@ -99,11 +109,11 @@ def require_supabase_auth(f):
     return decorated_function
 
 
-def get_current_user() -> Optional[Dict]:
+def get_current_user() -> dict | None:
     """
     Get the current authenticated user from Flask g object.
 
     Returns:
         Dict with user info or None if not authenticated
     """
-    return getattr(g, 'current_user', None)
+    return getattr(g, "current_user", None)

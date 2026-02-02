@@ -4,18 +4,21 @@ Business rule validation before event persistence.
 All rules are validated BEFORE events are stored.
 This ensures the event log never contains invalid state transitions.
 """
+
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Optional, List, Tuple, Callable
+
 from models.events import AnyEvent, EventType, SporStatus
-from models.sak_state import SakState, SaksType, EOStatus
+from models.sak_state import EOStatus, SakState, SaksType
 
 
 @dataclass
 class ValidationResult:
     """Result of business rule validation."""
+
     is_valid: bool
-    message: Optional[str] = None
-    violated_rule: Optional[str] = None
+    message: str | None = None
+    violated_rule: str | None = None
 
 
 class BusinessRuleValidator:
@@ -41,7 +44,7 @@ class BusinessRuleValidator:
 
         return ValidationResult(is_valid=True)
 
-    def _get_rules_for_event(self, event_type: EventType) -> List[Tuple[str, Callable]]:
+    def _get_rules_for_event(self, event_type: EventType) -> list[tuple[str, Callable]]:
         """Map event types to applicable rules."""
 
         # Rules that apply to all events
@@ -71,7 +74,6 @@ class BusinessRuleValidator:
                 ("GRUNNLAG_REQUIRED", self._rule_grunnlag_required),
                 ("ACTIVE_CLAIM_EXISTS", self._rule_active_frist_exists),
             ],
-
             # BH responses require track to be sent and not already responded to current version
             EventType.RESPONS_GRUNNLAG: [
                 ("TRACK_SENT", self._rule_grunnlag_sent),
@@ -86,17 +88,13 @@ class BusinessRuleValidator:
                 ("TRACK_SENT", self._rule_frist_sent),
                 ("NOT_ALREADY_RESPONDED", self._rule_frist_not_already_responded),
             ],
-
             # Cannot update locked grunnlag
             EventType.GRUNNLAG_OPPDATERT: [
                 ("NOT_LOCKED", self._rule_grunnlag_not_locked),
             ],
-
             # ========== ENDRINGSORDRE RULES ==========
-
             # EO opprettelse - ingen spesifikke regler utover rolle-sjekk
             EventType.EO_OPPRETTET: [],
-
             # EO KOE-håndtering - må være i ENDRINGSORDRE-sak
             EventType.EO_KOE_LAGT_TIL: [
                 ("IS_EO_CASE", self._rule_is_eo_case),
@@ -104,12 +102,10 @@ class BusinessRuleValidator:
             EventType.EO_KOE_FJERNET: [
                 ("IS_EO_CASE", self._rule_is_eo_case),
             ],
-
             # EO utstedelse - kan være fra KOE (alle godkjent) eller proaktiv (EO-sak)
             EventType.EO_UTSTEDT: [
                 ("EO_CAN_BE_ISSUED", self._rule_eo_can_be_issued),
             ],
-
             # EO aksept/bestridelse - EO må være utstedt først
             EventType.EO_AKSEPTERT: [
                 ("IS_EO_CASE", self._rule_is_eo_case),
@@ -119,7 +115,6 @@ class BusinessRuleValidator:
                 ("IS_EO_CASE", self._rule_is_eo_case),
                 ("EO_IS_ISSUED", self._rule_eo_is_issued),
             ],
-
             # EO revisjon - EO må være utstedt og bestridt
             EventType.EO_REVIDERT: [
                 ("IS_EO_CASE", self._rule_is_eo_case),
@@ -134,47 +129,61 @@ class BusinessRuleValidator:
     def _rule_role_check(self, event: AnyEvent, state: SakState) -> ValidationResult:
         """R: Actor role must match allowed roles for event type."""
         te_only_events = {
-            EventType.GRUNNLAG_OPPRETTET, EventType.GRUNNLAG_OPPDATERT,
+            EventType.GRUNNLAG_OPPRETTET,
+            EventType.GRUNNLAG_OPPDATERT,
             EventType.GRUNNLAG_TRUKKET,
-            EventType.VEDERLAG_KRAV_SENDT, EventType.VEDERLAG_KRAV_OPPDATERT,
+            EventType.VEDERLAG_KRAV_SENDT,
+            EventType.VEDERLAG_KRAV_OPPDATERT,
             EventType.VEDERLAG_KRAV_TRUKKET,
-            EventType.FRIST_KRAV_SENDT, EventType.FRIST_KRAV_OPPDATERT,
-            EventType.FRIST_KRAV_SPESIFISERT, EventType.FRIST_KRAV_TRUKKET,
+            EventType.FRIST_KRAV_SENDT,
+            EventType.FRIST_KRAV_OPPDATERT,
+            EventType.FRIST_KRAV_SPESIFISERT,
+            EventType.FRIST_KRAV_TRUKKET,
             # EO TE-handlinger
-            EventType.EO_AKSEPTERT, EventType.EO_BESTRIDT,
+            EventType.EO_AKSEPTERT,
+            EventType.EO_BESTRIDT,
             # Forsering TE-handlinger
-            EventType.FORSERING_KOE_LAGT_TIL, EventType.FORSERING_KOE_FJERNET,
+            EventType.FORSERING_KOE_LAGT_TIL,
+            EventType.FORSERING_KOE_FJERNET,
         }
 
         bh_only_events = {
-            EventType.RESPONS_GRUNNLAG, EventType.RESPONS_VEDERLAG,
+            EventType.RESPONS_GRUNNLAG,
+            EventType.RESPONS_VEDERLAG,
             EventType.RESPONS_FRIST,
             # EO BH-handlinger
-            EventType.EO_OPPRETTET, EventType.EO_KOE_LAGT_TIL,
-            EventType.EO_KOE_FJERNET, EventType.EO_UTSTEDT, EventType.EO_REVIDERT,
+            EventType.EO_OPPRETTET,
+            EventType.EO_KOE_LAGT_TIL,
+            EventType.EO_KOE_FJERNET,
+            EventType.EO_UTSTEDT,
+            EventType.EO_REVIDERT,
         }
 
         if event.event_type in te_only_events and event.aktor_rolle != "TE":
             return ValidationResult(
-                is_valid=False,
-                message="Kun TE kan utføre denne handlingen"
+                is_valid=False, message="Kun TE kan utføre denne handlingen"
             )
 
         if event.event_type in bh_only_events and event.aktor_rolle != "BH":
             return ValidationResult(
-                is_valid=False,
-                message="Kun BH kan utføre denne handlingen"
+                is_valid=False, message="Kun BH kan utføre denne handlingen"
             )
 
         return ValidationResult(is_valid=True)
 
-    def _rule_case_not_closed(self, event: AnyEvent, state: SakState) -> ValidationResult:
+    def _rule_case_not_closed(
+        self, event: AnyEvent, state: SakState
+    ) -> ValidationResult:
         """R: Cannot modify a closed case (except EO events which have own lifecycle)."""
         # EO events are allowed - they have their own lifecycle
         eo_events = {
-            EventType.EO_OPPRETTET, EventType.EO_KOE_LAGT_TIL,
-            EventType.EO_KOE_FJERNET, EventType.EO_UTSTEDT,
-            EventType.EO_AKSEPTERT, EventType.EO_BESTRIDT, EventType.EO_REVIDERT,
+            EventType.EO_OPPRETTET,
+            EventType.EO_KOE_LAGT_TIL,
+            EventType.EO_KOE_FJERNET,
+            EventType.EO_UTSTEDT,
+            EventType.EO_AKSEPTERT,
+            EventType.EO_BESTRIDT,
+            EventType.EO_REVIDERT,
         }
         if event.event_type in eo_events:
             return ValidationResult(is_valid=True)
@@ -184,22 +193,22 @@ class BusinessRuleValidator:
         if state.overordnet_status in closed_statuses:
             # Allow only viewing, not modifications
             return ValidationResult(
-                is_valid=False,
-                message="Saken er lukket og kan ikke endres"
+                is_valid=False, message="Saken er lukket og kan ikke endres"
             )
 
         return ValidationResult(is_valid=True)
 
     # ========== GRUNNLAG RULES ==========
 
-    def _rule_grunnlag_required(self, event: AnyEvent, state: SakState) -> ValidationResult:
+    def _rule_grunnlag_required(
+        self, event: AnyEvent, state: SakState
+    ) -> ValidationResult:
         """R: Vederlag/Frist requires Grunnlag to be at least SENT."""
         invalid_statuses = {SporStatus.IKKE_RELEVANT, SporStatus.UTKAST}
 
         if state.grunnlag.status in invalid_statuses:
             return ValidationResult(
-                is_valid=False,
-                message="Grunnlag må være sendt før du kan sende krav"
+                is_valid=False, message="Grunnlag må være sendt før du kan sende krav"
             )
 
         return ValidationResult(is_valid=True)
@@ -210,23 +219,25 @@ class BusinessRuleValidator:
 
         if state.grunnlag.status in invalid_statuses:
             return ValidationResult(
-                is_valid=False,
-                message="Kan ikke besvare grunnlag som ikke er sendt"
+                is_valid=False, message="Kan ikke besvare grunnlag som ikke er sendt"
             )
 
         return ValidationResult(is_valid=True)
 
-    def _rule_grunnlag_not_locked(self, event: AnyEvent, state: SakState) -> ValidationResult:
+    def _rule_grunnlag_not_locked(
+        self, event: AnyEvent, state: SakState
+    ) -> ValidationResult:
         """R: Cannot modify locked grunnlag."""
         if state.grunnlag.laast or state.grunnlag.status == SporStatus.LAAST:
             return ValidationResult(
-                is_valid=False,
-                message="Grunnlag er låst og kan ikke endres"
+                is_valid=False, message="Grunnlag er låst og kan ikke endres"
             )
 
         return ValidationResult(is_valid=True)
 
-    def _rule_grunnlag_not_already_responded(self, event: AnyEvent, state: SakState) -> ValidationResult:
+    def _rule_grunnlag_not_already_responded(
+        self, event: AnyEvent, state: SakState
+    ) -> ValidationResult:
         """R: Cannot respond if already responded to current version (use update instead)."""
         if state.grunnlag.bh_resultat is None:
             return ValidationResult(is_valid=True)
@@ -236,7 +247,7 @@ class BusinessRuleValidator:
         if state.grunnlag.bh_respondert_versjon == current_version:
             return ValidationResult(
                 is_valid=False,
-                message="Du har allerede svart på denne versjonen. Bruk 'Endre svar' for å oppdatere."
+                message="Du har allerede svart på denne versjonen. Bruk 'Endre svar' for å oppdatere.",
             )
 
         return ValidationResult(is_valid=True)
@@ -249,24 +260,26 @@ class BusinessRuleValidator:
 
         if state.vederlag.status in invalid_statuses:
             return ValidationResult(
-                is_valid=False,
-                message="Kan ikke besvare vederlag som ikke er sendt"
+                is_valid=False, message="Kan ikke besvare vederlag som ikke er sendt"
             )
 
         return ValidationResult(is_valid=True)
 
-    def _rule_active_vederlag_exists(self, event: AnyEvent, state: SakState) -> ValidationResult:
+    def _rule_active_vederlag_exists(
+        self, event: AnyEvent, state: SakState
+    ) -> ValidationResult:
         """R: Can only update if there's an active vederlag claim."""
         # IKKE_RELEVANT = track not used, UTKAST = no claim submitted yet
         if state.vederlag.status in {SporStatus.IKKE_RELEVANT, SporStatus.UTKAST}:
             return ValidationResult(
-                is_valid=False,
-                message="Ingen aktivt vederlagskrav å oppdatere"
+                is_valid=False, message="Ingen aktivt vederlagskrav å oppdatere"
             )
 
         return ValidationResult(is_valid=True)
 
-    def _rule_vederlag_not_already_responded(self, event: AnyEvent, state: SakState) -> ValidationResult:
+    def _rule_vederlag_not_already_responded(
+        self, event: AnyEvent, state: SakState
+    ) -> ValidationResult:
         """R: Cannot respond if already responded to current version (use update instead)."""
         if state.vederlag.bh_resultat is None:
             return ValidationResult(is_valid=True)
@@ -276,7 +289,7 @@ class BusinessRuleValidator:
         if state.vederlag.bh_respondert_versjon == current_version:
             return ValidationResult(
                 is_valid=False,
-                message="Du har allerede svart på denne versjonen. Bruk 'Endre svar' for å oppdatere."
+                message="Du har allerede svart på denne versjonen. Bruk 'Endre svar' for å oppdatere.",
             )
 
         return ValidationResult(is_valid=True)
@@ -289,24 +302,26 @@ class BusinessRuleValidator:
 
         if state.frist.status in invalid_statuses:
             return ValidationResult(
-                is_valid=False,
-                message="Kan ikke besvare frist som ikke er sendt"
+                is_valid=False, message="Kan ikke besvare frist som ikke er sendt"
             )
 
         return ValidationResult(is_valid=True)
 
-    def _rule_active_frist_exists(self, event: AnyEvent, state: SakState) -> ValidationResult:
+    def _rule_active_frist_exists(
+        self, event: AnyEvent, state: SakState
+    ) -> ValidationResult:
         """R: Can only update if there's an active frist claim."""
         # IKKE_RELEVANT = track not used, UTKAST = no claim submitted yet
         if state.frist.status in {SporStatus.IKKE_RELEVANT, SporStatus.UTKAST}:
             return ValidationResult(
-                is_valid=False,
-                message="Ingen aktivt fristkrav å oppdatere"
+                is_valid=False, message="Ingen aktivt fristkrav å oppdatere"
             )
 
         return ValidationResult(is_valid=True)
 
-    def _rule_frist_not_already_responded(self, event: AnyEvent, state: SakState) -> ValidationResult:
+    def _rule_frist_not_already_responded(
+        self, event: AnyEvent, state: SakState
+    ) -> ValidationResult:
         """R: Cannot respond if already responded to current version (use update instead)."""
         if state.frist.bh_resultat is None:
             return ValidationResult(is_valid=True)
@@ -316,7 +331,7 @@ class BusinessRuleValidator:
         if state.frist.bh_respondert_versjon == current_version:
             return ValidationResult(
                 is_valid=False,
-                message="Du har allerede svart på denne versjonen. Bruk 'Endre svar' for å oppdatere."
+                message="Du har allerede svart på denne versjonen. Bruk 'Endre svar' for å oppdatere.",
             )
 
         return ValidationResult(is_valid=True)
@@ -327,13 +342,14 @@ class BusinessRuleValidator:
         """R: Event requires an ENDRINGSORDRE case type."""
         if state.sakstype != SaksType.ENDRINGSORDRE:
             return ValidationResult(
-                is_valid=False,
-                message="Denne handlingen krever en endringsordre-sak"
+                is_valid=False, message="Denne handlingen krever en endringsordre-sak"
             )
 
         return ValidationResult(is_valid=True)
 
-    def _rule_eo_can_be_issued(self, event: AnyEvent, state: SakState) -> ValidationResult:
+    def _rule_eo_can_be_issued(
+        self, event: AnyEvent, state: SakState
+    ) -> ValidationResult:
         """
         R: EO can be issued if:
         - From a STANDARD case: All active tracks must be approved (kan_utstede_eo)
@@ -348,28 +364,30 @@ class BusinessRuleValidator:
             if not state.kan_utstede_eo:
                 return ValidationResult(
                     is_valid=False,
-                    message="Alle aktive spor må være godkjent før EO kan utstedes"
+                    message="Alle aktive spor må være godkjent før EO kan utstedes",
                 )
             return ValidationResult(is_valid=True)
 
         # Andre sakstyper (f.eks. FORSERING) - ikke tillatt
         return ValidationResult(
-            is_valid=False,
-            message="EO kan ikke utstedes fra denne sakstypen"
+            is_valid=False, message="EO kan ikke utstedes fra denne sakstypen"
         )
 
     def _rule_eo_is_issued(self, event: AnyEvent, state: SakState) -> ValidationResult:
         """R: EO must be issued before it can be accepted/disputed/revised."""
         if state.endringsordre_data is None:
             return ValidationResult(
-                is_valid=False,
-                message="Endringsordre-data mangler"
+                is_valid=False, message="Endringsordre-data mangler"
             )
 
-        if state.endringsordre_data.status not in {EOStatus.UTSTEDT, EOStatus.BESTRIDT, EOStatus.REVIDERT}:
+        if state.endringsordre_data.status not in {
+            EOStatus.UTSTEDT,
+            EOStatus.BESTRIDT,
+            EOStatus.REVIDERT,
+        }:
             return ValidationResult(
                 is_valid=False,
-                message="Endringsordren må være utstedt før den kan aksepteres/bestrides"
+                message="Endringsordren må være utstedt før den kan aksepteres/bestrides",
             )
 
         return ValidationResult(is_valid=True)

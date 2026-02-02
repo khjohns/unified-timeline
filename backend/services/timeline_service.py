@@ -9,44 +9,45 @@ Design-prinsipper:
 2. State beregnes alltid fra scratch basert på events
 3. Parallelisme: Hvert spor kan behandles uavhengig
 """
-from typing import List, Optional, Dict, Any
+
+from typing import Any
 
 from models.events import (
-    GrunnlagEvent,
-    VederlagEvent,
-    FristEvent,
-    ResponsEvent,
-    ForseringVarselEvent,
+    AnyEvent,
+    EOAkseptertEvent,
+    EOBestridtEvent,
+    EOKoeHandlingEvent,
+    EOOpprettetEvent,
+    EORevidertEvent,
+    EOUtstedtEvent,
+    EventType,
+    ForseringKoeHandlingEvent,
+    ForseringKostnaderOppdatertEvent,
     ForseringResponsEvent,
     ForseringStoppetEvent,
-    ForseringKostnaderOppdatertEvent,
-    ForseringKoeHandlingEvent,
-    SakOpprettetEvent,
-    EOOpprettetEvent,
-    EOUtstedtEvent,
-    EOAkseptertEvent,
-    EOKoeHandlingEvent,
-    EOBestridtEvent,
-    EORevidertEvent,
-    EventType,
-    SporType,
-    SporStatus,
+    ForseringVarselEvent,
+    FristEvent,
+    GrunnlagEvent,
     GrunnlagResponsResultat,
-    AnyEvent,
+    ResponsEvent,
+    SakOpprettetEvent,
+    SporStatus,
+    SporType,
+    VederlagEvent,
 )
 from models.sak_state import (
+    EndringsordreData,
+    EOKonsekvenser,
+    EOStatus,
+    ForseringBHRespons,
+    ForseringData,
+    FristTilstand,
+    GrunnlagTilstand,
+    SakOversikt,
     SakState,
     SaksType,
-    GrunnlagTilstand,
-    VederlagTilstand,
-    FristTilstand,
-    SakOversikt,
     SporOversikt,
-    EndringsordreData,
-    EOStatus,
-    EOKonsekvenser,
-    ForseringData,
-    ForseringBHRespons,
+    VederlagTilstand,
 )
 from utils.logger import get_logger
 
@@ -57,11 +58,9 @@ logger = get_logger(__name__)
 # Shared helper functions (reduces cyclomatic complexity)
 # ============================================================================
 
+
 def _copy_fields_if_present(
-    source: Any,
-    target: Any,
-    fields: List[str],
-    require_truthy: bool = False
+    source: Any, target: Any, fields: list[str], require_truthy: bool = False
 ) -> None:
     """
     Copy fields from source to target if they exist on source.
@@ -91,7 +90,7 @@ def _copy_fields_if_present(
                     setattr(target, field, value)
 
 
-def _build_state_konsekvenser(data_konsekvenser: Any) -> 'EOKonsekvenser':
+def _build_state_konsekvenser(data_konsekvenser: Any) -> "EOKonsekvenser":
     """
     Build EOKonsekvenser for state from event data.
 
@@ -109,11 +108,11 @@ def _build_state_konsekvenser(data_konsekvenser: Any) -> 'EOKonsekvenser':
         return EOKonsekvenser()
 
     return EOKonsekvenser(
-        sha=getattr(data_konsekvenser, 'sha', False),
-        kvalitet=getattr(data_konsekvenser, 'kvalitet', False),
-        fremdrift=getattr(data_konsekvenser, 'fremdrift', False),
-        pris=getattr(data_konsekvenser, 'pris', False),
-        annet=getattr(data_konsekvenser, 'annet', False),
+        sha=getattr(data_konsekvenser, "sha", False),
+        kvalitet=getattr(data_konsekvenser, "kvalitet", False),
+        fremdrift=getattr(data_konsekvenser, "fremdrift", False),
+        pris=getattr(data_konsekvenser, "pris", False),
+        annet=getattr(data_konsekvenser, "annet", False),
     )
 
 
@@ -134,17 +133,15 @@ def _extract_vederlag_from_eo_data(vederlag: Any) -> tuple:
         return (None, None, None, False)
 
     oppgjorsform = vederlag.metode.value if vederlag.metode else None
-    kompensasjon_belop = getattr(vederlag, 'belop_direkte', None)
-    fradrag_belop = getattr(vederlag, 'fradrag_belop', None)
-    er_estimat = getattr(vederlag, 'er_estimat', False)
+    kompensasjon_belop = getattr(vederlag, "belop_direkte", None)
+    fradrag_belop = getattr(vederlag, "fradrag_belop", None)
+    er_estimat = getattr(vederlag, "er_estimat", False)
 
     return (oppgjorsform, kompensasjon_belop, fradrag_belop, er_estimat)
 
 
 def _close_spor_for_reactive_eo(
-    state: 'SakState',
-    data: Any,
-    event: 'EOUtstedtEvent'
+    state: "SakState", data: Any, event: "EOUtstedtEvent"
 ) -> None:
     """
     Close all spor for reactive EO from KOE (STANDARD sakstype).
@@ -191,7 +188,7 @@ class TimelineService:
         """Initialize TimelineService"""
         pass
 
-    def compute_state(self, events: List[AnyEvent]) -> SakState:
+    def compute_state(self, events: list[AnyEvent]) -> SakState:
         """
         Hovedmetode: Beregn SakState fra event-liste.
 
@@ -284,7 +281,9 @@ class TimelineService:
 
     # ============ SAK HANDLERS ============
 
-    def _handle_sak_opprettet(self, state: SakState, event: SakOpprettetEvent) -> SakState:
+    def _handle_sak_opprettet(
+        self, state: SakState, event: SakOpprettetEvent
+    ) -> SakState:
         """Håndterer SAK_OPPRETTET event.
 
         Setter sakstype og grunnlag til UTKAST (klar til å sende).
@@ -319,21 +318,23 @@ class TimelineService:
         if state.sakstype == SaksType.FORSERING:
             fd = event.forsering_data or {}
             state.forsering_data = ForseringData(
-                avslatte_fristkrav=fd.get('avslatte_fristkrav', []),
-                dato_varslet=fd.get('dato_varslet'),
-                estimert_kostnad=fd.get('estimert_kostnad'),
-                begrunnelse=fd.get('begrunnelse'),
-                bekreft_30_prosent_regel=fd.get('bekreft_30_prosent_regel', False),
-                er_iverksatt=fd.get('er_iverksatt', False),
-                dato_iverksatt=fd.get('dato_iverksatt'),
-                paalopte_kostnader=fd.get('paalopte_kostnader'),
-                er_stoppet=fd.get('er_stoppet', False),
-                dato_stoppet=fd.get('dato_stoppet'),
-                bh_aksepterer_forsering=fd.get('bh_aksepterer_forsering'),
-                bh_godkjent_kostnad=fd.get('bh_godkjent_kostnad'),
-                bh_begrunnelse=fd.get('bh_begrunnelse'),
+                avslatte_fristkrav=fd.get("avslatte_fristkrav", []),
+                dato_varslet=fd.get("dato_varslet"),
+                estimert_kostnad=fd.get("estimert_kostnad"),
+                begrunnelse=fd.get("begrunnelse"),
+                bekreft_30_prosent_regel=fd.get("bekreft_30_prosent_regel", False),
+                er_iverksatt=fd.get("er_iverksatt", False),
+                dato_iverksatt=fd.get("dato_iverksatt"),
+                paalopte_kostnader=fd.get("paalopte_kostnader"),
+                er_stoppet=fd.get("er_stoppet", False),
+                dato_stoppet=fd.get("dato_stoppet"),
+                bh_aksepterer_forsering=fd.get("bh_aksepterer_forsering"),
+                bh_godkjent_kostnad=fd.get("bh_godkjent_kostnad"),
+                bh_begrunnelse=fd.get("bh_begrunnelse"),
             )
-            logger.debug(f"Initialized forsering_data with {len(state.forsering_data.avslatte_fristkrav)} avslatte fristkrav")
+            logger.debug(
+                f"Initialized forsering_data with {len(state.forsering_data.avslatte_fristkrav)} avslatte fristkrav"
+            )
 
         return state
 
@@ -378,7 +379,9 @@ class TimelineService:
         state.grunnlag = grunnlag
         return state
 
-    def _handle_grunnlag_trukket(self, state: SakState, event: GrunnlagEvent) -> SakState:
+    def _handle_grunnlag_trukket(
+        self, state: SakState, event: GrunnlagEvent
+    ) -> SakState:
         """Håndterer GRUNNLAG_TRUKKET"""
         state.grunnlag.status = SporStatus.TRUKKET
         state.grunnlag.siste_event_id = event.event_id
@@ -394,24 +397,48 @@ class TimelineService:
         # Oppdater data - VederlagTilstand uses belop_direkte/kostnads_overslag (not krevd_belop)
         vederlag.belop_direkte = event.data.belop_direkte
         vederlag.kostnads_overslag = event.data.kostnads_overslag
-        vederlag.metode = event.data.metode.value if hasattr(event.data.metode, 'value') else event.data.metode
+        vederlag.metode = (
+            event.data.metode.value
+            if hasattr(event.data.metode, "value")
+            else event.data.metode
+        )
         vederlag.begrunnelse = event.data.begrunnelse
         # Handle saerskilt_krav - store as dict in VederlagTilstand
         if event.data.saerskilt_krav:
-            vederlag.saerskilt_krav = event.data.saerskilt_krav.model_dump() if hasattr(event.data.saerskilt_krav, 'model_dump') else event.data.saerskilt_krav
+            vederlag.saerskilt_krav = (
+                event.data.saerskilt_krav.model_dump()
+                if hasattr(event.data.saerskilt_krav, "model_dump")
+                else event.data.saerskilt_krav
+            )
 
         # Handle krever_justert_ep flag
         vederlag.krever_justert_ep = event.data.krever_justert_ep
 
         # Port 1: Varselinfo (VarselInfo objects serialized as dicts)
         if event.data.rigg_drift_varsel:
-            vederlag.rigg_drift_varsel = event.data.rigg_drift_varsel.model_dump() if hasattr(event.data.rigg_drift_varsel, 'model_dump') else event.data.rigg_drift_varsel
+            vederlag.rigg_drift_varsel = (
+                event.data.rigg_drift_varsel.model_dump()
+                if hasattr(event.data.rigg_drift_varsel, "model_dump")
+                else event.data.rigg_drift_varsel
+            )
         if event.data.justert_ep_varsel:
-            vederlag.justert_ep_varsel = event.data.justert_ep_varsel.model_dump() if hasattr(event.data.justert_ep_varsel, 'model_dump') else event.data.justert_ep_varsel
+            vederlag.justert_ep_varsel = (
+                event.data.justert_ep_varsel.model_dump()
+                if hasattr(event.data.justert_ep_varsel, "model_dump")
+                else event.data.justert_ep_varsel
+            )
         if event.data.regningsarbeid_varsel:
-            vederlag.regningsarbeid_varsel = event.data.regningsarbeid_varsel.model_dump() if hasattr(event.data.regningsarbeid_varsel, 'model_dump') else event.data.regningsarbeid_varsel
+            vederlag.regningsarbeid_varsel = (
+                event.data.regningsarbeid_varsel.model_dump()
+                if hasattr(event.data.regningsarbeid_varsel, "model_dump")
+                else event.data.regningsarbeid_varsel
+            )
         if event.data.produktivitetstap_varsel:
-            vederlag.produktivitetstap_varsel = event.data.produktivitetstap_varsel.model_dump() if hasattr(event.data.produktivitetstap_varsel, 'model_dump') else event.data.produktivitetstap_varsel
+            vederlag.produktivitetstap_varsel = (
+                event.data.produktivitetstap_varsel.model_dump()
+                if hasattr(event.data.produktivitetstap_varsel, "model_dump")
+                else event.data.produktivitetstap_varsel
+            )
         vederlag.krav_fremmet_dato = event.data.krav_fremmet_dato
 
         # Oppdater status
@@ -421,7 +448,11 @@ class TimelineService:
         else:  # OPPDATERT
             vederlag.antall_versjoner += 1
             # Hvis det var avslått/under forhandling og TE oppdaterer
-            if vederlag.status in {SporStatus.AVSLATT, SporStatus.UNDER_FORHANDLING, SporStatus.DELVIS_GODKJENT}:
+            if vederlag.status in {
+                SporStatus.AVSLATT,
+                SporStatus.UNDER_FORHANDLING,
+                SporStatus.DELVIS_GODKJENT,
+            }:
                 vederlag.status = SporStatus.SENDT
 
         # Metadata
@@ -431,7 +462,9 @@ class TimelineService:
         state.vederlag = vederlag
         return state
 
-    def _handle_vederlag_trukket(self, state: SakState, event: VederlagEvent) -> SakState:
+    def _handle_vederlag_trukket(
+        self, state: SakState, event: VederlagEvent
+    ) -> SakState:
         """Håndterer VEDERLAG_KRAV_TRUKKET"""
         state.vederlag.status = SporStatus.TRUKKET
         state.vederlag.siste_event_id = event.event_id
@@ -445,7 +478,11 @@ class TimelineService:
         frist = state.frist
 
         # Oppdater data
-        frist.varsel_type = event.data.varsel_type.value if hasattr(event.data.varsel_type, 'value') else event.data.varsel_type
+        frist.varsel_type = (
+            event.data.varsel_type.value
+            if hasattr(event.data.varsel_type, "value")
+            else event.data.varsel_type
+        )
 
         # Copy VarselInfo objects directly (includes dato_sendt and metode)
         if event.data.frist_varsel:
@@ -466,7 +503,11 @@ class TimelineService:
             frist.antall_versjoner = 1
         else:  # OPPDATERT
             frist.antall_versjoner += 1
-            if frist.status in {SporStatus.AVSLATT, SporStatus.UNDER_FORHANDLING, SporStatus.DELVIS_GODKJENT}:
+            if frist.status in {
+                SporStatus.AVSLATT,
+                SporStatus.UNDER_FORHANDLING,
+                SporStatus.DELVIS_GODKJENT,
+            }:
                 frist.status = SporStatus.SENDT
 
         # Metadata
@@ -485,7 +526,9 @@ class TimelineService:
 
     # ============ RESPONS HANDLERS (BH) ============
 
-    def _handle_respons_grunnlag(self, state: SakState, event: ResponsEvent) -> SakState:
+    def _handle_respons_grunnlag(
+        self, state: SakState, event: ResponsEvent
+    ) -> SakState:
         """Håndterer RESPONS_GRUNNLAG fra BH"""
         grunnlag = state.grunnlag
 
@@ -494,7 +537,7 @@ class TimelineService:
         grunnlag.bh_begrunnelse = event.data.begrunnelse
 
         # §32.2: Grunnlagsvarslet rettidig (kun ENDRING)
-        if hasattr(event.data, 'grunnlag_varslet_i_tide'):
+        if hasattr(event.data, "grunnlag_varslet_i_tide"):
             grunnlag.grunnlag_varslet_i_tide = event.data.grunnlag_varslet_i_tide
 
         # Map respons til status
@@ -515,7 +558,9 @@ class TimelineService:
         state.grunnlag = grunnlag
         return state
 
-    def _handle_respons_vederlag(self, state: SakState, event: ResponsEvent) -> SakState:
+    def _handle_respons_vederlag(
+        self, state: SakState, event: ResponsEvent
+    ) -> SakState:
         """
         Håndterer RESPONS_VEDERLAG fra BH.
 
@@ -524,44 +569,74 @@ class TimelineService:
         vederlag = state.vederlag
 
         # Port 1: Varselvurderinger (copy boolean fields)
-        _copy_fields_if_present(event.data, vederlag, [
-            'saerskilt_varsel_rigg_drift_ok',
-            'varsel_justert_ep_ok',
-            'varsel_start_regning_ok',
-            'krav_fremmet_i_tide',
-            'begrunnelse_varsel',
-        ])
+        _copy_fields_if_present(
+            event.data,
+            vederlag,
+            [
+                "saerskilt_varsel_rigg_drift_ok",
+                "varsel_justert_ep_ok",
+                "varsel_start_regning_ok",
+                "krav_fremmet_i_tide",
+                "begrunnelse_varsel",
+            ],
+        )
 
         # Port 2: Beregning
         # Note: beregnings_resultat maps to bh_resultat (not a direct field copy)
-        if hasattr(event.data, 'beregnings_resultat') and event.data.beregnings_resultat:
+        if (
+            hasattr(event.data, "beregnings_resultat")
+            and event.data.beregnings_resultat
+        ):
             vederlag.bh_resultat = event.data.beregnings_resultat
 
-        if hasattr(event.data, 'begrunnelse') and event.data.begrunnelse:
+        if hasattr(event.data, "begrunnelse") and event.data.begrunnelse:
             vederlag.bh_begrunnelse = event.data.begrunnelse
 
         # vederlagsmetode needs special handling for .value extraction
-        if hasattr(event.data, 'vederlagsmetode') and event.data.vederlagsmetode:
-            vederlag.bh_metode = event.data.vederlagsmetode.value if hasattr(event.data.vederlagsmetode, 'value') else event.data.vederlagsmetode
+        if hasattr(event.data, "vederlagsmetode") and event.data.vederlagsmetode:
+            vederlag.bh_metode = (
+                event.data.vederlagsmetode.value
+                if hasattr(event.data.vederlagsmetode, "value")
+                else event.data.vederlagsmetode
+            )
 
         # total_godkjent_belop maps to godkjent_belop
-        if hasattr(event.data, 'total_godkjent_belop') and event.data.total_godkjent_belop is not None:
+        if (
+            hasattr(event.data, "total_godkjent_belop")
+            and event.data.total_godkjent_belop is not None
+        ):
             vederlag.godkjent_belop = event.data.total_godkjent_belop
 
         # Subsidiært standpunkt - triggers needs .value extraction
-        if hasattr(event.data, 'subsidiaer_triggers') and event.data.subsidiaer_triggers:
-            vederlag.subsidiaer_triggers = [t.value if hasattr(t, 'value') else t for t in event.data.subsidiaer_triggers]
+        if (
+            hasattr(event.data, "subsidiaer_triggers")
+            and event.data.subsidiaer_triggers
+        ):
+            vederlag.subsidiaer_triggers = [
+                t.value if hasattr(t, "value") else t
+                for t in event.data.subsidiaer_triggers
+            ]
 
-        _copy_fields_if_present(event.data, vederlag, [
-            'subsidiaer_resultat',
-            'subsidiaer_godkjent_belop',
-            'subsidiaer_begrunnelse',
-        ], require_truthy=True)
+        _copy_fields_if_present(
+            event.data,
+            vederlag,
+            [
+                "subsidiaer_resultat",
+                "subsidiaer_godkjent_belop",
+                "subsidiaer_begrunnelse",
+            ],
+            require_truthy=True,
+        )
 
         # Map beregnings_resultat til status
-        if hasattr(event.data, 'beregnings_resultat') and event.data.beregnings_resultat:
-            vederlag.status = self._beregnings_resultat_til_status(event.data.beregnings_resultat)
-        elif hasattr(event.data, 'resultat'):
+        if (
+            hasattr(event.data, "beregnings_resultat")
+            and event.data.beregnings_resultat
+        ):
+            vederlag.status = self._beregnings_resultat_til_status(
+                event.data.beregnings_resultat
+            )
+        elif hasattr(event.data, "resultat"):
             vederlag.status = self._respons_til_status(event.data.resultat)
 
         # Spor hvilken versjon BH responderte på
@@ -583,45 +658,72 @@ class TimelineService:
         frist = state.frist
 
         # Port 1: Varselvurderinger
-        _copy_fields_if_present(event.data, frist, [
-            'frist_varsel_ok',
-            'spesifisert_krav_ok',
-            'foresporsel_svar_ok',
-            'har_bh_foresporsel',
-            'dato_bh_foresporsel',
-            'begrunnelse_varsel',
-        ])
+        _copy_fields_if_present(
+            event.data,
+            frist,
+            [
+                "frist_varsel_ok",
+                "spesifisert_krav_ok",
+                "foresporsel_svar_ok",
+                "har_bh_foresporsel",
+                "dato_bh_foresporsel",
+                "begrunnelse_varsel",
+            ],
+        )
 
         # Port 2: Vilkår (Årsakssammenheng)
-        _copy_fields_if_present(event.data, frist, ['vilkar_oppfylt'])
+        _copy_fields_if_present(event.data, frist, ["vilkar_oppfylt"])
 
         # Port 3: Beregning
-        if hasattr(event.data, 'beregnings_resultat') and event.data.beregnings_resultat:
+        if (
+            hasattr(event.data, "beregnings_resultat")
+            and event.data.beregnings_resultat
+        ):
             frist.bh_resultat = event.data.beregnings_resultat
 
-        if hasattr(event.data, 'begrunnelse') and event.data.begrunnelse:
+        if hasattr(event.data, "begrunnelse") and event.data.begrunnelse:
             frist.bh_begrunnelse = event.data.begrunnelse
 
-        _copy_fields_if_present(event.data, frist, [
-            'godkjent_dager',
-            'ny_sluttdato',
-            'frist_for_spesifisering',
-        ])
+        _copy_fields_if_present(
+            event.data,
+            frist,
+            [
+                "godkjent_dager",
+                "ny_sluttdato",
+                "frist_for_spesifisering",
+            ],
+        )
 
         # Subsidiært standpunkt - triggers needs .value extraction
-        if hasattr(event.data, 'subsidiaer_triggers') and event.data.subsidiaer_triggers:
-            frist.subsidiaer_triggers = [t.value if hasattr(t, 'value') else t for t in event.data.subsidiaer_triggers]
+        if (
+            hasattr(event.data, "subsidiaer_triggers")
+            and event.data.subsidiaer_triggers
+        ):
+            frist.subsidiaer_triggers = [
+                t.value if hasattr(t, "value") else t
+                for t in event.data.subsidiaer_triggers
+            ]
 
-        _copy_fields_if_present(event.data, frist, [
-            'subsidiaer_resultat',
-            'subsidiaer_godkjent_dager',
-            'subsidiaer_begrunnelse',
-        ], require_truthy=True)
+        _copy_fields_if_present(
+            event.data,
+            frist,
+            [
+                "subsidiaer_resultat",
+                "subsidiaer_godkjent_dager",
+                "subsidiaer_begrunnelse",
+            ],
+            require_truthy=True,
+        )
 
         # Map beregnings_resultat til status
-        if hasattr(event.data, 'beregnings_resultat') and event.data.beregnings_resultat:
-            frist.status = self._beregnings_resultat_til_status(event.data.beregnings_resultat)
-        elif hasattr(event.data, 'resultat'):
+        if (
+            hasattr(event.data, "beregnings_resultat")
+            and event.data.beregnings_resultat
+        ):
+            frist.status = self._beregnings_resultat_til_status(
+                event.data.beregnings_resultat
+            )
+        elif hasattr(event.data, "resultat"):
             frist.status = self._respons_til_status(event.data.resultat)
 
         # Spor hvilken versjon BH responderte på
@@ -634,7 +736,9 @@ class TimelineService:
         state.frist = frist
         return state
 
-    def _handle_forsering_varsel(self, state: SakState, event: ForseringVarselEvent) -> SakState:
+    def _handle_forsering_varsel(
+        self, state: SakState, event: ForseringVarselEvent
+    ) -> SakState:
         """
         Håndterer FORSERING_VARSEL - TE varsler om forsering (§33.8).
 
@@ -663,7 +767,9 @@ class TimelineService:
 
         return state
 
-    def _handle_forsering_respons(self, state: SakState, event: ForseringResponsEvent) -> SakState:
+    def _handle_forsering_respons(
+        self, state: SakState, event: ForseringResponsEvent
+    ) -> SakState:
         """
         Håndterer FORSERING_RESPONS - BH svarer på forsering (§33.8).
 
@@ -708,7 +814,9 @@ class TimelineService:
 
         return state
 
-    def _handle_forsering_stoppet(self, state: SakState, event: ForseringStoppetEvent) -> SakState:
+    def _handle_forsering_stoppet(
+        self, state: SakState, event: ForseringStoppetEvent
+    ) -> SakState:
         """
         Håndterer FORSERING_STOPPET - TE stopper forsering (§33.8).
 
@@ -727,7 +835,9 @@ class TimelineService:
 
         return state
 
-    def _handle_forsering_kostnader_oppdatert(self, state: SakState, event: ForseringKostnaderOppdatertEvent) -> SakState:
+    def _handle_forsering_kostnader_oppdatert(
+        self, state: SakState, event: ForseringKostnaderOppdatertEvent
+    ) -> SakState:
         """
         Håndterer FORSERING_KOSTNADER_OPPDATERT - TE oppdaterer påløpte kostnader (§33.8).
 
@@ -735,7 +845,9 @@ class TimelineService:
         Denne event sendes på saker med SaksType.FORSERING.
         """
         if state.forsering_data is None:
-            logger.debug("Mottok FORSERING_KOSTNADER_OPPDATERT uten forsering_data - ignorerer")
+            logger.debug(
+                "Mottok FORSERING_KOSTNADER_OPPDATERT uten forsering_data - ignorerer"
+            )
             return state
 
         # Oppdater kostnader
@@ -743,13 +855,17 @@ class TimelineService:
 
         return state
 
-    def _handle_forsering_koe_lagt_til(self, state: SakState, event: ForseringKoeHandlingEvent) -> SakState:
+    def _handle_forsering_koe_lagt_til(
+        self, state: SakState, event: ForseringKoeHandlingEvent
+    ) -> SakState:
         """Håndterer FORSERING_KOE_LAGT_TIL - KOE legges til forseringssak.
 
         Oppdaterer avslatte_fristkrav listen i forsering_data.
         """
         if state.forsering_data is None:
-            logger.debug("Mottok FORSERING_KOE_LAGT_TIL uten forsering_data - ignorerer")
+            logger.debug(
+                "Mottok FORSERING_KOE_LAGT_TIL uten forsering_data - ignorerer"
+            )
             return state
 
         koe_sak_id = event.data.koe_sak_id
@@ -763,7 +879,9 @@ class TimelineService:
 
         return state
 
-    def _handle_forsering_koe_fjernet(self, state: SakState, event: ForseringKoeHandlingEvent) -> SakState:
+    def _handle_forsering_koe_fjernet(
+        self, state: SakState, event: ForseringKoeHandlingEvent
+    ) -> SakState:
         """Håndterer FORSERING_KOE_FJERNET - KOE fjernes fra forseringssak.
 
         Fjerner fra avslatte_fristkrav listen i forsering_data.
@@ -784,7 +902,9 @@ class TimelineService:
 
     # ============ ENDRINGSORDRE HANDLERS ============
 
-    def _handle_eo_opprettet(self, state: SakState, event: EOOpprettetEvent) -> SakState:
+    def _handle_eo_opprettet(
+        self, state: SakState, event: EOOpprettetEvent
+    ) -> SakState:
         """Håndterer EO_OPPRETTET - endringsordre-sak opprettet.
 
         Initialiserer grunnleggende EO-data. Fullstendig data settes ved EO_UTSTEDT.
@@ -816,8 +936,9 @@ class TimelineService:
         if state.sakstype == SaksType.ENDRINGSORDRE:
             # Build state from event data using helpers
             konsekvenser = _build_state_konsekvenser(data.konsekvenser)
-            oppgjorsform, kompensasjon_belop, fradrag_belop, er_estimat = \
+            oppgjorsform, kompensasjon_belop, fradrag_belop, er_estimat = (
                 _extract_vederlag_from_eo_data(data.vederlag)
+            )
 
             # Handle both relaterte_sak_ids and relaterte_koe_saker
             relaterte = data.relaterte_sak_ids or data.relaterte_koe_saker or []
@@ -835,7 +956,8 @@ class TimelineService:
                 er_estimat=er_estimat,
                 frist_dager=data.frist_dager,
                 status=EOStatus.UTSTEDT,
-                dato_utstedt=data.dato_utstedt or event.tidsstempel.strftime('%Y-%m-%d'),
+                dato_utstedt=data.dato_utstedt
+                or event.tidsstempel.strftime("%Y-%m-%d"),
                 utstedt_av=event.aktor,
                 relaterte_koe_saker=relaterte,
             )
@@ -846,7 +968,9 @@ class TimelineService:
 
         return state
 
-    def _handle_eo_akseptert(self, state: SakState, event: EOAkseptertEvent) -> SakState:
+    def _handle_eo_akseptert(
+        self, state: SakState, event: EOAkseptertEvent
+    ) -> SakState:
         """Håndterer EO_AKSEPTERT - TE aksepterer endringsordre.
 
         Oppdaterer endringsordre_data med TEs respons.
@@ -860,14 +984,18 @@ class TimelineService:
         # Oppdater TE-respons
         state.endringsordre_data.te_akseptert = data.akseptert
         state.endringsordre_data.te_kommentar = data.kommentar
-        state.endringsordre_data.dato_te_respons = data.dato_aksept or event.tidsstempel.strftime('%Y-%m-%d')
+        state.endringsordre_data.dato_te_respons = (
+            data.dato_aksept or event.tidsstempel.strftime("%Y-%m-%d")
+        )
         state.endringsordre_data.status = EOStatus.AKSEPTERT
 
         logger.info(f"EO {state.endringsordre_data.eo_nummer} akseptert av TE")
 
         return state
 
-    def _handle_eo_koe_lagt_til(self, state: SakState, event: EOKoeHandlingEvent) -> SakState:
+    def _handle_eo_koe_lagt_til(
+        self, state: SakState, event: EOKoeHandlingEvent
+    ) -> SakState:
         """Håndterer EO_KOE_LAGT_TIL - KOE legges til endringsordre.
 
         Oppdaterer relaterte_koe_saker listen i endringsordre_data.
@@ -881,13 +1009,19 @@ class TimelineService:
         # Unngå duplikater
         if koe_sak_id not in state.endringsordre_data.relaterte_koe_saker:
             state.endringsordre_data.relaterte_koe_saker.append(koe_sak_id)
-            logger.info(f"KOE {koe_sak_id} lagt til EO {state.endringsordre_data.eo_nummer}")
+            logger.info(
+                f"KOE {koe_sak_id} lagt til EO {state.endringsordre_data.eo_nummer}"
+            )
         else:
-            logger.warning(f"KOE {koe_sak_id} er allerede i EO {state.endringsordre_data.eo_nummer}")
+            logger.warning(
+                f"KOE {koe_sak_id} er allerede i EO {state.endringsordre_data.eo_nummer}"
+            )
 
         return state
 
-    def _handle_eo_koe_fjernet(self, state: SakState, event: EOKoeHandlingEvent) -> SakState:
+    def _handle_eo_koe_fjernet(
+        self, state: SakState, event: EOKoeHandlingEvent
+    ) -> SakState:
         """Håndterer EO_KOE_FJERNET - KOE fjernes fra endringsordre.
 
         Fjerner fra relaterte_koe_saker listen i endringsordre_data.
@@ -900,9 +1034,13 @@ class TimelineService:
 
         if koe_sak_id in state.endringsordre_data.relaterte_koe_saker:
             state.endringsordre_data.relaterte_koe_saker.remove(koe_sak_id)
-            logger.info(f"KOE {koe_sak_id} fjernet fra EO {state.endringsordre_data.eo_nummer}")
+            logger.info(
+                f"KOE {koe_sak_id} fjernet fra EO {state.endringsordre_data.eo_nummer}"
+            )
         else:
-            logger.warning(f"KOE {koe_sak_id} var ikke i EO {state.endringsordre_data.eo_nummer}")
+            logger.warning(
+                f"KOE {koe_sak_id} var ikke i EO {state.endringsordre_data.eo_nummer}"
+            )
 
         return state
 
@@ -921,7 +1059,9 @@ class TimelineService:
         state.endringsordre_data.status = EOStatus.BESTRIDT
         state.endringsordre_data.te_akseptert = False
         state.endringsordre_data.te_kommentar = data.begrunnelse
-        state.endringsordre_data.dato_te_respons = event.tidsstempel.strftime('%Y-%m-%d')
+        state.endringsordre_data.dato_te_respons = event.tidsstempel.strftime(
+            "%Y-%m-%d"
+        )
 
         logger.info(f"EO {state.endringsordre_data.eo_nummer} bestridt av TE")
 
@@ -953,7 +1093,9 @@ class TimelineService:
             if oppdatert.beskrivelse:
                 state.endringsordre_data.beskrivelse = oppdatert.beskrivelse
             if oppdatert.kompensasjon_belop is not None:
-                state.endringsordre_data.kompensasjon_belop = oppdatert.kompensasjon_belop
+                state.endringsordre_data.kompensasjon_belop = (
+                    oppdatert.kompensasjon_belop
+                )
             if oppdatert.fradrag_belop is not None:
                 state.endringsordre_data.fradrag_belop = oppdatert.fradrag_belop
             if oppdatert.frist_dager is not None:
@@ -961,7 +1103,9 @@ class TimelineService:
             if oppdatert.ny_sluttdato:
                 state.endringsordre_data.ny_sluttdato = oppdatert.ny_sluttdato
 
-        logger.info(f"EO {state.endringsordre_data.eo_nummer} revidert til rev. {data.ny_revisjon_nummer}")
+        logger.info(
+            f"EO {state.endringsordre_data.eo_nummer} revidert til rev. {data.ny_revisjon_nummer}"
+        )
 
         return state
 
@@ -986,24 +1130,24 @@ class TimelineService:
         """
 
         # Felles mapping for både vederlag og frist
-        if hasattr(resultat, 'value'):
+        if hasattr(resultat, "value"):
             resultat_value = resultat.value
         else:
             resultat_value = str(resultat)
 
         # Map til status (forenklede statuskoder)
-        if resultat_value == 'godkjent':
+        if resultat_value == "godkjent":
             return SporStatus.GODKJENT
-        elif resultat_value == 'delvis_godkjent':
+        elif resultat_value == "delvis_godkjent":
             return SporStatus.DELVIS_GODKJENT
-        elif resultat_value == 'avslatt':
+        elif resultat_value == "avslatt":
             return SporStatus.AVSLATT
         else:
             return SporStatus.UNDER_BEHANDLING
 
     # ============ CONVENIENCE METHODS ============
 
-    def compute_oversikt(self, events: List[AnyEvent]) -> SakOversikt:
+    def compute_oversikt(self, events: list[AnyEvent]) -> SakOversikt:
         """
         Beregner forenklet oversikt for listevisning.
 
@@ -1015,33 +1159,47 @@ class TimelineService:
         spor_oversikter = []
 
         if state.grunnlag.status != SporStatus.IKKE_RELEVANT:
-            spor_oversikter.append(SporOversikt(
-                spor=SporType.GRUNNLAG,
-                status=state.grunnlag.status,
-                siste_aktivitet=state.grunnlag.siste_oppdatert,
-                verdi_krevd=state.grunnlag.hovedkategori,
-                verdi_godkjent="Godkjent" if state.grunnlag.laast else None,
-            ))
+            spor_oversikter.append(
+                SporOversikt(
+                    spor=SporType.GRUNNLAG,
+                    status=state.grunnlag.status,
+                    siste_aktivitet=state.grunnlag.siste_oppdatert,
+                    verdi_krevd=state.grunnlag.hovedkategori,
+                    verdi_godkjent="Godkjent" if state.grunnlag.laast else None,
+                )
+            )
 
         if state.vederlag.status != SporStatus.IKKE_RELEVANT:
             # Calculate krevd value from belop_direkte or kostnads_overslag
-            krevd_belop = state.vederlag.belop_direkte or state.vederlag.kostnads_overslag
-            spor_oversikter.append(SporOversikt(
-                spor=SporType.VEDERLAG,
-                status=state.vederlag.status,
-                siste_aktivitet=state.vederlag.siste_oppdatert,
-                verdi_krevd=f"{krevd_belop:,.0f} NOK" if krevd_belop else None,
-                verdi_godkjent=f"{state.vederlag.godkjent_belop:,.0f} NOK" if state.vederlag.godkjent_belop else None,
-            ))
+            krevd_belop = (
+                state.vederlag.belop_direkte or state.vederlag.kostnads_overslag
+            )
+            spor_oversikter.append(
+                SporOversikt(
+                    spor=SporType.VEDERLAG,
+                    status=state.vederlag.status,
+                    siste_aktivitet=state.vederlag.siste_oppdatert,
+                    verdi_krevd=f"{krevd_belop:,.0f} NOK" if krevd_belop else None,
+                    verdi_godkjent=f"{state.vederlag.godkjent_belop:,.0f} NOK"
+                    if state.vederlag.godkjent_belop
+                    else None,
+                )
+            )
 
         if state.frist.status != SporStatus.IKKE_RELEVANT:
-            spor_oversikter.append(SporOversikt(
-                spor=SporType.FRIST,
-                status=state.frist.status,
-                siste_aktivitet=state.frist.siste_oppdatert,
-                verdi_krevd=f"{state.frist.krevd_dager} dager" if state.frist.krevd_dager else None,
-                verdi_godkjent=f"{state.frist.godkjent_dager} dager" if state.frist.godkjent_dager else None,
-            ))
+            spor_oversikter.append(
+                SporOversikt(
+                    spor=SporType.FRIST,
+                    status=state.frist.status,
+                    siste_aktivitet=state.frist.siste_oppdatert,
+                    verdi_krevd=f"{state.frist.krevd_dager} dager"
+                    if state.frist.krevd_dager
+                    else None,
+                    verdi_godkjent=f"{state.frist.godkjent_dager} dager"
+                    if state.frist.godkjent_dager
+                    else None,
+                )
+            )
 
         return SakOversikt(
             sak_id=state.sak_id,
@@ -1059,7 +1217,7 @@ class TimelineService:
             prosjekt_navn=state.prosjekt_navn,
         )
 
-    def get_timeline(self, events: List[AnyEvent]) -> List[Dict[str, Any]]:
+    def get_timeline(self, events: list[AnyEvent]) -> list[dict[str, Any]]:
         """
         Returnerer events formatert som tidslinje for UI.
 
@@ -1089,7 +1247,7 @@ class TimelineService:
             timeline.append(entry)
         return timeline
 
-    def _serialize_event_data(self, event: AnyEvent) -> Optional[Dict[str, Any]]:
+    def _serialize_event_data(self, event: AnyEvent) -> dict[str, Any] | None:
         """
         Serialize event data for frontend consumption.
 
@@ -1113,23 +1271,25 @@ class TimelineService:
 
         # ForseringVarselEvent - return forsering data
         if isinstance(event, ForseringVarselEvent):
-            if hasattr(event, 'data') and event.data is not None:
+            if hasattr(event, "data") and event.data is not None:
                 try:
-                    if hasattr(event.data, 'model_dump'):
-                        return event.data.model_dump(mode='json')
-                    elif hasattr(event.data, 'dict'):
+                    if hasattr(event.data, "model_dump"):
+                        return event.data.model_dump(mode="json")
+                    elif hasattr(event.data, "dict"):
                         return event.data.dict()
                 except Exception as e:
-                    logger.warning(f"Failed to serialize ForseringVarselEvent data: {e}")
+                    logger.warning(
+                        f"Failed to serialize ForseringVarselEvent data: {e}"
+                    )
             return None
 
         # Events with data attribute (GrunnlagEvent, VederlagEvent, FristEvent, ResponsEvent)
-        if hasattr(event, 'data') and event.data is not None:
+        if hasattr(event, "data") and event.data is not None:
             try:
-                if hasattr(event.data, 'model_dump'):
+                if hasattr(event.data, "model_dump"):
                     # Pydantic v2
-                    return event.data.model_dump(mode='json')
-                elif hasattr(event.data, 'dict'):
+                    return event.data.model_dump(mode="json")
+                elif hasattr(event.data, "dict"):
                     # Pydantic v1
                     return event.data.dict()
             except Exception as e:
@@ -1165,7 +1325,7 @@ class TimelineService:
         }
         return labels.get(event_type, str(event_type))
 
-    def _get_spor_for_event(self, event: AnyEvent) -> Optional[str]:
+    def _get_spor_for_event(self, event: AnyEvent) -> str | None:
         """Returnerer hvilket spor eventen tilhører"""
         if isinstance(event, GrunnlagEvent):
             return "grunnlag"
@@ -1173,7 +1333,15 @@ class TimelineService:
             return "vederlag"
         elif isinstance(event, FristEvent):
             return "frist"
-        elif isinstance(event, (ForseringVarselEvent, ForseringResponsEvent, ForseringStoppetEvent, ForseringKostnaderOppdatertEvent)):
+        elif isinstance(
+            event,
+            (
+                ForseringVarselEvent,
+                ForseringResponsEvent,
+                ForseringStoppetEvent,
+                ForseringKostnaderOppdatertEvent,
+            ),
+        ):
             return "frist"  # Forsering hører til frist-sporet
         elif isinstance(event, ResponsEvent):
             return event.spor.value
@@ -1183,7 +1351,10 @@ class TimelineService:
         """Genererer kort sammendrag av eventen"""
         if isinstance(event, GrunnlagEvent):
             from constants.grunnlag_categories import get_grunnlag_sammendrag
-            return get_grunnlag_sammendrag(event.data.hovedkategori, event.data.underkategori)
+
+            return get_grunnlag_sammendrag(
+                event.data.hovedkategori, event.data.underkategori
+            )
         elif isinstance(event, VederlagEvent):
             belop = event.data.belop_direkte or event.data.kostnads_overslag or 0
             return f"Krav: {belop:,.0f} NOK"
@@ -1203,50 +1374,63 @@ class TimelineService:
         """Genererer lesbart sammendrag for ResponsEvent"""
         # Map resultat til lesbar tekst
         resultat_labels = {
-            'godkjent': 'Godkjent',
-            'delvis_godkjent': 'Delvis godkjent',
-            'avslatt': 'Avslått',
-            'frafalt': 'Pålegg frafalt',
+            "godkjent": "Godkjent",
+            "delvis_godkjent": "Delvis godkjent",
+            "avslatt": "Avslått",
+            "frafalt": "Pålegg frafalt",
         }
 
         # Handle different result field names for different response types
-        if hasattr(event.data, 'resultat'):
-            resultat_value = event.data.resultat.value if hasattr(event.data.resultat, 'value') else str(event.data.resultat)
-        elif hasattr(event.data, 'beregnings_resultat'):
-            resultat_value = event.data.beregnings_resultat.value if hasattr(event.data.beregnings_resultat, 'value') else str(event.data.beregnings_resultat)
+        if hasattr(event.data, "resultat"):
+            resultat_value = (
+                event.data.resultat.value
+                if hasattr(event.data.resultat, "value")
+                else str(event.data.resultat)
+            )
+        elif hasattr(event.data, "beregnings_resultat"):
+            resultat_value = (
+                event.data.beregnings_resultat.value
+                if hasattr(event.data.beregnings_resultat, "value")
+                else str(event.data.beregnings_resultat)
+            )
         else:
-            resultat_value = 'ukjent'
+            resultat_value = "ukjent"
 
         resultat_label = resultat_labels.get(resultat_value, resultat_value)
 
         # Legg til beløp/dager hvis tilgjengelig
         if event.spor == SporType.VEDERLAG:
-            if hasattr(event.data, 'total_godkjent_belop') and event.data.total_godkjent_belop:
+            if (
+                hasattr(event.data, "total_godkjent_belop")
+                and event.data.total_godkjent_belop
+            ):
                 return f"{resultat_label}: {event.data.total_godkjent_belop:,.0f} kr"
         elif event.spor == SporType.FRIST:
-            if hasattr(event.data, 'godkjent_dager') and event.data.godkjent_dager:
+            if hasattr(event.data, "godkjent_dager") and event.data.godkjent_dager:
                 return f"{resultat_label}: {event.data.godkjent_dager} dager"
 
         return resultat_label
 
     # ============ REVISJONSHISTORIKK ============
 
-    def get_vederlag_historikk(self, events: List[AnyEvent]) -> List[Dict[str, Any]]:
+    def get_vederlag_historikk(self, events: list[AnyEvent]) -> list[dict[str, Any]]:
         """
         Bygger revisjonshistorikk for vederlag fra events.
 
         Returnerer en kronologisk liste med alle versjoner av vederlagskravet
         og BH-responser, med versjonsnummer for hver TE-revisjon.
         """
-        from models.api_responses import VederlagHistorikkEntry, AktorInfo
+        from models.api_responses import AktorInfo, VederlagHistorikkEntry
 
         historikk = []
         te_versjon = 0  # Teller for TE-revisjoner
 
         # Filtrer og sorter vederlag-relaterte events
         vederlag_events = [
-            e for e in events
-            if e.event_type in {
+            e
+            for e in events
+            if e.event_type
+            in {
                 EventType.VEDERLAG_KRAV_SENDT,
                 EventType.VEDERLAG_KRAV_OPPDATERT,
                 EventType.VEDERLAG_KRAV_TRUKKET,
@@ -1273,12 +1457,20 @@ class TimelineService:
                     event_id=event.event_id,
                     krav_belop=self._get_vederlag_belop(event),
                     metode=event.data.metode.value if event.data.metode else None,
-                    metode_label=self._get_metode_label(event.data.metode) if event.data.metode else None,
+                    metode_label=self._get_metode_label(event.data.metode)
+                    if event.data.metode
+                    else None,
                     begrunnelse=event.data.begrunnelse,
-                    inkluderer_rigg_drift=bool(event.data.saerskilt_krav and event.data.saerskilt_krav.rigg_drift),
-                    inkluderer_produktivitet=bool(event.data.saerskilt_krav and event.data.saerskilt_krav.produktivitet),
+                    inkluderer_rigg_drift=bool(
+                        event.data.saerskilt_krav
+                        and event.data.saerskilt_krav.rigg_drift
+                    ),
+                    inkluderer_produktivitet=bool(
+                        event.data.saerskilt_krav
+                        and event.data.saerskilt_krav.produktivitet
+                    ),
                 )
-                historikk.append(entry.model_dump(mode='json'))
+                historikk.append(entry.model_dump(mode="json"))
 
             elif event.event_type == EventType.VEDERLAG_KRAV_OPPDATERT:
                 te_versjon += 1
@@ -1290,12 +1482,20 @@ class TimelineService:
                     event_id=event.event_id,
                     krav_belop=self._get_vederlag_belop(event),
                     metode=event.data.metode.value if event.data.metode else None,
-                    metode_label=self._get_metode_label(event.data.metode) if event.data.metode else None,
+                    metode_label=self._get_metode_label(event.data.metode)
+                    if event.data.metode
+                    else None,
                     begrunnelse=event.data.begrunnelse,
-                    inkluderer_rigg_drift=bool(event.data.saerskilt_krav and event.data.saerskilt_krav.rigg_drift),
-                    inkluderer_produktivitet=bool(event.data.saerskilt_krav and event.data.saerskilt_krav.produktivitet),
+                    inkluderer_rigg_drift=bool(
+                        event.data.saerskilt_krav
+                        and event.data.saerskilt_krav.rigg_drift
+                    ),
+                    inkluderer_produktivitet=bool(
+                        event.data.saerskilt_krav
+                        and event.data.saerskilt_krav.produktivitet
+                    ),
                 )
-                historikk.append(entry.model_dump(mode='json'))
+                historikk.append(entry.model_dump(mode="json"))
 
             elif event.event_type == EventType.VEDERLAG_KRAV_TRUKKET:
                 entry = VederlagHistorikkEntry(
@@ -1305,7 +1505,7 @@ class TimelineService:
                     endring_type="trukket",
                     event_id=event.event_id,
                 )
-                historikk.append(entry.model_dump(mode='json'))
+                historikk.append(entry.model_dump(mode="json"))
 
             elif event.event_type == EventType.RESPONS_VEDERLAG:
                 entry = VederlagHistorikkEntry(
@@ -1314,12 +1514,16 @@ class TimelineService:
                     aktor=aktor_info,
                     endring_type="respons",
                     event_id=event.event_id,
-                    bh_resultat=event.data.beregnings_resultat.value if event.data.beregnings_resultat else None,
-                    bh_resultat_label=self._get_vederlag_resultat_label(event.data.beregnings_resultat),
+                    bh_resultat=event.data.beregnings_resultat.value
+                    if event.data.beregnings_resultat
+                    else None,
+                    bh_resultat_label=self._get_vederlag_resultat_label(
+                        event.data.beregnings_resultat
+                    ),
                     godkjent_belop=event.data.total_godkjent_belop,
-                    bh_begrunnelse=getattr(event.data, 'begrunnelse', None),
+                    bh_begrunnelse=getattr(event.data, "begrunnelse", None),
                 )
-                historikk.append(entry.model_dump(mode='json'))
+                historikk.append(entry.model_dump(mode="json"))
 
             elif event.event_type == EventType.RESPONS_VEDERLAG_OPPDATERT:
                 entry = VederlagHistorikkEntry(
@@ -1328,31 +1532,37 @@ class TimelineService:
                     aktor=aktor_info,
                     endring_type="respons_oppdatert",
                     event_id=event.event_id,
-                    bh_resultat=event.data.beregnings_resultat.value if event.data.beregnings_resultat else None,
-                    bh_resultat_label=self._get_vederlag_resultat_label(event.data.beregnings_resultat),
+                    bh_resultat=event.data.beregnings_resultat.value
+                    if event.data.beregnings_resultat
+                    else None,
+                    bh_resultat_label=self._get_vederlag_resultat_label(
+                        event.data.beregnings_resultat
+                    ),
                     godkjent_belop=event.data.total_godkjent_belop,
-                    bh_begrunnelse=getattr(event.data, 'begrunnelse', None),
+                    bh_begrunnelse=getattr(event.data, "begrunnelse", None),
                 )
-                historikk.append(entry.model_dump(mode='json'))
+                historikk.append(entry.model_dump(mode="json"))
 
         return historikk
 
-    def get_frist_historikk(self, events: List[AnyEvent]) -> List[Dict[str, Any]]:
+    def get_frist_historikk(self, events: list[AnyEvent]) -> list[dict[str, Any]]:
         """
         Bygger revisjonshistorikk for frist fra events.
 
         Returnerer en kronologisk liste med alle versjoner av fristkravet
         og BH-responser, med versjonsnummer for hver TE-revisjon.
         """
-        from models.api_responses import FristHistorikkEntry, AktorInfo
+        from models.api_responses import AktorInfo, FristHistorikkEntry
 
         historikk = []
         te_versjon = 0  # Teller for TE-revisjoner
 
         # Filtrer og sorter frist-relaterte events
         frist_events = [
-            e for e in events
-            if e.event_type in {
+            e
+            for e in events
+            if e.event_type
+            in {
                 EventType.FRIST_KRAV_SENDT,
                 EventType.FRIST_KRAV_OPPDATERT,
                 EventType.FRIST_KRAV_SPESIFISERT,
@@ -1379,12 +1589,16 @@ class TimelineService:
                     endring_type="sendt",
                     event_id=event.event_id,
                     krav_dager=event.data.antall_dager,
-                    varsel_type=event.data.varsel_type.value if event.data.varsel_type else None,
-                    varsel_type_label=self._get_frist_varseltype_label(event.data.varsel_type),
+                    varsel_type=event.data.varsel_type.value
+                    if event.data.varsel_type
+                    else None,
+                    varsel_type_label=self._get_frist_varseltype_label(
+                        event.data.varsel_type
+                    ),
                     begrunnelse=event.data.begrunnelse,
                     ny_sluttdato=event.data.ny_sluttdato,
                 )
-                historikk.append(entry.model_dump(mode='json'))
+                historikk.append(entry.model_dump(mode="json"))
 
             elif event.event_type == EventType.FRIST_KRAV_OPPDATERT:
                 te_versjon += 1
@@ -1395,12 +1609,16 @@ class TimelineService:
                     endring_type="oppdatert",
                     event_id=event.event_id,
                     krav_dager=event.data.antall_dager,
-                    varsel_type=event.data.varsel_type.value if event.data.varsel_type else None,
-                    varsel_type_label=self._get_frist_varseltype_label(event.data.varsel_type),
+                    varsel_type=event.data.varsel_type.value
+                    if event.data.varsel_type
+                    else None,
+                    varsel_type_label=self._get_frist_varseltype_label(
+                        event.data.varsel_type
+                    ),
                     begrunnelse=event.data.begrunnelse,
                     ny_sluttdato=event.data.ny_sluttdato,
                 )
-                historikk.append(entry.model_dump(mode='json'))
+                historikk.append(entry.model_dump(mode="json"))
 
             elif event.event_type == EventType.FRIST_KRAV_SPESIFISERT:
                 te_versjon += 1
@@ -1416,7 +1634,7 @@ class TimelineService:
                     begrunnelse=event.data.begrunnelse,
                     ny_sluttdato=event.data.ny_sluttdato,
                 )
-                historikk.append(entry.model_dump(mode='json'))
+                historikk.append(entry.model_dump(mode="json"))
 
             elif event.event_type == EventType.FRIST_KRAV_TRUKKET:
                 entry = FristHistorikkEntry(
@@ -1426,7 +1644,7 @@ class TimelineService:
                     endring_type="trukket",
                     event_id=event.event_id,
                 )
-                historikk.append(entry.model_dump(mode='json'))
+                historikk.append(entry.model_dump(mode="json"))
 
             elif event.event_type == EventType.RESPONS_FRIST:
                 entry = FristHistorikkEntry(
@@ -1435,12 +1653,16 @@ class TimelineService:
                     aktor=aktor_info,
                     endring_type="respons",
                     event_id=event.event_id,
-                    bh_resultat=event.data.beregnings_resultat.value if event.data.beregnings_resultat else None,
-                    bh_resultat_label=self._get_frist_resultat_label(event.data.beregnings_resultat),
+                    bh_resultat=event.data.beregnings_resultat.value
+                    if event.data.beregnings_resultat
+                    else None,
+                    bh_resultat_label=self._get_frist_resultat_label(
+                        event.data.beregnings_resultat
+                    ),
                     godkjent_dager=event.data.godkjent_dager,
-                    bh_begrunnelse=getattr(event.data, 'begrunnelse', None),
+                    bh_begrunnelse=getattr(event.data, "begrunnelse", None),
                 )
-                historikk.append(entry.model_dump(mode='json'))
+                historikk.append(entry.model_dump(mode="json"))
 
             elif event.event_type == EventType.RESPONS_FRIST_OPPDATERT:
                 entry = FristHistorikkEntry(
@@ -1449,31 +1671,37 @@ class TimelineService:
                     aktor=aktor_info,
                     endring_type="respons_oppdatert",
                     event_id=event.event_id,
-                    bh_resultat=event.data.beregnings_resultat.value if event.data.beregnings_resultat else None,
-                    bh_resultat_label=self._get_frist_resultat_label(event.data.beregnings_resultat),
+                    bh_resultat=event.data.beregnings_resultat.value
+                    if event.data.beregnings_resultat
+                    else None,
+                    bh_resultat_label=self._get_frist_resultat_label(
+                        event.data.beregnings_resultat
+                    ),
                     godkjent_dager=event.data.godkjent_dager,
-                    bh_begrunnelse=getattr(event.data, 'begrunnelse', None),
+                    bh_begrunnelse=getattr(event.data, "begrunnelse", None),
                 )
-                historikk.append(entry.model_dump(mode='json'))
+                historikk.append(entry.model_dump(mode="json"))
 
         return historikk
 
-    def get_grunnlag_historikk(self, events: List[AnyEvent]) -> List[Dict[str, Any]]:
+    def get_grunnlag_historikk(self, events: list[AnyEvent]) -> list[dict[str, Any]]:
         """
         Bygger revisjonshistorikk for grunnlag fra events.
 
         Returnerer en kronologisk liste med alle versjoner av grunnlaget
         og BH-responser, med versjonsnummer for hver TE-revisjon.
         """
-        from models.api_responses import GrunnlagHistorikkEntry, AktorInfo
+        from models.api_responses import AktorInfo, GrunnlagHistorikkEntry
 
         historikk = []
         te_versjon = 0  # Teller for TE-revisjoner
 
         # Filtrer og sorter grunnlag-relaterte events
         grunnlag_events = [
-            e for e in events
-            if e.event_type in {
+            e
+            for e in events
+            if e.event_type
+            in {
                 EventType.GRUNNLAG_OPPRETTET,
                 EventType.GRUNNLAG_OPPDATERT,
                 EventType.GRUNNLAG_TRUKKET,
@@ -1503,7 +1731,7 @@ class TimelineService:
                     beskrivelse=event.data.beskrivelse,
                     kontraktsreferanser=event.data.kontraktsreferanser or [],
                 )
-                historikk.append(entry.model_dump(mode='json'))
+                historikk.append(entry.model_dump(mode="json"))
 
             elif event.event_type == EventType.GRUNNLAG_OPPDATERT:
                 te_versjon += 1
@@ -1518,7 +1746,7 @@ class TimelineService:
                     beskrivelse=event.data.beskrivelse,
                     kontraktsreferanser=event.data.kontraktsreferanser or [],
                 )
-                historikk.append(entry.model_dump(mode='json'))
+                historikk.append(entry.model_dump(mode="json"))
 
             elif event.event_type == EventType.GRUNNLAG_TRUKKET:
                 entry = GrunnlagHistorikkEntry(
@@ -1528,7 +1756,7 @@ class TimelineService:
                     endring_type="trukket",
                     event_id=event.event_id,
                 )
-                historikk.append(entry.model_dump(mode='json'))
+                historikk.append(entry.model_dump(mode="json"))
 
             elif event.event_type == EventType.RESPONS_GRUNNLAG:
                 entry = GrunnlagHistorikkEntry(
@@ -1537,11 +1765,15 @@ class TimelineService:
                     aktor=aktor_info,
                     endring_type="respons",
                     event_id=event.event_id,
-                    bh_resultat=event.data.resultat.value if event.data.resultat else None,
-                    bh_resultat_label=self._get_grunnlag_resultat_label(event.data.resultat),
+                    bh_resultat=event.data.resultat.value
+                    if event.data.resultat
+                    else None,
+                    bh_resultat_label=self._get_grunnlag_resultat_label(
+                        event.data.resultat
+                    ),
                     bh_begrunnelse=event.data.begrunnelse,
                 )
-                historikk.append(entry.model_dump(mode='json'))
+                historikk.append(entry.model_dump(mode="json"))
 
             elif event.event_type == EventType.RESPONS_GRUNNLAG_OPPDATERT:
                 entry = GrunnlagHistorikkEntry(
@@ -1550,71 +1782,86 @@ class TimelineService:
                     aktor=aktor_info,
                     endring_type="respons_oppdatert",
                     event_id=event.event_id,
-                    bh_resultat=event.data.resultat.value if event.data.resultat else None,
-                    bh_resultat_label=self._get_grunnlag_resultat_label(event.data.resultat),
+                    bh_resultat=event.data.resultat.value
+                    if event.data.resultat
+                    else None,
+                    bh_resultat_label=self._get_grunnlag_resultat_label(
+                        event.data.resultat
+                    ),
                     bh_begrunnelse=event.data.begrunnelse,
                 )
-                historikk.append(entry.model_dump(mode='json'))
+                historikk.append(entry.model_dump(mode="json"))
 
         return historikk
 
-    def _get_vederlag_belop(self, event: VederlagEvent) -> Optional[float]:
+    def _get_vederlag_belop(self, event: VederlagEvent) -> float | None:
         """Hent krevd beløp basert på metode."""
-        if event.data.metode and event.data.metode.value == 'REGNINGSARBEID':
+        if event.data.metode and event.data.metode.value == "REGNINGSARBEID":
             return event.data.kostnads_overslag
         return event.data.belop_direkte
 
     def _get_metode_label(self, metode) -> str:
         """Konverter metode-enum til lesbar label."""
         labels = {
-            'ENHETSPRISER': 'Enhetspriser (§34.3)',
-            'REGNINGSARBEID': 'Regningsarbeid (§30.2/§34.4)',
-            'FASTPRIS_TILBUD': 'Fastpris/Tilbud (§34.2.1)',
+            "ENHETSPRISER": "Enhetspriser (§34.3)",
+            "REGNINGSARBEID": "Regningsarbeid (§30.2/§34.4)",
+            "FASTPRIS_TILBUD": "Fastpris/Tilbud (§34.2.1)",
         }
-        return labels.get(metode.value if hasattr(metode, 'value') else metode, str(metode))
+        return labels.get(
+            metode.value if hasattr(metode, "value") else metode, str(metode)
+        )
 
-    def _get_vederlag_resultat_label(self, resultat) -> Optional[str]:
+    def _get_vederlag_resultat_label(self, resultat) -> str | None:
         """Konverter vederlag-resultat til lesbar label."""
         if not resultat:
             return None
         labels = {
-            'godkjent': 'Godkjent',
-            'delvis_godkjent': 'Delvis godkjent',
-            'avslatt': 'Avslått',
-            'hold_tilbake': 'Holdes tilbake (§30.2)',
+            "godkjent": "Godkjent",
+            "delvis_godkjent": "Delvis godkjent",
+            "avslatt": "Avslått",
+            "hold_tilbake": "Holdes tilbake (§30.2)",
         }
-        return labels.get(resultat.value if hasattr(resultat, 'value') else resultat, str(resultat))
+        return labels.get(
+            resultat.value if hasattr(resultat, "value") else resultat, str(resultat)
+        )
 
-    def _get_frist_varseltype_label(self, varsel_type) -> Optional[str]:
+    def _get_frist_varseltype_label(self, varsel_type) -> str | None:
         """Konverter varseltype til lesbar label."""
         if not varsel_type:
             return None
         labels = {
-            'noytralt': 'Foreløpig varsel (§33.4)',
-            'spesifisert': 'Spesifisert krav (§33.6)',
-            'begge': 'Foreløpig + Spesifisert',
+            "noytralt": "Foreløpig varsel (§33.4)",
+            "spesifisert": "Spesifisert krav (§33.6)",
+            "begge": "Foreløpig + Spesifisert",
         }
-        return labels.get(varsel_type.value if hasattr(varsel_type, 'value') else varsel_type, str(varsel_type))
+        return labels.get(
+            varsel_type.value if hasattr(varsel_type, "value") else varsel_type,
+            str(varsel_type),
+        )
 
-    def _get_frist_resultat_label(self, resultat) -> Optional[str]:
+    def _get_frist_resultat_label(self, resultat) -> str | None:
         """Konverter frist-resultat til lesbar label."""
         if not resultat:
             return None
         labels = {
-            'godkjent': 'Godkjent',
-            'delvis_godkjent': 'Delvis godkjent',
-            'avslatt': 'Avslått',
+            "godkjent": "Godkjent",
+            "delvis_godkjent": "Delvis godkjent",
+            "avslatt": "Avslått",
         }
-        return labels.get(resultat.value if hasattr(resultat, 'value') else resultat, str(resultat))
+        return labels.get(
+            resultat.value if hasattr(resultat, "value") else resultat, str(resultat)
+        )
 
-    def _get_grunnlag_resultat_label(self, resultat) -> Optional[str]:
+    def _get_grunnlag_resultat_label(self, resultat) -> str | None:
         """Konverter grunnlag-resultat til lesbar label."""
         if not resultat:
             return None
         labels = {
-            'godkjent': 'Godkjent',
-            'delvis_godkjent': 'Delvis godkjent',
-            'avslatt': 'Avslått',
-            'frafalt': 'Frafalt (§32.3 c)',
+            "godkjent": "Godkjent",
+            "delvis_godkjent": "Delvis godkjent",
+            "avslatt": "Avslått",
+            "frafalt": "Frafalt (§32.3 c)",
         }
-        return labels.get(resultat.value if hasattr(resultat, 'value') else resultat, str(resultat))
+        return labels.get(
+            resultat.value if hasattr(resultat, "value") else resultat, str(resultat)
+        )

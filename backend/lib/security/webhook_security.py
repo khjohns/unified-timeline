@@ -41,21 +41,20 @@ Forfatter: Claude
 Dato: 2025-11-24 (oppdatert: 2025-11-30)
 """
 
-import os
 import logging
-from typing import Tuple, Set, Optional
+import os
 
 logger = logging.getLogger(__name__)
 
 # TTL for processed events (hvor lenge vi husker at event er prosessert)
-IDEMPOTENCY_TTL_SECONDS = int(os.getenv('IDEMPOTENCY_TTL_HOURS', '24')) * 3600
+IDEMPOTENCY_TTL_SECONDS = int(os.getenv("IDEMPOTENCY_TTL_HOURS", "24")) * 3600
 
 # Redis connection (lazy initialized)
-_redis_client: Optional[object] = None
-_redis_available: Optional[bool] = None
+_redis_client: object | None = None
+_redis_available: bool | None = None
 
 # Fallback: In-memory storage for prototype
-_processed_events: Set[str] = set()
+_processed_events: set[str] = set()
 
 
 def _get_redis():
@@ -73,7 +72,7 @@ def _get_redis():
     if _redis_client is not None:
         return _redis_client
 
-    redis_url = os.getenv('REDIS_URL')
+    redis_url = os.getenv("REDIS_URL")
     if not redis_url:
         _redis_available = False
         logger.info("REDIS_URL ikke satt - bruker in-memory idempotency tracking")
@@ -81,6 +80,7 @@ def _get_redis():
 
     try:
         import redis
+
         _redis_client = redis.from_url(redis_url)
         # Test connection
         _redis_client.ping()
@@ -167,7 +167,7 @@ def clear_processed_events():
     logger.info("Cleared in-memory processed events")
 
 
-def validate_webhook_event_structure(payload: dict) -> Tuple[bool, str]:
+def validate_webhook_event_structure(payload: dict) -> tuple[bool, str]:
     """
     Valider at webhook payload har forventet struktur.
     """
@@ -189,7 +189,7 @@ def validate_webhook_event_structure(payload: dict) -> Tuple[bool, str]:
 
     if not event_type:
         return False, "Missing required field: event.type (event type)"
-        
+
     # Valider at feltene har korrekt type
     if not isinstance(event_id, str) or not event_id:
         return False, "Invalid event ID (must be non-empty string)"
@@ -198,11 +198,14 @@ def validate_webhook_event_structure(payload: dict) -> Tuple[bool, str]:
         "issue.created",
         "issue.modified",
         "issue.status.changed",
-        "issue.deleted"
+        "issue.deleted",
     ]
 
     if event_type not in valid_event_types:
-        return False, f"Unknown event type: {event_type} (expected: {', '.join(valid_event_types)})"
+        return (
+            False,
+            f"Unknown event type: {event_type} (expected: {', '.join(valid_event_types)})",
+        )
 
     # Alt ok
     return True, ""
@@ -216,7 +219,7 @@ def get_webhook_event_id(payload: dict) -> str:
     event_obj = payload.get("event", {})
     if not isinstance(event_obj, dict):
         return ""
-        
+
     return event_obj.get("id") or ""
 
 
@@ -229,13 +232,7 @@ def _test_webhook_security():
     print("Testing webhook security...")
 
     # Test event structure validation (Catenda payload format)
-    valid_payload = {
-        "event": {
-            "id": "evt_12345",
-            "type": "issue.created"
-        },
-        "issue": {}
-    }
+    valid_payload = {"event": {"id": "evt_12345", "type": "issue.created"}, "issue": {}}
     is_valid, error = validate_webhook_event_structure(valid_payload)
     assert is_valid, f"Valid payload rejected: {error}"
     print("✓ Valid payload accepted")
@@ -254,8 +251,12 @@ def _test_webhook_security():
     print("✓ Duplicate event detected")
 
     # Test event ID extraction (from nested event object)
-    extracted_id = get_webhook_event_id({"event": {"id": "evt_456", "type": "issue.created"}})
-    assert extracted_id == "evt_456", f"Event ID not extracted correctly: {extracted_id}"
+    extracted_id = get_webhook_event_id(
+        {"event": {"id": "evt_456", "type": "issue.created"}}
+    )
+    assert extracted_id == "evt_456", (
+        f"Event ID not extracted correctly: {extracted_id}"
+    )
     print("✓ Event ID extracted")
 
     print("✅ All webhook security tests passed!")

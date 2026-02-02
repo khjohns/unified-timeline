@@ -8,29 +8,32 @@ Tests CloudEventMixin functionality, including:
 - validate_cloudevent() validation function
 - Extension attributes (actor, actorrole, referstoid)
 """
-import pytest
+
 from datetime import datetime
-from models.events import (
-    GrunnlagEvent,
-    VederlagEvent,
-    FristEvent,
-    SakOpprettetEvent,
-    GrunnlagData,
-    VederlagData,
-    FristData,
-    VarselInfo,
-    EventType,
-    VederlagsMetode,
-    FristVarselType,
-)
+
+import pytest
+
 from models.cloudevents import (
-    validate_cloudevent,
     CLOUDEVENTS_NAMESPACE,
     CLOUDEVENTS_SPECVERSION,
+    validate_cloudevent,
+)
+from models.events import (
+    EventType,
+    FristData,
+    FristEvent,
+    FristVarselType,
+    GrunnlagData,
+    GrunnlagEvent,
+    SakOpprettetEvent,
+    VarselInfo,
+    VederlagData,
+    VederlagEvent,
+    VederlagsMetode,
 )
 
-
 # ============ CLOUDEVENT MIXIN ATTRIBUTE TESTS ============
+
 
 class TestCloudEventMixinAttributes:
     """Test computed CloudEvents attributes on SakEvent subclasses."""
@@ -46,8 +49,8 @@ class TestCloudEventMixinAttributes:
                 hovedkategori="forsinkelse_bh",
                 underkategori="prosjektering",
                 beskrivelse="Test beskrivelse",
-                dato_oppdaget="2025-01-10"
-            )
+                dato_oppdaget="2025-01-10",
+            ),
         )
         assert event.specversion == CLOUDEVENTS_SPECVERSION
         assert event.specversion == "1.0"
@@ -63,8 +66,8 @@ class TestCloudEventMixinAttributes:
                 hovedkategori="forsinkelse_bh",
                 underkategori="prosjektering",
                 beskrivelse="Test",
-                dato_oppdaget="2025-01-10"
-            )
+                dato_oppdaget="2025-01-10",
+            ),
         )
         assert event.ce_id == event.event_id
         assert len(event.ce_id) > 0  # UUID should not be empty
@@ -81,8 +84,8 @@ class TestCloudEventMixinAttributes:
                 hovedkategori="forsinkelse_bh",
                 underkategori="prosjektering",
                 beskrivelse="Test",
-                dato_oppdaget="2025-01-10"
-            )
+                dato_oppdaget="2025-01-10",
+            ),
         )
         assert event.ce_source == "/projects/P-2025-001/cases/KOE-2025-042"
 
@@ -97,8 +100,8 @@ class TestCloudEventMixinAttributes:
                 hovedkategori="forsinkelse_bh",
                 underkategori="prosjektering",
                 beskrivelse="Test",
-                dato_oppdaget="2025-01-10"
-            )
+                dato_oppdaget="2025-01-10",
+            ),
         )
         assert event.ce_source == "/projects/unknown/cases/KOE-2025-042"
 
@@ -114,8 +117,8 @@ class TestCloudEventMixinAttributes:
                 hovedkategori="forsinkelse_bh",
                 underkategori="prosjektering",
                 beskrivelse="Test",
-                dato_oppdaget="2025-01-10"
-            )
+                dato_oppdaget="2025-01-10",
+            ),
         )
         assert event.ce_type == f"{CLOUDEVENTS_NAMESPACE}.grunnlag_opprettet"
         assert event.ce_type == "no.oslo.koe.grunnlag_opprettet"
@@ -131,8 +134,8 @@ class TestCloudEventMixinAttributes:
                 hovedkategori="forsinkelse_bh",
                 underkategori="prosjektering",
                 beskrivelse="Test",
-                dato_oppdaget="2025-01-10"
-            )
+                dato_oppdaget="2025-01-10",
+            ),
         )
         # Should end with Z
         assert event.ce_time.endswith("Z")
@@ -152,8 +155,8 @@ class TestCloudEventMixinAttributes:
                 hovedkategori="forsinkelse_bh",
                 underkategori="prosjektering",
                 beskrivelse="Test",
-                dato_oppdaget="2025-01-10"
-            )
+                dato_oppdaget="2025-01-10",
+            ),
         )
         assert event.ce_subject == "KOE-2025-001"
 
@@ -168,13 +171,14 @@ class TestCloudEventMixinAttributes:
                 hovedkategori="forsinkelse_bh",
                 underkategori="prosjektering",
                 beskrivelse="Test",
-                dato_oppdaget="2025-01-10"
-            )
+                dato_oppdaget="2025-01-10",
+            ),
         )
         assert event.ce_datacontenttype == "application/json"
 
 
 # ============ TO_CLOUDEVENT TESTS ============
+
 
 class TestToCloudEvent:
     """Test to_cloudevent() export method."""
@@ -191,8 +195,8 @@ class TestToCloudEvent:
                 hovedkategori="forsinkelse_bh",
                 underkategori="prosjektering",
                 beskrivelse="Tegninger ble levert 3 uker forsinket",
-                dato_oppdaget="2025-12-15"
-            )
+                dato_oppdaget="2025-12-15",
+            ),
         )
 
         ce = event.to_cloudevent()
@@ -226,8 +230,8 @@ class TestToCloudEvent:
             data=VederlagData(
                 metode=VederlagsMetode.REGNINGSARBEID,
                 kostnads_overslag=50000,
-                begrunnelse="Ekstra arbeid pga endringer"
-            )
+                begrunnelse="Ekstra arbeid pga endringer",
+            ),
         )
 
         ce = event.to_cloudevent()
@@ -247,10 +251,9 @@ class TestToCloudEvent:
                 antall_dager=14,
                 begrunnelse="Forsinkelse pga manglende tegninger",
                 spesifisert_varsel=VarselInfo(
-                    dato_sendt="2025-01-20",
-                    metode=["epost"]
-                )
-            )
+                    dato_sendt="2025-01-20", metode=["epost"]
+                ),
+            ),
         )
 
         ce = event.to_cloudevent()
@@ -271,8 +274,8 @@ class TestToCloudEvent:
                 hovedkategori="forsinkelse_bh",
                 underkategori="prosjektering",
                 beskrivelse="Test",
-                dato_oppdaget="2025-01-10"
-            )
+                dato_oppdaget="2025-01-10",
+            ),
         )
 
         ce = event.to_cloudevent()
@@ -290,8 +293,8 @@ class TestToCloudEvent:
                 hovedkategori="forsinkelse_bh",
                 underkategori="prosjektering",
                 beskrivelse="Test",
-                dato_oppdaget="2025-01-10"
-            )
+                dato_oppdaget="2025-01-10",
+            ),
         )
 
         ce = event.to_cloudevent()
@@ -309,8 +312,8 @@ class TestToCloudEvent:
                 hovedkategori="forsinkelse_bh",
                 underkategori="prosjektering",
                 beskrivelse="Test",
-                dato_oppdaget="2025-01-10"
-            )
+                dato_oppdaget="2025-01-10",
+            ),
         )
 
         ce = event.to_cloudevent()
@@ -319,6 +322,7 @@ class TestToCloudEvent:
 
 
 # ============ FROM_CLOUDEVENT TESTS ============
+
 
 class TestFromCloudEvent:
     """Test from_cloudevent() import class method."""
@@ -340,8 +344,8 @@ class TestFromCloudEvent:
                 "hovedkategori": "forsinkelse_bh",
                 "underkategori": "prosjektering",
                 "beskrivelse": "Test",
-                "dato_oppdaget": "2025-12-15"
-            }
+                "dato_oppdaget": "2025-12-15",
+            },
         }
 
         event = GrunnlagEvent.from_cloudevent(ce)
@@ -369,8 +373,8 @@ class TestFromCloudEvent:
                 "hovedkategori": "test",
                 "underkategori": "test",
                 "beskrivelse": "Test",
-                "dato_oppdaget": "2025-01-10"
-            }
+                "dato_oppdaget": "2025-01-10",
+            },
         }
 
         event = GrunnlagEvent.from_cloudevent(ce)
@@ -391,8 +395,8 @@ class TestFromCloudEvent:
                 "hovedkategori": "test",
                 "underkategori": "test",
                 "beskrivelse": "Test",
-                "dato_oppdaget": "2025-01-10"
-            }
+                "dato_oppdaget": "2025-01-10",
+            },
         }
 
         event = GrunnlagEvent.from_cloudevent(ce)
@@ -414,8 +418,8 @@ class TestFromCloudEvent:
                 "hovedkategori": "test",
                 "underkategori": "test",
                 "beskrivelse": "Test",
-                "dato_oppdaget": "2025-01-10"
-            }
+                "dato_oppdaget": "2025-01-10",
+            },
         }
 
         event = GrunnlagEvent.from_cloudevent(ce)
@@ -437,8 +441,8 @@ class TestFromCloudEvent:
                 "hovedkategori": "test",
                 "underkategori": "test",
                 "beskrivelse": "Test",
-                "dato_oppdaget": "2025-01-10"
-            }
+                "dato_oppdaget": "2025-01-10",
+            },
         }
 
         event = GrunnlagEvent.from_cloudevent(ce)
@@ -449,6 +453,7 @@ class TestFromCloudEvent:
 
 
 # ============ ROUNDTRIP TESTS ============
+
 
 class TestCloudEventRoundtrip:
     """Test that events can be exported and imported without data loss."""
@@ -467,8 +472,8 @@ class TestCloudEventRoundtrip:
                 underkategori="prosjektering",
                 beskrivelse="Detaljert beskrivelse",
                 dato_oppdaget="2025-12-15",
-                kontraktsreferanser=["NS8407 §25.2"]
-            )
+                kontraktsreferanser=["NS8407 §25.2"],
+            ),
         )
 
         # Export to CloudEvent
@@ -487,6 +492,7 @@ class TestCloudEventRoundtrip:
 
 # ============ VALIDATE_CLOUDEVENT TESTS ============
 
+
 class TestValidateCloudEvent:
     """Test validate_cloudevent() function."""
 
@@ -496,7 +502,7 @@ class TestValidateCloudEvent:
             "specversion": "1.0",
             "id": "test-123",
             "source": "/projects/P-001/cases/SAK-001",
-            "type": "no.oslo.koe.grunnlag_opprettet"
+            "type": "no.oslo.koe.grunnlag_opprettet",
         }
         assert validate_cloudevent(ce) is True
 
@@ -505,9 +511,11 @@ class TestValidateCloudEvent:
         ce = {
             "id": "test-123",
             "source": "/projects/P-001/cases/SAK-001",
-            "type": "no.oslo.koe.grunnlag_opprettet"
+            "type": "no.oslo.koe.grunnlag_opprettet",
         }
-        with pytest.raises(ValueError, match="Mangler påkrevd CloudEvents-felt: specversion"):
+        with pytest.raises(
+            ValueError, match="Mangler påkrevd CloudEvents-felt: specversion"
+        ):
             validate_cloudevent(ce)
 
     def test_missing_id_fails(self):
@@ -515,7 +523,7 @@ class TestValidateCloudEvent:
         ce = {
             "specversion": "1.0",
             "source": "/projects/P-001/cases/SAK-001",
-            "type": "no.oslo.koe.grunnlag_opprettet"
+            "type": "no.oslo.koe.grunnlag_opprettet",
         }
         with pytest.raises(ValueError, match="Mangler påkrevd CloudEvents-felt: id"):
             validate_cloudevent(ce)
@@ -525,9 +533,11 @@ class TestValidateCloudEvent:
         ce = {
             "specversion": "1.0",
             "id": "test-123",
-            "type": "no.oslo.koe.grunnlag_opprettet"
+            "type": "no.oslo.koe.grunnlag_opprettet",
         }
-        with pytest.raises(ValueError, match="Mangler påkrevd CloudEvents-felt: source"):
+        with pytest.raises(
+            ValueError, match="Mangler påkrevd CloudEvents-felt: source"
+        ):
             validate_cloudevent(ce)
 
     def test_missing_type_fails(self):
@@ -535,7 +545,7 @@ class TestValidateCloudEvent:
         ce = {
             "specversion": "1.0",
             "id": "test-123",
-            "source": "/projects/P-001/cases/SAK-001"
+            "source": "/projects/P-001/cases/SAK-001",
         }
         with pytest.raises(ValueError, match="Mangler påkrevd CloudEvents-felt: type"):
             validate_cloudevent(ce)
@@ -546,7 +556,7 @@ class TestValidateCloudEvent:
             "specversion": "0.3",
             "id": "test-123",
             "source": "/projects/P-001/cases/SAK-001",
-            "type": "no.oslo.koe.grunnlag_opprettet"
+            "type": "no.oslo.koe.grunnlag_opprettet",
         }
         with pytest.raises(ValueError, match="Ugyldig specversion"):
             validate_cloudevent(ce)
@@ -557,13 +567,14 @@ class TestValidateCloudEvent:
             "specversion": "1.0",
             "id": "",
             "source": "/projects/P-001/cases/SAK-001",
-            "type": "no.oslo.koe.grunnlag_opprettet"
+            "type": "no.oslo.koe.grunnlag_opprettet",
         }
         with pytest.raises(ValueError, match="'id' kan ikke være tom"):
             validate_cloudevent(ce)
 
 
 # ============ SERIALIZATION TESTS ============
+
 
 class TestCloudEventSerialization:
     """Test that CloudEvents attributes are serialized correctly."""
@@ -580,20 +591,20 @@ class TestCloudEventSerialization:
                 hovedkategori="test",
                 underkategori="test",
                 beskrivelse="Test",
-                dato_oppdaget="2025-01-10"
-            )
+                dato_oppdaget="2025-01-10",
+            ),
         )
 
-        data = event.model_dump(mode='json')
+        data = event.model_dump(mode="json")
 
         # CloudEvents computed fields should be included
-        assert data['specversion'] == "1.0"
-        assert data['ce_id'] == event.event_id
-        assert data['ce_source'] == "/projects/PROJ-001/cases/SAK-001"
-        assert data['ce_type'] == "no.oslo.koe.grunnlag_opprettet"
-        assert 'ce_time' in data
-        assert data['ce_subject'] == "SAK-001"
-        assert data['ce_datacontenttype'] == "application/json"
+        assert data["specversion"] == "1.0"
+        assert data["ce_id"] == event.event_id
+        assert data["ce_source"] == "/projects/PROJ-001/cases/SAK-001"
+        assert data["ce_type"] == "no.oslo.koe.grunnlag_opprettet"
+        assert "ce_time" in data
+        assert data["ce_subject"] == "SAK-001"
+        assert data["ce_datacontenttype"] == "application/json"
 
     def test_sak_opprettet_cloudevents(self):
         """Test SakOpprettetEvent with CloudEvents attributes."""
@@ -602,7 +613,7 @@ class TestCloudEventSerialization:
             sakstittel="Test Sak",
             aktor="System",
             aktor_rolle="TE",
-            prosjekt_id="PROJ-001"
+            prosjekt_id="PROJ-001",
         )
 
         ce = event.to_cloudevent()
@@ -613,6 +624,7 @@ class TestCloudEventSerialization:
 
 
 # ============ EDGE CASE TESTS ============
+
 
 class TestCloudEventEdgeCases:
     """Test edge cases and special scenarios."""
@@ -628,8 +640,8 @@ class TestCloudEventEdgeCases:
                 hovedkategori="test",
                 underkategori="test",
                 beskrivelse="Test",
-                dato_oppdaget="2025-01-10"
-            )
+                dato_oppdaget="2025-01-10",
+            ),
         )
 
         ce = event.to_cloudevent()
@@ -650,8 +662,8 @@ class TestCloudEventEdgeCases:
                 hovedkategori="test",
                 underkategori="test",
                 beskrivelse="Testing all extensions",
-                dato_oppdaget="2025-01-10"
-            )
+                dato_oppdaget="2025-01-10",
+            ),
         )
 
         ce = event.to_cloudevent()

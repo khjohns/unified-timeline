@@ -7,13 +7,14 @@ Disse funksjonene standardiserer feilresponser for:
 - VERSION_CONFLICT (versjonsmismatch)
 """
 
-from typing import Any, Tuple
+from typing import Any
+
 from flask import jsonify
 
 from repositories.event_repository import ConcurrencyError
 
 
-def handle_concurrency_error(error: ConcurrencyError) -> Tuple[Any, int]:
+def handle_concurrency_error(error: ConcurrencyError) -> tuple[Any, int]:
     """
     Bygger standard 409-respons for ConcurrencyError.
 
@@ -31,19 +32,18 @@ def handle_concurrency_error(error: ConcurrencyError) -> Tuple[Any, int]:
         except ConcurrencyError as e:
             return handle_concurrency_error(e)
     """
-    return jsonify({
-        "success": False,
-        "error": "VERSION_CONFLICT",
-        "expected_version": error.expected,
-        "current_version": error.actual,
-        "message": "Samtidig endring oppdaget. Vennligst last inn på nytt."
-    }), 409
+    return jsonify(
+        {
+            "success": False,
+            "error": "VERSION_CONFLICT",
+            "expected_version": error.expected,
+            "current_version": error.actual,
+            "message": "Samtidig endring oppdaget. Vennligst last inn på nytt.",
+        }
+    ), 409
 
 
-def not_found_response(
-    resource_type: str,
-    resource_id: str
-) -> Tuple[Any, int]:
+def not_found_response(resource_type: str, resource_id: str) -> tuple[Any, int]:
     """
     Bygger standard 404-respons for ressurs ikke funnet.
 
@@ -58,17 +58,18 @@ def not_found_response(
         if not events:
             return not_found_response("Søknad", sak_id)
     """
-    return jsonify({
-        "success": False,
-        "error": "NOT_FOUND",
-        "message": f"{resource_type} {resource_id} ikke funnet"
-    }), 404
+    return jsonify(
+        {
+            "success": False,
+            "error": "NOT_FOUND",
+            "message": f"{resource_type} {resource_id} ikke funnet",
+        }
+    ), 404
 
 
 def version_conflict_response(
-    expected_version: int,
-    current_version: int
-) -> Tuple[Any, int]:
+    expected_version: int, current_version: int
+) -> tuple[Any, int]:
     """
     Bygger standard 409-respons for versjonskonflikter.
 
@@ -85,10 +86,12 @@ def version_conflict_response(
         if expected_version != current_version:
             return version_conflict_response(expected_version, current_version)
     """
-    return jsonify({
-        "success": False,
-        "error": "VERSION_CONFLICT",
-        "expected_version": expected_version,
-        "current_version": current_version,
-        "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
-    }), 409
+    return jsonify(
+        {
+            "success": False,
+            "error": "VERSION_CONFLICT",
+            "expected_version": expected_version,
+            "current_version": current_version,
+            "message": "Tilstanden har endret seg. Vennligst last inn på nytt.",
+        }
+    ), 409

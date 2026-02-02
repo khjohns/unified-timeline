@@ -8,14 +8,15 @@ Bruk:
     python scripts/explore_dalux_plans.py
 """
 
+import json
 import os
 import sys
-import json
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
+
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 import requests
@@ -23,7 +24,9 @@ import requests
 
 def main():
     api_key = os.environ.get("DALUX_API_KEY") or os.environ.get("DALUX_TEST_API_KEY")
-    base_url = os.environ.get("DALUX_BASE_URL") or os.environ.get("DALUX_DEFAULT_BASE_URL")
+    base_url = os.environ.get("DALUX_BASE_URL") or os.environ.get(
+        "DALUX_DEFAULT_BASE_URL"
+    )
 
     if not api_key or not base_url:
         print("Mangler DALUX_API_KEY eller DALUX_BASE_URL i .env")

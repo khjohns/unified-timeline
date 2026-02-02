@@ -34,8 +34,8 @@ Usage:
 """
 
 import argparse
-import sys
 import os
+import sys
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -45,12 +45,12 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-from integrations.dalux import DaluxAuthError, DaluxAPIError
-from services.dalux_sync_service import DaluxSyncService
-from repositories.sync_mapping_repository import create_sync_mapping_repository
-from models.sync_models import DaluxCatendaSyncMapping
+from integrations.dalux import DaluxAPIError, DaluxAuthError
 from lib.catenda_factory import get_catenda_client
 from lib.dalux_factory import get_dalux_client, get_dalux_client_for_mapping
+from models.sync_models import DaluxCatendaSyncMapping
+from repositories.sync_mapping_repository import create_sync_mapping_repository
+from services.dalux_sync_service import DaluxSyncService
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -134,7 +134,9 @@ def cmd_list(args):
 
         for m in mappings:
             status_icon = "+" if m.sync_enabled else "-"
-            last_sync = m.last_sync_at.strftime("%Y-%m-%d %H:%M") if m.last_sync_at else "never"
+            last_sync = (
+                m.last_sync_at.strftime("%Y-%m-%d %H:%M") if m.last_sync_at else "never"
+            )
             last_status = m.last_sync_status or "n/a"
 
             print(f"[{status_icon}] {m.id}")
@@ -211,7 +213,9 @@ def cmd_test(args):
         print("Set DALUX_API_KEY and DALUX_BASE_URL in .env")
         return 1
 
-    base_url = os.environ.get("DALUX_BASE_URL") or os.environ.get("DALUX_DEFAULT_BASE_URL")
+    base_url = os.environ.get("DALUX_BASE_URL") or os.environ.get(
+        "DALUX_DEFAULT_BASE_URL"
+    )
     print(f"Testing connection to {base_url}...")
 
     try:
@@ -250,7 +254,9 @@ def cmd_create(args):
         print("Validating Dalux connection...")
         dalux_client = get_dalux_client()
         if not dalux_client:
-            print("Error: Dalux not configured. Set DALUX_API_KEY and DALUX_BASE_URL in .env")
+            print(
+                "Error: Dalux not configured. Set DALUX_API_KEY and DALUX_BASE_URL in .env"
+            )
             return 1
 
         if not dalux_client.health_check():
@@ -261,10 +267,14 @@ def cmd_create(args):
         projects = dalux_client.get_projects()
         project_ids = [p.get("data", {}).get("projectId") for p in projects]
         if args.dalux_project_id not in project_ids:
-            print(f"Warning: Dalux project {args.dalux_project_id} not in accessible projects: {project_ids}")
+            print(
+                f"Warning: Dalux project {args.dalux_project_id} not in accessible projects: {project_ids}"
+            )
 
         # Get base URL from env
-        base_url = os.environ.get("DALUX_BASE_URL") or os.environ.get("DALUX_DEFAULT_BASE_URL")
+        base_url = os.environ.get("DALUX_BASE_URL") or os.environ.get(
+            "DALUX_DEFAULT_BASE_URL"
+        )
 
         # Create mapping (API key NOT stored, only base_url)
         mapping = DaluxCatendaSyncMapping(
@@ -290,33 +300,49 @@ def main():
     parser = argparse.ArgumentParser(
         description="Dalux → Catenda sync CLI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__
+        epilog=__doc__,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
     # sync command
     sync_parser = subparsers.add_parser("sync", help="Run sync for a mapping")
-    sync_parser.add_argument("--mapping-id", "-m", required=True, help="Sync mapping UUID")
-    sync_parser.add_argument("--full", "-f", action="store_true", help="Full sync (not incremental)")
-    sync_parser.add_argument("--limit", "-l", type=int, help="Limit number of tasks to sync (for testing)")
+    sync_parser.add_argument(
+        "--mapping-id", "-m", required=True, help="Sync mapping UUID"
+    )
+    sync_parser.add_argument(
+        "--full", "-f", action="store_true", help="Full sync (not incremental)"
+    )
+    sync_parser.add_argument(
+        "--limit", "-l", type=int, help="Limit number of tasks to sync (for testing)"
+    )
 
     # list command
     subparsers.add_parser("list", help="List all sync mappings")
 
     # status command
     status_parser = subparsers.add_parser("status", help="Show status for a mapping")
-    status_parser.add_argument("--mapping-id", "-m", required=True, help="Sync mapping UUID")
+    status_parser.add_argument(
+        "--mapping-id", "-m", required=True, help="Sync mapping UUID"
+    )
 
     # test command (uses DALUX_API_KEY and DALUX_BASE_URL from env)
     subparsers.add_parser("test", help="Test Dalux connection (uses env vars)")
 
     # create command (uses DALUX_API_KEY and DALUX_BASE_URL from env)
     create_parser = subparsers.add_parser("create", help="Create a new sync mapping")
-    create_parser.add_argument("--project-id", required=True, help="Internal project ID")
-    create_parser.add_argument("--dalux-project-id", required=True, help="Dalux project ID")
-    create_parser.add_argument("--catenda-project-id", required=True, help="Catenda project ID")
-    create_parser.add_argument("--catenda-board-id", required=True, help="Catenda board ID")
+    create_parser.add_argument(
+        "--project-id", required=True, help="Internal project ID"
+    )
+    create_parser.add_argument(
+        "--dalux-project-id", required=True, help="Dalux project ID"
+    )
+    create_parser.add_argument(
+        "--catenda-project-id", required=True, help="Catenda project ID"
+    )
+    create_parser.add_argument(
+        "--catenda-board-id", required=True, help="Catenda board ID"
+    )
 
     args = parser.parse_args()
 

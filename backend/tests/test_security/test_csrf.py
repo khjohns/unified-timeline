@@ -13,20 +13,20 @@ class TestCSRFProtection:
 
     def test_csrf_token_endpoint_returns_token(self, client):
         """Test that /api/csrf-token returns a valid token"""
-        response = client.get('/api/csrf-token')
+        response = client.get("/api/csrf-token")
 
         assert response.status_code == 200
         data = response.get_json()
-        assert 'csrfToken' in data
-        assert len(data['csrfToken']) > 20  # Token should be reasonably long
+        assert "csrfToken" in data
+        assert len(data["csrfToken"]) > 20  # Token should be reasonably long
 
     def test_csrf_token_changes_per_request(self, client):
         """Test that CSRF tokens are unique per request"""
-        response1 = client.get('/api/csrf-token')
-        response2 = client.get('/api/csrf-token')
+        response1 = client.get("/api/csrf-token")
+        response2 = client.get("/api/csrf-token")
 
-        token1 = response1.get_json()['csrfToken']
-        token2 = response2.get_json()['csrfToken']
+        token1 = response1.get_json()["csrfToken"]
+        token2 = response2.get_json()["csrfToken"]
 
         # Tokens should be different (contains timestamp)
         assert token1 != token2
@@ -55,7 +55,7 @@ class TestCSRFTokenValidation:
         token = generate_csrf_token()
 
         # Token should contain three parts: nonce:timestamp:signature
-        parts = token.split(':')
+        parts = token.split(":")
         assert len(parts) == 3
 
         # First part is nonce (base64 URL-safe)
@@ -65,12 +65,13 @@ class TestCSRFTokenValidation:
         assert parts[1].isdigit()
 
         # Third part should be the signature (hex)
-        assert all(c in '0123456789abcdef' for c in parts[2].lower())
+        assert all(c in "0123456789abcdef" for c in parts[2].lower())
 
     def test_csrf_token_contains_valid_timestamp(self):
         """Test that CSRF token contains a valid timestamp"""
-        from lib.auth.csrf_protection import generate_csrf_token
         from datetime import datetime
+
+        from lib.auth.csrf_protection import generate_csrf_token
 
         # Generate token and immediately check - should be within seconds
         # Note: generate_csrf_token uses datetime.utcnow().timestamp()
@@ -78,7 +79,7 @@ class TestCSRFTokenValidation:
         token = generate_csrf_token()
         after = int(datetime.utcnow().timestamp())
 
-        parts = token.split(':')
+        parts = token.split(":")
         timestamp = int(parts[1])
 
         # Timestamp should be between before and after (with small margin)

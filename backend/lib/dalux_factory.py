@@ -3,8 +3,8 @@ Dalux Client Factory
 
 Provides factory functions for creating DaluxClient and DaluxSyncService instances.
 """
+
 import os
-from typing import Optional
 
 from integrations.dalux import DaluxClient
 from utils.logger import get_logger
@@ -12,7 +12,7 @@ from utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-def get_dalux_api_key() -> Optional[str]:
+def get_dalux_api_key() -> str | None:
     """
     Get Dalux API key from environment.
 
@@ -25,9 +25,8 @@ def get_dalux_api_key() -> Optional[str]:
 
 
 def get_dalux_client(
-    api_key: Optional[str] = None,
-    base_url: Optional[str] = None
-) -> Optional[DaluxClient]:
+    api_key: str | None = None, base_url: str | None = None
+) -> DaluxClient | None:
     """
     Factory for creating DaluxClient instances.
 
@@ -50,12 +49,17 @@ def get_dalux_client(
     """
     # Check if Dalux is explicitly disabled
     from core.config import settings
+
     if not settings.is_dalux_enabled:
         logger.debug("Dalux integration disabled (DALUX_ENABLED=false)")
         return None
 
     api_key = api_key or get_dalux_api_key()
-    base_url = base_url or os.environ.get("DALUX_BASE_URL") or os.environ.get("DALUX_DEFAULT_BASE_URL")
+    base_url = (
+        base_url
+        or os.environ.get("DALUX_BASE_URL")
+        or os.environ.get("DALUX_DEFAULT_BASE_URL")
+    )
 
     if not api_key:
         logger.debug("Dalux not configured - no API key (set DALUX_API_KEY)")
@@ -92,7 +96,4 @@ def get_dalux_client_for_mapping(mapping) -> DaluxClient:
     if not base_url:
         raise ValueError("Mapping is missing dalux_base_url and DALUX_BASE_URL not set")
 
-    return DaluxClient(
-        api_key=api_key,
-        base_url=base_url
-    )
+    return DaluxClient(api_key=api_key, base_url=base_url)

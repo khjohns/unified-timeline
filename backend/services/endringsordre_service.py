@@ -7,39 +7,41 @@ En EO kan samle flere KOE-er (Krav om Endringsordre).
 Denne servicen håndterer opprettelse og håndtering av endringsordresaker som egne saker
 med relasjoner til de KOE-sakene som inngår i endringsordren.
 """
-from typing import Dict, List, Optional, Any
-from datetime import datetime, timezone
-import os
 
-from utils.logger import get_logger
+import os
+from datetime import UTC, datetime
+from typing import Any
+from uuid import uuid4
+
 from lib.helpers import get_all_sak_ids
-from models.sak_state import (
-    SaksType,
-    EOStatus,
-    SakState,
-    SporStatus,
-    SakRelasjon,
-)
 from models.events import (
     AnyEvent,
-    parse_event,
-    EventType,
-    EOKoeHandlingEvent,
     EOKoeHandlingData,
-    SakOpprettetEvent,
-    EOOpprettetEvent,
-    EOOpprettetData,
-    EOUtstedtEvent,
-    EOUtstedtData,
+    EOKoeHandlingEvent,
     EOKonsekvenser,  # Import from events, not sak_state, for EOUtstedtData compatibility
+    EOOpprettetData,
+    EOOpprettetEvent,
+    EOUtstedtData,
+    EOUtstedtEvent,
+    EventType,
+    SakOpprettetEvent,
     VederlagKompensasjon,
     VederlagsMetode,
+    parse_event,
 )
 from models.sak_metadata import SakMetadata
-from uuid import uuid4
+from models.sak_state import (
+    EOStatus,
+    SakRelasjon,
+    SakState,
+    SaksType,
+    SporStatus,
+)
 from services.base_sak_service import BaseSakService
+from utils.logger import get_logger
 
 logger = get_logger(__name__)
+
 
 # Check if relation repository is available (Supabase backend)
 def _get_relation_repository():
@@ -48,6 +50,7 @@ def _get_relation_repository():
     if backend == "supabase":
         try:
             from repositories import create_relation_repository
+
             return create_relation_repository()
         except Exception as e:
             logger.debug(f"RelationRepository not available: {e}")
@@ -64,11 +67,11 @@ class EndringsordreService(BaseSakService):
 
     def __init__(
         self,
-        catenda_client: Optional[Any] = None,
-        event_repository: Optional[Any] = None,
-        timeline_service: Optional[Any] = None,
-        metadata_repository: Optional[Any] = None,
-        relation_repository: Optional[Any] = None,
+        catenda_client: Any | None = None,
+        event_repository: Any | None = None,
+        timeline_service: Any | None = None,
+        metadata_repository: Any | None = None,
+        relation_repository: Any | None = None,
     ):
         """
         Initialiser EndringsordreService.
@@ -83,7 +86,7 @@ class EndringsordreService(BaseSakService):
         super().__init__(
             catenda_client=catenda_client,
             event_repository=event_repository,
-            timeline_service=timeline_service
+            timeline_service=timeline_service,
         )
         self.metadata_repository = metadata_repository
         self.relation_repository = relation_repository or _get_relation_repository()
@@ -93,17 +96,17 @@ class EndringsordreService(BaseSakService):
         self,
         eo_nummer: str,
         beskrivelse: str,
-        koe_sak_ids: List[str],
-        konsekvenser: Optional[Dict[str, bool]] = None,
-        konsekvens_beskrivelse: Optional[str] = None,
-        oppgjorsform: Optional[str] = None,
-        kompensasjon_belop: Optional[float] = None,
-        fradrag_belop: Optional[float] = None,
+        koe_sak_ids: list[str],
+        konsekvenser: dict[str, bool] | None = None,
+        konsekvens_beskrivelse: str | None = None,
+        oppgjorsform: str | None = None,
+        kompensasjon_belop: float | None = None,
+        fradrag_belop: float | None = None,
         er_estimat: bool = False,
-        frist_dager: Optional[int] = None,
-        ny_sluttdato: Optional[str] = None,
-        utstedt_av: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        frist_dager: int | None = None,
+        ny_sluttdato: str | None = None,
+        utstedt_av: str | None = None,
+    ) -> dict[str, Any]:
         """
         Oppretter en ny endringsordresak med relasjoner til KOE-saker.
 
@@ -135,8 +138,8 @@ class EndringsordreService(BaseSakService):
         if not beskrivelse:
             raise ValueError("Beskrivelse er påkrevd")
 
-        now = datetime.now(timezone.utc)
-        dato_utstedt = now.strftime('%Y-%m-%d')
+        now = datetime.now(UTC)
+        dato_utstedt = now.strftime("%Y-%m-%d")
 
         # 1. Generer lokal sak-ID
         sak_id = f"EO-{now.strftime('%Y%m%d%H%M%S')}"
@@ -148,11 +151,11 @@ class EndringsordreService(BaseSakService):
 
         # 2. Bygg konsekvenser
         eo_konsekvenser = EOKonsekvenser(
-            sha=konsekvenser.get('sha', False) if konsekvenser else False,
-            kvalitet=konsekvenser.get('kvalitet', False) if konsekvenser else False,
-            fremdrift=konsekvenser.get('fremdrift', False) if konsekvenser else False,
-            pris=konsekvenser.get('pris', False) if konsekvenser else False,
-            annet=konsekvenser.get('annet', False) if konsekvenser else False,
+            sha=konsekvenser.get("sha", False) if konsekvenser else False,
+            kvalitet=konsekvenser.get("kvalitet", False) if konsekvenser else False,
+            fremdrift=konsekvenser.get("fremdrift", False) if konsekvenser else False,
+            pris=konsekvenser.get("pris", False) if konsekvenser else False,
+            annet=konsekvenser.get("annet", False) if konsekvenser else False,
         )
 
         # Beregn netto beløp
@@ -243,8 +246,7 @@ class EndringsordreService(BaseSakService):
 
         creation_service = get_sak_creation_service()
         result = creation_service.create_sak_with_metadata(
-            metadata=metadata,
-            events=events
+            metadata=metadata, events=events
         )
 
         if not result.success:
@@ -265,28 +267,28 @@ class EndringsordreService(BaseSakService):
         catenda_synced = False
         catenda_topic_id = None
         from core.config import settings
+
         if settings.is_catenda_enabled and self.client:
             try:
                 topic = self.client.create_topic(
                     title=f"Endringsordre {eo_nummer}",
                     description=beskrivelse,
                     topic_type="Endringsordre",
-                    topic_status="Open"
+                    topic_status="Open",
                 )
                 if topic:
-                    catenda_topic_id = topic.get('guid')
+                    catenda_topic_id = topic.get("guid")
 
                     # Opprett relasjoner i Catenda
                     if koe_sak_ids and catenda_topic_id:
                         self.client.create_topic_relations(
-                            topic_id=catenda_topic_id,
-                            related_topic_guids=koe_sak_ids
+                            topic_id=catenda_topic_id, related_topic_guids=koe_sak_ids
                         )
                         for koe_id in koe_sak_ids:
                             try:
                                 self.client.create_topic_relations(
                                     topic_id=koe_id,
-                                    related_topic_guids=[catenda_topic_id]
+                                    related_topic_guids=[catenda_topic_id],
                                 )
                             except Exception:
                                 pass  # KOE finnes kanskje ikke i Catenda
@@ -301,10 +303,7 @@ class EndringsordreService(BaseSakService):
             "sakstype": SaksType.ENDRINGSORDRE.value,
             "catenda_synced": catenda_synced,
             "catenda_topic_id": catenda_topic_id,
-            "relaterte_saker": [
-                {"relatert_sak_id": id}
-                for id in koe_sak_ids
-            ],
+            "relaterte_saker": [{"relatert_sak_id": id} for id in koe_sak_ids],
             "endringsordre_data": {
                 "relaterte_koe_saker": koe_sak_ids,
                 "eo_nummer": eo_nummer,
@@ -327,11 +326,14 @@ class EndringsordreService(BaseSakService):
                 "dato_te_respons": None,
                 "netto_belop": netto,
                 "har_priskonsekvens": eo_konsekvenser.pris or netto != 0,
-                "har_fristkonsekvens": eo_konsekvenser.fremdrift or (frist_dager is not None and frist_dager > 0),
-            }
+                "har_fristkonsekvens": eo_konsekvenser.fremdrift
+                or (frist_dager is not None and frist_dager > 0),
+            },
         }
 
-    def legg_til_koe(self, eo_sak_id: str, koe_sak_id: str, aktor: str = "BH") -> Dict[str, Any]:
+    def legg_til_koe(
+        self, eo_sak_id: str, koe_sak_id: str, aktor: str = "BH"
+    ) -> dict[str, Any]:
         """
         Legger til en KOE-sak til endringsordren.
 
@@ -350,7 +352,7 @@ class EndringsordreService(BaseSakService):
             event_id=str(uuid4()),
             sak_id=eo_sak_id,
             event_type=EventType.EO_KOE_LAGT_TIL,
-            tidsstempel=datetime.now(timezone.utc),
+            tidsstempel=datetime.now(UTC),
             aktor=aktor,
             aktor_rolle="BH",
             data=EOKoeHandlingData(
@@ -384,15 +386,15 @@ class EndringsordreService(BaseSakService):
         if self.client:
             try:
                 self.client.create_topic_relations(
-                    topic_id=eo_sak_id,
-                    related_topic_guids=[koe_sak_id]
+                    topic_id=eo_sak_id, related_topic_guids=[koe_sak_id]
                 )
                 self.client.create_topic_relations(
-                    topic_id=koe_sak_id,
-                    related_topic_guids=[eo_sak_id]
+                    topic_id=koe_sak_id, related_topic_guids=[eo_sak_id]
                 )
                 catenda_synced = True
-                logger.info(f"✅ Catenda-relasjon opprettet: {eo_sak_id} <-> {koe_sak_id}")
+                logger.info(
+                    f"✅ Catenda-relasjon opprettet: {eo_sak_id} <-> {koe_sak_id}"
+                )
             except Exception as e:
                 logger.warning(f"Catenda-synk feilet (fortsetter uten): {e}")
 
@@ -401,7 +403,9 @@ class EndringsordreService(BaseSakService):
             "catenda_synced": catenda_synced,
         }
 
-    def fjern_koe(self, eo_sak_id: str, koe_sak_id: str, aktor: str = "BH") -> Dict[str, Any]:
+    def fjern_koe(
+        self, eo_sak_id: str, koe_sak_id: str, aktor: str = "BH"
+    ) -> dict[str, Any]:
         """
         Fjerner en KOE-sak fra endringsordren.
 
@@ -420,7 +424,7 @@ class EndringsordreService(BaseSakService):
             event_id=str(uuid4()),
             sak_id=eo_sak_id,
             event_type=EventType.EO_KOE_FJERNET,
-            tidsstempel=datetime.now(timezone.utc),
+            tidsstempel=datetime.now(UTC),
             aktor=aktor,
             aktor_rolle="BH",
             data=EOKoeHandlingData(
@@ -453,15 +457,15 @@ class EndringsordreService(BaseSakService):
         if self.client:
             try:
                 self.client.delete_topic_relation(
-                    topic_id=eo_sak_id,
-                    related_topic_id=koe_sak_id
+                    topic_id=eo_sak_id, related_topic_id=koe_sak_id
                 )
                 self.client.delete_topic_relation(
-                    topic_id=koe_sak_id,
-                    related_topic_id=eo_sak_id
+                    topic_id=koe_sak_id, related_topic_id=eo_sak_id
                 )
                 catenda_synced = True
-                logger.info(f"✅ Catenda-relasjon fjernet: {eo_sak_id} <-> {koe_sak_id}")
+                logger.info(
+                    f"✅ Catenda-relasjon fjernet: {eo_sak_id} <-> {koe_sak_id}"
+                )
             except Exception as e:
                 logger.warning(f"Catenda-synk feilet (fortsetter uten): {e}")
 
@@ -470,10 +474,7 @@ class EndringsordreService(BaseSakService):
             "catenda_synced": catenda_synced,
         }
 
-    def hent_komplett_eo_kontekst(
-        self,
-        eo_sak_id: str
-    ) -> Dict[str, Any]:
+    def hent_komplett_eo_kontekst(self, eo_sak_id: str) -> dict[str, Any]:
         """
         Henter komplett kontekst for en endringsordresak, inkludert:
         - Relaterte KOE-saker
@@ -494,17 +495,21 @@ class EndringsordreService(BaseSakService):
             - oppsummering: Aggregert info
         """
         # Hent EO-sakens egne hendelser først (for fallback)
-        eo_hendelser: List[AnyEvent] = []
-        lokale_relaterte_ids: List[str] = []
+        eo_hendelser: list[AnyEvent] = []
+        lokale_relaterte_ids: list[str] = []
         if self.event_repository:
             try:
                 events_data, _version = self.event_repository.get_events(eo_sak_id)
                 # Parse events from stored data (dicts -> typed Event objects)
-                eo_hendelser = [parse_event(e) for e in events_data] if events_data else []
+                eo_hendelser = (
+                    [parse_event(e) for e in events_data] if events_data else []
+                )
 
                 # Ekstraher relaterte_koe_saker fra EO-hendelser for fallback
                 for event in eo_hendelser:
-                    if hasattr(event, 'data') and hasattr(event.data, 'relaterte_koe_saker'):
+                    if hasattr(event, "data") and hasattr(
+                        event.data, "relaterte_koe_saker"
+                    ):
                         lokale_relaterte_ids = event.data.relaterte_koe_saker or []
                         if lokale_relaterte_ids:
                             break  # Bruk første event med relaterte saker
@@ -516,14 +521,17 @@ class EndringsordreService(BaseSakService):
         try:
             relaterte = self.hent_relaterte_saker(eo_sak_id)
         except (RuntimeError, Exception) as e:
-            logger.warning(f"Catenda utilgjengelig for {eo_sak_id}, bruker lokale data: {e}")
+            logger.warning(
+                f"Catenda utilgjengelig for {eo_sak_id}, bruker lokale data: {e}"
+            )
 
         # Fallback: Bruk relaterte_koe_saker fra EO-hendelser
         if not relaterte and lokale_relaterte_ids:
-            logger.info(f"Bruker lokale relaterte saker fra EO-data: {lokale_relaterte_ids}")
+            logger.info(
+                f"Bruker lokale relaterte saker fra EO-data: {lokale_relaterte_ids}"
+            )
             relaterte = [
-                SakRelasjon(relatert_sak_id=sak_id)
-                for sak_id in lokale_relaterte_ids
+                SakRelasjon(relatert_sak_id=sak_id) for sak_id in lokale_relaterte_ids
             ]
 
         relaterte_ids = [r.relatert_sak_id for r in relaterte]
@@ -535,7 +543,7 @@ class EndringsordreService(BaseSakService):
                 "sak_states": {},
                 "hendelser": {},
                 "eo_hendelser": eo_hendelser,
-                "oppsummering": self._bygg_oppsummering({})
+                "oppsummering": self._bygg_oppsummering({}),
             }
 
         # Hent state og hendelser fra KOE-saker
@@ -546,8 +554,7 @@ class EndringsordreService(BaseSakService):
         oppsummering = self._bygg_oppsummering(states)
 
         logger.info(
-            f"Hentet komplett kontekst for EO {eo_sak_id}: "
-            f"{len(relaterte_ids)} KOE-er"
+            f"Hentet komplett kontekst for EO {eo_sak_id}: {len(relaterte_ids)} KOE-er"
         )
 
         return {
@@ -555,10 +562,10 @@ class EndringsordreService(BaseSakService):
             "sak_states": states,
             "hendelser": hendelser,
             "eo_hendelser": eo_hendelser,
-            "oppsummering": oppsummering
+            "oppsummering": oppsummering,
         }
 
-    def _bygg_oppsummering(self, states: Dict[str, SakState]) -> Dict[str, Any]:
+    def _bygg_oppsummering(self, states: dict[str, SakState]) -> dict[str, Any]:
         """
         Bygger oppsummering fra KOE-saker.
 
@@ -602,7 +609,8 @@ class EndringsordreService(BaseSakService):
                 # når status er godkjent/låst (BH har godkjent hele kravet)
                 godkjent = state.frist.godkjent_dager
                 if godkjent is None and state.frist.status in (
-                    SporStatus.GODKJENT, SporStatus.LAAST
+                    SporStatus.GODKJENT,
+                    SporStatus.LAAST,
                 ):
                     godkjent = state.frist.krevd_dager
 
@@ -618,10 +626,10 @@ class EndringsordreService(BaseSakService):
             "total_godkjent_vederlag": total_godkjent_vederlag,
             "total_krevd_dager": total_krevd_dager,
             "total_godkjent_dager": total_godkjent_dager,
-            "koe_oversikt": koe_oversikt
+            "koe_oversikt": koe_oversikt,
         }
 
-    def hent_kandidat_koe_saker(self) -> List[Dict[str, Any]]:
+    def hent_kandidat_koe_saker(self) -> list[dict[str, Any]]:
         """
         Henter KOE-saker som kan legges til i en endringsordre.
 
@@ -637,7 +645,7 @@ class EndringsordreService(BaseSakService):
             catenda_client=self.client,
             event_repository=self.event_repository,
             metadata_repository=self.metadata_repository,
-            use_metadata_mapping=True
+            use_metadata_mapping=True,
         )
 
         if not sak_ids_to_search:
@@ -656,21 +664,27 @@ class EndringsordreService(BaseSakService):
                         state = self.timeline_service.compute_state(events)
 
                         # Sjekk kriterier: må være standard sak (ikke forsering/endringsordre) med kan_utstede_eo
-                        if (state.sakstype == 'standard' or state.sakstype is None) and state.kan_utstede_eo:
-                            kandidater.append({
-                                "sak_id": sak_id,
-                                "tittel": state.sakstittel or "",
-                                "overordnet_status": state.overordnet_status,
-                                "sum_godkjent": state.sum_godkjent,
-                                "godkjent_dager": state.frist.godkjent_dager if state.frist else None,
-                            })
+                        if (
+                            state.sakstype == "standard" or state.sakstype is None
+                        ) and state.kan_utstede_eo:
+                            kandidater.append(
+                                {
+                                    "sak_id": sak_id,
+                                    "tittel": state.sakstittel or "",
+                                    "overordnet_status": state.overordnet_status,
+                                    "sum_godkjent": state.sum_godkjent,
+                                    "godkjent_dager": state.frist.godkjent_dager
+                                    if state.frist
+                                    else None,
+                                }
+                            )
                 except Exception as e:
                     logger.debug(f"Kunne ikke evaluere sak {sak_id}: {e}")
 
         logger.info(f"Fant {len(kandidater)} kandidat-KOE-saker for EO")
         return kandidater
 
-    def finn_eoer_for_koe(self, koe_sak_id: str) -> List[Dict[str, Any]]:
+    def finn_eoer_for_koe(self, koe_sak_id: str) -> list[dict[str, Any]]:
         """
         Finner alle endringsordrer som refererer til en gitt KOE-sak.
 
@@ -692,7 +706,7 @@ class EndringsordreService(BaseSakService):
         # Slow path: Full scan (O(n)) - for JSON backend
         return self._finn_eoer_via_scan(koe_sak_id)
 
-    def _finn_eoer_via_index(self, koe_sak_id: str) -> List[Dict[str, Any]]:
+    def _finn_eoer_via_index(self, koe_sak_id: str) -> list[dict[str, Any]]:
         """
         Find EOer using relation index (O(1) lookup).
 
@@ -723,20 +737,25 @@ class EndringsordreService(BaseSakService):
                         events = [parse_event(e) for e in events_data]
                         state = self.timeline_service.compute_state(events)
 
-                        if state.sakstype == 'endringsordre' and state.endringsordre_data:
-                            eoer.append({
-                                "eo_sak_id": eo_sak_id,
-                                "eo_nummer": state.endringsordre_data.eo_nummer,
-                                "dato_utstedt": state.endringsordre_data.dato_utstedt,
-                                "status": state.endringsordre_data.status,
-                            })
+                        if (
+                            state.sakstype == "endringsordre"
+                            and state.endringsordre_data
+                        ):
+                            eoer.append(
+                                {
+                                    "eo_sak_id": eo_sak_id,
+                                    "eo_nummer": state.endringsordre_data.eo_nummer,
+                                    "dato_utstedt": state.endringsordre_data.dato_utstedt,
+                                    "status": state.endringsordre_data.status,
+                                }
+                            )
                 except Exception as e:
                     logger.debug(f"Could not fetch state for EO {eo_sak_id}: {e}")
 
         logger.info(f"Found {len(eoer)} EOer for KOE {koe_sak_id} (via index)")
         return eoer
 
-    def _finn_eoer_via_scan(self, koe_sak_id: str) -> List[Dict[str, Any]]:
+    def _finn_eoer_via_scan(self, koe_sak_id: str) -> list[dict[str, Any]]:
         """
         Find EOer by scanning all saker (O(n) fallback).
 
@@ -750,8 +769,7 @@ class EndringsordreService(BaseSakService):
 
         # Hent liste over sak-IDer å søke gjennom
         sak_ids_to_search = get_all_sak_ids(
-            catenda_client=self.client,
-            event_repository=self.event_repository
+            catenda_client=self.client, event_repository=self.event_repository
         )
 
         if not sak_ids_to_search:
@@ -762,25 +780,35 @@ class EndringsordreService(BaseSakService):
         for candidate_sak_id in sak_ids_to_search:
             if self.event_repository and self.timeline_service:
                 try:
-                    events_data, _version = self.event_repository.get_events(candidate_sak_id)
+                    events_data, _version = self.event_repository.get_events(
+                        candidate_sak_id
+                    )
                     if events_data:
                         events = [parse_event(e) for e in events_data]
                         state = self.timeline_service.compute_state(events)
 
                         # Sjekk om det er en endringsordresak
-                        if state.sakstype == 'endringsordre' and state.endringsordre_data:
+                        if (
+                            state.sakstype == "endringsordre"
+                            and state.endringsordre_data
+                        ):
                             # Sjekk om denne EO refererer til vår KOE
-                            relaterte = state.endringsordre_data.relaterte_koe_saker or []
+                            relaterte = (
+                                state.endringsordre_data.relaterte_koe_saker or []
+                            )
                             if koe_sak_id in relaterte:
-                                eoer.append({
-                                    "eo_sak_id": candidate_sak_id,
-                                    "eo_nummer": state.endringsordre_data.eo_nummer,
-                                    "dato_utstedt": state.endringsordre_data.dato_utstedt,
-                                    "status": state.endringsordre_data.status,
-                                })
+                                eoer.append(
+                                    {
+                                        "eo_sak_id": candidate_sak_id,
+                                        "eo_nummer": state.endringsordre_data.eo_nummer,
+                                        "dato_utstedt": state.endringsordre_data.dato_utstedt,
+                                        "status": state.endringsordre_data.status,
+                                    }
+                                )
                 except Exception as e:
                     logger.debug(f"Kunne ikke evaluere sak {candidate_sak_id}: {e}")
 
-        logger.info(f"Fant {len(eoer)} EOer som refererer til KOE {koe_sak_id} (via scan)")
+        logger.info(
+            f"Fant {len(eoer)} EOer som refererer til KOE {koe_sak_id} (via scan)"
+        )
         return eoer
-

@@ -4,17 +4,19 @@ Tests for event parsing functions.
 Tests both parse_event and parse_event_from_request, including
 security validation of server-controlled fields.
 """
+
 import pytest
+
 from models.events import (
+    FristEvent,
+    GrunnlagEvent,
+    GrunnlagResponsResultat,
+    ResponsEvent,
+    SakOpprettetEvent,
+    SporType,
+    VederlagEvent,
     parse_event,
     parse_event_from_request,
-    SakOpprettetEvent,
-    GrunnlagEvent,
-    VederlagEvent,
-    FristEvent,
-    ResponsEvent,
-    SporType,
-    GrunnlagResponsResultat
 )
 
 
@@ -31,7 +33,7 @@ class TestParseEvent:
             "aktor": "Test User",
             "aktor_rolle": "TE",
             "sakstittel": "Test Case",
-            "prosjekt_id": "PROJ-001"
+            "prosjekt_id": "PROJ-001",
         }
 
         event = parse_event(data)
@@ -54,8 +56,8 @@ class TestParseEvent:
                 "hovedkategori": "Risiko",
                 "underkategori": "Grunnforhold",
                 "beskrivelse": "Test beskrivelse",
-                "dato_oppdaget": "2025-01-01"
-            }
+                "dato_oppdaget": "2025-01-01",
+            },
         }
 
         event = parse_event(data)
@@ -77,8 +79,8 @@ class TestParseEvent:
             "data": {
                 "belop_direkte": 150000.0,
                 "metode": "FASTPRIS_TILBUD",
-                "begrunnelse": "Test begrunnelse"
-            }
+                "begrunnelse": "Test begrunnelse",
+            },
         }
 
         event = parse_event(data)
@@ -101,8 +103,8 @@ class TestParseEvent:
                 "varsel_type": "spesifisert",
                 "spesifisert_varsel": {"dato_sendt": "2025-01-01", "metode": ["epost"]},
                 "antall_dager": 14,
-                "begrunnelse": "Test begrunnelse"
-            }
+                "begrunnelse": "Test begrunnelse",
+            },
         }
 
         event = parse_event(data)
@@ -121,10 +123,7 @@ class TestParseEvent:
             "aktor": "BH User",
             "aktor_rolle": "BH",
             "spor": "grunnlag",
-            "data": {
-                "resultat": "godkjent",
-                "begrunnelse": "Godkjent av BH"
-            }
+            "data": {"resultat": "godkjent", "begrunnelse": "Godkjent av BH"},
         }
 
         event = parse_event(data)
@@ -135,10 +134,7 @@ class TestParseEvent:
 
     def test_parse_event_missing_event_type(self):
         """Test that parsing fails without event_type."""
-        data = {
-            "sak_id": "TEST-006",
-            "aktor": "Test User"
-        }
+        data = {"sak_id": "TEST-006", "aktor": "Test User"}
 
         with pytest.raises(ValueError, match="Mangler event_type"):
             parse_event(data)
@@ -148,7 +144,7 @@ class TestParseEvent:
         data = {
             "event_type": "unknown_event_type",
             "sak_id": "TEST-007",
-            "aktor": "Test User"
+            "aktor": "Test User",
         }
 
         with pytest.raises(ValueError, match="Ukjent event_type"):
@@ -156,7 +152,11 @@ class TestParseEvent:
 
     def test_parse_all_grunnlag_event_types(self):
         """Test parsing all grunnlag-related event types."""
-        for event_type in ["grunnlag_opprettet", "grunnlag_oppdatert", "grunnlag_trukket"]:
+        for event_type in [
+            "grunnlag_opprettet",
+            "grunnlag_oppdatert",
+            "grunnlag_trukket",
+        ]:
             data = {
                 "event_id": f"test-{event_type}",
                 "sak_id": "TEST-008",
@@ -169,8 +169,8 @@ class TestParseEvent:
                     "hovedkategori": "Test",
                     "underkategori": "Test",
                     "beskrivelse": "Test",
-                    "dato_oppdaget": "2025-01-01"
-                }
+                    "dato_oppdaget": "2025-01-01",
+                },
             }
 
             event = parse_event(data)
@@ -188,7 +188,7 @@ class TestParseEventFromRequest:
             "event_type": "sak_opprettet",
             "aktor": "Test User",
             "aktor_rolle": "TE",
-            "sakstittel": "Test Case"
+            "sakstittel": "Test Case",
         }
 
         event = parse_event_from_request(data)
@@ -206,7 +206,7 @@ class TestParseEventFromRequest:
             "event_type": "sak_opprettet",
             "aktor": "Test User",
             "aktor_rolle": "TE",
-            "sakstittel": "Test Case"
+            "sakstittel": "Test Case",
         }
 
         with pytest.raises(ValueError, match="event_id.*kan ikke sendes av klient"):
@@ -220,7 +220,7 @@ class TestParseEventFromRequest:
             "event_type": "sak_opprettet",
             "aktor": "Test User",
             "aktor_rolle": "TE",
-            "sakstittel": "Test Case"
+            "sakstittel": "Test Case",
         }
 
         with pytest.raises(ValueError, match="tidsstempel.*kan ikke sendes av klient"):
@@ -233,7 +233,7 @@ class TestParseEventFromRequest:
             "event_type": "sak_opprettet",
             "aktor": "Test User",
             "aktor_rolle": "TE",
-            "sakstittel": "Test Case"
+            "sakstittel": "Test Case",
         }
 
         event1 = parse_event_from_request(data.copy())
@@ -253,8 +253,8 @@ class TestParseEventFromRequest:
                 "belop_direkte": 250000.0,
                 "metode": "ENHETSPRISER",
                 "begrunnelse": "Ekstra arbeid",
-                "krever_justert_ep": True
-            }
+                "krever_justert_ep": True,
+            },
         }
 
         event = parse_event_from_request(data)
@@ -279,8 +279,8 @@ class TestParseEventFromRequest:
                 "underkategori": "Test",
                 "beskrivelse": "Test",
                 "dato_oppdaget": "2025-01-01",
-                "kontraktsreferanser": ["NS8407 §25.2"]  # Optional field
-            }
+                "kontraktsreferanser": ["NS8407 §25.2"],  # Optional field
+            },
         }
 
         event = parse_event_from_request(data)
@@ -306,8 +306,8 @@ class TestEventParsingSecurity:
                 "hovedkategori": "Test",
                 "underkategori": "Test",
                 "beskrivelse": "Reference to event_id: xyz",  # OK in text
-                "dato_oppdaget": "2025-01-01"
-            }
+                "dato_oppdaget": "2025-01-01",
+            },
         }
 
         event = parse_event_from_request(data)
@@ -325,8 +325,8 @@ class TestEventParsingSecurity:
             "data": {
                 "krav_belop": -1000.0,  # Invalid! Must be >= 0
                 "metode": "TEST",
-                "begrunnelse": "Test"
-            }
+                "begrunnelse": "Test",
+            },
         }
 
         with pytest.raises(Exception):  # Pydantic validation error

@@ -20,42 +20,41 @@ Usage:
     python scripts/generate_openapi.py --output docs/openapi.yaml
 """
 
-import sys
-import json
 import argparse
+import json
+import sys
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any
 
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import yaml
 
-# Import Pydantic models
-from models.events import (
-    # Enums
-    EventType,
-    VederlagsMetode,
-    FristVarselType,
-    SporStatus,
-    GrunnlagResponsResultat,
-    VederlagBeregningResultat,
-    FristBeregningResultat,
-    SubsidiaerTrigger,
-    # Data models
-    GrunnlagData,
-    VederlagData,
-    FristData,
-    GrunnlagResponsData,
-    VederlagResponsData,
-    FristResponsData,
-)
-
 # Import constants for documentation
 from constants import (
     get_alle_hovedkategorier,
 )
 
+# Import Pydantic models
+from models.events import (
+    # Enums
+    EventType,
+    FristBeregningResultat,
+    FristData,
+    FristResponsData,
+    FristVarselType,
+    # Data models
+    GrunnlagData,
+    GrunnlagResponsData,
+    GrunnlagResponsResultat,
+    SporStatus,
+    SubsidiaerTrigger,
+    VederlagBeregningResultat,
+    VederlagData,
+    VederlagResponsData,
+    VederlagsMetode,
+)
 
 # =============================================================================
 # CONFIGURATION
@@ -75,9 +74,7 @@ All state changes are recorded as immutable events. State is computed by replayi
 Optimistic concurrency control via `expected_version` prevents conflicts.
 """.strip(),
     "version": "1.0.0",
-    "contact": {
-        "name": "KOE Development Team"
-    }
+    "contact": {"name": "KOE Development Team"},
 }
 
 SERVERS = [
@@ -86,9 +83,18 @@ SERVERS = [
 
 TAGS = [
     {"name": "Events", "description": "Event submission and case state management"},
-    {"name": "CloudEvents", "description": "CloudEvents v1.0 support - schemas and format negotiation"},
-    {"name": "Forsering", "description": "Forsering (acceleration) cases per NS 8407 §33.8"},
-    {"name": "Endringsordre", "description": "Endringsordre (change order) cases per NS 8407 §31.3"},
+    {
+        "name": "CloudEvents",
+        "description": "CloudEvents v1.0 support - schemas and format negotiation",
+    },
+    {
+        "name": "Forsering",
+        "description": "Forsering (acceleration) cases per NS 8407 §33.8",
+    },
+    {
+        "name": "Endringsordre",
+        "description": "Endringsordre (change order) cases per NS 8407 §31.3",
+    },
     {"name": "Utility", "description": "Authentication and utility endpoints"},
     {"name": "Webhooks", "description": "Catenda webhook integration"},
 ]
@@ -98,20 +104,21 @@ TAGS = [
 # SCHEMA GENERATION
 # =============================================================================
 
-def pydantic_to_openapi_schema(model_class) -> Dict[str, Any]:
+
+def pydantic_to_openapi_schema(model_class) -> dict[str, Any]:
     """
     Convert Pydantic model to OpenAPI-compatible schema.
 
     Pydantic v2 generates JSON Schema draft 2020-12, but OpenAPI 3.0 uses
     a subset. This function adapts the output.
     """
-    schema = model_class.model_json_schema(mode='serialization')
+    schema = model_class.model_json_schema(mode="serialization")
 
     # Remove JSON Schema specific fields not in OpenAPI 3.0
     def clean_schema(obj):
         if isinstance(obj, dict):
             # Remove unsupported keys
-            keys_to_remove = ['$defs', '$schema']
+            keys_to_remove = ["$defs", "$schema"]
             for key in keys_to_remove:
                 obj.pop(key, None)
 
@@ -125,23 +132,22 @@ def pydantic_to_openapi_schema(model_class) -> Dict[str, Any]:
     return clean_schema(schema)
 
 
-def generate_enum_schema(enum_class, description: str = "") -> Dict[str, Any]:
+def generate_enum_schema(enum_class, description: str = "") -> dict[str, Any]:
     """Generate OpenAPI schema for an Enum."""
     return {
         "type": "string",
         "enum": [e.value for e in enum_class],
-        "description": description
+        "description": description,
     }
 
 
-def generate_schemas() -> Dict[str, Any]:
+def generate_schemas() -> dict[str, Any]:
     """Generate all component schemas from Pydantic models."""
     schemas = {}
 
     # Enums
     schemas["EventType"] = generate_enum_schema(
-        EventType,
-        "Type of event in the system"
+        EventType, "Type of event in the system"
     )
     schemas["VederlagsMetode"] = {
         "type": "string",
@@ -151,7 +157,7 @@ Compensation method (NS 8407):
 - ENHETSPRISER: Unit prices (§34.3)
 - REGNINGSARBEID: Cost-plus with estimate (§30.2/§34.4)
 - FASTPRIS_TILBUD: Fixed price / Tender (§34.2.1)
-""".strip()
+""".strip(),
     }
     schemas["FristVarselType"] = {
         "type": "string",
@@ -161,7 +167,7 @@ Warning type for deadline extension:
 - noytralt: Preliminary warning (§33.4)
 - spesifisert: Specified claim with days (§33.6.1)
 - begge: Both preliminary and specified
-""".strip()
+""".strip(),
     }
 
     # Add hovedkategori with valid values
@@ -174,13 +180,12 @@ Main category for grounds (NS 8407 §33.1):
 - SVIKT: Delay/failure by client (§33.1 b)
 - ANDRE: Other circumstances (§33.1 c)
 - FORCE_MAJEURE: Force majeure (§33.3)
-""".strip()
+""".strip(),
     }
 
     # Response result enums
     schemas["SporStatus"] = generate_enum_schema(
-        SporStatus,
-        "Status for each track (spor) in a case"
+        SporStatus, "Status for each track (spor) in a case"
     )
     schemas["GrunnlagResponsResultat"] = {
         "type": "string",
@@ -191,7 +196,7 @@ BH's assessment of grounds (ansvar):
 - delvis_godkjent: BH partially accepts
 - avslatt: BH rejects responsibility
 - frafalt: BH withdraws instruction (§32.3 c, irregular changes only)
-""".strip()
+""".strip(),
     }
     schemas["VederlagBeregningResultat"] = {
         "type": "string",
@@ -202,7 +207,7 @@ BH's assessment of compensation claim:
 - delvis_godkjent: BH partially accepts (disagreement on amount/method)
 - avslatt: BH rejects the claim
 - hold_tilbake: §30.2 withholding (missing estimate only)
-""".strip()
+""".strip(),
     }
     schemas["FristBeregningResultat"] = {
         "type": "string",
@@ -212,7 +217,7 @@ BH's assessment of deadline extension claim:
 - godkjent: BH accepts the claim
 - delvis_godkjent: BH partially accepts (disagreement on days)
 - avslatt: BH rejects the claim
-""".strip()
+""".strip(),
     }
     schemas["SubsidiaerTrigger"] = {
         "type": "string",
@@ -226,7 +231,7 @@ what the result would be if principal position doesn't hold):
 - preklusjon_*: Various late notice triggers (§34.1.2, §34.1.3, §33.4, §33.6)
 - ingen_hindring: No actual hindrance (§33.5)
 - metode_avslatt: BH rejects proposed method
-""".strip()
+""".strip(),
     }
 
     # Data models from Pydantic
@@ -247,10 +252,10 @@ what the result would be if principal position doesn't hold):
             "field": {"type": "string", "description": "Field that caused the error"},
             "valid_options": {
                 "type": "object",
-                "description": "Valid options when validation fails"
-            }
+                "description": "Valid options when validation fails",
+            },
         },
-        "required": ["success", "error", "message"]
+        "required": ["success", "error", "message"],
     }
 
     schemas["VersionConflictError"] = {
@@ -260,8 +265,8 @@ what the result would be if principal position doesn't hold):
             "error": {"type": "string", "example": "VERSION_CONFLICT"},
             "expected_version": {"type": "integer"},
             "current_version": {"type": "integer"},
-            "message": {"type": "string"}
-        }
+            "message": {"type": "string"},
+        },
     }
 
     schemas["ConcurrencyConflictError"] = {
@@ -270,10 +275,13 @@ what the result would be if principal position doesn't hold):
         "properties": {
             "success": {"type": "boolean", "example": False},
             "error": {"type": "string", "example": "CONCURRENCY_CONFLICT"},
-            "message": {"type": "string", "example": "Versjonskonflikt: forventet 3, fikk 4"},
+            "message": {
+                "type": "string",
+                "example": "Versjonskonflikt: forventet 3, fikk 4",
+            },
             "expected_version": {"type": "integer"},
-            "actual_version": {"type": "integer"}
-        }
+            "actual_version": {"type": "integer"},
+        },
     }
 
     schemas["CatendaSyncStatus"] = {
@@ -282,28 +290,34 @@ what the result would be if principal position doesn't hold):
         "properties": {
             "catenda_synced": {
                 "type": "boolean",
-                "description": "Whether the event was successfully synced to Catenda"
+                "description": "Whether the event was successfully synced to Catenda",
             },
             "catenda_comment_posted": {
                 "type": "boolean",
-                "description": "Whether a comment was posted to the Catenda topic"
+                "description": "Whether a comment was posted to the Catenda topic",
             },
             "catenda_status_updated": {
                 "type": "boolean",
-                "description": "Whether the topic status was updated in Catenda"
+                "description": "Whether the topic status was updated in Catenda",
             },
             "catenda_skipped_reason": {
                 "type": "string",
-                "enum": ["no_topic_id", "not_authenticated", "no_client", "sync_not_attempted", "error"],
+                "enum": [
+                    "no_topic_id",
+                    "not_authenticated",
+                    "no_client",
+                    "sync_not_attempted",
+                    "error",
+                ],
                 "nullable": True,
-                "description": "Reason why sync was skipped (if catenda_synced=false)"
+                "description": "Reason why sync was skipped (if catenda_synced=false)",
             },
             "catenda_error": {
                 "type": "string",
                 "nullable": True,
-                "description": "Error message if sync failed"
-            }
-        }
+                "description": "Error message if sync failed",
+            },
+        },
     }
 
     # Request/Response schemas
@@ -314,29 +328,26 @@ what the result would be if principal position doesn't hold):
             "sak_id": {
                 "type": "string",
                 "example": "SAK-20251218-001",
-                "description": "Case identifier"
+                "description": "Case identifier",
             },
             "expected_version": {
                 "type": "integer",
                 "minimum": 0,
-                "description": "Expected current version (optimistic concurrency)"
+                "description": "Expected current version (optimistic concurrency)",
             },
             "event": {"$ref": "#/components/schemas/Event"},
             "catenda_topic_id": {
                 "type": "string",
                 "format": "uuid",
-                "description": "Optional Catenda topic GUID for PDF upload"
+                "description": "Optional Catenda topic GUID for PDF upload",
             },
             "pdf_base64": {
                 "type": "string",
                 "format": "byte",
-                "description": "Optional client-generated PDF (base64)"
+                "description": "Optional client-generated PDF (base64)",
             },
-            "pdf_filename": {
-                "type": "string",
-                "description": "Optional PDF filename"
-            }
-        }
+            "pdf_filename": {"type": "string", "description": "Optional PDF filename"},
+        },
     }
 
     schemas["Event"] = {
@@ -346,18 +357,18 @@ what the result would be if principal position doesn't hold):
             "event_type": {"$ref": "#/components/schemas/EventType"},
             "aktor": {
                 "type": "string",
-                "description": "Name of person performing the action"
+                "description": "Name of person performing the action",
             },
             "aktor_rolle": {
                 "type": "string",
                 "enum": ["TE", "BH"],
-                "description": "Role: TE=Totalentreprenør, BH=Byggherre"
+                "description": "Role: TE=Totalentreprenør, BH=Byggherre",
             },
             "data": {
                 "type": "object",
-                "description": "Event-specific data (GrunnlagData, VederlagData, etc.)"
-            }
-        }
+                "description": "Event-specific data (GrunnlagData, VederlagData, etc.)",
+            },
+        },
     }
 
     schemas["EventSubmissionResponse"] = {
@@ -368,15 +379,15 @@ what the result would be if principal position doesn't hold):
             "new_version": {"type": "integer"},
             "state": {
                 "type": "object",
-                "description": "Computed case state after event"
+                "description": "Computed case state after event",
             },
             "pdf_uploaded": {"type": "boolean"},
             "pdf_source": {
                 "type": "string",
                 "enum": ["client", "server"],
-                "nullable": True
-            }
-        }
+                "nullable": True,
+            },
+        },
     }
 
     schemas["CaseStateResponse"] = {
@@ -384,13 +395,10 @@ what the result would be if principal position doesn't hold):
         "properties": {
             "version": {
                 "type": "integer",
-                "description": "Current version for optimistic concurrency"
+                "description": "Current version for optimistic concurrency",
             },
-            "state": {
-                "type": "object",
-                "description": "Computed case state"
-            }
-        }
+            "state": {"type": "object", "description": "Computed case state"},
+        },
     }
 
     schemas["CaseListItem"] = {
@@ -399,40 +407,37 @@ what the result would be if principal position doesn't hold):
             "sak_id": {
                 "type": "string",
                 "example": "SAK-20251218-001",
-                "description": "Case identifier"
+                "description": "Case identifier",
             },
             "sakstype": {
                 "type": "string",
                 "enum": ["standard", "forsering", "endringsordre"],
-                "description": "Case type"
+                "description": "Case type",
             },
             "cached_title": {
                 "type": "string",
                 "nullable": True,
-                "description": "Cached case title"
+                "description": "Cached case title",
             },
             "cached_status": {
                 "type": "string",
                 "nullable": True,
-                "description": "Cached overall status"
+                "description": "Cached overall status",
             },
             "created_at": {
                 "type": "string",
                 "format": "date-time",
                 "nullable": True,
-                "description": "Case creation timestamp"
+                "description": "Case creation timestamp",
             },
-            "created_by": {
-                "type": "string",
-                "description": "Email of creator"
-            },
+            "created_by": {"type": "string", "description": "Email of creator"},
             "last_event_at": {
                 "type": "string",
                 "format": "date-time",
                 "nullable": True,
-                "description": "Timestamp of most recent event"
-            }
-        }
+                "description": "Timestamp of most recent event",
+            },
+        },
     }
 
     schemas["CaseListResponse"] = {
@@ -441,9 +446,9 @@ what the result would be if principal position doesn't hold):
             "cases": {
                 "type": "array",
                 "items": {"$ref": "#/components/schemas/CaseListItem"},
-                "description": "List of case metadata"
+                "description": "List of case metadata",
             }
-        }
+        },
     }
 
     # CloudEvents schemas
@@ -455,60 +460,54 @@ what the result would be if principal position doesn't hold):
             "specversion": {
                 "type": "string",
                 "example": "1.0",
-                "description": "CloudEvents specification version"
+                "description": "CloudEvents specification version",
             },
             "id": {
                 "type": "string",
                 "format": "uuid",
-                "description": "Unique event identifier"
+                "description": "Unique event identifier",
             },
             "source": {
                 "type": "string",
                 "example": "/projects/P-2025-001/cases/KOE-2025-042",
-                "description": "Source URI: /projects/{prosjekt_id}/cases/{sak_id}"
+                "description": "Source URI: /projects/{prosjekt_id}/cases/{sak_id}",
             },
             "type": {
                 "type": "string",
                 "example": "no.oslo.koe.grunnlag_opprettet",
-                "description": "Event type with namespace"
+                "description": "Event type with namespace",
             },
             "time": {
                 "type": "string",
                 "format": "date-time",
-                "description": "Event timestamp in RFC 3339 format"
+                "description": "Event timestamp in RFC 3339 format",
             },
-            "subject": {
-                "type": "string",
-                "description": "Subject identifier (sak_id)"
-            },
+            "subject": {"type": "string", "description": "Subject identifier (sak_id)"},
             "datacontenttype": {
                 "type": "string",
                 "example": "application/json",
-                "description": "Content type of data attribute"
+                "description": "Content type of data attribute",
             },
             "dataschema": {
                 "type": "string",
                 "format": "uri",
-                "description": "URI to JSON Schema for data payload"
+                "description": "URI to JSON Schema for data payload",
             },
             "actor": {
                 "type": "string",
-                "description": "Extension: Name of person who performed the action"
+                "description": "Extension: Name of person who performed the action",
             },
             "actorrole": {
                 "type": "string",
                 "enum": ["TE", "BH"],
-                "description": "Extension: Role (TE=Totalentreprenor, BH=Byggherre)"
+                "description": "Extension: Role (TE=Totalentreprenor, BH=Byggherre)",
             },
             "referstoid": {
                 "type": "string",
-                "description": "Extension: Reference to another event ID"
+                "description": "Extension: Reference to another event ID",
             },
-            "data": {
-                "type": "object",
-                "description": "Event-specific data payload"
-            }
-        }
+            "data": {"type": "object", "description": "Event-specific data payload"},
+        },
     }
 
     schemas["CloudEventsTimelineResponse"] = {
@@ -517,14 +516,14 @@ what the result would be if principal position doesn't hold):
         "properties": {
             "version": {
                 "type": "integer",
-                "description": "Current version for optimistic concurrency"
+                "description": "Current version for optimistic concurrency",
             },
             "events": {
                 "type": "array",
                 "items": {"$ref": "#/components/schemas/CloudEvent"},
-                "description": "List of events in CloudEvents format"
-            }
-        }
+                "description": "List of events in CloudEvents format",
+            },
+        },
     }
 
     return schemas
@@ -534,7 +533,8 @@ what the result would be if principal position doesn't hold):
 # PATH DEFINITIONS
 # =============================================================================
 
-def generate_paths() -> Dict[str, Any]:
+
+def generate_paths() -> dict[str, Any]:
     """Generate OpenAPI paths from route definitions."""
     paths = {}
 
@@ -554,13 +554,13 @@ def generate_paths() -> Dict[str, Any]:
                                 "type": "object",
                                 "properties": {
                                     "csrfToken": {"type": "string"},
-                                    "expiresIn": {"type": "integer", "example": 3600}
-                                }
+                                    "expiresIn": {"type": "integer", "example": 3600},
+                                },
                             }
                         }
-                    }
+                    },
                 }
-            }
+            },
         }
     }
 
@@ -574,7 +574,7 @@ def generate_paths() -> Dict[str, Any]:
                     "name": "token",
                     "in": "query",
                     "required": True,
-                    "schema": {"type": "string"}
+                    "schema": {"type": "string"},
                 }
             ],
             "responses": {
@@ -586,11 +586,11 @@ def generate_paths() -> Dict[str, Any]:
                                 "type": "object",
                                 "properties": {
                                     "success": {"type": "boolean"},
-                                    "sakId": {"type": "string"}
-                                }
+                                    "sakId": {"type": "string"},
+                                },
                             }
                         }
-                    }
+                    },
                 },
                 "403": {
                     "description": "Invalid or expired token",
@@ -598,9 +598,9 @@ def generate_paths() -> Dict[str, Any]:
                         "application/json": {
                             "schema": {"$ref": "#/components/schemas/Error"}
                         }
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
     }
 
@@ -618,13 +618,16 @@ def generate_paths() -> Dict[str, Any]:
                                 "type": "object",
                                 "properties": {
                                     "status": {"type": "string", "example": "healthy"},
-                                    "service": {"type": "string", "example": "koe-backend"}
-                                }
+                                    "service": {
+                                        "type": "string",
+                                        "example": "koe-backend",
+                                    },
+                                },
                             }
                         }
-                    }
+                    },
                 }
-            }
+            },
         }
     }
 
@@ -640,7 +643,7 @@ def generate_paths() -> Dict[str, Any]:
                     "in": "path",
                     "required": True,
                     "schema": {"type": "string", "format": "uuid"},
-                    "description": "Catenda topic GUID"
+                    "description": "Catenda topic GUID",
                 }
             ],
             "responses": {
@@ -651,15 +654,31 @@ def generate_paths() -> Dict[str, Any]:
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "sak_id": {"type": "string", "example": "SAK-20251218-001"},
-                                    "catenda_topic_id": {"type": "string", "format": "uuid"},
-                                    "cached_title": {"type": "string", "nullable": True},
-                                    "cached_status": {"type": "string", "nullable": True},
-                                    "created_at": {"type": "string", "format": "date-time", "nullable": True}
-                                }
+                                    "sak_id": {
+                                        "type": "string",
+                                        "example": "SAK-20251218-001",
+                                    },
+                                    "catenda_topic_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                    },
+                                    "cached_title": {
+                                        "type": "string",
+                                        "nullable": True,
+                                    },
+                                    "cached_status": {
+                                        "type": "string",
+                                        "nullable": True,
+                                    },
+                                    "created_at": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "nullable": True,
+                                    },
+                                },
                             }
                         }
-                    }
+                    },
                 },
                 "404": {
                     "description": "No case found for topic",
@@ -668,14 +687,17 @@ def generate_paths() -> Dict[str, Any]:
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "error": {"type": "string", "example": "No case found for topic"},
-                                    "topic_id": {"type": "string"}
-                                }
+                                    "error": {
+                                        "type": "string",
+                                        "example": "No case found for topic",
+                                    },
+                                    "topic_id": {"type": "string"},
+                                },
                             }
                         }
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
     }
 
@@ -694,12 +716,19 @@ def generate_paths() -> Dict[str, Any]:
                             "type": "object",
                             "required": ["email", "sakId"],
                             "properties": {
-                                "email": {"type": "string", "format": "email", "description": "User email to validate"},
-                                "sakId": {"type": "string", "description": "Case ID to check project membership against"}
-                            }
+                                "email": {
+                                    "type": "string",
+                                    "format": "email",
+                                    "description": "User email to validate",
+                                },
+                                "sakId": {
+                                    "type": "string",
+                                    "description": "Case ID to check project membership against",
+                                },
+                            },
                         }
                     }
-                }
+                },
             },
             "responses": {
                 "200": {
@@ -710,13 +739,19 @@ def generate_paths() -> Dict[str, Any]:
                                 "type": "object",
                                 "properties": {
                                     "success": {"type": "boolean", "example": True},
-                                    "name": {"type": "string", "description": "User's full name"},
+                                    "name": {
+                                        "type": "string",
+                                        "description": "User's full name",
+                                    },
                                     "email": {"type": "string", "format": "email"},
-                                    "company": {"type": "string", "description": "User's company"}
-                                }
+                                    "company": {
+                                        "type": "string",
+                                        "description": "User's company",
+                                    },
+                                },
                             }
                         }
-                    }
+                    },
                 },
                 "400": {
                     "description": "Missing required parameters",
@@ -724,7 +759,7 @@ def generate_paths() -> Dict[str, Any]:
                         "application/json": {
                             "schema": {"$ref": "#/components/schemas/Error"}
                         }
-                    }
+                    },
                 },
                 "404": {
                     "description": "User not found in project or case not found",
@@ -734,13 +769,16 @@ def generate_paths() -> Dict[str, Any]:
                                 "type": "object",
                                 "properties": {
                                     "success": {"type": "boolean", "example": False},
-                                    "error": {"type": "string", "example": "Brukeren er ikke medlem i dette Catenda-prosjektet."}
-                                }
+                                    "error": {
+                                        "type": "string",
+                                        "example": "Brukeren er ikke medlem i dette Catenda-prosjektet.",
+                                    },
+                                },
                             }
                         }
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
     }
 
@@ -778,10 +816,10 @@ Submit a single event to a case with optimistic concurrency control.
                                             "hovedkategori": "ENDRING",
                                             "underkategori": "IRREG",
                                             "beskrivelse": "Mottok pålegg om endring",
-                                            "dato_oppdaget": "2025-12-18"
-                                        }
-                                    }
-                                }
+                                            "dato_oppdaget": "2025-12-18",
+                                        },
+                                    },
+                                },
                             },
                             "vederlag": {
                                 "summary": "Submit vederlag",
@@ -795,23 +833,25 @@ Submit a single event to a case with optimistic concurrency control.
                                         "data": {
                                             "metode": "ENHETSPRISER",
                                             "belop_direkte": 150000.0,
-                                            "begrunnelse": "Tillegg for endring"
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                                            "begrunnelse": "Tillegg for endring",
+                                        },
+                                    },
+                                },
+                            },
+                        },
                     }
-                }
+                },
             },
             "responses": {
                 "201": {
                     "description": "Event submitted successfully",
                     "content": {
                         "application/json": {
-                            "schema": {"$ref": "#/components/schemas/EventSubmissionResponse"}
+                            "schema": {
+                                "$ref": "#/components/schemas/EventSubmissionResponse"
+                            }
                         }
-                    }
+                    },
                 },
                 "400": {
                     "description": "Validation error or business rule violation",
@@ -828,9 +868,17 @@ Submit a single event to a case with optimistic concurrency control.
                                         "field": "underkategori",
                                         "valid_options": {
                                             "hovedkategori": "ENDRING",
-                                            "underkategorier": ["EO", "IRREG", "SVAR_VARSEL", "LOV_GJENSTAND", "LOV_PROSESS", "GEBYR", "SAMORD"]
-                                        }
-                                    }
+                                            "underkategorier": [
+                                                "EO",
+                                                "IRREG",
+                                                "SVAR_VARSEL",
+                                                "LOV_GJENSTAND",
+                                                "LOV_PROSESS",
+                                                "GEBYR",
+                                                "SAMORD",
+                                            ],
+                                        },
+                                    },
                                 },
                                 "business_rule": {
                                     "summary": "Business rule violation",
@@ -838,12 +886,12 @@ Submit a single event to a case with optimistic concurrency control.
                                         "success": False,
                                         "error": "BUSINESS_RULE_VIOLATION",
                                         "rule": "GRUNNLAG_REQUIRED",
-                                        "message": "Grunnlag må være sendt før du kan sende krav"
-                                    }
-                                }
-                            }
+                                        "message": "Grunnlag må være sendt før du kan sende krav",
+                                    },
+                                },
+                            },
                         }
-                    }
+                    },
                 },
                 "401": {
                     "description": "Missing or invalid authentication",
@@ -851,17 +899,19 @@ Submit a single event to a case with optimistic concurrency control.
                         "application/json": {
                             "schema": {"$ref": "#/components/schemas/Error"}
                         }
-                    }
+                    },
                 },
                 "409": {
                     "description": "Version conflict",
                     "content": {
                         "application/json": {
-                            "schema": {"$ref": "#/components/schemas/VersionConflictError"}
+                            "schema": {
+                                "$ref": "#/components/schemas/VersionConflictError"
+                            }
                         }
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
     }
 
@@ -884,18 +934,18 @@ Submit a single event to a case with optimistic concurrency control.
                                 "expected_version": {"type": "integer"},
                                 "events": {
                                     "type": "array",
-                                    "items": {"$ref": "#/components/schemas/Event"}
-                                }
-                            }
+                                    "items": {"$ref": "#/components/schemas/Event"},
+                                },
+                            },
                         }
                     }
-                }
+                },
             },
             "responses": {
                 "201": {"description": "All events submitted"},
                 "400": {"description": "Validation error"},
-                "409": {"description": "Version conflict"}
-            }
+                "409": {"description": "Version conflict"},
+            },
         }
     }
 
@@ -919,9 +969,9 @@ Results are sorted by last_event_at descending (most recent first).
                     "required": False,
                     "schema": {
                         "type": "string",
-                        "enum": ["standard", "forsering", "endringsordre"]
+                        "enum": ["standard", "forsering", "endringsordre"],
                     },
-                    "description": "Filter by case type"
+                    "description": "Filter by case type",
                 }
             ],
             "responses": {
@@ -931,9 +981,9 @@ Results are sorted by last_event_at descending (most recent first).
                         "application/json": {
                             "schema": {"$ref": "#/components/schemas/CaseListResponse"}
                         }
-                    }
+                    },
                 }
-            }
+            },
         }
     }
 
@@ -951,7 +1001,7 @@ Results are sorted by last_event_at descending (most recent first).
                     "in": "path",
                     "required": True,
                     "schema": {"type": "string"},
-                    "example": "SAK-20251218-001"
+                    "example": "SAK-20251218-001",
                 }
             ],
             "responses": {
@@ -961,10 +1011,10 @@ Results are sorted by last_event_at descending (most recent first).
                         "application/json": {
                             "schema": {"$ref": "#/components/schemas/CaseStateResponse"}
                         }
-                    }
+                    },
                 },
-                "404": {"description": "Case not found"}
-            }
+                "404": {"description": "Case not found"},
+            },
         }
     }
 
@@ -980,13 +1030,13 @@ Results are sorted by last_event_at descending (most recent first).
                     "name": "sak_id",
                     "in": "path",
                     "required": True,
-                    "schema": {"type": "string"}
+                    "schema": {"type": "string"},
                 }
             ],
             "responses": {
                 "200": {"description": "Event timeline"},
-                "404": {"description": "Case not found"}
-            }
+                "404": {"description": "Case not found"},
+            },
         }
     }
 
@@ -1002,13 +1052,13 @@ Results are sorted by last_event_at descending (most recent first).
                     "name": "sak_id",
                     "in": "path",
                     "required": True,
-                    "schema": {"type": "string"}
+                    "schema": {"type": "string"},
                 }
             ],
             "responses": {
                 "200": {"description": "Revision history"},
-                "404": {"description": "Case not found"}
-            }
+                "404": {"description": "Case not found"},
+            },
         }
     }
 
@@ -1029,20 +1079,16 @@ Receives webhook events from Catenda.
                     "in": "path",
                     "required": True,
                     "schema": {"type": "string"},
-                    "description": "Secret path for webhook authentication"
+                    "description": "Secret path for webhook authentication",
                 }
             ],
             "requestBody": {
-                "content": {
-                    "application/json": {
-                        "schema": {"type": "object"}
-                    }
-                }
+                "content": {"application/json": {"schema": {"type": "object"}}}
             },
             "responses": {
                 "200": {"description": "Webhook processed"},
-                "401": {"description": "Invalid secret path"}
-            }
+                "401": {"description": "Invalid secret path"},
+            },
         }
     }
 
@@ -1069,26 +1115,45 @@ the liquidated damages that would have accrued.
                     "application/json": {
                         "schema": {
                             "type": "object",
-                            "required": ["avslatte_sak_ids", "estimert_kostnad", "dagmulktsats", "begrunnelse"],
+                            "required": [
+                                "avslatte_sak_ids",
+                                "estimert_kostnad",
+                                "dagmulktsats",
+                                "begrunnelse",
+                            ],
                             "properties": {
                                 "avslatte_sak_ids": {
                                     "type": "array",
                                     "items": {"type": "string"},
-                                    "description": "IDs of rejected deadline extension cases"
+                                    "description": "IDs of rejected deadline extension cases",
                                 },
-                                "estimert_kostnad": {"type": "number", "description": "Estimated acceleration cost"},
-                                "dagmulktsats": {"type": "number", "description": "Liquidated damages rate per day"},
-                                "begrunnelse": {"type": "string", "description": "Justification"},
-                                "avslatte_dager": {"type": "integer", "description": "Total rejected days (auto-calculated if omitted)"}
-                            }
+                                "estimert_kostnad": {
+                                    "type": "number",
+                                    "description": "Estimated acceleration cost",
+                                },
+                                "dagmulktsats": {
+                                    "type": "number",
+                                    "description": "Liquidated damages rate per day",
+                                },
+                                "begrunnelse": {
+                                    "type": "string",
+                                    "description": "Justification",
+                                },
+                                "avslatte_dager": {
+                                    "type": "integer",
+                                    "description": "Total rejected days (auto-calculated if omitted)",
+                                },
+                            },
                         }
                     }
-                }
+                },
             },
             "responses": {
                 "201": {"description": "Forsering case created"},
-                "400": {"description": "Validation error (e.g., cost exceeds 30% limit)"}
-            }
+                "400": {
+                    "description": "Validation error (e.g., cost exceeds 30% limit)"
+                },
+            },
         }
     }
 
@@ -1123,16 +1188,16 @@ A KOE is a candidate if:
                                                 "sak_id": {"type": "string"},
                                                 "tittel": {"type": "string"},
                                                 "avslatte_dager": {"type": "integer"},
-                                                "catenda_topic_id": {"type": "string"}
-                                            }
-                                        }
-                                    }
-                                }
+                                                "catenda_topic_id": {"type": "string"},
+                                            },
+                                        },
+                                    },
+                                },
                             }
                         }
-                    }
+                    },
                 }
-            }
+            },
         }
     }
 
@@ -1144,11 +1209,16 @@ A KOE is a candidate if:
             "operationId": "getForseringKontekst",
             "security": [{"magicLink": []}],
             "parameters": [
-                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                {
+                    "name": "sak_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                }
             ],
             "responses": {
                 "200": {"description": "Forsering context with related cases"}
-            }
+            },
         }
     }
 
@@ -1165,15 +1235,19 @@ A KOE is a candidate if:
                     "application/json": {
                         "schema": {
                             "type": "object",
-                            "required": ["estimert_kostnad", "avslatte_dager", "dagmulktsats"],
+                            "required": [
+                                "estimert_kostnad",
+                                "avslatte_dager",
+                                "dagmulktsats",
+                            ],
                             "properties": {
                                 "estimert_kostnad": {"type": "number"},
                                 "avslatte_dager": {"type": "integer"},
-                                "dagmulktsats": {"type": "number"}
-                            }
+                                "dagmulktsats": {"type": "number"},
+                            },
                         }
                     }
-                }
+                },
             },
             "responses": {
                 "200": {
@@ -1186,13 +1260,13 @@ A KOE is a candidate if:
                                     "success": {"type": "boolean"},
                                     "er_gyldig": {"type": "boolean"},
                                     "maks_kostnad": {"type": "number"},
-                                    "prosent_av_maks": {"type": "number"}
-                                }
+                                    "prosent_av_maks": {"type": "number"},
+                                },
                             }
                         }
-                    }
+                    },
                 }
-            }
+            },
         }
     }
 
@@ -1204,7 +1278,12 @@ A KOE is a candidate if:
             "operationId": "getForseringRelaterte",
             "security": [{"magicLink": []}],
             "parameters": [
-                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                {
+                    "name": "sak_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                }
             ],
             "responses": {
                 "200": {
@@ -1222,18 +1301,24 @@ A KOE is a candidate if:
                                             "type": "object",
                                             "properties": {
                                                 "relatert_sak_id": {"type": "string"},
-                                                "relatert_sak_tittel": {"type": "string"},
-                                                "bimsync_issue_board_ref": {"type": "string"},
-                                                "bimsync_issue_number": {"type": "integer"}
-                                            }
-                                        }
-                                    }
-                                }
+                                                "relatert_sak_tittel": {
+                                                    "type": "string"
+                                                },
+                                                "bimsync_issue_board_ref": {
+                                                    "type": "string"
+                                                },
+                                                "bimsync_issue_number": {
+                                                    "type": "integer"
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
                             }
                         }
-                    }
+                    },
                 }
-            }
+            },
         }
     }
 
@@ -1245,7 +1330,12 @@ A KOE is a candidate if:
             "operationId": "addForseringRelatert",
             "security": [{"csrfToken": []}, {"magicLink": []}],
             "parameters": [
-                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                {
+                    "name": "sak_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                }
             ],
             "requestBody": {
                 "required": True,
@@ -1255,15 +1345,16 @@ A KOE is a candidate if:
                             "type": "object",
                             "required": ["koe_sak_id"],
                             "properties": {
-                                "koe_sak_id": {"type": "string", "description": "ID of KOE case to add"}
-                            }
+                                "koe_sak_id": {
+                                    "type": "string",
+                                    "description": "ID of KOE case to add",
+                                }
+                            },
                         }
                     }
-                }
+                },
             },
-            "responses": {
-                "200": {"description": "KOE added to forsering"}
-            }
+            "responses": {"200": {"description": "KOE added to forsering"}},
         }
     }
 
@@ -1274,12 +1365,20 @@ A KOE is a candidate if:
             "operationId": "removeForseringRelatert",
             "security": [{"csrfToken": []}, {"magicLink": []}],
             "parameters": [
-                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}},
-                {"name": "koe_sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                {
+                    "name": "sak_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                },
+                {
+                    "name": "koe_sak_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                },
             ],
-            "responses": {
-                "200": {"description": "KOE removed from forsering"}
-            }
+            "responses": {"200": {"description": "KOE removed from forsering"}},
         }
     }
 
@@ -1291,7 +1390,12 @@ A KOE is a candidate if:
             "operationId": "bhResponsForsering",
             "security": [{"csrfToken": []}, {"magicLink": []}],
             "parameters": [
-                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                {
+                    "name": "sak_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                }
             ],
             "requestBody": {
                 "required": True,
@@ -1301,14 +1405,26 @@ A KOE is a candidate if:
                             "type": "object",
                             "required": ["aksepterer", "begrunnelse"],
                             "properties": {
-                                "aksepterer": {"type": "boolean", "description": "Whether BH accepts the forsering"},
-                                "godkjent_kostnad": {"type": "number", "description": "Approved cost (may be lower than estimated)"},
-                                "begrunnelse": {"type": "string", "description": "Justification for decision"},
-                                "expected_version": {"type": "integer", "description": "Expected version for optimistic concurrency"}
-                            }
+                                "aksepterer": {
+                                    "type": "boolean",
+                                    "description": "Whether BH accepts the forsering",
+                                },
+                                "godkjent_kostnad": {
+                                    "type": "number",
+                                    "description": "Approved cost (may be lower than estimated)",
+                                },
+                                "begrunnelse": {
+                                    "type": "string",
+                                    "description": "Justification for decision",
+                                },
+                                "expected_version": {
+                                    "type": "integer",
+                                    "description": "Expected version for optimistic concurrency",
+                                },
+                            },
                         }
                     }
-                }
+                },
             },
             "responses": {
                 "200": {
@@ -1323,24 +1439,26 @@ A KOE is a candidate if:
                                             "success": {"type": "boolean"},
                                             "message": {"type": "string"},
                                             "state": {"type": "object"},
-                                            "version": {"type": "integer"}
-                                        }
+                                            "version": {"type": "integer"},
+                                        },
                                     },
-                                    {"$ref": "#/components/schemas/CatendaSyncStatus"}
+                                    {"$ref": "#/components/schemas/CatendaSyncStatus"},
                                 ]
                             }
                         }
-                    }
+                    },
                 },
                 "409": {
                     "description": "Concurrency conflict - version mismatch",
                     "content": {
                         "application/json": {
-                            "schema": {"$ref": "#/components/schemas/ConcurrencyConflictError"}
+                            "schema": {
+                                "$ref": "#/components/schemas/ConcurrencyConflictError"
+                            }
                         }
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
     }
 
@@ -1352,7 +1470,12 @@ A KOE is a candidate if:
             "operationId": "stoppForsering",
             "security": [{"csrfToken": []}, {"magicLink": []}],
             "parameters": [
-                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                {
+                    "name": "sak_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                }
             ],
             "requestBody": {
                 "required": True,
@@ -1362,13 +1485,22 @@ A KOE is a candidate if:
                             "type": "object",
                             "required": ["begrunnelse"],
                             "properties": {
-                                "begrunnelse": {"type": "string", "description": "Reason for stopping"},
-                                "paalopte_kostnader": {"type": "number", "description": "Incurred costs at time of stop"},
-                                "expected_version": {"type": "integer", "description": "Expected version for optimistic concurrency"}
-                            }
+                                "begrunnelse": {
+                                    "type": "string",
+                                    "description": "Reason for stopping",
+                                },
+                                "paalopte_kostnader": {
+                                    "type": "number",
+                                    "description": "Incurred costs at time of stop",
+                                },
+                                "expected_version": {
+                                    "type": "integer",
+                                    "description": "Expected version for optimistic concurrency",
+                                },
+                            },
                         }
                     }
-                }
+                },
             },
             "responses": {
                 "200": {
@@ -1382,26 +1514,31 @@ A KOE is a candidate if:
                                         "properties": {
                                             "success": {"type": "boolean"},
                                             "message": {"type": "string"},
-                                            "dato_stoppet": {"type": "string", "format": "date"},
+                                            "dato_stoppet": {
+                                                "type": "string",
+                                                "format": "date",
+                                            },
                                             "state": {"type": "object"},
-                                            "version": {"type": "integer"}
-                                        }
+                                            "version": {"type": "integer"},
+                                        },
                                     },
-                                    {"$ref": "#/components/schemas/CatendaSyncStatus"}
+                                    {"$ref": "#/components/schemas/CatendaSyncStatus"},
                                 ]
                             }
                         }
-                    }
+                    },
                 },
                 "409": {
                     "description": "Concurrency conflict - version mismatch",
                     "content": {
                         "application/json": {
-                            "schema": {"$ref": "#/components/schemas/ConcurrencyConflictError"}
+                            "schema": {
+                                "$ref": "#/components/schemas/ConcurrencyConflictError"
+                            }
                         }
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
     }
 
@@ -1413,7 +1550,12 @@ A KOE is a candidate if:
             "operationId": "oppdaterForseringKostnader",
             "security": [{"csrfToken": []}, {"magicLink": []}],
             "parameters": [
-                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                {
+                    "name": "sak_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                }
             ],
             "requestBody": {
                 "required": True,
@@ -1423,13 +1565,22 @@ A KOE is a candidate if:
                             "type": "object",
                             "required": ["paalopte_kostnader"],
                             "properties": {
-                                "paalopte_kostnader": {"type": "number", "description": "Current incurred costs"},
-                                "kommentar": {"type": "string", "description": "Optional comment on update"},
-                                "expected_version": {"type": "integer", "description": "Expected version for optimistic concurrency"}
-                            }
+                                "paalopte_kostnader": {
+                                    "type": "number",
+                                    "description": "Current incurred costs",
+                                },
+                                "kommentar": {
+                                    "type": "string",
+                                    "description": "Optional comment on update",
+                                },
+                                "expected_version": {
+                                    "type": "integer",
+                                    "description": "Expected version for optimistic concurrency",
+                                },
+                            },
                         }
                     }
-                }
+                },
             },
             "responses": {
                 "200": {
@@ -1444,24 +1595,26 @@ A KOE is a candidate if:
                                             "success": {"type": "boolean"},
                                             "message": {"type": "string"},
                                             "state": {"type": "object"},
-                                            "version": {"type": "integer"}
-                                        }
+                                            "version": {"type": "integer"},
+                                        },
                                     },
-                                    {"$ref": "#/components/schemas/CatendaSyncStatus"}
+                                    {"$ref": "#/components/schemas/CatendaSyncStatus"},
                                 ]
                             }
                         }
-                    }
+                    },
                 },
                 "409": {
                     "description": "Concurrency conflict - version mismatch",
                     "content": {
                         "application/json": {
-                            "schema": {"$ref": "#/components/schemas/ConcurrencyConflictError"}
+                            "schema": {
+                                "$ref": "#/components/schemas/ConcurrencyConflictError"
+                            }
                         }
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
     }
 
@@ -1473,7 +1626,13 @@ A KOE is a candidate if:
             "operationId": "findForseringerForSak",
             "security": [{"magicLink": []}],
             "parameters": [
-                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}, "description": "KOE case ID to search for"}
+                {
+                    "name": "sak_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                    "description": "KOE case ID to search for",
+                }
             ],
             "responses": {
                 "200": {
@@ -1492,16 +1651,16 @@ A KOE is a candidate if:
                                                 "forsering_sak_id": {"type": "string"},
                                                 "tittel": {"type": "string"},
                                                 "status": {"type": "string"},
-                                                "estimert_kostnad": {"type": "number"}
-                                            }
-                                        }
-                                    }
-                                }
+                                                "estimert_kostnad": {"type": "number"},
+                                            },
+                                        },
+                                    },
+                                },
                             }
                         }
-                    }
+                    },
                 }
-            }
+            },
         }
     }
 
@@ -1531,7 +1690,10 @@ a contract change. It can aggregate multiple KOE cases.
                             "properties": {
                                 "eo_nummer": {"type": "string", "example": "EO-001"},
                                 "beskrivelse": {"type": "string"},
-                                "koe_sak_ids": {"type": "array", "items": {"type": "string"}},
+                                "koe_sak_ids": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                },
                                 "konsekvenser": {
                                     "type": "object",
                                     "properties": {
@@ -1539,20 +1701,20 @@ a contract change. It can aggregate multiple KOE cases.
                                         "kvalitet": {"type": "boolean"},
                                         "fremdrift": {"type": "boolean"},
                                         "pris": {"type": "boolean"},
-                                        "annet": {"type": "boolean"}
-                                    }
+                                        "annet": {"type": "boolean"},
+                                    },
                                 },
                                 "kompensasjon_belop": {"type": "number"},
-                                "frist_dager": {"type": "integer"}
-                            }
+                                "frist_dager": {"type": "integer"},
+                            },
                         }
                     }
-                }
+                },
             },
             "responses": {
                 "201": {"description": "Endringsordre created"},
-                "400": {"description": "Validation error"}
-            }
+                "400": {"description": "Validation error"},
+            },
         }
     }
 
@@ -1584,16 +1746,16 @@ Get KOE cases that can be added to an endringsordre.
                                                 "tittel": {"type": "string"},
                                                 "overordnet_status": {"type": "string"},
                                                 "sum_godkjent": {"type": "number"},
-                                                "godkjent_dager": {"type": "integer"}
-                                            }
-                                        }
-                                    }
-                                }
+                                                "godkjent_dager": {"type": "integer"},
+                                            },
+                                        },
+                                    },
+                                },
                             }
                         }
-                    }
+                    },
                 }
-            }
+            },
         }
     }
 
@@ -1605,11 +1767,16 @@ Get KOE cases that can be added to an endringsordre.
             "operationId": "getEOKontekst",
             "security": [{"magicLink": []}],
             "parameters": [
-                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                {
+                    "name": "sak_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                }
             ],
             "responses": {
                 "200": {"description": "Endringsordre context with related cases"}
-            }
+            },
         }
     }
 
@@ -1620,7 +1787,12 @@ Get KOE cases that can be added to an endringsordre.
             "operationId": "addKOEToEO",
             "security": [{"csrfToken": []}, {"magicLink": []}],
             "parameters": [
-                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                {
+                    "name": "sak_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                }
             ],
             "requestBody": {
                 "required": True,
@@ -1629,16 +1801,12 @@ Get KOE cases that can be added to an endringsordre.
                         "schema": {
                             "type": "object",
                             "required": ["koe_sak_id"],
-                            "properties": {
-                                "koe_sak_id": {"type": "string"}
-                            }
+                            "properties": {"koe_sak_id": {"type": "string"}},
                         }
                     }
-                }
+                },
             },
-            "responses": {
-                "200": {"description": "KOE added successfully"}
-            }
+            "responses": {"200": {"description": "KOE added successfully"}},
         }
     }
 
@@ -1649,12 +1817,20 @@ Get KOE cases that can be added to an endringsordre.
             "operationId": "removeKOEFromEO",
             "security": [{"csrfToken": []}, {"magicLink": []}],
             "parameters": [
-                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}},
-                {"name": "koe_sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                {
+                    "name": "sak_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                },
+                {
+                    "name": "koe_sak_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                },
             ],
-            "responses": {
-                "200": {"description": "KOE removed successfully"}
-            }
+            "responses": {"200": {"description": "KOE removed successfully"}},
         }
     }
 
@@ -1666,7 +1842,12 @@ Get KOE cases that can be added to an endringsordre.
             "operationId": "getEORelaterte",
             "security": [{"magicLink": []}],
             "parameters": [
-                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                {
+                    "name": "sak_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                }
             ],
             "responses": {
                 "200": {
@@ -1684,18 +1865,24 @@ Get KOE cases that can be added to an endringsordre.
                                             "type": "object",
                                             "properties": {
                                                 "relatert_sak_id": {"type": "string"},
-                                                "relatert_sak_tittel": {"type": "string"},
-                                                "bimsync_issue_board_ref": {"type": "string"},
-                                                "bimsync_issue_number": {"type": "integer"}
-                                            }
-                                        }
-                                    }
-                                }
+                                                "relatert_sak_tittel": {
+                                                    "type": "string"
+                                                },
+                                                "bimsync_issue_board_ref": {
+                                                    "type": "string"
+                                                },
+                                                "bimsync_issue_number": {
+                                                    "type": "integer"
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
                             }
                         }
-                    }
+                    },
                 }
-            }
+            },
         }
     }
 
@@ -1707,7 +1894,13 @@ Get KOE cases that can be added to an endringsordre.
             "operationId": "findEOerForKOE",
             "security": [{"magicLink": []}],
             "parameters": [
-                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}, "description": "KOE case ID to search for"}
+                {
+                    "name": "sak_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                    "description": "KOE case ID to search for",
+                }
             ],
             "responses": {
                 "200": {
@@ -1725,17 +1918,20 @@ Get KOE cases that can be added to an endringsordre.
                                             "properties": {
                                                 "eo_sak_id": {"type": "string"},
                                                 "eo_nummer": {"type": "string"},
-                                                "dato_utstedt": {"type": "string", "format": "date"},
-                                                "status": {"type": "string"}
-                                            }
-                                        }
-                                    }
-                                }
+                                                "dato_utstedt": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                },
+                                                "status": {"type": "string"},
+                                            },
+                                        },
+                                    },
+                                },
                             }
                         }
-                    }
+                    },
                 }
-            }
+            },
         }
     }
 
@@ -1765,12 +1961,9 @@ their data schemas for validation.
                                 "properties": {
                                     "namespace": {
                                         "type": "string",
-                                        "example": "no.oslo.koe"
+                                        "example": "no.oslo.koe",
                                     },
-                                    "specversion": {
-                                        "type": "string",
-                                        "example": "1.0"
-                                    },
+                                    "specversion": {"type": "string", "example": "1.0"},
                                     "event_types": {
                                         "type": "array",
                                         "items": {
@@ -1779,16 +1972,16 @@ their data schemas for validation.
                                                 "event_type": {"type": "string"},
                                                 "cloudevents_type": {"type": "string"},
                                                 "schema_url": {"type": "string"},
-                                                "has_data_schema": {"type": "boolean"}
-                                            }
-                                        }
-                                    }
-                                }
+                                                "has_data_schema": {"type": "boolean"},
+                                            },
+                                        },
+                                    },
+                                },
                             }
                         }
-                    }
+                    },
                 }
-            }
+            },
         }
     }
 
@@ -1807,7 +2000,7 @@ of the specified type. Use with CloudEvents `dataschema` attribute.
                     "in": "path",
                     "required": True,
                     "schema": {"type": "string"},
-                    "example": "grunnlag_opprettet"
+                    "example": "grunnlag_opprettet",
                 }
             ],
             "responses": {
@@ -1817,10 +2010,10 @@ of the specified type. Use with CloudEvents `dataschema` attribute.
                         "application/schema+json": {
                             "schema": {
                                 "type": "object",
-                                "description": "JSON Schema (draft-07)"
+                                "description": "JSON Schema (draft-07)",
                             }
                         }
-                    }
+                    },
                 },
                 "404": {
                     "description": "Unknown event type or no schema available",
@@ -1828,9 +2021,9 @@ of the specified type. Use with CloudEvents `dataschema` attribute.
                         "application/json": {
                             "schema": {"$ref": "#/components/schemas/Error"}
                         }
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
     }
 
@@ -1850,23 +2043,19 @@ including all standard and extension attributes used by this API.
                     "schema": {
                         "type": "string",
                         "enum": ["jsonschema", "openapi"],
-                        "default": "jsonschema"
+                        "default": "jsonschema",
                     },
-                    "description": "Output format"
+                    "description": "Output format",
                 }
             ],
             "responses": {
                 "200": {
                     "description": "CloudEvents envelope schema",
                     "content": {
-                        "application/schema+json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
+                        "application/schema+json": {"schema": {"type": "object"}}
+                    },
                 }
-            }
+            },
         }
     }
 
@@ -1889,14 +2078,14 @@ including all standard and extension attributes used by this API.
                                     "envelope": {"type": "object"},
                                     "data_schemas": {
                                         "type": "object",
-                                        "additionalProperties": {"type": "object"}
-                                    }
-                                }
+                                        "additionalProperties": {"type": "object"},
+                                    },
+                                },
                             }
                         }
-                    }
+                    },
                 }
-            }
+            },
         }
     }
 
@@ -1907,7 +2096,8 @@ including all standard and extension attributes used by this API.
 # MAIN GENERATOR
 # =============================================================================
 
-def generate_openapi_spec() -> Dict[str, Any]:
+
+def generate_openapi_spec() -> dict[str, Any]:
     """Generate complete OpenAPI specification."""
     spec = {
         "openapi": "3.0.3",
@@ -1917,18 +2107,11 @@ def generate_openapi_spec() -> Dict[str, Any]:
         "paths": generate_paths(),
         "components": {
             "securitySchemes": {
-                "csrfToken": {
-                    "type": "apiKey",
-                    "in": "header",
-                    "name": "X-CSRF-Token"
-                },
-                "magicLink": {
-                    "type": "http",
-                    "scheme": "bearer"
-                }
+                "csrfToken": {"type": "apiKey", "in": "header", "name": "X-CSRF-Token"},
+                "magicLink": {"type": "http", "scheme": "bearer"},
             },
-            "schemas": generate_schemas()
-        }
+            "schemas": generate_schemas(),
+        },
     }
 
     return spec
@@ -1939,20 +2122,20 @@ def main():
         description="Generate OpenAPI specification from Pydantic models"
     )
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         default="docs/openapi.yaml",
-        help="Output file path (default: docs/openapi.yaml)"
+        help="Output file path (default: docs/openapi.yaml)",
     )
     parser.add_argument(
-        "--format", "-f",
+        "--format",
+        "-f",
         choices=["yaml", "json"],
         default="yaml",
-        help="Output format (default: yaml)"
+        help="Output format (default: yaml)",
     )
     parser.add_argument(
-        "--stdout",
-        action="store_true",
-        help="Print to stdout instead of file"
+        "--stdout", action="store_true", help="Print to stdout instead of file"
     )
 
     args = parser.parse_args()
@@ -1965,7 +2148,9 @@ def main():
     if args.format == "json":
         output = json.dumps(spec, indent=2, ensure_ascii=False)
     else:
-        output = yaml.dump(spec, allow_unicode=True, sort_keys=False, default_flow_style=False)
+        output = yaml.dump(
+            spec, allow_unicode=True, sort_keys=False, default_flow_style=False
+        )
 
     # Write output
     if args.stdout:

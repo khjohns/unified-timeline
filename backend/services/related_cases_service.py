@@ -7,11 +7,12 @@ state og hendelser fra relaterte saker.
 Container-saker (forsering, endringsordre) samler flere KOE-saker
 og trenger å vise kontekst fra disse.
 """
-from typing import Dict, List, Optional, Any, Tuple
 
-from utils.logger import get_logger
-from models.sak_state import SakState
+from typing import Any
+
 from models.events import AnyEvent, parse_event
+from models.sak_state import SakState
+from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -25,9 +26,7 @@ class RelatedCasesService:
     """
 
     def __init__(
-        self,
-        event_repository: Optional[Any] = None,
-        timeline_service: Optional[Any] = None
+        self, event_repository: Any | None = None, timeline_service: Any | None = None
     ):
         """
         Initialiser RelatedCasesService.
@@ -45,10 +44,8 @@ class RelatedCasesService:
             logger.warning("RelatedCasesService initialized without timeline service")
 
     def get_related_cases_context(
-        self,
-        related_sak_ids: List[str],
-        spor_filter: Optional[List[str]] = None
-    ) -> Tuple[Dict[str, SakState], Dict[str, List[AnyEvent]]]:
+        self, related_sak_ids: list[str], spor_filter: list[str] | None = None
+    ) -> tuple[dict[str, SakState], dict[str, list[AnyEvent]]]:
         """
         Henter state og hendelser for alle relaterte saker.
 
@@ -69,10 +66,8 @@ class RelatedCasesService:
         return sak_states, hendelser
 
     def hent_hendelser_fra_saker(
-        self,
-        sak_ids: List[str],
-        spor_filter: Optional[List[str]] = None
-    ) -> Dict[str, List[AnyEvent]]:
+        self, sak_ids: list[str], spor_filter: list[str] | None = None
+    ) -> dict[str, list[AnyEvent]]:
         """
         Henter alle hendelser fra en liste med saker.
 
@@ -87,7 +82,7 @@ class RelatedCasesService:
             logger.warning("Ingen event repository - kan ikke hente hendelser")
             return {}
 
-        result: Dict[str, List[AnyEvent]] = {}
+        result: dict[str, list[AnyEvent]] = {}
 
         for sak_id in sak_ids:
             try:
@@ -98,7 +93,9 @@ class RelatedCasesService:
 
                 # Filtrer på spor hvis angitt
                 if spor_filter:
-                    events = [e for e in events if getattr(e, 'spor', None) in spor_filter]
+                    events = [
+                        e for e in events if getattr(e, "spor", None) in spor_filter
+                    ]
 
                 result[sak_id] = events
                 logger.debug(f"Hentet {len(events)} hendelser fra sak {sak_id}")
@@ -111,10 +108,7 @@ class RelatedCasesService:
         logger.info(f"Hentet totalt {total_events} hendelser fra {len(sak_ids)} saker")
         return result
 
-    def hent_state_fra_saker(
-        self,
-        sak_ids: List[str]
-    ) -> Dict[str, SakState]:
+    def hent_state_fra_saker(self, sak_ids: list[str]) -> dict[str, SakState]:
         """
         Henter SakState for en liste med saker.
 
@@ -128,7 +122,7 @@ class RelatedCasesService:
             logger.warning("Mangler repository eller timeline service")
             return {}
 
-        result: Dict[str, SakState] = {}
+        result: dict[str, SakState] = {}
 
         for sak_id in sak_ids:
             try:
@@ -146,7 +140,7 @@ class RelatedCasesService:
         logger.info(f"Hentet state fra {len(result)} av {len(sak_ids)} saker")
         return result
 
-    def hent_egne_hendelser(self, sak_id: str) -> List[AnyEvent]:
+    def hent_egne_hendelser(self, sak_id: str) -> list[AnyEvent]:
         """
         Henter hendelser for en enkelt sak (container-sakens egne hendelser).
 

@@ -8,11 +8,12 @@ This repository provides efficient lookups for case relationships:
 The sak_relations table is a CQRS projection maintained in sync with events.
 """
 
-from typing import List, Literal, Optional
 import os
+from typing import Literal
 
 try:
-    from supabase import create_client, Client
+    from supabase import Client, create_client
+
     SUPABASE_AVAILABLE = True
 except ImportError:
     SUPABASE_AVAILABLE = False
@@ -37,8 +38,8 @@ class RelationRepository:
 
     def __init__(
         self,
-        url: Optional[str] = None,
-        key: Optional[str] = None,
+        url: str | None = None,
+        key: str | None = None,
     ):
         """
         Initialize RelationRepository.
@@ -53,7 +54,11 @@ class RelationRepository:
             )
 
         self.url = url or os.environ.get("SUPABASE_URL")
-        self.key = key or os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_KEY")
+        self.key = (
+            key
+            or os.environ.get("SUPABASE_SECRET_KEY")
+            or os.environ.get("SUPABASE_KEY")
+        )
 
         if not self.url or not self.key:
             raise ValueError(
@@ -102,7 +107,7 @@ class RelationRepository:
     def add_relations_batch(
         self,
         source_sak_id: str,
-        target_sak_ids: List[str],
+        target_sak_ids: list[str],
         relation_type: RelationType,
     ) -> int:
         """
@@ -147,7 +152,7 @@ class RelationRepository:
         self,
         source_sak_id: str,
         target_sak_id: str,
-        relation_type: Optional[RelationType] = None,
+        relation_type: RelationType | None = None,
     ) -> bool:
         """
         Remove a relation between two saker.
@@ -176,9 +181,7 @@ class RelationRepository:
             removed = len(result.data) > 0 if result.data else False
 
             if removed:
-                logger.debug(
-                    f"Removed relation: {source_sak_id} -> {target_sak_id}"
-                )
+                logger.debug(f"Removed relation: {source_sak_id} -> {target_sak_id}")
 
             return removed
 
@@ -190,7 +193,7 @@ class RelationRepository:
         self,
         target_sak_id: str,
         relation_type: RelationType,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Find all saker that reference a given sak (reverse lookup).
 
@@ -221,8 +224,8 @@ class RelationRepository:
     def get_related_saks(
         self,
         source_sak_id: str,
-        relation_type: Optional[RelationType] = None,
-    ) -> List[str]:
+        relation_type: RelationType | None = None,
+    ) -> list[str]:
         """
         Find all saker that a given sak references (forward lookup).
 
@@ -253,8 +256,8 @@ class RelationRepository:
 
     def get_all_relations(
         self,
-        relation_type: Optional[RelationType] = None,
-    ) -> List[dict]:
+        relation_type: RelationType | None = None,
+    ) -> list[dict]:
         """
         Get all relations (for debugging/backfill verification).
 
@@ -278,7 +281,7 @@ class RelationRepository:
             logger.error(f"Failed to get all relations: {e}")
             return []
 
-    def clear_all_relations(self, relation_type: Optional[RelationType] = None) -> int:
+    def clear_all_relations(self, relation_type: RelationType | None = None) -> int:
         """
         Clear all relations (for backfill/testing).
 
@@ -300,7 +303,10 @@ class RelationRepository:
             result = query.execute()
 
             count = len(result.data) if result.data else 0
-            logger.info(f"Cleared {count} relations" + (f" (type={relation_type})" if relation_type else ""))
+            logger.info(
+                f"Cleared {count} relations"
+                + (f" (type={relation_type})" if relation_type else "")
+            )
             return count
 
         except Exception as e:
@@ -324,8 +330,7 @@ def create_relation_repository(**kwargs) -> RelationRepository:
 
     if backend != "supabase":
         raise ValueError(
-            f"RelationRepository requires Supabase backend. "
-            f"Current backend: {backend}"
+            f"RelationRepository requires Supabase backend. Current backend: {backend}"
         )
 
     return RelationRepository(**kwargs)

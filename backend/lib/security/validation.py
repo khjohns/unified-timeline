@@ -27,7 +27,7 @@ Dato: 2025-11-24
 """
 
 import re
-from typing import Any, Optional
+from typing import Any
 
 
 class ValidationError(Exception):
@@ -89,24 +89,23 @@ def validate_guid(val: Any, field_name: str = "guid") -> str:
     val = val.lower()
 
     # Sjekk format: 32-36 hexadecimal chars (med eller uten bindestreker)
-    if not re.match(r'^[a-f0-9-]{32,36}$', val):
+    if not re.match(r"^[a-f0-9-]{32,36}$", val):
         raise ValidationError(
             field_name,
-            "Invalid UUID format (expected 32-36 hex characters, optionally with dashes)"
+            "Invalid UUID format (expected 32-36 hex characters, optionally with dashes)",
         )
 
     # Ekstra sikkerhet: Blokkér path traversal attempts
-    if '..' in val or '/' in val or '\\' in val:
-        raise ValidationError(field_name, "Invalid characters (possible path traversal)")
+    if ".." in val or "/" in val or "\\" in val:
+        raise ValidationError(
+            field_name, "Invalid characters (possible path traversal)"
+        )
 
     return val
 
 
 def validate_csv_safe_string(
-    value: Any,
-    field_name: str,
-    max_length: int = 500,
-    allow_newlines: bool = False
+    value: Any, field_name: str, max_length: int = 500, allow_newlines: bool = False
 ) -> str:
     """
     Valider og sanitize string for trygg CSV-lagring.
@@ -150,9 +149,11 @@ def validate_csv_safe_string(
 
     # Fjern kontrollkarakterer (ASCII < 32, unntatt space og newline)
     if allow_newlines:
-        cleaned = ''.join(char for char in value if ord(char) >= 32 or char in ['\n', '\r'])
+        cleaned = "".join(
+            char for char in value if ord(char) >= 32 or char in ["\n", "\r"]
+        )
     else:
-        cleaned = ''.join(char for char in value if ord(char) >= 32)
+        cleaned = "".join(char for char in value if ord(char) >= 32)
 
     # Strip leading/trailing whitespace
     cleaned = cleaned.strip()
@@ -161,19 +162,19 @@ def validate_csv_safe_string(
     if len(cleaned) > max_length:
         raise ValidationError(
             field_name,
-            f"Exceeds maximum length of {max_length} characters (got {len(cleaned)})"
+            f"Exceeds maximum length of {max_length} characters (got {len(cleaned)})",
         )
 
     # CSV Injection protection: Blokkér strings som starter med farlige tegn
-    if cleaned and cleaned[0] in ['=', '+', '-', '@', '\t', '\r']:
+    if cleaned and cleaned[0] in ["=", "+", "-", "@", "\t", "\r"]:
         raise ValidationError(
             field_name,
-            "Cannot start with special characters (CSV injection protection)"
+            "Cannot start with special characters (CSV injection protection)",
         )
 
     # Erstatt internal newlines med space (for CSV single-line fields)
     if not allow_newlines:
-        cleaned = cleaned.replace('\n', ' ').replace('\r', ' ')
+        cleaned = cleaned.replace("\n", " ").replace("\r", " ")
 
     return cleaned
 
@@ -210,7 +211,7 @@ def validate_email(email: Any, field_name: str = "email") -> str:
         raise ValidationError(field_name, "Cannot be empty")
 
     # Enkel email regex (dekker 99% av cases)
-    email_pattern = r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$'
+    email_pattern = r"^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
     if not re.match(email_pattern, email):
         raise ValidationError(field_name, "Invalid email format")
 
@@ -258,8 +259,7 @@ def validate_topic_status(val: Any, field_name: str = "topic_status") -> str:
 
     if val not in ALLOWED_STATUSES:
         raise ValidationError(
-            field_name,
-            f"Must be one of: {', '.join(ALLOWED_STATUSES)}"
+            field_name, f"Must be one of: {', '.join(ALLOWED_STATUSES)}"
         )
 
     return val
@@ -291,19 +291,19 @@ def validate_sak_status(val: Any, field_name: str = "status") -> str:
     """
     # Liste over gyldige sak-statuser (må synkes med types.ts)
     ALLOWED_STATUSES = [
-        '100000000',  # Under varsling
-        '100000001',  # Varslet
-        '100000002',  # Venter på svar
-        '100000003',  # Under avklaring
-        '100000005',  # Omforent (EO utstedes)
-        '100000006',  # Lukket (Avslått)
-        '100000007',  # Vurderes av TE
-        '100000008',  # Under tvist
-        '100000009',  # Lukket (Tilbakekalt)
-        '100000011',  # Lukket (Implementert)
-        '100000012',  # Lukket (Annullert)
-        '100000013',  # Pågår - Under utførelse
-        ''  # Tom status (initiell tilstand)
+        "100000000",  # Under varsling
+        "100000001",  # Varslet
+        "100000002",  # Venter på svar
+        "100000003",  # Under avklaring
+        "100000005",  # Omforent (EO utstedes)
+        "100000006",  # Lukket (Avslått)
+        "100000007",  # Vurderes av TE
+        "100000008",  # Under tvist
+        "100000009",  # Lukket (Tilbakekalt)
+        "100000011",  # Lukket (Implementert)
+        "100000012",  # Lukket (Annullert)
+        "100000013",  # Pågår - Under utførelse
+        "",  # Tom status (initiell tilstand)
     ]
 
     if not isinstance(val, str):
@@ -311,18 +311,14 @@ def validate_sak_status(val: Any, field_name: str = "status") -> str:
 
     if val not in ALLOWED_STATUSES:
         raise ValidationError(
-            field_name,
-            "Invalid status code (must be one of the defined status codes)"
+            field_name, "Invalid status code (must be one of the defined status codes)"
         )
 
     return val
 
 
 def validate_positive_number(
-    val: Any,
-    field_name: str,
-    allow_zero: bool = True,
-    max_value: Optional[float] = None
+    val: Any, field_name: str, allow_zero: bool = True, max_value: float | None = None
 ) -> float:
     """
     Validerer at verdi er et positivt tall.
@@ -390,11 +386,11 @@ def validate_date_string(val: Any, field_name: str = "date") -> str:
     val = val.strip()
 
     # Sjekk format: YYYY-MM-DD
-    if not re.match(r'^\d{4}-\d{2}-\d{2}$', val):
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", val):
         raise ValidationError(field_name, "Invalid date format (expected YYYY-MM-DD)")
 
     # Basic range checks (ikke fullstendig dato-validering)
-    parts = val.split('-')
+    parts = val.split("-")
     year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
 
     if year < 1900 or year > 2100:
@@ -418,7 +414,10 @@ def _test_validation():
     print("Testing validation functions...")
 
     # Test GUID
-    assert validate_guid("18d0273de15c492497b36f47b233eebe") == "18d0273de15c492497b36f47b233eebe"
+    assert (
+        validate_guid("18d0273de15c492497b36f47b233eebe")
+        == "18d0273de15c492497b36f47b233eebe"
+    )
     print("✓ Valid GUID accepted")
 
     try:

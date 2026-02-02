@@ -17,7 +17,7 @@ class TestMagicLinkGeneration:
         from lib.auth.magic_link import MagicLinkManager
 
         mgr = MagicLinkManager()
-        token = mgr.generate(sak_id='TEST-123', email='test@example.com')
+        token = mgr.generate(sak_id="TEST-123", email="test@example.com")
 
         assert token is not None
         assert isinstance(token, str)
@@ -28,8 +28,8 @@ class TestMagicLinkGeneration:
         from lib.auth.magic_link import MagicLinkManager
 
         mgr = MagicLinkManager()
-        token1 = mgr.generate(sak_id='TEST-123', email='test@example.com')
-        token2 = mgr.generate(sak_id='TEST-123', email='test@example.com')
+        token1 = mgr.generate(sak_id="TEST-123", email="test@example.com")
+        token2 = mgr.generate(sak_id="TEST-123", email="test@example.com")
 
         # Even same sak_id and email should produce different tokens (timestamp)
         assert token1 != token2
@@ -43,16 +43,16 @@ class TestMagicLinkVerification:
         from lib.auth.magic_link import MagicLinkManager
 
         mgr = MagicLinkManager()
-        sak_id = 'TEST-VERIFY-123'
-        email = 'test@example.com'
+        sak_id = "TEST-VERIFY-123"
+        email = "test@example.com"
 
         token = mgr.generate(sak_id=sak_id, email=email)
         is_valid, error, payload = mgr.verify(token)
 
         assert is_valid
-        assert error is None or error == ''  # Allow empty string or None
-        assert payload['sak_id'] == sak_id
-        assert payload['email'] == email
+        assert error is None or error == ""  # Allow empty string or None
+        assert payload["sak_id"] == sak_id
+        assert payload["email"] == email
 
     def test_verify_invalid_token_format(self):
         """Test rejection of invalid token format"""
@@ -61,7 +61,7 @@ class TestMagicLinkVerification:
         mgr = MagicLinkManager()
 
         # Completely invalid token
-        is_valid, error, payload = mgr.verify('not-a-valid-token')
+        is_valid, error, payload = mgr.verify("not-a-valid-token")
         assert not is_valid
         assert error is not None
         assert payload is None or payload == {}
@@ -71,10 +71,10 @@ class TestMagicLinkVerification:
         from lib.auth.magic_link import MagicLinkManager
 
         mgr = MagicLinkManager()
-        token = mgr.generate(sak_id='TEST-123', email='test@example.com')
+        token = mgr.generate(sak_id="TEST-123", email="test@example.com")
 
         # Tamper with the token
-        tampered_token = token[:-5] + 'xxxxx'
+        tampered_token = token[:-5] + "xxxxx"
 
         is_valid, error, payload = mgr.verify(tampered_token)
         assert not is_valid
@@ -85,7 +85,7 @@ class TestMagicLinkVerification:
 
         mgr = MagicLinkManager()
 
-        is_valid, error, payload = mgr.verify('')
+        is_valid, error, payload = mgr.verify("")
         assert not is_valid
 
         is_valid, error, payload = mgr.verify(None)

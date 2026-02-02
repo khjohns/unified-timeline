@@ -13,12 +13,13 @@ Bruk: python scripts/test_task_data.py [task_id]
 
 import os
 import sys
-from pathlib import Path
 from datetime import datetime, timedelta
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from integrations.dalux.client import DaluxClient
@@ -31,8 +32,7 @@ def main():
     task_id = sys.argv[1] if len(sys.argv) > 1 else None
 
     client = DaluxClient(
-        api_key=os.getenv('DALUX_API_KEY'),
-        base_url=os.getenv('DALUX_BASE_URL')
+        api_key=os.getenv("DALUX_API_KEY"), base_url=os.getenv("DALUX_BASE_URL")
     )
 
     print("=" * 70)
@@ -49,15 +49,15 @@ def main():
         print("-" * 77)
 
         for t in tasks[:10]:
-            data = t.get('data', {})
-            tid = data.get('taskId', '?')
-            ttype = data.get('type', {}).get('name', '?')[:14]
-            number = data.get('number', '?')[:9]
-            subject = data.get('subject', 'Ingen tittel')[:29]
+            data = t.get("data", {})
+            tid = data.get("taskId", "?")
+            ttype = data.get("type", {}).get("name", "?")[:14]
+            number = data.get("number", "?")[:9]
+            subject = data.get("subject", "Ingen tittel")[:29]
             print(f"{tid:<22} {ttype:<15} {number:<10} {subject:<30}")
 
         # Velg første sak
-        task_id = tasks[0].get('data', {}).get('taskId')
+        task_id = tasks[0].get("data", {}).get("taskId")
         print(f"\n→ Bruker task: {task_id}")
 
     # =========================================================================
@@ -73,7 +73,7 @@ def main():
         print("❌ Kunne ikke hente sak")
         return
 
-    data = task.get('data', {})
+    data = task.get("data", {})
 
     # Grunndata
     print("\n📋 GRUNNDATA")
@@ -86,73 +86,77 @@ def main():
     print(f"  Workflow:    {data.get('workflow', {}).get('name', 'N/A')}")
     print(f"  Opprettet:   {data.get('created', 'N/A')[:19]}")
 
-    created_by = data.get('createdBy', {})
+    created_by = data.get("createdBy", {})
     print(f"  Opprettet av: {created_by.get('userId', 'N/A')}")
 
     # Tilordning
-    assigned = data.get('assignedTo', {})
+    assigned = data.get("assignedTo", {})
     if assigned:
         print(f"  Tilordnet:   {assigned.get('email', assigned.get('userId', 'N/A'))}")
 
     # Status/deadline
-    if data.get('deadline'):
+    if data.get("deadline"):
         print(f"  Frist:       {data.get('deadline')[:10]}")
 
     # Lokasjon
-    location = data.get('location', {})
+    location = data.get("location", {})
     if location:
         print("\n📍 LOKASJON")
         print("-" * 40)
 
-        if location.get('building'):
+        if location.get("building"):
             print(f"  Bygning:     {location['building'].get('name', 'N/A')}")
-        if location.get('level'):
+        if location.get("level"):
             print(f"  Etasje:      {location['level'].get('name', 'N/A')}")
-        if location.get('room'):
+        if location.get("room"):
             print(f"  Rom:         {location['room'].get('name', 'N/A')}")
 
-        coord = location.get('coordinate', {}).get('xyz', {})
+        coord = location.get("coordinate", {}).get("xyz", {})
         if coord:
-            print(f"  Koordinater: X={coord.get('x', 0):.2f}, Y={coord.get('y', 0):.2f}, Z={coord.get('z', 0):.2f}")
+            print(
+                f"  Koordinater: X={coord.get('x', 0):.2f}, Y={coord.get('y', 0):.2f}, Z={coord.get('z', 0):.2f}"
+            )
 
         # BIM-objekt
-        bim = location.get('bimObject', {})
+        bim = location.get("bimObject", {})
         if bim:
-            print(f"  BIM-objekt:  {bim.get('categoryName', '')}/{bim.get('name', 'N/A')}")
+            print(
+                f"  BIM-objekt:  {bim.get('categoryName', '')}/{bim.get('name', 'N/A')}"
+            )
 
         # Tegning
-        drawing = location.get('drawing', {})
+        drawing = location.get("drawing", {})
         if drawing:
             print(f"  Tegning:     {drawing.get('name', 'N/A')}")
 
         # Lokasjonsbilder
-        loc_images = location.get('locationImages', [])
+        loc_images = location.get("locationImages", [])
         if loc_images:
             print(f"  Bilder:      {len(loc_images)} stk")
             for img in loc_images:
                 print(f"               - {img.get('name', 'N/A')}")
 
     # Egendefinerte felt
-    udf = data.get('userDefinedFields', {}).get('items', [])
+    udf = data.get("userDefinedFields", {}).get("items", [])
     if udf:
         print(f"\n📝 EGENDEFINERTE FELT ({len(udf)} stk)")
         print("-" * 40)
 
         for field in udf:
-            name = field.get('name', 'Ukjent')
-            values = field.get('values', [])
+            name = field.get("name", "Ukjent")
+            values = field.get("values", [])
 
             # Hent verdi(er)
             value_strs = []
             for v in values:
-                if v.get('text'):
-                    value_strs.append(v['text'])
-                elif v.get('reference'):
-                    value_strs.append(v['reference'].get('value', '?'))
-                elif v.get('date'):
-                    value_strs.append(v['date'][:10])
+                if v.get("text"):
+                    value_strs.append(v["text"])
+                elif v.get("reference"):
+                    value_strs.append(v["reference"].get("value", "?"))
+                elif v.get("date"):
+                    value_strs.append(v["date"][:10])
 
-            value_str = ', '.join(value_strs) if value_strs else '(tom)'
+            value_str = ", ".join(value_strs) if value_strs else "(tom)"
             print(f"  {name[:35]:<35} = {value_str[:30]}")
 
     # =========================================================================
@@ -163,23 +167,23 @@ def main():
     print("=" * 70)
 
     all_attachments = client.get_task_attachments(project_id)
-    task_attachments = [a for a in all_attachments if a.get('taskId') == task_id]
+    task_attachments = [a for a in all_attachments if a.get("taskId") == task_id]
 
     if task_attachments:
         print(f"\n📎 VEDLEGG ({len(task_attachments)} stk)")
         print("-" * 40)
 
         for att in task_attachments:
-            media = att.get('mediaFile', {})
-            name = media.get('name', 'Ukjent')
-            created = att.get('created', '')[:19]
+            media = att.get("mediaFile", {})
+            name = media.get("name", "Ukjent")
+            created = att.get("created", "")[:19]
             print(f"  {name}")
             print(f"     Opprettet: {created}")
     else:
         print("\n  Ingen vedlegg på denne saken")
 
     # Sjekk lokasjonsbilder (disse er også "vedlegg")
-    loc_images = data.get('location', {}).get('locationImages', [])
+    loc_images = data.get("location", {}).get("locationImages", [])
     if loc_images:
         print(f"\n🖼️  LOKASJONSBILDER ({len(loc_images)} stk)")
         print("-" * 40)
@@ -196,16 +200,18 @@ def main():
     since = datetime.now() - timedelta(days=30)
     try:
         changes = client.get_task_changes(project_id, since)
-        task_changes = [c for c in changes if c.get('data', {}).get('taskId') == task_id]
+        task_changes = [
+            c for c in changes if c.get("data", {}).get("taskId") == task_id
+        ]
 
         if task_changes:
             print(f"\n📊 ENDRINGER ({len(task_changes)} stk)")
             print("-" * 40)
 
             for change in task_changes[:10]:
-                cdata = change.get('data', {})
-                change_type = cdata.get('changeType', 'N/A')
-                changed = cdata.get('changed', '')[:19]
+                cdata = change.get("data", {})
+                change_type = cdata.get("changeType", "N/A")
+                changed = cdata.get("changed", "")[:19]
                 print(f"  [{changed}] {change_type}")
         else:
             print("\n  Ingen endringer siste 30 dager")

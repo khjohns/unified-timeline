@@ -6,22 +6,23 @@ Den beregnes fra event-loggen og representerer "nå-situasjonen".
 
 SakState er READ-ONLY og regenereres hver gang fra events.
 """
-from enum import Enum
-from pydantic import BaseModel, Field, computed_field
-from typing import Optional, List, Union
+
 from datetime import datetime
+from enum import Enum
+
+from pydantic import BaseModel, Field, computed_field
 
 from models.events import (
+    FristBeregningResultat,
+    GrunnlagResponsResultat,
     SporStatus,
     SporType,
-    GrunnlagResponsResultat,
-    VederlagBeregningResultat,
-    FristBeregningResultat,
     VarselInfo,
+    VederlagBeregningResultat,
 )
 
-
 # ============ SAKSTYPE OG RELASJONER ============
+
 
 class SaksType(str, Enum):
     """
@@ -32,6 +33,7 @@ class SaksType(str, Enum):
     ENDRINGSORDRE: Formell endringsordre (§31.3) som samler en eller flere KOE-er
     FRAVIK: Fravik fra utslippsfrie krav på byggeplasser
     """
+
     STANDARD = "standard"
     FORSERING = "forsering"
     ENDRINGSORDRE = "endringsordre"
@@ -50,76 +52,67 @@ class SakRelasjon(BaseModel):
     - FORSERING sak → relaterte saker er "basert_paa" (avslåtte fristforlengelser)
     - Fremtidige sakstyper kan ha egne utledningsregler
     """
+
     relatert_sak_id: str = Field(
-        ...,
-        description="Lokal sak-ID for relatert sak (for event lookup)"
+        ..., description="Lokal sak-ID for relatert sak (for event lookup)"
     )
-    relatert_sak_tittel: Optional[str] = Field(
-        default=None,
-        description="Cached tittel for display"
+    relatert_sak_tittel: str | None = Field(
+        default=None, description="Cached tittel for display"
     )
-    catenda_topic_id: Optional[str] = Field(
-        default=None,
-        description="Catenda topic GUID for relatert sak"
+    catenda_topic_id: str | None = Field(
+        default=None, description="Catenda topic GUID for relatert sak"
     )
     # Fra Catenda API response:
-    bimsync_issue_board_ref: Optional[str] = Field(
-        default=None,
-        description="Topic board ID for cross-board relasjoner"
+    bimsync_issue_board_ref: str | None = Field(
+        default=None, description="Topic board ID for cross-board relasjoner"
     )
-    bimsync_issue_number: Optional[int] = Field(
-        default=None,
-        description="Lesbart saksnummer i Catenda"
+    bimsync_issue_number: int | None = Field(
+        default=None, description="Lesbart saksnummer i Catenda"
     )
 
 
 # ============ SPOR-TILSTANDER ============
 
+
 class GrunnlagTilstand(BaseModel):
     """Aggregert tilstand for grunnlag-sporet"""
+
     status: SporStatus = Field(
-        default=SporStatus.IKKE_RELEVANT,
-        description="Nåværende status for grunnlag"
+        default=SporStatus.IKKE_RELEVANT, description="Nåværende status for grunnlag"
     )
-    tittel: Optional[str] = Field(
-        default=None,
-        description="Kort beskrivende tittel for varselet"
+    tittel: str | None = Field(
+        default=None, description="Kort beskrivende tittel for varselet"
     )
-    hovedkategori: Optional[str] = Field(default=None)
-    underkategori: Optional[Union[str, List[str]]] = Field(
-        default=None,
-        description="Can be single string or array of codes"
+    hovedkategori: str | None = Field(default=None)
+    underkategori: str | list[str] | None = Field(
+        default=None, description="Can be single string or array of codes"
     )
-    beskrivelse: Optional[str] = Field(default=None)
-    dato_oppdaget: Optional[str] = Field(default=None)
-    grunnlag_varsel: Optional[VarselInfo] = Field(
-        default=None,
-        description="Info om når og hvordan BH ble varslet om forholdet"
+    beskrivelse: str | None = Field(default=None)
+    dato_oppdaget: str | None = Field(default=None)
+    grunnlag_varsel: VarselInfo | None = Field(
+        default=None, description="Info om når og hvordan BH ble varslet om forholdet"
     )
-    kontraktsreferanser: List[str] = Field(default_factory=list)
+    kontraktsreferanser: list[str] = Field(default_factory=list)
 
     # BH respons
-    bh_resultat: Optional[GrunnlagResponsResultat] = Field(
-        default=None,
-        description="BHs siste respons på ansvarsgrunnlaget"
+    bh_resultat: GrunnlagResponsResultat | None = Field(
+        default=None, description="BHs siste respons på ansvarsgrunnlaget"
     )
-    bh_begrunnelse: Optional[str] = Field(default=None)
-    grunnlag_varslet_i_tide: Optional[bool] = Field(
-        default=None,
-        description="§32.2: Var grunnlagsvarselet rettidig? (kun ENDRING)"
+    bh_begrunnelse: str | None = Field(default=None)
+    grunnlag_varslet_i_tide: bool | None = Field(
+        default=None, description="§32.2: Var grunnlagsvarselet rettidig? (kun ENDRING)"
     )
     laast: bool = Field(
-        default=False,
-        description="Om grunnlaget er låst (godkjent og kan ikke endres)"
+        default=False, description="Om grunnlaget er låst (godkjent og kan ikke endres)"
     )
-    bh_respondert_versjon: Optional[int] = Field(
+    bh_respondert_versjon: int | None = Field(
         default=None,
-        description="Hvilken versjon av kravet BH sist responderte på (0-indeksert)"
+        description="Hvilken versjon av kravet BH sist responderte på (0-indeksert)",
     )
 
     # Metadata
-    siste_event_id: Optional[str] = Field(default=None)
-    siste_oppdatert: Optional[datetime] = Field(default=None)
+    siste_event_id: str | None = Field(default=None)
+    siste_oppdatert: datetime | None = Field(default=None)
     antall_versjoner: int = Field(default=0)
 
 
@@ -131,87 +124,78 @@ class VederlagTilstand(BaseModel):
     - Replaced krevd_belop with belop_direkte/kostnads_overslag per metode
     - Added saerskilt_krav with nested rigg_drift/produktivitet items
     """
+
     status: SporStatus = Field(
-        default=SporStatus.IKKE_RELEVANT,
-        description="Nåværende status for vederlag"
+        default=SporStatus.IKKE_RELEVANT, description="Nåværende status for vederlag"
     )
 
     # Siste krav fra TE - hovedbeløp avhenger av metode
-    metode: Optional[str] = Field(
+    metode: str | None = Field(
         default=None,
-        description="Vederlagsmetode kode (ENHETSPRISER, REGNINGSARBEID, FASTPRIS_TILBUD)"
+        description="Vederlagsmetode kode (ENHETSPRISER, REGNINGSARBEID, FASTPRIS_TILBUD)",
     )
-    belop_direkte: Optional[float] = Field(
+    belop_direkte: float | None = Field(
         default=None,
-        description="For ENHETSPRISER/FASTPRIS_TILBUD: Krevd beløp (kan være negativt = fradrag)"
+        description="For ENHETSPRISER/FASTPRIS_TILBUD: Krevd beløp (kan være negativt = fradrag)",
     )
-    kostnads_overslag: Optional[float] = Field(
-        default=None,
-        description="For REGNINGSARBEID (§30.2): Kostnadsoverslag"
+    kostnads_overslag: float | None = Field(
+        default=None, description="For REGNINGSARBEID (§30.2): Kostnadsoverslag"
     )
     krever_justert_ep: bool = Field(
-        default=False,
-        description="For ENHETSPRISER: Krever justerte enhetspriser"
+        default=False, description="For ENHETSPRISER: Krever justerte enhetspriser"
     )
-    begrunnelse: Optional[str] = Field(default=None)
+    begrunnelse: str | None = Field(default=None)
 
     # Særskilte krav (§34.1.3) - separate beløp og datoer per type
-    saerskilt_krav: Optional[dict] = Field(
+    saerskilt_krav: dict | None = Field(
         default=None,
-        description="Nested struktur: {rigg_drift: {belop, dato_klar_over}, produktivitet: {belop, dato_klar_over}}"
+        description="Nested struktur: {rigg_drift: {belop, dato_klar_over}, produktivitet: {belop, dato_klar_over}}",
     )
 
     # Varselinfo fra TE (VarselInfo structure)
-    rigg_drift_varsel: Optional[dict] = Field(default=None)
-    justert_ep_varsel: Optional[dict] = Field(default=None)
-    regningsarbeid_varsel: Optional[dict] = Field(default=None)
-    produktivitetstap_varsel: Optional[dict] = Field(default=None)
-    krav_fremmet_dato: Optional[str] = Field(default=None)
+    rigg_drift_varsel: dict | None = Field(default=None)
+    justert_ep_varsel: dict | None = Field(default=None)
+    regningsarbeid_varsel: dict | None = Field(default=None)
+    produktivitetstap_varsel: dict | None = Field(default=None)
+    krav_fremmet_dato: str | None = Field(default=None)
 
     # BH respons - Port 1 (Varsling)
-    saerskilt_varsel_rigg_drift_ok: Optional[bool] = Field(default=None)
-    varsel_justert_ep_ok: Optional[bool] = Field(default=None)
-    varsel_start_regning_ok: Optional[bool] = Field(default=None)
-    krav_fremmet_i_tide: Optional[bool] = Field(default=None)
-    begrunnelse_varsel: Optional[str] = Field(default=None)
+    saerskilt_varsel_rigg_drift_ok: bool | None = Field(default=None)
+    varsel_justert_ep_ok: bool | None = Field(default=None)
+    varsel_start_regning_ok: bool | None = Field(default=None)
+    krav_fremmet_i_tide: bool | None = Field(default=None)
+    begrunnelse_varsel: str | None = Field(default=None)
 
     # BH respons - Port 2 (Beregning)
-    bh_resultat: Optional[VederlagBeregningResultat] = Field(
-        default=None,
-        description="BH vurdering av beregningen (ren utmåling)"
+    bh_resultat: VederlagBeregningResultat | None = Field(
+        default=None, description="BH vurdering av beregningen (ren utmåling)"
     )
-    bh_begrunnelse: Optional[str] = Field(default=None)
-    bh_metode: Optional[str] = Field(
-        default=None,
-        description="If BH approves with different method"
+    bh_begrunnelse: str | None = Field(default=None)
+    bh_metode: str | None = Field(
+        default=None, description="If BH approves with different method"
     )
-    godkjent_belop: Optional[float] = Field(
-        default=None,
-        description="Beløp godkjent av BH (hvis delvis/full godkjenning)"
+    godkjent_belop: float | None = Field(
+        default=None, description="Beløp godkjent av BH (hvis delvis/full godkjenning)"
     )
 
     # Subsidiært standpunkt (fra BH respons event)
-    subsidiaer_triggers: Optional[List[str]] = Field(
-        default=None,
-        description="Liste over triggere for subsidiær vurdering"
+    subsidiaer_triggers: list[str] | None = Field(
+        default=None, description="Liste over triggere for subsidiær vurdering"
     )
-    subsidiaer_resultat: Optional[VederlagBeregningResultat] = Field(
-        default=None,
-        description="Subsidiært beregningsresultat"
+    subsidiaer_resultat: VederlagBeregningResultat | None = Field(
+        default=None, description="Subsidiært beregningsresultat"
     )
-    subsidiaer_godkjent_belop: Optional[float] = Field(
-        default=None,
-        description="Subsidiært godkjent beløp"
+    subsidiaer_godkjent_belop: float | None = Field(
+        default=None, description="Subsidiært godkjent beløp"
     )
-    subsidiaer_begrunnelse: Optional[str] = Field(
-        default=None,
-        description="BH's begrunnelse for subsidiær vurdering"
+    subsidiaer_begrunnelse: str | None = Field(
+        default=None, description="BH's begrunnelse for subsidiær vurdering"
     )
 
     # Computed: Krevd beløp basert på metode
     @computed_field
     @property
-    def krevd_belop(self) -> Optional[float]:
+    def krevd_belop(self) -> float | None:
         """Returnerer krevd beløp basert på metode (for bakoverkompatibilitet)"""
         if self.metode == "REGNINGSARBEID":
             return self.kostnads_overslag
@@ -220,7 +204,7 @@ class VederlagTilstand(BaseModel):
     # Differanse-info (nyttig for UI)
     @computed_field
     @property
-    def differanse(self) -> Optional[float]:
+    def differanse(self) -> float | None:
         """Differansen mellom krevd og godkjent beløp"""
         krevd = self.krevd_belop
         if krevd is not None and self.godkjent_belop is not None:
@@ -229,7 +213,7 @@ class VederlagTilstand(BaseModel):
 
     @computed_field
     @property
-    def godkjenningsgrad_prosent(self) -> Optional[float]:
+    def godkjenningsgrad_prosent(self) -> float | None:
         """Hvor mange prosent av kravet som er godkjent"""
         krevd = self.krevd_belop
         if krevd and krevd > 0 and self.godkjent_belop is not None:
@@ -271,18 +255,19 @@ class VederlagTilstand(BaseModel):
         return self.bh_resultat.value
 
     # BH respons-versjon tracking
-    bh_respondert_versjon: Optional[int] = Field(
+    bh_respondert_versjon: int | None = Field(
         default=None,
-        description="Hvilken versjon av kravet BH sist responderte på (0-indeksert)"
+        description="Hvilken versjon av kravet BH sist responderte på (0-indeksert)",
     )
 
     # Metadata
-    siste_event_id: Optional[str] = Field(default=None)
-    siste_oppdatert: Optional[datetime] = Field(default=None)
+    siste_event_id: str | None = Field(default=None)
+    siste_oppdatert: datetime | None = Field(default=None)
     antall_versjoner: int = Field(default=0)
 
 
 # ============ FORSERING VEDERLAG (§33.8 + §34.1.3) ============
+
 
 class ForseringVederlag(BaseModel):
     """
@@ -292,26 +277,25 @@ class ForseringVederlag(BaseModel):
     Per §34.4 brukes typisk regningsarbeid når ingen enhetspriser finnes.
     Per §34.1.3 kan særskilte krav (rigg/drift, produktivitet) også gjelde.
     """
+
     # Metode (§34.4 - typisk regningsarbeid for forsering)
     metode: str = Field(
         default="REGNINGSARBEID",
-        description="Vederlagsmetode (typisk REGNINGSARBEID for forsering per §34.4)"
+        description="Vederlagsmetode (typisk REGNINGSARBEID for forsering per §34.4)",
     )
 
     # Særskilte krav (§34.1.3) - kan også gjelde forsering
-    saerskilt_krav: Optional[dict] = Field(
+    saerskilt_krav: dict | None = Field(
         default=None,
-        description="Nested struktur: {rigg_drift: {belop, dato_klar_over}, produktivitet: {belop, dato_klar_over}}"
+        description="Nested struktur: {rigg_drift: {belop, dato_klar_over}, produktivitet: {belop, dato_klar_over}}",
     )
 
     # Varselinfo for særskilte krav
-    rigg_drift_varsel: Optional[dict] = Field(
-        default=None,
-        description="VarselInfo for rigg/drift ved forsering"
+    rigg_drift_varsel: dict | None = Field(
+        default=None, description="VarselInfo for rigg/drift ved forsering"
     )
-    produktivitet_varsel: Optional[dict] = Field(
-        default=None,
-        description="VarselInfo for produktivitetstap ved forsering"
+    produktivitet_varsel: dict | None = Field(
+        default=None, description="VarselInfo for produktivitetstap ved forsering"
     )
 
 
@@ -323,91 +307,73 @@ class ForseringBHRespons(BaseModel):
     Port 2: Er 30%-regelen overholdt?
     Port 3: Beløpsvurdering (hovedkrav + særskilte krav)
     """
+
     # Port 1: Per-sak vurdering av forseringsrett (§33.8)
-    vurdering_per_sak: Optional[List[dict]] = Field(
-        default=None,
-        description="BHs vurdering av forseringsrett per sak"
+    vurdering_per_sak: list[dict] | None = Field(
+        default=None, description="BHs vurdering av forseringsrett per sak"
     )
-    dager_med_forseringsrett: Optional[int] = Field(
-        default=None,
-        description="Antall dager BH mener TE har forseringsrett for"
+    dager_med_forseringsrett: int | None = Field(
+        default=None, description="Antall dager BH mener TE har forseringsrett for"
     )
     # Legacy fields for backward compatibility
-    grunnlag_fortsatt_gyldig: Optional[bool] = Field(
-        default=None,
-        description="BH bekrefter at frist-avslaget fortsatt står ved lag"
+    grunnlag_fortsatt_gyldig: bool | None = Field(
+        default=None, description="BH bekrefter at frist-avslaget fortsatt står ved lag"
     )
-    grunnlag_begrunnelse: Optional[str] = Field(
-        default=None,
-        description="BHs begrunnelse hvis grunnlaget bestrides"
+    grunnlag_begrunnelse: str | None = Field(
+        default=None, description="BHs begrunnelse hvis grunnlaget bestrides"
     )
 
     # Port 2: 30%-regel validering (§33.8)
-    trettiprosent_overholdt: Optional[bool] = Field(
+    trettiprosent_overholdt: bool | None = Field(
         default=None,
-        description="BH vurderer om estimert kostnad er innenfor 30%-grensen"
+        description="BH vurderer om estimert kostnad er innenfor 30%-grensen",
     )
-    trettiprosent_begrunnelse: Optional[str] = Field(
-        default=None,
-        description="BHs begrunnelse ved avvik fra 30%-regelen"
+    trettiprosent_begrunnelse: str | None = Field(
+        default=None, description="BHs begrunnelse ved avvik fra 30%-regelen"
     )
 
     # Port 3: Beløpsvurdering
-    aksepterer: bool = Field(
-        ...,
-        description="Om BH aksepterer forseringskravet"
+    aksepterer: bool = Field(..., description="Om BH aksepterer forseringskravet")
+    godkjent_belop: float | None = Field(
+        default=None, description="Godkjent forseringskostnad (hovedkrav)"
     )
-    godkjent_belop: Optional[float] = Field(
-        default=None,
-        description="Godkjent forseringskostnad (hovedkrav)"
-    )
-    begrunnelse: str = Field(
-        ...,
-        description="BHs begrunnelse for responsen"
-    )
+    begrunnelse: str = Field(..., description="BHs begrunnelse for responsen")
 
     # Port 3b: Særskilte krav vurdering (§34.1.3)
-    rigg_varslet_i_tide: Optional[bool] = Field(
-        default=None,
-        description="Om rigg/drift-varslet var rettidig"
+    rigg_varslet_i_tide: bool | None = Field(
+        default=None, description="Om rigg/drift-varslet var rettidig"
     )
-    produktivitet_varslet_i_tide: Optional[bool] = Field(
-        default=None,
-        description="Om produktivitets-varslet var rettidig"
+    produktivitet_varslet_i_tide: bool | None = Field(
+        default=None, description="Om produktivitets-varslet var rettidig"
     )
-    godkjent_rigg_drift: Optional[float] = Field(
-        default=None,
-        description="Godkjent rigg/drift-beløp"
+    godkjent_rigg_drift: float | None = Field(
+        default=None, description="Godkjent rigg/drift-beløp"
     )
-    godkjent_produktivitet: Optional[float] = Field(
-        default=None,
-        description="Godkjent produktivitetsbeløp"
+    godkjent_produktivitet: float | None = Field(
+        default=None, description="Godkjent produktivitetsbeløp"
     )
 
     # Subsidiært standpunkt
-    subsidiaer_triggers: Optional[List[str]] = Field(
+    subsidiaer_triggers: list[str] | None = Field(
         default=None,
-        description="Triggere for subsidiær vurdering (f.eks. 'grunnlag_bestridt')"
+        description="Triggere for subsidiær vurdering (f.eks. 'grunnlag_bestridt')",
     )
-    subsidiaer_godkjent_belop: Optional[float] = Field(
-        default=None,
-        description="Subsidiært godkjent beløp"
+    subsidiaer_godkjent_belop: float | None = Field(
+        default=None, description="Subsidiært godkjent beløp"
     )
-    subsidiaer_begrunnelse: Optional[str] = Field(
-        default=None,
-        description="Begrunnelse for subsidiært standpunkt"
+    subsidiaer_begrunnelse: str | None = Field(
+        default=None, description="Begrunnelse for subsidiært standpunkt"
     )
 
     # Metadata
-    dato_respons: Optional[str] = Field(
-        default=None,
-        description="Dato for BH respons (ISO format)"
+    dato_respons: str | None = Field(
+        default=None, description="Dato for BH respons (ISO format)"
     )
 
     # Computed: Total godkjent
     @computed_field
     @property
-    def total_godkjent(self) -> Optional[float]:
+    def total_godkjent(self) -> float | None:
         """Beregner totalt godkjent beløp (hovedkrav + særskilte)"""
         if self.godkjent_belop is None:
             return None
@@ -426,90 +392,71 @@ class ForseringData(BaseModel):
     Forsering er alltid en selvstendig sak med SaksType.FORSERING,
     med relasjoner til avslåtte fristforlengelsessaker.
     """
+
     # Referanser til opprinnelige saker
-    avslatte_fristkrav: List[str] = Field(
-        default_factory=list,
-        description="SAK-IDs til avslåtte fristforlengelser"
+    avslatte_fristkrav: list[str] = Field(
+        default_factory=list, description="SAK-IDs til avslåtte fristforlengelser"
     )
 
     # Varsling (settes av FORSERING_VARSEL event, ikke ved sak-opprettelse)
-    dato_varslet: Optional[str] = Field(
-        default=None,
-        description="Dato forsering ble varslet (ISO format)"
+    dato_varslet: str | None = Field(
+        default=None, description="Dato forsering ble varslet (ISO format)"
     )
-    estimert_kostnad: Optional[float] = Field(
-        default=None,
-        description="TE's estimerte forseringskostnad"
+    estimert_kostnad: float | None = Field(
+        default=None, description="TE's estimerte forseringskostnad"
     )
     bekreft_30_prosent_regel: bool = Field(
-        default=False,
-        description="TE bekrefter kostnad < dagmulkt + 30%"
+        default=False, description="TE bekrefter kostnad < dagmulkt + 30%"
     )
-    begrunnelse: Optional[str] = Field(
-        default=None,
-        description="TE's begrunnelse for forsering"
+    begrunnelse: str | None = Field(
+        default=None, description="TE's begrunnelse for forsering"
     )
 
     # Kalkulasjonsgrunnlag
     avslatte_dager: int = Field(
-        default=0,
-        description="Sum av avslåtte dager fra fristforlengelsene"
+        default=0, description="Sum av avslåtte dager fra fristforlengelsene"
     )
     dagmulktsats: float = Field(
-        default=0.0,
-        description="Dagmulktsats fra kontrakten (NOK per dag)"
+        default=0.0, description="Dagmulktsats fra kontrakten (NOK per dag)"
     )
     maks_forseringskostnad: float = Field(
-        default=0.0,
-        description="Beregnet: avslatte_dager * dagmulktsats * 1.3"
+        default=0.0, description="Beregnet: avslatte_dager * dagmulktsats * 1.3"
     )
 
     # Status
-    er_iverksatt: bool = Field(
-        default=False,
-        description="Om forsering er iverksatt"
-    )
-    dato_iverksatt: Optional[str] = Field(
-        default=None,
-        description="Dato forsering ble iverksatt"
+    er_iverksatt: bool = Field(default=False, description="Om forsering er iverksatt")
+    dato_iverksatt: str | None = Field(
+        default=None, description="Dato forsering ble iverksatt"
     )
     er_stoppet: bool = Field(
-        default=False,
-        description="True hvis BH godkjenner frist etter varsling"
+        default=False, description="True hvis BH godkjenner frist etter varsling"
     )
-    dato_stoppet: Optional[str] = Field(
-        default=None,
-        description="Dato forsering ble stoppet"
+    dato_stoppet: str | None = Field(
+        default=None, description="Dato forsering ble stoppet"
     )
-    paalopte_kostnader: Optional[float] = Field(
-        default=None,
-        description="Påløpte kostnader ved stopp"
+    paalopte_kostnader: float | None = Field(
+        default=None, description="Påløpte kostnader ved stopp"
     )
 
     # BH respons (legacy - beholdes for bakoverkompatibilitet)
-    bh_aksepterer_forsering: Optional[bool] = Field(
-        default=None,
-        description="[Legacy] Om BH aksepterer forseringskravet"
+    bh_aksepterer_forsering: bool | None = Field(
+        default=None, description="[Legacy] Om BH aksepterer forseringskravet"
     )
-    bh_godkjent_kostnad: Optional[float] = Field(
-        default=None,
-        description="[Legacy] Kostnad godkjent av BH"
+    bh_godkjent_kostnad: float | None = Field(
+        default=None, description="[Legacy] Kostnad godkjent av BH"
     )
-    bh_begrunnelse: Optional[str] = Field(
-        default=None,
-        description="[Legacy] BH's begrunnelse"
+    bh_begrunnelse: str | None = Field(
+        default=None, description="[Legacy] BH's begrunnelse"
     )
 
     # Ny vederlagsstruktur (§34)
-    vederlag: Optional[ForseringVederlag] = Field(
-        default=None,
-        description="Vederlagsdetaljer inkl. metode og særskilte krav"
+    vederlag: ForseringVederlag | None = Field(
+        default=None, description="Vederlagsdetaljer inkl. metode og særskilte krav"
     )
 
     # Ny strukturert BH-respons (tre-port modell)
-    bh_respons: Optional[ForseringBHRespons] = Field(
-        default=None,
-        description="BHs strukturerte respons med tre-port vurdering"
+    bh_respons: ForseringBHRespons | None = Field(
+        default=None, description="BHs strukturerte respons med tre-port vurdering"
     )
 
     # Computed field for visning
@@ -526,6 +473,7 @@ class ForseringData(BaseModel):
 
 # ============ ENDRINGSORDRE (§31.3) ============
 
+
 class EOStatus(str, Enum):
     """
     Status for endringsordre.
@@ -533,11 +481,12 @@ class EOStatus(str, Enum):
     Livssyklus:
     UTKAST → UTSTEDT → AKSEPTERT/BESTRIDT → (evt. REVIDERT → AKSEPTERT)
     """
-    UTKAST = "utkast"              # BH forbereder EO
-    UTSTEDT = "utstedt"            # BH har utstedt EO
-    AKSEPTERT = "akseptert"        # TE har akseptert EO
-    BESTRIDT = "bestridt"          # TE har bestridt EO (fremmer nytt KOE)
-    REVIDERT = "revidert"          # BH har revidert EO etter bestridelse
+
+    UTKAST = "utkast"  # BH forbereder EO
+    UTSTEDT = "utstedt"  # BH har utstedt EO
+    AKSEPTERT = "akseptert"  # TE har akseptert EO
+    BESTRIDT = "bestridt"  # TE har bestridt EO (fremmer nytt KOE)
+    REVIDERT = "revidert"  # BH har revidert EO etter bestridelse
 
 
 class EOKonsekvenser(BaseModel):
@@ -547,26 +496,22 @@ class EOKonsekvenser(BaseModel):
     Checkboxes som angir hvilke områder som påvirkes.
     Hvis ingen er valgt, innebærer endringen ingen konsekvenser.
     """
+
     sha: bool = Field(
         default=False,
-        description="Endringen har SHA-konsekvenser (Sikkerhet, Helse, Arbeidsmiljø)"
+        description="Endringen har SHA-konsekvenser (Sikkerhet, Helse, Arbeidsmiljø)",
     )
     kvalitet: bool = Field(
-        default=False,
-        description="Endringen har kvalitetskonsekvenser"
+        default=False, description="Endringen har kvalitetskonsekvenser"
     )
     fremdrift: bool = Field(
         default=False,
-        description="Endringen har fremdriftskonsekvenser (fristforlengelse)"
+        description="Endringen har fremdriftskonsekvenser (fristforlengelse)",
     )
     pris: bool = Field(
-        default=False,
-        description="Endringen har priskonsekvenser (vederlag)"
+        default=False, description="Endringen har priskonsekvenser (vederlag)"
     )
-    annet: bool = Field(
-        default=False,
-        description="Endringen har andre konsekvenser"
-    )
+    annet: bool = Field(default=False, description="Endringen har andre konsekvenser")
 
     @computed_field
     @property
@@ -590,98 +535,81 @@ class EndringsordreData(BaseModel):
     - FASTPRIS_TILBUD: Ingen indeksregulering
     - Se backend/constants/vederlag_methods.py for detaljer
     """
+
     # Referanser til KOE-saker som inngår i denne EO-en
-    relaterte_koe_saker: List[str] = Field(
+    relaterte_koe_saker: list[str] = Field(
         default_factory=list,
-        description="SAK-IDs til KOE-er som inngår i denne endringsordren"
+        description="SAK-IDs til KOE-er som inngår i denne endringsordren",
     )
 
     # Identifikasjon
     eo_nummer: str = Field(
-        ...,
-        description="Endringsordre-nummer (prosjektets nummerering)"
+        ..., description="Endringsordre-nummer (prosjektets nummerering)"
     )
     revisjon_nummer: int = Field(
-        default=0,
-        description="Revisjonsnummer (0 = original, 1+ = revisjoner)"
+        default=0, description="Revisjonsnummer (0 = original, 1+ = revisjoner)"
     )
 
     # Beskrivelse av endringen (§31.3: hva endringen går ut på)
-    beskrivelse: str = Field(
-        ...,
-        description="Beskrivelse av hva endringen går ut på"
-    )
-    vedlegg_ids: List[str] = Field(
-        default_factory=list,
-        description="Referanser til vedlagte dokumenter"
+    beskrivelse: str = Field(..., description="Beskrivelse av hva endringen går ut på")
+    vedlegg_ids: list[str] = Field(
+        default_factory=list, description="Referanser til vedlagte dokumenter"
     )
 
     # Konsekvenser (fra Endringsordre-malen)
     konsekvenser: EOKonsekvenser = Field(
-        default_factory=EOKonsekvenser,
-        description="Hvilke konsekvenser endringen har"
+        default_factory=EOKonsekvenser, description="Hvilke konsekvenser endringen har"
     )
-    konsekvens_beskrivelse: Optional[str] = Field(
+    konsekvens_beskrivelse: str | None = Field(
         default=None,
-        description="Beskrivelse av konsekvensene (hvis konsekvenser finnes)"
+        description="Beskrivelse av konsekvensene (hvis konsekvenser finnes)",
     )
 
     # Oppgjørsform ved priskonsekvens (gjenbruker VederlagsMetode fra constants)
-    oppgjorsform: Optional[str] = Field(
+    oppgjorsform: str | None = Field(
         default=None,
-        description="Oppgjørsform: ENHETSPRISER, REGNINGSARBEID, FASTPRIS_TILBUD"
+        description="Oppgjørsform: ENHETSPRISER, REGNINGSARBEID, FASTPRIS_TILBUD",
     )
 
     # Beløp
-    kompensasjon_belop: Optional[float] = Field(
-        default=None,
-        description="Kompensasjonsbeløp til TE (positivt = tillegg)"
+    kompensasjon_belop: float | None = Field(
+        default=None, description="Kompensasjonsbeløp til TE (positivt = tillegg)"
     )
-    fradrag_belop: Optional[float] = Field(
-        default=None,
-        description="Fradragsbeløp (negativt = fratrekk fra kontraktssum)"
+    fradrag_belop: float | None = Field(
+        default=None, description="Fradragsbeløp (negativt = fratrekk fra kontraktssum)"
     )
     er_estimat: bool = Field(
-        default=False,
-        description="Om beløpet er et estimat (endelig oppgjør senere)"
+        default=False, description="Om beløpet er et estimat (endelig oppgjør senere)"
     )
 
     # Fristkonsekvens
-    frist_dager: Optional[int] = Field(
-        default=None,
-        description="Antall dager fristforlengelse"
+    frist_dager: int | None = Field(
+        default=None, description="Antall dager fristforlengelse"
     )
-    ny_sluttdato: Optional[str] = Field(
-        default=None,
-        description="Ny sluttdato etter fristforlengelse (YYYY-MM-DD)"
+    ny_sluttdato: str | None = Field(
+        default=None, description="Ny sluttdato etter fristforlengelse (YYYY-MM-DD)"
     )
 
     # Status og metadata
     status: EOStatus = Field(
-        default=EOStatus.UTKAST,
-        description="Nåværende status for endringsordren"
+        default=EOStatus.UTKAST, description="Nåværende status for endringsordren"
     )
-    dato_utstedt: Optional[str] = Field(
-        default=None,
-        description="Dato EO ble utstedt (YYYY-MM-DD)"
+    dato_utstedt: str | None = Field(
+        default=None, description="Dato EO ble utstedt (YYYY-MM-DD)"
     )
-    utstedt_av: Optional[str] = Field(
-        default=None,
-        description="Navn på person som utstedte EO (BH-representant)"
+    utstedt_av: str | None = Field(
+        default=None, description="Navn på person som utstedte EO (BH-representant)"
     )
 
     # TE-respons
-    te_akseptert: Optional[bool] = Field(
-        default=None,
-        description="Om TE har akseptert EO"
+    te_akseptert: bool | None = Field(
+        default=None, description="Om TE har akseptert EO"
     )
-    te_kommentar: Optional[str] = Field(
-        default=None,
-        description="TEs kommentar ved aksept/bestridelse"
+    te_kommentar: str | None = Field(
+        default=None, description="TEs kommentar ved aksept/bestridelse"
     )
-    dato_te_respons: Optional[str] = Field(
-        default=None,
-        description="Dato for TEs respons (YYYY-MM-DD)"
+    dato_te_respons: str | None = Field(
+        default=None, description="Dato for TEs respons (YYYY-MM-DD)"
     )
 
     # Computed fields
@@ -703,90 +631,80 @@ class EndringsordreData(BaseModel):
     @property
     def har_fristkonsekvens(self) -> bool:
         """Sjekker om EO har fristkonsekvens"""
-        return self.konsekvenser.fremdrift or (self.frist_dager is not None and self.frist_dager > 0)
+        return self.konsekvenser.fremdrift or (
+            self.frist_dager is not None and self.frist_dager > 0
+        )
 
 
 class FristTilstand(BaseModel):
     """Aggregert tilstand for frist-sporet"""
+
     status: SporStatus = Field(
-        default=SporStatus.IKKE_RELEVANT,
-        description="Nåværende status for frist"
+        default=SporStatus.IKKE_RELEVANT, description="Nåværende status for frist"
     )
 
     # Siste krav fra TE
-    varsel_type: Optional[str] = Field(
+    varsel_type: str | None = Field(
         default=None,
-        description="Type varsel: varsel (§33.4), spesifisert (§33.6), eller begge"
+        description="Type varsel: varsel (§33.4), spesifisert (§33.6), eller begge",
     )
-    frist_varsel: Optional[VarselInfo] = Field(
-        default=None,
-        description="Varsel om fristforlengelse (§33.4)"
+    frist_varsel: VarselInfo | None = Field(
+        default=None, description="Varsel om fristforlengelse (§33.4)"
     )
-    spesifisert_varsel: Optional[VarselInfo] = Field(default=None)
-    krevd_dager: Optional[int] = Field(default=None)
-    begrunnelse: Optional[str] = Field(default=None)
+    spesifisert_varsel: VarselInfo | None = Field(default=None)
+    krevd_dager: int | None = Field(default=None)
+    begrunnelse: str | None = Field(default=None)
 
     # BH respons - Port 1 (Varsling)
-    frist_varsel_ok: Optional[bool] = Field(
-        default=None,
-        description="Var varsel om fristforlengelse (§33.4) rettidig?"
+    frist_varsel_ok: bool | None = Field(
+        default=None, description="Var varsel om fristforlengelse (§33.4) rettidig?"
     )
-    spesifisert_krav_ok: Optional[bool] = Field(default=None)
-    foresporsel_svar_ok: Optional[bool] = Field(
-        default=None,
-        description="Var svar på forespørsel (§33.6.2) rettidig?"
+    spesifisert_krav_ok: bool | None = Field(default=None)
+    foresporsel_svar_ok: bool | None = Field(
+        default=None, description="Var svar på forespørsel (§33.6.2) rettidig?"
     )
-    har_bh_foresporsel: Optional[bool] = Field(
-        default=None,
-        description="Har BH sendt forespørsel om spesifisering (§33.6.2)?"
+    har_bh_foresporsel: bool | None = Field(
+        default=None, description="Har BH sendt forespørsel om spesifisering (§33.6.2)?"
     )
-    dato_bh_foresporsel: Optional[str] = Field(
+    dato_bh_foresporsel: str | None = Field(
         default=None,
-        description="Dato BH sendte forespørsel om spesifisering (§33.6.2) - YYYY-MM-DD"
+        description="Dato BH sendte forespørsel om spesifisering (§33.6.2) - YYYY-MM-DD",
     )
-    begrunnelse_varsel: Optional[str] = Field(default=None)
+    begrunnelse_varsel: str | None = Field(default=None)
 
     # BH respons - Port 2 (Vilkår/Årsakssammenheng)
-    vilkar_oppfylt: Optional[bool] = Field(default=None)
+    vilkar_oppfylt: bool | None = Field(default=None)
 
     # BH respons - Port 3 (Beregning)
-    bh_resultat: Optional[FristBeregningResultat] = Field(
-        default=None,
-        description="BH vurdering av dagberegningen (ren utmåling)"
+    bh_resultat: FristBeregningResultat | None = Field(
+        default=None, description="BH vurdering av dagberegningen (ren utmåling)"
     )
-    bh_begrunnelse: Optional[str] = Field(default=None)
-    godkjent_dager: Optional[int] = Field(
+    bh_begrunnelse: str | None = Field(default=None)
+    godkjent_dager: int | None = Field(default=None, description="Dager godkjent av BH")
+    ny_sluttdato: str | None = Field(default=None)
+    frist_for_spesifisering: str | None = Field(
         default=None,
-        description="Dager godkjent av BH"
-    )
-    ny_sluttdato: Optional[str] = Field(default=None)
-    frist_for_spesifisering: Optional[str] = Field(
-        default=None,
-        description="Frist for TE å levere ytterligere spesifikasjon (YYYY-MM-DD)"
+        description="Frist for TE å levere ytterligere spesifikasjon (YYYY-MM-DD)",
     )
 
     # Subsidiært standpunkt (fra BH respons event)
-    subsidiaer_triggers: Optional[List[str]] = Field(
-        default=None,
-        description="Liste over triggere for subsidiær vurdering"
+    subsidiaer_triggers: list[str] | None = Field(
+        default=None, description="Liste over triggere for subsidiær vurdering"
     )
-    subsidiaer_resultat: Optional[FristBeregningResultat] = Field(
-        default=None,
-        description="Subsidiært beregningsresultat"
+    subsidiaer_resultat: FristBeregningResultat | None = Field(
+        default=None, description="Subsidiært beregningsresultat"
     )
-    subsidiaer_godkjent_dager: Optional[int] = Field(
-        default=None,
-        description="Subsidiært godkjent antall dager"
+    subsidiaer_godkjent_dager: int | None = Field(
+        default=None, description="Subsidiært godkjent antall dager"
     )
-    subsidiaer_begrunnelse: Optional[str] = Field(
-        default=None,
-        description="BH's begrunnelse for subsidiær vurdering"
+    subsidiaer_begrunnelse: str | None = Field(
+        default=None, description="BH's begrunnelse for subsidiær vurdering"
     )
 
     # Differanse-info
     @computed_field
     @property
-    def differanse_dager(self) -> Optional[int]:
+    def differanse_dager(self) -> int | None:
         """Differansen mellom krevde og godkjente dager"""
         if self.krevd_dager is not None and self.godkjent_dager is not None:
             return self.krevd_dager - self.godkjent_dager
@@ -827,18 +745,19 @@ class FristTilstand(BaseModel):
         return self.bh_resultat.value
 
     # BH respons-versjon tracking
-    bh_respondert_versjon: Optional[int] = Field(
+    bh_respondert_versjon: int | None = Field(
         default=None,
-        description="Hvilken versjon av kravet BH sist responderte på (0-indeksert)"
+        description="Hvilken versjon av kravet BH sist responderte på (0-indeksert)",
     )
 
     # Metadata
-    siste_event_id: Optional[str] = Field(default=None)
-    siste_oppdatert: Optional[datetime] = Field(default=None)
+    siste_event_id: str | None = Field(default=None)
+    siste_oppdatert: datetime | None = Field(default=None)
     antall_versjoner: int = Field(default=0)
 
 
 # ============ HOVEDMODELL ============
+
 
 class SakState(BaseModel):
     """
@@ -849,43 +768,40 @@ class SakState(BaseModel):
 
     Merk: Denne modellen er READ-ONLY. Alle endringer skjer via events.
     """
+
     sak_id: str = Field(..., description="Sak-ID")
     sakstittel: str = Field(default="", description="Sakstittel")
 
     # Sakstype og relasjoner (ny relasjonell modell for forsering)
     sakstype: SaksType = Field(
         default=SaksType.STANDARD,
-        description="Type sak: standard endringssak eller forseringssak"
+        description="Type sak: standard endringssak eller forseringssak",
     )
-    relaterte_saker: List[SakRelasjon] = Field(
+    relaterte_saker: list[SakRelasjon] = Field(
         default_factory=list,
-        description="Relasjoner til andre saker (f.eks. forseringssak → avslåtte fristforlengelser)"
+        description="Relasjoner til andre saker (f.eks. forseringssak → avslåtte fristforlengelser)",
     )
 
     # Forseringsdata (kun for sakstype=FORSERING)
-    forsering_data: Optional[ForseringData] = Field(
-        default=None,
-        description="Data for forseringssak (kun når sakstype=FORSERING)"
+    forsering_data: ForseringData | None = Field(
+        default=None, description="Data for forseringssak (kun når sakstype=FORSERING)"
     )
 
     # Endringsordredata (kun for sakstype=ENDRINGSORDRE)
-    endringsordre_data: Optional[EndringsordreData] = Field(
+    endringsordre_data: EndringsordreData | None = Field(
         default=None,
-        description="Data for endringsordresak (kun når sakstype=ENDRINGSORDRE)"
+        description="Data for endringsordresak (kun når sakstype=ENDRINGSORDRE)",
     )
 
     # De tre sporene (kun relevant for sakstype=STANDARD)
     grunnlag: GrunnlagTilstand = Field(
-        default_factory=GrunnlagTilstand,
-        description="Tilstand for grunnlag-sporet"
+        default_factory=GrunnlagTilstand, description="Tilstand for grunnlag-sporet"
     )
     vederlag: VederlagTilstand = Field(
-        default_factory=VederlagTilstand,
-        description="Tilstand for vederlag-sporet"
+        default_factory=VederlagTilstand, description="Tilstand for vederlag-sporet"
     )
     frist: FristTilstand = Field(
-        default_factory=FristTilstand,
-        description="Tilstand for frist-sporet"
+        default_factory=FristTilstand, description="Tilstand for frist-sporet"
     )
 
     # ============ SUBSIDIÆR LOGIKK (Computed Fields) ============
@@ -1007,9 +923,17 @@ class SakState(BaseModel):
             return "Avventer (pålegg frafalt - §32.3 c)"
 
         if self.er_subsidiaert_vederlag:
-            belop = f"{self.vederlag.godkjent_belop:,.0f} kr" if self.vederlag.godkjent_belop else "beløp"
+            belop = (
+                f"{self.vederlag.godkjent_belop:,.0f} kr"
+                if self.vederlag.godkjent_belop
+                else "beløp"
+            )
             # Skille mellom preklusjon (§32.2) og avslag
-            grunn = "Prekludert" if self.grunnlag.grunnlag_varslet_i_tide is False else "Avslått pga. ansvar"
+            grunn = (
+                "Prekludert"
+                if self.grunnlag.grunnlag_varslet_i_tide is False
+                else "Avslått pga. ansvar"
+            )
             if self.vederlag.bh_resultat == VederlagBeregningResultat.GODKJENT:
                 return f"{grunn} (Subsidiært enighet om {belop})"
             elif self.vederlag.bh_resultat == VederlagBeregningResultat.DELVIS_GODKJENT:
@@ -1019,10 +943,18 @@ class SakState(BaseModel):
 
         # Normal (prinsipal) status
         if self.vederlag.status == SporStatus.GODKJENT:
-            belop = f"{self.vederlag.godkjent_belop:,.0f} kr" if self.vederlag.godkjent_belop else ""
+            belop = (
+                f"{self.vederlag.godkjent_belop:,.0f} kr"
+                if self.vederlag.godkjent_belop
+                else ""
+            )
             return f"Godkjent - {belop}"
         elif self.vederlag.status == SporStatus.DELVIS_GODKJENT:
-            belop = f"{self.vederlag.godkjent_belop:,.0f} kr" if self.vederlag.godkjent_belop else "beløp"
+            belop = (
+                f"{self.vederlag.godkjent_belop:,.0f} kr"
+                if self.vederlag.godkjent_belop
+                else "beløp"
+            )
             return f"Delvis godkjent - {belop}"
         elif self.vederlag.status == SporStatus.AVSLATT:
             return "Avvist"
@@ -1048,9 +980,17 @@ class SakState(BaseModel):
             return "Ikke aktuelt"
 
         if self.er_subsidiaert_frist:
-            dager = f"{self.frist.godkjent_dager} dager" if self.frist.godkjent_dager else "dager"
+            dager = (
+                f"{self.frist.godkjent_dager} dager"
+                if self.frist.godkjent_dager
+                else "dager"
+            )
             # Skille mellom preklusjon (§32.2) og avslag
-            grunn = "Prekludert" if self.grunnlag.grunnlag_varslet_i_tide is False else "Avslått pga. ansvar"
+            grunn = (
+                "Prekludert"
+                if self.grunnlag.grunnlag_varslet_i_tide is False
+                else "Avslått pga. ansvar"
+            )
             if self.frist.bh_resultat == FristBeregningResultat.GODKJENT:
                 return f"{grunn} (Subsidiært enighet om {dager})"
             elif self.frist.bh_resultat == FristBeregningResultat.DELVIS_GODKJENT:
@@ -1058,10 +998,18 @@ class SakState(BaseModel):
 
         # Normal (prinsipal) status
         if self.frist.status == SporStatus.GODKJENT:
-            dager = f"{self.frist.godkjent_dager} dager" if self.frist.godkjent_dager else ""
+            dager = (
+                f"{self.frist.godkjent_dager} dager"
+                if self.frist.godkjent_dager
+                else ""
+            )
             return f"Godkjent - {dager}"
         elif self.frist.status == SporStatus.DELVIS_GODKJENT:
-            dager = f"{self.frist.godkjent_dager} dager" if self.frist.godkjent_dager else "dager"
+            dager = (
+                f"{self.frist.godkjent_dager} dager"
+                if self.frist.godkjent_dager
+                else "dager"
+            )
             return f"Delvis godkjent - {dager}"
         elif self.frist.status == SporStatus.AVSLATT:
             return "Avvist"
@@ -1105,7 +1053,9 @@ class SakState(BaseModel):
         ferdig_statuser = {SporStatus.GODKJENT, SporStatus.LAAST, SporStatus.TRUKKET}
         if all(s in ferdig_statuser for s in aktive_statuser):
             # Minst ett spor må være godkjent (ikke bare trukket)
-            if any(s in {SporStatus.GODKJENT, SporStatus.LAAST} for s in aktive_statuser):
+            if any(
+                s in {SporStatus.GODKJENT, SporStatus.LAAST} for s in aktive_statuser
+            ):
                 return "OMFORENT"
 
         # Sjekk om noen er TRUKKET
@@ -1114,7 +1064,11 @@ class SakState(BaseModel):
                 return "LUKKET_TRUKKET"
 
         # Sjekk om noen er under forhandling
-        forhandling_statuser = {SporStatus.UNDER_FORHANDLING, SporStatus.DELVIS_GODKJENT, SporStatus.AVSLATT}
+        forhandling_statuser = {
+            SporStatus.UNDER_FORHANDLING,
+            SporStatus.DELVIS_GODKJENT,
+            SporStatus.AVSLATT,
+        }
         if any(s in forhandling_statuser for s in aktive_statuser):
             return "UNDER_FORHANDLING"
 
@@ -1155,7 +1109,11 @@ class SakState(BaseModel):
             # Skip tracks that are not relevant or never used (utkast = no claim submitted)
             if spor.status in {SporStatus.IKKE_RELEVANT, SporStatus.UTKAST}:
                 continue
-            if spor.status not in {SporStatus.GODKJENT, SporStatus.LAAST, SporStatus.TRUKKET}:
+            if spor.status not in {
+                SporStatus.GODKJENT,
+                SporStatus.LAAST,
+                SporStatus.TRUKKET,
+            }:
                 return False
 
         return True
@@ -1173,23 +1131,39 @@ class SakState(BaseModel):
         """
         # Sjekk grunnlag først
         if self.grunnlag.status == SporStatus.UTKAST:
-            return {"rolle": "TE", "handling": "Send varsel om grunnlag", "spor": "grunnlag"}
+            return {
+                "rolle": "TE",
+                "handling": "Send varsel om grunnlag",
+                "spor": "grunnlag",
+            }
 
         if self.grunnlag.status == SporStatus.SENDT:
             return {"rolle": "BH", "handling": "Vurder grunnlag", "spor": "grunnlag"}
 
         if self.grunnlag.status == SporStatus.AVSLATT:
-            return {"rolle": "TE", "handling": "Oppdater grunnlag eller trekk saken", "spor": "grunnlag"}
+            return {
+                "rolle": "TE",
+                "handling": "Oppdater grunnlag eller trekk saken",
+                "spor": "grunnlag",
+            }
 
         # Sjekk vederlag
         if self.vederlag.status == SporStatus.UTKAST:
             return {"rolle": "TE", "handling": "Send vederlagskrav", "spor": "vederlag"}
 
         if self.vederlag.status == SporStatus.SENDT:
-            return {"rolle": "BH", "handling": "Vurder vederlagskrav", "spor": "vederlag"}
+            return {
+                "rolle": "BH",
+                "handling": "Vurder vederlagskrav",
+                "spor": "vederlag",
+            }
 
         if self.vederlag.status in {SporStatus.AVSLATT, SporStatus.UNDER_FORHANDLING}:
-            return {"rolle": "TE", "handling": "Oppdater vederlagskrav", "spor": "vederlag"}
+            return {
+                "rolle": "TE",
+                "handling": "Oppdater vederlagskrav",
+                "spor": "vederlag",
+            }
 
         # Sjekk frist
         if self.frist.status == SporStatus.UTKAST:
@@ -1203,7 +1177,11 @@ class SakState(BaseModel):
 
         # Alt er klart
         if self.kan_utstede_eo:
-            return {"rolle": "BH", "handling": "Utstede endringsordre (EO)", "spor": None}
+            return {
+                "rolle": "BH",
+                "handling": "Utstede endringsordre (EO)",
+                "spor": None,
+            }
 
         return {"rolle": None, "handling": "Ingen ventende handlinger", "spor": None}
 
@@ -1221,36 +1199,38 @@ class SakState(BaseModel):
         return self.vederlag.godkjent_belop or 0.0
 
     # Tidslinje-info
-    opprettet: Optional[datetime] = Field(default=None)
-    siste_aktivitet: Optional[datetime] = Field(default=None)
+    opprettet: datetime | None = Field(default=None)
+    siste_aktivitet: datetime | None = Field(default=None)
     antall_events: int = Field(default=0)
 
     # Catenda-integrasjon (beholdt fra gammel modell)
-    catenda_topic_id: Optional[str] = Field(default=None)
-    catenda_project_id: Optional[str] = Field(default=None)
+    catenda_topic_id: str | None = Field(default=None)
+    catenda_project_id: str | None = Field(default=None)
 
     # Parter
-    entreprenor: Optional[str] = Field(default=None, description="Totalentreprenør (TE)")
-    byggherre: Optional[str] = Field(default=None, description="Byggherre (BH)")
-    prosjekt_navn: Optional[str] = Field(default=None, description="Prosjektnavn fra Catenda")
+    entreprenor: str | None = Field(default=None, description="Totalentreprenør (TE)")
+    byggherre: str | None = Field(default=None, description="Byggherre (BH)")
+    prosjekt_navn: str | None = Field(
+        default=None, description="Prosjektnavn fra Catenda"
+    )
 
 
 # ============ HELPERS FOR API ============
 
+
 class SporOversikt(BaseModel):
     """Forenklet oversikt for et spor (brukes i listevisninger)"""
+
     spor: SporType
     status: SporStatus
-    siste_aktivitet: Optional[datetime] = None
+    siste_aktivitet: datetime | None = None
 
     # Spor-spesifikke verdier
-    verdi_krevd: Optional[str] = Field(
-        default=None,
-        description="F.eks. '150 000 NOK' eller '14 dager'"
+    verdi_krevd: str | None = Field(
+        default=None, description="F.eks. '150 000 NOK' eller '14 dager'"
     )
-    verdi_godkjent: Optional[str] = Field(
-        default=None,
-        description="F.eks. '120 000 NOK' eller '10 dager'"
+    verdi_godkjent: str | None = Field(
+        default=None, description="F.eks. '120 000 NOK' eller '10 dager'"
     )
 
 
@@ -1261,19 +1241,20 @@ class SakOversikt(BaseModel):
     Brukes av frontend for å vise saker i en liste uten
     å laste inn full SakState.
     """
+
     sak_id: str
     sakstittel: str
     overordnet_status: str
-    spor: List[SporOversikt]
+    spor: list[SporOversikt]
 
     sum_krevd: float = 0.0
     sum_godkjent: float = 0.0
-    dager_krevd: Optional[int] = None
-    dager_godkjent: Optional[int] = None
+    dager_krevd: int | None = None
+    dager_godkjent: int | None = None
 
-    opprettet: Optional[datetime] = None
-    siste_aktivitet: Optional[datetime] = None
-    neste_handling_rolle: Optional[str] = None
+    opprettet: datetime | None = None
+    siste_aktivitet: datetime | None = None
+    neste_handling_rolle: str | None = None
 
-    entreprenor: Optional[str] = None
-    prosjekt_navn: Optional[str] = None
+    entreprenor: str | None = None
+    prosjekt_navn: str | None = None

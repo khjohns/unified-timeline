@@ -3,23 +3,24 @@ Letter Generation API Routes.
 
 Provides endpoints for generating formal letters as PDF.
 """
-from flask import Blueprint, request, jsonify, Response
+
+from flask import Blueprint, Response, jsonify, request
 
 from services.letter_pdf_generator import (
-    get_letter_pdf_generator,
     BrevInnhold,
     BrevPart,
     BrevReferanser,
     BrevSeksjoner,
+    get_letter_pdf_generator,
 )
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-letter_bp = Blueprint('letter', __name__)
+letter_bp = Blueprint("letter", __name__)
 
 
-@letter_bp.route('/api/letter/generate', methods=['POST'])
+@letter_bp.route("/api/letter/generate", methods=["POST"])
 def generate_letter_pdf():
     """
     Generate a formal letter PDF from structured content.
@@ -62,31 +63,35 @@ def generate_letter_pdf():
     try:
         payload = request.get_json()
 
-        if not payload or 'brev_innhold' not in payload:
-            return jsonify({
-                "success": False,
-                "error": "MISSING_CONTENT",
-                "message": "Request must include 'brev_innhold' object"
-            }), 400
+        if not payload or "brev_innhold" not in payload:
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "MISSING_CONTENT",
+                    "message": "Request must include 'brev_innhold' object",
+                }
+            ), 400
 
-        raw_innhold = payload['brev_innhold']
+        raw_innhold = payload["brev_innhold"]
 
         # Parse and validate input
         try:
             brev_innhold = BrevInnhold(
-                tittel=raw_innhold.get('tittel', ''),
-                mottaker=BrevPart(**raw_innhold.get('mottaker', {})),
-                avsender=BrevPart(**raw_innhold.get('avsender', {})),
-                referanser=BrevReferanser(**raw_innhold.get('referanser', {})),
-                seksjoner=BrevSeksjoner(**raw_innhold.get('seksjoner', {})),
+                tittel=raw_innhold.get("tittel", ""),
+                mottaker=BrevPart(**raw_innhold.get("mottaker", {})),
+                avsender=BrevPart(**raw_innhold.get("avsender", {})),
+                referanser=BrevReferanser(**raw_innhold.get("referanser", {})),
+                seksjoner=BrevSeksjoner(**raw_innhold.get("seksjoner", {})),
             )
         except Exception as e:
             logger.warning(f"Invalid letter content: {e}")
-            return jsonify({
-                "success": False,
-                "error": "INVALID_CONTENT",
-                "message": f"Invalid letter content: {str(e)}"
-            }), 400
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "INVALID_CONTENT",
+                    "message": f"Invalid letter content: {str(e)}",
+                }
+            ), 400
 
         # Generate PDF
         generator = get_letter_pdf_generator()
@@ -102,17 +107,19 @@ def generate_letter_pdf():
         # Return PDF as binary response
         return Response(
             pdf_bytes,
-            mimetype='application/pdf',
+            mimetype="application/pdf",
             headers={
-                'Content-Disposition': f'attachment; filename="{filename}"',
-                'Content-Length': str(len(pdf_bytes)),
-            }
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Length": str(len(pdf_bytes)),
+            },
         )
 
     except Exception as e:
         logger.error(f"Failed to generate letter PDF: {e}", exc_info=True)
-        return jsonify({
-            "success": False,
-            "error": "GENERATION_FAILED",
-            "message": "Failed to generate PDF. Please try again."
-        }), 500
+        return jsonify(
+            {
+                "success": False,
+                "error": "GENERATION_FAILED",
+                "message": "Failed to generate PDF. Please try again.",
+            }
+        ), 500

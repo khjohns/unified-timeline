@@ -3,16 +3,17 @@ Event store with optimistic concurrency control.
 
 Platform: Requires Linux/macOS/WSL2 (uses fcntl for file locking)
 """
-from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple
-from pathlib import Path
+
+import fcntl  # Unix-only - see platform requirements
 import json
 import os
-import fcntl  # Unix-only - see platform requirements
+from abc import ABC, abstractmethod
+from pathlib import Path
 
 
 class ConcurrencyError(Exception):
     """Kastes når expected_version ikke matcher faktisk versjon."""
+
     def __init__(self, expected: int, actual: int):
         self.expected = expected
         self.actual = actual
@@ -40,7 +41,7 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    def append_batch(self, events: List, expected_version: int) -> int:
+    def append_batch(self, events: list, expected_version: int) -> int:
         """
         Atomically append multiple events.
 
@@ -50,7 +51,7 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    def get_events(self, sak_id: str) -> Tuple[List, int]:
+    def get_events(self, sak_id: str) -> tuple[list, int]:
         """
         Get all events and current version for a case.
 
@@ -80,14 +81,14 @@ class JsonFileEventRepository(EventRepository):
         safe_id = sak_id.replace("/", "_").replace("\\", "_")
         return self.base_path / f"{safe_id}.json"
 
-    def _load_with_lock(self, sak_id: str) -> Tuple[dict, any]:
+    def _load_with_lock(self, sak_id: str) -> tuple[dict, any]:
         """Load data with exclusive lock, returns (data, file_handle)."""
         file_path = self._get_file_path(sak_id)
 
         if not file_path.exists():
             return {"version": 0, "events": []}, None
 
-        f = open(file_path, 'r+', encoding='utf-8')
+        f = open(file_path, "r+", encoding="utf-8")
         fcntl.flock(f.fileno(), fcntl.LOCK_EX)
         data = json.load(f)
         return data, f
@@ -95,7 +96,7 @@ class JsonFileEventRepository(EventRepository):
     def append(self, event, expected_version: int) -> int:
         return self.append_batch([event], expected_version)
 
-    def append_batch(self, events: List, expected_version: int) -> int:
+    def append_batch(self, events: list, expected_version: int) -> int:
         """
         Atomic batch append with optimistic locking.
 
@@ -117,12 +118,12 @@ class JsonFileEventRepository(EventRepository):
 
             data = {
                 "version": len(events),
-                "events": [e.model_dump(mode='json') for e in events]
+                "events": [e.model_dump(mode="json") for e in events],
             }
 
             # Write atomically
-            temp_path = file_path.with_suffix('.tmp')
-            with open(temp_path, 'w', encoding='utf-8') as f:
+            temp_path = file_path.with_suffix(".tmp")
+            with open(temp_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2, default=str)
             temp_path.rename(file_path)
 
@@ -139,7 +140,7 @@ class JsonFileEventRepository(EventRepository):
 
             # Append events
             for event in events:
-                data["events"].append(event.model_dump(mode='json'))
+                data["events"].append(event.model_dump(mode="json"))
 
             new_version = current_version + len(events)
             data["version"] = new_version
@@ -158,7 +159,7 @@ class JsonFileEventRepository(EventRepository):
                 fcntl.flock(f.fileno(), fcntl.LOCK_UN)
                 f.close()
 
-    def get_events(self, sak_id: str) -> Tuple[List[dict], int]:
+    def get_events(self, sak_id: str) -> tuple[list[dict], int]:
         """
         Get all events and current version for a case.
 
@@ -171,7 +172,7 @@ class JsonFileEventRepository(EventRepository):
             return [], 0
 
         # Use shared lock for reading to prevent reading during writes
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding="utf-8") as f:
             fcntl.flock(f.fileno(), fcntl.LOCK_SH)
             try:
                 data = json.load(f)
@@ -187,7 +188,7 @@ class JsonFileEventRepository(EventRepository):
         _, version = self.get_events(sak_id)
         return version
 
-    def find_sak_id_by_catenda_topic(self, catenda_topic_id: str) -> Optional[str]:
+    def find_sak_id_by_catenda_topic(self, catenda_topic_id: str) -> str | None:
         """
         Find local sak_id given a Catenda topic GUID.
 
@@ -206,7 +207,7 @@ class JsonFileEventRepository(EventRepository):
         # Scan all event files
         for file_path in self.base_path.glob("*.json"):
             try:
-                with open(file_path, 'r', encoding='utf-8') as f:
+                with open(file_path, encoding="utf-8") as f:
                     data = json.load(f)
 
                 events = data.get("events", [])
@@ -223,7 +224,7 @@ class JsonFileEventRepository(EventRepository):
 
         return None
 
-    def list_all_sak_ids(self) -> List[str]:
+    def list_all_sak_ids(self) -> list[str]:
         """
         List all sak_ids in the repository.
 

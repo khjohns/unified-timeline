@@ -6,7 +6,7 @@ endringsordre_service.py og forsering_service.py.
 """
 
 import logging
-from typing import Any, List, Optional, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class CatendaClientProtocol(Protocol):
     """Protocol for Catenda client."""
 
-    def list_topics(self) -> List[dict]:
+    def list_topics(self) -> list[dict]:
         """Lister alle topics."""
         ...
 
@@ -39,11 +39,11 @@ class MetadataRepositoryProtocol(Protocol):
 
 
 def get_all_sak_ids(
-    catenda_client: Optional[CatendaClientProtocol] = None,
-    event_repository: Optional[Any] = None,
-    metadata_repository: Optional[MetadataRepositoryProtocol] = None,
+    catenda_client: CatendaClientProtocol | None = None,
+    event_repository: Any | None = None,
+    metadata_repository: MetadataRepositoryProtocol | None = None,
     use_metadata_mapping: bool = False,
-) -> List[str]:
+) -> list[str]:
     """
     Henter alle sak-IDer fra Catenda eller event repository.
 
@@ -74,7 +74,7 @@ def get_all_sak_ids(
             use_metadata_mapping=True
         )
     """
-    sak_ids: List[str] = []
+    sak_ids: list[str] = []
 
     # Prøv Catenda først hvis tilgjengelig
     if catenda_client:
@@ -84,7 +84,7 @@ def get_all_sak_ids(
             if use_metadata_mapping and metadata_repository:
                 # Map Catenda topic GUIDs til sak_ids via metadata
                 for topic in topics:
-                    topic_guid = topic.get('guid')
+                    topic_guid = topic.get("guid")
                     if not topic_guid:
                         continue
                     metadata = metadata_repository.get_by_topic_id(topic_guid)
@@ -92,7 +92,7 @@ def get_all_sak_ids(
                         sak_ids.append(metadata.sak_id)
             else:
                 # Bruk topic GUIDs direkte som sak_ids
-                sak_ids = [t.get('guid') for t in topics if t.get('guid')]
+                sak_ids = [t.get("guid") for t in topics if t.get("guid")]
 
         except Exception as e:
             logger.warning(f"Kunne ikke hente topics fra Catenda: {e}")
@@ -104,7 +104,7 @@ def get_all_sak_ids(
     return sak_ids
 
 
-def _get_sak_ids_from_repository(event_repository: Any) -> List[str]:
+def _get_sak_ids_from_repository(event_repository: Any) -> list[str]:
     """
     Henter sak-IDer fra event repository.
 
@@ -119,13 +119,13 @@ def _get_sak_ids_from_repository(event_repository: Any) -> List[str]:
     """
     try:
         # Prøv list_all_sak_ids (JsonFileEventRepository)
-        if hasattr(event_repository, 'list_all_sak_ids'):
+        if hasattr(event_repository, "list_all_sak_ids"):
             sak_ids = event_repository.list_all_sak_ids()
             logger.info(f"Bruker event repository fallback, fant {len(sak_ids)} saker")
             return sak_ids
 
         # Eller get_all_sak_ids (SupabaseEventRepository)
-        if hasattr(event_repository, 'get_all_sak_ids'):
+        if hasattr(event_repository, "get_all_sak_ids"):
             sak_ids = event_repository.get_all_sak_ids()
             logger.info(f"Bruker event repository fallback, fant {len(sak_ids)} saker")
             return sak_ids

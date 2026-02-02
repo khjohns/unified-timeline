@@ -7,13 +7,15 @@ Verifiserer at Container:
 - Gir samme instans ved gjentatte kall (singleton per container)
 - Kan resettes
 """
+
+from unittest.mock import Mock
+
 import pytest
-from unittest.mock import Mock, MagicMock
-from dataclasses import dataclass
+
+from core.config import Settings
 
 # Import container module
 from core.container import Container, get_container, set_container
-from core.config import Settings
 
 
 class TestContainer:

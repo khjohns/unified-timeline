@@ -8,17 +8,19 @@ innenfor 30%-grensen (dagmulkt + 30%).
 Denne servicen håndterer opprettelse av forseringssaker som egne saker
 med relasjoner til de avslåtte fristforlengelsessakene.
 """
-from typing import Dict, List, Optional, Any
-from datetime import datetime, timezone
-import os
 
-from utils.logger import get_logger
+import os
+from datetime import UTC, datetime
+from typing import Any
+
 from lib.helpers import get_all_sak_ids
-from models.sak_state import SaksType, SakState, SakRelasjon
 from models.events import parse_event
+from models.sak_state import SakRelasjon, SakState, SaksType
 from services.base_sak_service import BaseSakService
+from utils.logger import get_logger
 
 logger = get_logger(__name__)
+
 
 # Check if relation repository is available (Supabase backend)
 def _get_relation_repository():
@@ -27,6 +29,7 @@ def _get_relation_repository():
     if backend == "supabase":
         try:
             from repositories import create_relation_repository
+
             return create_relation_repository()
         except Exception as e:
             logger.debug(f"RelationRepository not available: {e}")
@@ -43,11 +46,11 @@ class ForseringService(BaseSakService):
 
     def __init__(
         self,
-        catenda_client: Optional[Any] = None,
-        event_repository: Optional[Any] = None,
-        timeline_service: Optional[Any] = None,
-        metadata_repository: Optional[Any] = None,
-        relation_repository: Optional[Any] = None,
+        catenda_client: Any | None = None,
+        event_repository: Any | None = None,
+        timeline_service: Any | None = None,
+        metadata_repository: Any | None = None,
+        relation_repository: Any | None = None,
     ):
         """
         Initialiser ForseringService.
@@ -62,7 +65,7 @@ class ForseringService(BaseSakService):
         super().__init__(
             catenda_client=catenda_client,
             event_repository=event_repository,
-            timeline_service=timeline_service
+            timeline_service=timeline_service,
         )
         self.metadata_repository = metadata_repository
         self.relation_repository = relation_repository or _get_relation_repository()
@@ -70,12 +73,12 @@ class ForseringService(BaseSakService):
 
     def opprett_forseringssak(
         self,
-        avslatte_sak_ids: List[str],
+        avslatte_sak_ids: list[str],
         estimert_kostnad: float,
         dagmulktsats: float,
         begrunnelse: str,
-        avslatte_dager: Optional[int] = None
-    ) -> Dict[str, Any]:
+        avslatte_dager: int | None = None,
+    ) -> dict[str, Any]:
         """
         Oppretter en ny forseringssak med relasjoner til avslåtte fristforlengelsessaker.
 
@@ -124,7 +127,7 @@ class ForseringService(BaseSakService):
                 title=f"Forsering § 33.8 - {titler}",
                 description=begrunnelse,
                 topic_type="Forsering",
-                topic_status="Open"
+                topic_status="Open",
             )
 
             if not topic:
@@ -133,21 +136,19 @@ class ForseringService(BaseSakService):
             # Opprett toveis-relasjoner til avslåtte saker
             # Forsering → KOE (forseringssaken peker på KOE-sakene)
             self.client.create_topic_relations(
-                topic_id=topic['guid'],
-                related_topic_guids=avslatte_sak_ids
+                topic_id=topic["guid"], related_topic_guids=avslatte_sak_ids
             )
             # KOE → Forsering (hver KOE-sak peker tilbake på forseringssaken)
             for koe_id in avslatte_sak_ids:
                 self.client.create_topic_relations(
-                    topic_id=koe_id,
-                    related_topic_guids=[topic['guid']]
+                    topic_id=koe_id, related_topic_guids=[topic["guid"]]
                 )
             logger.info(f"✅ Forseringssak opprettet: {topic['guid']}")
         else:
             logger.warning("Ingen Catenda client - returnerer mock-data")
 
         # Bygg forsering data
-        sak_id = topic['guid'] if topic else f"mock-{datetime.now().timestamp()}"
+        sak_id = topic["guid"] if topic else f"mock-{datetime.now().timestamp()}"
 
         # Add relations to projection table for O(1) lookups
         if self.relation_repository and avslatte_sak_ids:
@@ -163,13 +164,10 @@ class ForseringService(BaseSakService):
         return {
             "sak_id": sak_id,
             "sakstype": SaksType.FORSERING.value,
-            "relaterte_saker": [
-                {"relatert_sak_id": id}
-                for id in avslatte_sak_ids
-            ],
+            "relaterte_saker": [{"relatert_sak_id": id} for id in avslatte_sak_ids],
             "forsering_data": {
                 "avslatte_fristkrav": avslatte_sak_ids,
-                "dato_varslet": datetime.now(timezone.utc).isoformat(),
+                "dato_varslet": datetime.now(UTC).isoformat(),
                 "estimert_kostnad": estimert_kostnad,
                 "bekreft_30_prosent_regel": True,
                 "avslatte_dager": avslatte_dager,
@@ -177,14 +175,11 @@ class ForseringService(BaseSakService):
                 "maks_forseringskostnad": maks_kostnad,
                 "er_iverksatt": False,
                 "er_stoppet": False,
-                "kostnad_innenfor_grense": estimert_kostnad <= maks_kostnad
-            }
+                "kostnad_innenfor_grense": estimert_kostnad <= maks_kostnad,
+            },
         }
 
-    def hent_komplett_forseringskontekst(
-        self,
-        forsering_sak_id: str
-    ) -> Dict[str, Any]:
+    def hent_komplett_forseringskontekst(self, forsering_sak_id: str) -> dict[str, Any]:
         """
         Henter komplett kontekst for en forseringssak, inkludert:
         - Relaterte saker
@@ -210,12 +205,18 @@ class ForseringService(BaseSakService):
         try:
             relaterte = self.hent_relaterte_saker(forsering_sak_id)
         except (RuntimeError, Exception) as e:
-            logger.warning(f"Catenda utilgjengelig for {forsering_sak_id}, bruker lokale data: {e}")
+            logger.warning(
+                f"Catenda utilgjengelig for {forsering_sak_id}, bruker lokale data: {e}"
+            )
 
         # Fallback: Bruk avslatte_fristkrav fra forsering_data
         if not relaterte and forsering_state and forsering_state.forsering_data:
-            relaterte_ids_from_state = forsering_state.forsering_data.avslatte_fristkrav or []
-            logger.info(f"Bruker lokale relaterte saker fra forsering_data: {relaterte_ids_from_state}")
+            relaterte_ids_from_state = (
+                forsering_state.forsering_data.avslatte_fristkrav or []
+            )
+            logger.info(
+                f"Bruker lokale relaterte saker fra forsering_data: {relaterte_ids_from_state}"
+            )
             relaterte = [
                 SakRelasjon(relatert_sak_id=sak_id)
                 for sak_id in relaterte_ids_from_state
@@ -229,14 +230,14 @@ class ForseringService(BaseSakService):
                 "relaterte_saker": [],
                 "sak_states": {},
                 "hendelser": {},
-                "oppsummering": {}
+                "oppsummering": {},
             }
 
         # Hent state og hendelser
         states = self.hent_state_fra_relaterte_saker(relaterte_ids)
         hendelser = self.hent_hendelser_fra_relaterte_saker(
             relaterte_ids,
-            spor_filter=['grunnlag', 'frist']  # Mest relevante for forsering
+            spor_filter=["grunnlag", "frist"],  # Mest relevante for forsering
         )
 
         # Bygg oppsummering
@@ -248,22 +249,24 @@ class ForseringService(BaseSakService):
             if state.frist:
                 if state.frist.krevd_dager:
                     total_krevde_dager += state.frist.krevd_dager
-                if state.frist.bh_resultat == 'avslatt':
+                if state.frist.bh_resultat == "avslatt":
                     total_avslatte_dager += state.frist.krevd_dager or 0
 
             if state.grunnlag and state.grunnlag.hovedkategori:
-                grunnlag_info.append({
-                    "sak_id": sak_id,
-                    "tittel": state.sakstittel,
-                    "hovedkategori": state.grunnlag.hovedkategori,
-                    "bh_resultat": state.grunnlag.bh_resultat
-                })
+                grunnlag_info.append(
+                    {
+                        "sak_id": sak_id,
+                        "tittel": state.sakstittel,
+                        "hovedkategori": state.grunnlag.hovedkategori,
+                        "bh_resultat": state.grunnlag.bh_resultat,
+                    }
+                )
 
         oppsummering = {
             "antall_relaterte_saker": len(relaterte_ids),
             "total_krevde_dager": total_krevde_dager,
             "total_avslatte_dager": total_avslatte_dager,
-            "grunnlag_oversikt": grunnlag_info
+            "grunnlag_oversikt": grunnlag_info,
         }
 
         # Hent hendelser fra forseringssaken selv
@@ -274,7 +277,9 @@ class ForseringService(BaseSakService):
                 if events_data:
                     forsering_hendelser = [parse_event(e) for e in events_data]
             except Exception as e:
-                logger.warning(f"Kunne ikke hente hendelser for {forsering_sak_id}: {e}")
+                logger.warning(
+                    f"Kunne ikke hente hendelser for {forsering_sak_id}: {e}"
+                )
 
         logger.info(
             f"Hentet komplett kontekst for {forsering_sak_id}: "
@@ -287,15 +292,12 @@ class ForseringService(BaseSakService):
             "sak_states": states,
             "hendelser": hendelser,
             "oppsummering": oppsummering,
-            "forsering_hendelser": forsering_hendelser
+            "forsering_hendelser": forsering_hendelser,
         }
 
     def valider_30_prosent_regel(
-        self,
-        estimert_kostnad: float,
-        avslatte_dager: int,
-        dagmulktsats: float
-    ) -> Dict[str, Any]:
+        self, estimert_kostnad: float, avslatte_dager: int, dagmulktsats: float
+    ) -> dict[str, Any]:
         """
         Validerer om estimert kostnad er innenfor 30%-grensen.
 
@@ -313,7 +315,9 @@ class ForseringService(BaseSakService):
         """
         maks_kostnad = avslatte_dager * dagmulktsats * 1.3
         differanse = estimert_kostnad - maks_kostnad
-        prosent_av_maks = (estimert_kostnad / maks_kostnad * 100) if maks_kostnad > 0 else 0
+        prosent_av_maks = (
+            (estimert_kostnad / maks_kostnad * 100) if maks_kostnad > 0 else 0
+        )
 
         return {
             "er_gyldig": estimert_kostnad <= maks_kostnad,
@@ -321,10 +325,10 @@ class ForseringService(BaseSakService):
             "differanse": differanse,
             "prosent_av_maks": round(prosent_av_maks, 1),
             "dagmulkt_grunnlag": avslatte_dager * dagmulktsats,
-            "tillegg_30_prosent": avslatte_dager * dagmulktsats * 0.3
+            "tillegg_30_prosent": avslatte_dager * dagmulktsats * 0.3,
         }
 
-    def _beregn_avslatte_dager(self, sak_ids: List[str]) -> int:
+    def _beregn_avslatte_dager(self, sak_ids: list[str]) -> int:
         """
         Beregner sum av avslåtte dager fra fristforlengelsessaker.
 
@@ -345,7 +349,7 @@ class ForseringService(BaseSakService):
         total_avslatte = 0
 
         for sak_id, state in states.items():
-            if state.frist and state.frist.bh_resultat == 'avslatt':
+            if state.frist and state.frist.bh_resultat == "avslatt":
                 avslatte = state.frist.krevd_dager or 0
                 total_avslatte += avslatte
                 logger.debug(f"Sak {sak_id}: {avslatte} avslåtte dager")
@@ -353,7 +357,7 @@ class ForseringService(BaseSakService):
         logger.info(f"Totalt {total_avslatte} avslåtte dager fra {len(sak_ids)} saker")
         return total_avslatte
 
-    def finn_forseringer_for_sak(self, sak_id: str) -> List[Dict[str, Any]]:
+    def finn_forseringer_for_sak(self, sak_id: str) -> list[dict[str, Any]]:
         """
         Finner alle forseringssaker som refererer til en gitt KOE-sak.
 
@@ -375,7 +379,7 @@ class ForseringService(BaseSakService):
         # Slow path: Full scan (O(n)) - for JSON backend
         return self._finn_forseringer_via_scan(sak_id)
 
-    def _finn_forseringer_via_index(self, sak_id: str) -> List[Dict[str, Any]]:
+    def _finn_forseringer_via_index(self, sak_id: str) -> list[dict[str, Any]]:
         """
         Find forseringer using relation index (O(1) lookup).
 
@@ -401,26 +405,34 @@ class ForseringService(BaseSakService):
         for forsering_sak_id in forsering_sak_ids:
             if self.event_repository and self.timeline_service:
                 try:
-                    events_data, _version = self.event_repository.get_events(forsering_sak_id)
+                    events_data, _version = self.event_repository.get_events(
+                        forsering_sak_id
+                    )
                     if events_data:
                         events = [parse_event(e) for e in events_data]
                         state = self.timeline_service.compute_state(events)
 
-                        if state.sakstype == 'forsering' and state.forsering_data:
-                            forseringer.append({
-                                "forsering_sak_id": forsering_sak_id,
-                                "forsering_sak_tittel": state.sakstittel,
-                                "dato_varslet": state.forsering_data.dato_varslet,
-                                "er_iverksatt": state.forsering_data.er_iverksatt or False,
-                                "er_stoppet": state.forsering_data.er_stoppet or False,
-                            })
+                        if state.sakstype == "forsering" and state.forsering_data:
+                            forseringer.append(
+                                {
+                                    "forsering_sak_id": forsering_sak_id,
+                                    "forsering_sak_tittel": state.sakstittel,
+                                    "dato_varslet": state.forsering_data.dato_varslet,
+                                    "er_iverksatt": state.forsering_data.er_iverksatt
+                                    or False,
+                                    "er_stoppet": state.forsering_data.er_stoppet
+                                    or False,
+                                }
+                            )
                 except Exception as e:
-                    logger.debug(f"Could not fetch state for forsering {forsering_sak_id}: {e}")
+                    logger.debug(
+                        f"Could not fetch state for forsering {forsering_sak_id}: {e}"
+                    )
 
         logger.info(f"Found {len(forseringer)} forseringer for {sak_id} (via index)")
         return forseringer
 
-    def _finn_forseringer_via_scan(self, sak_id: str) -> List[Dict[str, Any]]:
+    def _finn_forseringer_via_scan(self, sak_id: str) -> list[dict[str, Any]]:
         """
         Find forseringer by scanning all saker (O(n) fallback).
 
@@ -434,8 +446,7 @@ class ForseringService(BaseSakService):
 
         # Hent liste over sak-IDer å søke gjennom
         sak_ids_to_search = get_all_sak_ids(
-            catenda_client=self.client,
-            event_repository=self.event_repository
+            catenda_client=self.client, event_repository=self.event_repository
         )
 
         if not sak_ids_to_search:
@@ -446,28 +457,36 @@ class ForseringService(BaseSakService):
         for candidate_sak_id in sak_ids_to_search:
             if self.event_repository and self.timeline_service:
                 try:
-                    events_data, _version = self.event_repository.get_events(candidate_sak_id)
+                    events_data, _version = self.event_repository.get_events(
+                        candidate_sak_id
+                    )
                     if events_data:
                         events = [parse_event(e) for e in events_data]
                         state = self.timeline_service.compute_state(events)
 
-                        if state.sakstype == 'forsering' and state.forsering_data:
+                        if state.sakstype == "forsering" and state.forsering_data:
                             relaterte = state.forsering_data.avslatte_fristkrav or []
                             if sak_id in relaterte:
-                                forseringer.append({
-                                    "forsering_sak_id": candidate_sak_id,
-                                    "forsering_sak_tittel": state.sakstittel,
-                                    "dato_varslet": state.forsering_data.dato_varslet,
-                                    "er_iverksatt": state.forsering_data.er_iverksatt or False,
-                                    "er_stoppet": state.forsering_data.er_stoppet or False,
-                                })
+                                forseringer.append(
+                                    {
+                                        "forsering_sak_id": candidate_sak_id,
+                                        "forsering_sak_tittel": state.sakstittel,
+                                        "dato_varslet": state.forsering_data.dato_varslet,
+                                        "er_iverksatt": state.forsering_data.er_iverksatt
+                                        or False,
+                                        "er_stoppet": state.forsering_data.er_stoppet
+                                        or False,
+                                    }
+                                )
                 except Exception as e:
                     logger.debug(f"Kunne ikke evaluere sak {candidate_sak_id}: {e}")
 
-        logger.info(f"Fant {len(forseringer)} forseringer som refererer til {sak_id} (via scan)")
+        logger.info(
+            f"Fant {len(forseringer)} forseringer som refererer til {sak_id} (via scan)"
+        )
         return forseringer
 
-    def hent_kandidat_koe_saker(self) -> List[Dict[str, Any]]:
+    def hent_kandidat_koe_saker(self) -> list[dict[str, Any]]:
         """
         Henter KOE-saker som kan brukes for forsering.
 
@@ -492,7 +511,7 @@ class ForseringService(BaseSakService):
         kandidater = []
 
         for topic in topics:
-            topic_guid = topic.get('guid')
+            topic_guid = topic.get("guid")
             if not topic_guid:
                 continue
 
@@ -516,21 +535,28 @@ class ForseringService(BaseSakService):
                         state = self.timeline_service.compute_state(events)
 
                         # Sjekk kriterier for forsering
-                        is_standard = state.sakstype == SaksType.STANDARD or state.sakstype is None
+                        is_standard = (
+                            state.sakstype == SaksType.STANDARD
+                            or state.sakstype is None
+                        )
                         has_rejected_frist = (
-                            state.frist and
-                            state.frist.bh_resultat == 'avslatt'
+                            state.frist and state.frist.bh_resultat == "avslatt"
                         )
 
                         if is_standard and has_rejected_frist:
                             avslatte_dager = state.frist.krevd_dager or 0
-                            kandidater.append({
-                                "sak_id": sak_id,
-                                "tittel": state.sakstittel or topic.get('title', 'Ukjent'),
-                                "overordnet_status": state.overordnet_status,
-                                "avslatte_dager": avslatte_dager,
-                                "frist_bh_resultat": state.frist.bh_resultat if state.frist else None
-                            })
+                            kandidater.append(
+                                {
+                                    "sak_id": sak_id,
+                                    "tittel": state.sakstittel
+                                    or topic.get("title", "Ukjent"),
+                                    "overordnet_status": state.overordnet_status,
+                                    "avslatte_dager": avslatte_dager,
+                                    "frist_bh_resultat": state.frist.bh_resultat
+                                    if state.frist
+                                    else None,
+                                }
+                            )
                 except Exception as e:
                     logger.debug(f"Kunne ikke evaluere sak {sak_id}: {e}")
 
@@ -543,25 +569,25 @@ class ForseringService(BaseSakService):
         self,
         sak_id: str,
         aksepterer: bool,
-        godkjent_kostnad: Optional[float],
+        godkjent_kostnad: float | None,
         begrunnelse: str,
         aktor: str,
-        expected_version: Optional[int] = None,
+        expected_version: int | None = None,
         # Tre-port felter
-        grunnlag_fortsatt_gyldig: Optional[bool] = None,
-        grunnlag_begrunnelse: Optional[str] = None,
-        trettiprosent_overholdt: Optional[bool] = None,
-        trettiprosent_begrunnelse: Optional[str] = None,
+        grunnlag_fortsatt_gyldig: bool | None = None,
+        grunnlag_begrunnelse: str | None = None,
+        trettiprosent_overholdt: bool | None = None,
+        trettiprosent_begrunnelse: str | None = None,
         # Særskilte krav (§34.1.3)
-        rigg_varslet_i_tide: Optional[bool] = None,
-        produktivitet_varslet_i_tide: Optional[bool] = None,
-        godkjent_rigg_drift: Optional[float] = None,
-        godkjent_produktivitet: Optional[float] = None,
+        rigg_varslet_i_tide: bool | None = None,
+        produktivitet_varslet_i_tide: bool | None = None,
+        godkjent_rigg_drift: float | None = None,
+        godkjent_produktivitet: float | None = None,
         # Subsidiært standpunkt
-        subsidiaer_triggers: Optional[List[str]] = None,
-        subsidiaer_godkjent_belop: Optional[float] = None,
-        subsidiaer_begrunnelse: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        subsidiaer_triggers: list[str] | None = None,
+        subsidiaer_godkjent_belop: float | None = None,
+        subsidiaer_begrunnelse: str | None = None,
+    ) -> dict[str, Any]:
         """
         Registrerer BHs respons på forseringsvarselet (tre-port modell).
 
@@ -594,7 +620,7 @@ class ForseringService(BaseSakService):
             RuntimeError: Hvis lagring feiler
             ConcurrencyError: Hvis versjonskonflikt
         """
-        from models.events import ForseringResponsEvent, ForseringResponsData
+        from models.events import ForseringResponsData, ForseringResponsEvent
 
         if not self.event_repository:
             raise RuntimeError("EventRepository er ikke konfigurert")
@@ -622,7 +648,7 @@ class ForseringService(BaseSakService):
                 aksepterer=aksepterer,
                 godkjent_kostnad=godkjent_kostnad,
                 begrunnelse=begrunnelse,
-                dato_respons=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                dato_respons=datetime.now(UTC).strftime("%Y-%m-%d"),
                 # Særskilte krav (§34.1.3)
                 rigg_varslet_i_tide=rigg_varslet_i_tide,
                 produktivitet_varslet_i_tide=produktivitet_varslet_i_tide,
@@ -632,7 +658,7 @@ class ForseringService(BaseSakService):
                 subsidiaer_triggers=subsidiaer_triggers,
                 subsidiaer_godkjent_belop=subsidiaer_godkjent_belop,
                 subsidiaer_begrunnelse=subsidiaer_begrunnelse,
-            )
+            ),
         )
 
         # Lagre med eksplisitt versjonskontroll
@@ -654,10 +680,10 @@ class ForseringService(BaseSakService):
         self,
         sak_id: str,
         begrunnelse: str,
-        paalopte_kostnader: Optional[float],
+        paalopte_kostnader: float | None,
         aktor: str,
-        expected_version: Optional[int] = None
-    ) -> Dict[str, Any]:
+        expected_version: int | None = None,
+    ) -> dict[str, Any]:
         """
         Stopper en pågående forsering.
 
@@ -675,7 +701,7 @@ class ForseringService(BaseSakService):
             RuntimeError: Hvis lagring feiler
             ConcurrencyError: Hvis versjonskonflikt
         """
-        from models.events import ForseringStoppetEvent, ForseringStoppetData
+        from models.events import ForseringStoppetData, ForseringStoppetEvent
 
         if not self.event_repository:
             raise RuntimeError("EventRepository er ikke konfigurert")
@@ -687,7 +713,7 @@ class ForseringService(BaseSakService):
         # Hent gammel status før event for Catenda-synkronisering
         old_status = self._get_current_status(sak_id)
 
-        dato_stoppet = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        dato_stoppet = datetime.now(UTC).strftime("%Y-%m-%d")
 
         # Opprett typed event
         event = ForseringStoppetEvent(
@@ -698,13 +724,15 @@ class ForseringService(BaseSakService):
                 dato_stoppet=dato_stoppet,
                 paalopte_kostnader=paalopte_kostnader,
                 begrunnelse=begrunnelse,
-            )
+            ),
         )
 
         # Lagre med eksplisitt versjonskontroll
         new_version = self.event_repository.append(event, expected_version)
 
-        logger.info(f"Forsering {sak_id} stoppet, påløpte kostnader: {paalopte_kostnader}")
+        logger.info(
+            f"Forsering {sak_id} stoppet, påløpte kostnader: {paalopte_kostnader}"
+        )
 
         # Returner oppdatert state med event for Catenda-synkronisering
         result = self._get_updated_state(sak_id)
@@ -718,10 +746,10 @@ class ForseringService(BaseSakService):
         self,
         sak_id: str,
         paalopte_kostnader: float,
-        kommentar: Optional[str],
+        kommentar: str | None,
         aktor: str,
-        expected_version: Optional[int] = None
-    ) -> Dict[str, Any]:
+        expected_version: int | None = None,
+    ) -> dict[str, Any]:
         """
         Oppdaterer påløpte kostnader for en pågående forsering.
 
@@ -739,7 +767,10 @@ class ForseringService(BaseSakService):
             RuntimeError: Hvis lagring feiler
             ConcurrencyError: Hvis versjonskonflikt
         """
-        from models.events import ForseringKostnaderOppdatertEvent, ForseringKostnaderOppdatertData
+        from models.events import (
+            ForseringKostnaderOppdatertData,
+            ForseringKostnaderOppdatertEvent,
+        )
 
         if not self.event_repository:
             raise RuntimeError("EventRepository er ikke konfigurert")
@@ -759,13 +790,15 @@ class ForseringService(BaseSakService):
             data=ForseringKostnaderOppdatertData(
                 paalopte_kostnader=paalopte_kostnader,
                 kommentar=kommentar,
-            )
+            ),
         )
 
         # Lagre med eksplisitt versjonskontroll
         new_version = self.event_repository.append(event, expected_version)
 
-        logger.info(f"Forseringskostnader for {sak_id} oppdatert til {paalopte_kostnader}")
+        logger.info(
+            f"Forseringskostnader for {sak_id} oppdatert til {paalopte_kostnader}"
+        )
 
         # Returner oppdatert state med event for Catenda-synkronisering
         result = self._get_updated_state(sak_id)
@@ -774,10 +807,7 @@ class ForseringService(BaseSakService):
         result["old_status"] = old_status
         return result
 
-    def valider_grunnlag_fortsatt_gyldig(
-        self,
-        forsering_sak_id: str
-    ) -> Dict[str, Any]:
+    def valider_grunnlag_fortsatt_gyldig(self, forsering_sak_id: str) -> dict[str, Any]:
         """
         Sjekker om grunnlaget for forsering fortsatt er gyldig.
 
@@ -799,7 +829,7 @@ class ForseringService(BaseSakService):
         if not self.event_repository or not self.timeline_service:
             return {
                 "er_gyldig": False,
-                "grunn": "Kan ikke validere grunnlag (mangler repository/service)"
+                "grunn": "Kan ikke validere grunnlag (mangler repository/service)",
             }
 
         # Hent forseringssakens state
@@ -807,14 +837,11 @@ class ForseringService(BaseSakService):
         if not forsering_state:
             return {
                 "er_gyldig": False,
-                "grunn": f"Fant ikke forseringssak {forsering_sak_id}"
+                "grunn": f"Fant ikke forseringssak {forsering_sak_id}",
             }
 
         if not forsering_state.forsering_data:
-            return {
-                "er_gyldig": False,
-                "grunn": "Saken mangler forsering_data"
-            }
+            return {"er_gyldig": False, "grunn": "Saken mangler forsering_data"}
 
         # Sjekk hver avslått fristsak
         for avslatt_sak_id in forsering_state.forsering_data.avslatte_fristkrav:
@@ -826,17 +853,17 @@ class ForseringService(BaseSakService):
             # Sjekk om frist-sporet fortsatt er avslått
             if koe_state.frist and koe_state.frist.bh_resultat:
                 # Sjekk om BH har snudd (ikke lenger avslått)
-                if koe_state.frist.bh_resultat.value not in ['avslatt', 'hold_tilbake']:
+                if koe_state.frist.bh_resultat.value not in ["avslatt", "hold_tilbake"]:
                     return {
                         "er_gyldig": False,
                         "grunn": f"BH har endret standpunkt på fristforlengelse for {avslatt_sak_id}",
                         "pavirket_sak_id": avslatt_sak_id,
-                        "ny_status": koe_state.frist.bh_resultat.value
+                        "ny_status": koe_state.frist.bh_resultat.value,
                     }
 
         return {"er_gyldig": True}
 
-    def _hent_sak_state(self, sak_id: str) -> Optional[SakState]:
+    def _hent_sak_state(self, sak_id: str) -> SakState | None:
         """
         Hjelpemetode for å hente SakState for en sak.
 
@@ -859,7 +886,7 @@ class ForseringService(BaseSakService):
 
         return None
 
-    def _get_updated_state(self, sak_id: str) -> Dict[str, Any]:
+    def _get_updated_state(self, sak_id: str) -> dict[str, Any]:
         """
         Henter oppdatert state for en sak etter en event er lagret.
 
@@ -879,14 +906,16 @@ class ForseringService(BaseSakService):
                 state = self.timeline_service.compute_state(events)
                 return {
                     "success": True,
-                    "state": state.model_dump(mode='json') if hasattr(state, 'model_dump') else state
+                    "state": state.model_dump(mode="json")
+                    if hasattr(state, "model_dump")
+                    else state,
                 }
         except Exception as e:
             logger.warning(f"Kunne ikke beregne state for {sak_id}: {e}")
 
         return {"success": True, "message": "Event lagret"}
 
-    def _get_current_status(self, sak_id: str) -> Optional[str]:
+    def _get_current_status(self, sak_id: str) -> str | None:
         """
         Henter nåværende overordnet_status for en sak (før ny event legges til).
 
@@ -911,4 +940,3 @@ class ForseringService(BaseSakService):
             logger.warning(f"Kunne ikke hente status for {sak_id}: {e}")
 
         return None
-

@@ -27,18 +27,19 @@ Usage:
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
-from core.config import Settings, settings as default_settings
+from core.config import Settings
+from core.config import settings as default_settings
 
 if TYPE_CHECKING:
-    from repositories import EventRepository, SakMetadataRepository
-    from services.timeline_service import TimelineService
-    from services.catenda_service import CatendaService
-    from services.forsering_service import ForseringService
-    from services.endringsordre_service import EndringsordreService
-    from integrations.catenda import CatendaClient
     from core.unit_of_work import TrackingUnitOfWork
+    from integrations.catenda import CatendaClient
+    from repositories import EventRepository, SakMetadataRepository
+    from services.catenda_service import CatendaService
+    from services.endringsordre_service import EndringsordreService
+    from services.forsering_service import ForseringService
+    from services.timeline_service import TimelineService
 
 
 @dataclass
@@ -67,18 +68,18 @@ class Container:
     config: Settings = field(default_factory=lambda: default_settings)
 
     # Private cache for lazy-loaded instances
-    _event_repo: Optional['EventRepository'] = field(default=None, repr=False)
-    _metadata_repo: Optional['SakMetadataRepository'] = field(default=None, repr=False)
-    _timeline_service: Optional['TimelineService'] = field(default=None, repr=False)
-    _catenda_service: Optional['CatendaService'] = field(default=None, repr=False)
-    _catenda_client: Optional['CatendaClient'] = field(default=None, repr=False)
+    _event_repo: Optional["EventRepository"] = field(default=None, repr=False)
+    _metadata_repo: Optional["SakMetadataRepository"] = field(default=None, repr=False)
+    _timeline_service: Optional["TimelineService"] = field(default=None, repr=False)
+    _catenda_service: Optional["CatendaService"] = field(default=None, repr=False)
+    _catenda_client: Optional["CatendaClient"] = field(default=None, repr=False)
 
     # -------------------------------------------------------------------------
     # Repositories
     # -------------------------------------------------------------------------
 
     @property
-    def event_repository(self) -> 'EventRepository':
+    def event_repository(self) -> "EventRepository":
         """
         Lazy-load EventRepository basert på config.
 
@@ -89,11 +90,12 @@ class Container:
         """
         if self._event_repo is None:
             from repositories import create_event_repository
+
             self._event_repo = create_event_repository()
         return self._event_repo
 
     @property
-    def metadata_repository(self) -> 'SakMetadataRepository':
+    def metadata_repository(self) -> "SakMetadataRepository":
         """
         Lazy-load SakMetadataRepository basert på config.
 
@@ -103,6 +105,7 @@ class Container:
         """
         if self._metadata_repo is None:
             from repositories import create_metadata_repository
+
             self._metadata_repo = create_metadata_repository()
         return self._metadata_repo
 
@@ -111,7 +114,7 @@ class Container:
     # -------------------------------------------------------------------------
 
     @property
-    def timeline_service(self) -> 'TimelineService':
+    def timeline_service(self) -> "TimelineService":
         """
         Lazy-load TimelineService.
 
@@ -120,11 +123,12 @@ class Container:
         """
         if self._timeline_service is None:
             from services.timeline_service import TimelineService
+
             self._timeline_service = TimelineService()
         return self._timeline_service
 
     @property
-    def catenda_service(self) -> 'CatendaService':
+    def catenda_service(self) -> "CatendaService":
         """
         Lazy-load CatendaService.
 
@@ -132,11 +136,12 @@ class Container:
         """
         if self._catenda_service is None:
             from services.catenda_service import CatendaService
+
             self._catenda_service = CatendaService()
         return self._catenda_service
 
     @property
-    def catenda_client(self) -> 'CatendaClient':
+    def catenda_client(self) -> "CatendaClient":
         """
         Lazy-load CatendaClient.
 
@@ -144,21 +149,20 @@ class Container:
         """
         if self._catenda_client is None:
             from integrations.catenda import CatendaClient
+
             self._catenda_client = CatendaClient(
                 client_id=self.config.catenda_client_id,
                 client_secret=self.config.catenda_client_secret,
             )
             if self.config.catenda_access_token:
-                self._catenda_client.set_access_token(
-                    self.config.catenda_access_token
-                )
+                self._catenda_client.set_access_token(self.config.catenda_access_token)
         return self._catenda_client
 
     # -------------------------------------------------------------------------
     # Service Factories (for services med flere avhengigheter)
     # -------------------------------------------------------------------------
 
-    def get_forsering_service(self) -> 'ForseringService':
+    def get_forsering_service(self) -> "ForseringService":
         """
         Opprett ForseringService med alle avhengigheter injisert.
 
@@ -166,13 +170,14 @@ class Container:
             ForseringService med event_repository, timeline_service, catenda_client
         """
         from services.forsering_service import ForseringService
+
         return ForseringService(
             catenda_client=self.catenda_client,
             event_repository=self.event_repository,
             timeline_service=self.timeline_service,
         )
 
-    def get_endringsordre_service(self) -> 'EndringsordreService':
+    def get_endringsordre_service(self) -> "EndringsordreService":
         """
         Opprett EndringsordreService med alle avhengigheter injisert.
 
@@ -180,13 +185,14 @@ class Container:
             EndringsordreService med event_repository, timeline_service, catenda_client
         """
         from services.endringsordre_service import EndringsordreService
+
         return EndringsordreService(
             catenda_client=self.catenda_client,
             event_repository=self.event_repository,
             timeline_service=self.timeline_service,
         )
 
-    def create_unit_of_work(self) -> 'TrackingUnitOfWork':
+    def create_unit_of_work(self) -> "TrackingUnitOfWork":
         """
         Opprett ny Unit of Work for koordinerte repository-operasjoner.
 
@@ -201,6 +207,7 @@ class Container:
             TrackingUnitOfWork som wrapper event og metadata repositories
         """
         from core.unit_of_work import TrackingUnitOfWork
+
         return TrackingUnitOfWork(self)
 
     # -------------------------------------------------------------------------
@@ -219,7 +226,7 @@ class Container:
         self._catenda_service = None
         self._catenda_client = None
 
-    def __enter__(self) -> 'Container':
+    def __enter__(self) -> "Container":
         """Context manager support."""
         return self
 
@@ -233,7 +240,7 @@ class Container:
 # ---------------------------------------------------------------------------
 
 # Default container instance (kan overstyres i tester)
-_default_container: Optional[Container] = None
+_default_container: Container | None = None
 
 
 def get_container() -> Container:
@@ -252,7 +259,7 @@ def get_container() -> Container:
     return _default_container
 
 
-def set_container(container: Optional[Container]) -> None:
+def set_container(container: Container | None) -> None:
     """
     Sett default container instans.
 

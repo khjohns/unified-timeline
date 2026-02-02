@@ -11,15 +11,17 @@ Refaktorert 2026-02-01:
 - Fjernet hardkodede imports i properties
 - Bedre testbarhet og Azure Functions-kompatibilitet
 """
+
 import json
 import logging
-from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from core.container import Container
 
 try:
     import azure.functions as func
+
     AZURE_FUNCTIONS_AVAILABLE = True
 except ImportError:
     AZURE_FUNCTIONS_AVAILABLE = False
@@ -28,7 +30,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def adapt_request(req: 'func.HttpRequest') -> Dict[str, Any]:
+def adapt_request(req: "func.HttpRequest") -> dict[str, Any]:
     """
     Adapter Azure Functions HttpRequest til et enkelt dict format.
 
@@ -51,18 +53,16 @@ def adapt_request(req: 'func.HttpRequest') -> Dict[str, Any]:
         body = {}
 
     return {
-        'json': body,
-        'args': dict(req.params),
-        'headers': dict(req.headers),
-        'method': req.method,
+        "json": body,
+        "args": dict(req.params),
+        "headers": dict(req.headers),
+        "method": req.method,
     }
 
 
 def create_response(
-    data: Dict[str, Any],
-    status_code: int = 200,
-    headers: Optional[Dict[str, str]] = None
-) -> 'func.HttpResponse':
+    data: dict[str, Any], status_code: int = 200, headers: dict[str, str] | None = None
+) -> "func.HttpResponse":
     """
     Opprett Azure Functions HttpResponse fra data dict.
 
@@ -78,7 +78,7 @@ def create_response(
         raise RuntimeError("Azure Functions SDK ikke installert")
 
     response_headers = {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
     }
     if headers:
         response_headers.update(headers)
@@ -87,15 +87,13 @@ def create_response(
         body=json.dumps(data, ensure_ascii=False),
         status_code=status_code,
         headers=response_headers,
-        mimetype='application/json'
+        mimetype="application/json",
     )
 
 
 def create_error_response(
-    error: str,
-    status_code: int = 400,
-    details: Optional[Dict[str, Any]] = None
-) -> 'func.HttpResponse':
+    error: str, status_code: int = 400, details: dict[str, Any] | None = None
+) -> "func.HttpResponse":
     """
     Opprett error response.
 
@@ -107,7 +105,7 @@ def create_error_response(
     Returns:
         Azure Functions HttpResponse
     """
-    data = {'error': error}
+    data = {"error": error}
     if details:
         data.update(details)
     return create_response(data, status_code)
@@ -135,9 +133,7 @@ class ServiceContext:
     """
 
     def __init__(
-        self,
-        repository_type: str = 'csv',
-        container: Optional['Container'] = None
+        self, repository_type: str = "csv", container: Optional["Container"] = None
     ):
         """
         Initialize context.
@@ -159,10 +155,11 @@ class ServiceContext:
         pass
 
     @property
-    def _get_container(self) -> 'Container':
+    def _get_container(self) -> "Container":
         """Lazy-load container."""
         if self._container is None:
             from core.container import get_container
+
             self._container = get_container()
         return self._container
 
@@ -170,8 +167,9 @@ class ServiceContext:
     def repository(self):
         """Lazy-load legacy CSV repository."""
         if self._legacy_repository is None:
-            if self.repository_type == 'csv':
+            if self.repository_type == "csv":
                 from repositories.csv_repository import CSVRepository
+
                 self._legacy_repository = CSVRepository()
             # elif self.repository_type == 'dataverse':
             #     from repositories.dataverse_repository import DataverseRepository
@@ -202,9 +200,8 @@ class ServiceContext:
 
 
 def validate_required_fields(
-    data: Dict[str, Any],
-    required_fields: list
-) -> Tuple[bool, Optional[str]]:
+    data: dict[str, Any], required_fields: list
+) -> tuple[bool, str | None]:
     """
     Valider at required fields finnes i data.
 

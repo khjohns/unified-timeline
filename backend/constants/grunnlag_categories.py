@@ -13,35 +13,37 @@ Navnekonvensjon: SCREAMING_SNAKE_CASE (f.eks. 'ENDRING', 'LOV_GJENSTAND', 'FM_EG
 Synkronisert med frontend: src/constants/categories.ts
 """
 
-from typing import Dict, List, TypedDict, Literal
-
+from typing import Literal, TypedDict
 
 # ============ TYPE DEFINITIONS ============
 
+
 class Underkategori(TypedDict):
     """Underkategori for grunnlag med juridiske referanser."""
+
     kode: str
     label: str
-    hjemmel_basis: str      # Den utløsende paragrafen
+    hjemmel_basis: str  # Den utløsende paragrafen
     beskrivelse: str
-    varselkrav_ref: str     # Juridisk referanse for varselkrav
+    varselkrav_ref: str  # Juridisk referanse for varselkrav
 
 
 class Hovedkategori(TypedDict):
     """Hovedkategori for grunnlag med full juridisk kontekst."""
+
     kode: str
     label: str
     beskrivelse: str
-    hjemmel_frist: str                          # Referanse i §33
-    hjemmel_vederlag: str | None                # Referanse i §34 (None for FM)
-    standard_vederlagsmetode: str               # F.eks. 'Enhetspriser (34.3)'
-    type_krav: Literal['Tid', 'Penger', 'Tid og Penger']
-    underkategorier: List[Underkategori]
+    hjemmel_frist: str  # Referanse i §33
+    hjemmel_vederlag: str | None  # Referanse i §34 (None for FM)
+    standard_vederlagsmetode: str  # F.eks. 'Enhetspriser (34.3)'
+    type_krav: Literal["Tid", "Penger", "Tid og Penger"]
+    underkategorier: list[Underkategori]
 
 
 # ============ HOVEDKATEGORIER MED UNDERKATEGORIER ============
 
-GRUNNLAG_KATEGORIER: Dict[str, Hovedkategori] = {
+GRUNNLAG_KATEGORIER: dict[str, Hovedkategori] = {
     # ========== §33.1 a) ENDRINGER ==========
     "ENDRING": {
         "kode": "ENDRING",
@@ -111,7 +113,6 @@ GRUNNLAG_KATEGORIER: Dict[str, Hovedkategori] = {
             },
         ],
     },
-
     # ========== §33.1 b) FORSINKELSE/SVIKT ==========
     "SVIKT": {
         "kode": "SVIKT",
@@ -152,7 +153,6 @@ GRUNNLAG_KATEGORIER: Dict[str, Hovedkategori] = {
             },
         ],
     },
-
     # ========== §33.1 c) ANDRE FORHOLD ==========
     "ANDRE": {
         "kode": "ANDRE",
@@ -200,7 +200,6 @@ GRUNNLAG_KATEGORIER: Dict[str, Hovedkategori] = {
             },
         ],
     },
-
     # ========== §33.3 FORCE MAJEURE ==========
     "FORCE_MAJEURE": {
         "kode": "FORCE_MAJEURE",
@@ -217,6 +216,7 @@ GRUNNLAG_KATEGORIER: Dict[str, Hovedkategori] = {
 
 # ============ HELPER FUNCTIONS ============
 
+
 def get_hovedkategori(kode: str) -> Hovedkategori | None:
     """
     Hent hovedkategori basert på kode.
@@ -230,7 +230,9 @@ def get_hovedkategori(kode: str) -> Hovedkategori | None:
     return GRUNNLAG_KATEGORIER.get(kode)
 
 
-def get_underkategori(hovedkategori_kode: str, underkategori_kode: str) -> Underkategori | None:
+def get_underkategori(
+    hovedkategori_kode: str, underkategori_kode: str
+) -> Underkategori | None:
     """
     Hent underkategori basert på hoved- og underkategori-kode.
 
@@ -251,7 +253,7 @@ def get_underkategori(hovedkategori_kode: str, underkategori_kode: str) -> Under
     return None
 
 
-def get_alle_hovedkategorier() -> List[str]:
+def get_alle_hovedkategorier() -> list[str]:
     """
     Hent alle hovedkategori-koder.
 
@@ -261,7 +263,7 @@ def get_alle_hovedkategorier() -> List[str]:
     return list(GRUNNLAG_KATEGORIER.keys())
 
 
-def get_underkategorier_for_hovedkategori(hovedkategori_kode: str) -> List[str]:
+def get_underkategorier_for_hovedkategori(hovedkategori_kode: str) -> list[str]:
     """
     Hent alle underkategori-koder for en hovedkategori.
 
@@ -277,7 +279,9 @@ def get_underkategorier_for_hovedkategori(hovedkategori_kode: str) -> List[str]:
     return [uk["kode"] for uk in hovedkat["underkategorier"]]
 
 
-def validate_kategori_kombinasjon(hovedkategori: str, underkategori: str | List[str]) -> bool:
+def validate_kategori_kombinasjon(
+    hovedkategori: str, underkategori: str | list[str]
+) -> bool:
     """
     Valider at en kombinasjon av hoved- og underkategori er gyldig.
 
@@ -343,7 +347,9 @@ def get_underkategori_label(hovedkategori_kode: str, underkategori_kode: str) ->
     return underkategori_kode
 
 
-def get_grunnlag_sammendrag(hovedkategori_kode: str, underkategori: str | List[str]) -> str:
+def get_grunnlag_sammendrag(
+    hovedkategori_kode: str, underkategori: str | list[str]
+) -> str:
     """
     Generer lesbart sammendrag for grunnlag.
 
@@ -368,8 +374,7 @@ def get_grunnlag_sammendrag(hovedkategori_kode: str, underkategori: str | List[s
         underkat_labels = [get_underkategori_label(hovedkategori_kode, underkategori)]
     else:
         underkat_labels = [
-            get_underkategori_label(hovedkategori_kode, uk)
-            for uk in underkategori
+            get_underkategori_label(hovedkategori_kode, uk) for uk in underkategori
         ]
 
     return f"{hovedkat_label}: {', '.join(underkat_labels)}"
@@ -385,7 +390,7 @@ def er_lovendring(underkategori_kode: str) -> bool:
     Returns:
         True hvis lovendring (LOV_GJENSTAND, LOV_PROSESS, GEBYR)
     """
-    return underkategori_kode in ['LOV_GJENSTAND', 'LOV_PROSESS', 'GEBYR']
+    return underkategori_kode in ["LOV_GJENSTAND", "LOV_PROSESS", "GEBYR"]
 
 
 def er_force_majeure(hovedkategori_kode: str) -> bool:
@@ -398,7 +403,7 @@ def er_force_majeure(hovedkategori_kode: str) -> bool:
     Returns:
         True hvis FORCE_MAJEURE
     """
-    return hovedkategori_kode == 'FORCE_MAJEURE'
+    return hovedkategori_kode == "FORCE_MAJEURE"
 
 
 def er_irregulaer_endring(hovedkategori_kode: str, underkategori_kode: str) -> bool:
@@ -412,7 +417,7 @@ def er_irregulaer_endring(hovedkategori_kode: str, underkategori_kode: str) -> b
     Returns:
         True hvis irregulær endring (ENDRING + IRREG)
     """
-    return hovedkategori_kode == 'ENDRING' and underkategori_kode == 'IRREG'
+    return hovedkategori_kode == "ENDRING" and underkategori_kode == "IRREG"
 
 
 def get_type_krav(hovedkategori_kode: str) -> str | None:
@@ -430,9 +435,8 @@ def get_type_krav(hovedkategori_kode: str) -> str | None:
 
 
 def get_hjemmel_referanser(
-    hovedkategori_kode: str,
-    underkategori_kode: str | None = None
-) -> Dict[str, str | None]:
+    hovedkategori_kode: str, underkategori_kode: str | None = None
+) -> dict[str, str | None]:
     """
     Hent hjemmelreferanser for et krav.
 
@@ -444,7 +448,11 @@ def get_hjemmel_referanser(
         Dict med 'frist', 'vederlag', og 'varsel' referanser
     """
     hovedkategori = get_hovedkategori(hovedkategori_kode)
-    underkategori = get_underkategori(hovedkategori_kode, underkategori_kode) if underkategori_kode else None
+    underkategori = (
+        get_underkategori(hovedkategori_kode, underkategori_kode)
+        if underkategori_kode
+        else None
+    )
 
     return {
         "frist": hovedkategori["hjemmel_frist"] if hovedkategori else "",

@@ -7,29 +7,29 @@ Verifiserer at UnitOfWork:
 - Tracker operasjoner for kompenserende rollback
 - Fungerer med InMemoryUnitOfWork for testing
 """
-import pytest
-from unittest.mock import Mock, MagicMock, patch
+
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from unittest.mock import Mock
 
-from core.unit_of_work import (
-    UnitOfWork,
-    TrackingUnitOfWork,
-    InMemoryUnitOfWork,
-    TrackedOperation,
-    OperationType,
-)
+import pytest
+
 from core.container import Container
-from core.config import Settings
-
+from core.unit_of_work import (
+    InMemoryUnitOfWork,
+    OperationType,
+    TrackingUnitOfWork,
+)
 
 # =============================================================================
 # Test fixtures and helpers
 # =============================================================================
 
+
 @dataclass
 class MockEvent:
     """Mock event for testing."""
+
     sak_id: str
     event_type: str = "test_event"
     data: dict = None
@@ -42,6 +42,7 @@ class MockEvent:
 @dataclass
 class MockMetadata:
     """Mock metadata for testing."""
+
     sak_id: str
     cached_title: str = "Test"
     created_at: datetime = None
@@ -49,7 +50,7 @@ class MockMetadata:
 
     def __post_init__(self):
         if self.created_at is None:
-            self.created_at = datetime.now(timezone.utc)
+            self.created_at = datetime.now(UTC)
 
 
 @pytest.fixture
@@ -85,6 +86,7 @@ def mock_container(mock_event_repo, mock_metadata_repo):
 # =============================================================================
 # Tests: InMemoryUnitOfWork
 # =============================================================================
+
 
 class TestInMemoryUnitOfWork:
     """Tests for in-memory unit of work (for testing)."""
@@ -153,10 +155,9 @@ class TestInMemoryUnitOfWork:
         uow = InMemoryUnitOfWork()
         event = MockEvent(sak_id="SAK-001")
 
-        with pytest.raises(ValueError):
-            with uow:
-                uow.events.append(event, expected_version=0)
-                raise ValueError("Test error")
+        with pytest.raises(ValueError), uow:
+            uow.events.append(event, expected_version=0)
+            raise ValueError("Test error")
 
         # Should be rolled back
         events, _ = uow.events.get_events("SAK-001")
@@ -184,6 +185,7 @@ class TestInMemoryUnitOfWork:
 # =============================================================================
 # Tests: TrackingUnitOfWork
 # =============================================================================
+
 
 class TestTrackingUnitOfWork:
     """Tests for tracking unit of work (for production)."""
@@ -301,6 +303,7 @@ class TestTrackingUnitOfWork:
 # =============================================================================
 # Tests: Integration with Container
 # =============================================================================
+
 
 class TestContainerUnitOfWork:
     """Tests for Container.create_unit_of_work()."""

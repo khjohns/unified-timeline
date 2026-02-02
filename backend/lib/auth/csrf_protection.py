@@ -21,14 +21,14 @@ Forfatter: Claude
 Dato: 2025-11-24
 """
 
-import secrets
-import hmac
 import hashlib
+import hmac
 import os
+import secrets
 from datetime import datetime
-from flask import request, jsonify
 from functools import wraps
-from typing import Tuple
+
+from flask import jsonify, request
 
 # CSRF secret key - MUST be kept secret!
 # I produksjon: Flytt til environment variable og bruk sterk random verdi
@@ -71,16 +71,16 @@ def generate_csrf_token() -> str:
 
     # Generer HMAC-SHA256 signature
     signature = hmac.new(
-        CSRF_SECRET.encode('utf-8'),
-        message.encode('utf-8'),
-        hashlib.sha256
+        CSRF_SECRET.encode("utf-8"), message.encode("utf-8"), hashlib.sha256
     ).hexdigest()
 
     # Returner komplett token
     return f"{nonce}:{timestamp}:{signature}"
 
 
-def validate_csrf_token(token: str, max_age: int = CSRF_TOKEN_MAX_AGE) -> Tuple[bool, str]:
+def validate_csrf_token(
+    token: str, max_age: int = CSRF_TOKEN_MAX_AGE
+) -> tuple[bool, str]:
     """
     Valider et CSRF-token.
 
@@ -118,7 +118,10 @@ def validate_csrf_token(token: str, max_age: int = CSRF_TOKEN_MAX_AGE) -> Tuple[
     # Splitt token i komponenter
     parts = token.split(":")
     if len(parts) != 3:
-        return False, "CSRF token malformed (expected format: nonce:timestamp:signature)"
+        return (
+            False,
+            "CSRF token malformed (expected format: nonce:timestamp:signature)",
+        )
 
     nonce, timestamp_str, signature = parts
 
@@ -142,9 +145,7 @@ def validate_csrf_token(token: str, max_age: int = CSRF_TOKEN_MAX_AGE) -> Tuple[
     # Verifiser HMAC signature
     message = f"{nonce}:{timestamp_str}"
     expected_signature = hmac.new(
-        CSRF_SECRET.encode('utf-8'),
-        message.encode('utf-8'),
-        hashlib.sha256
+        CSRF_SECRET.encode("utf-8"), message.encode("utf-8"), hashlib.sha256
     ).hexdigest()
 
     # Bruk constant-time comparison for å forhindre timing attacks
@@ -187,6 +188,7 @@ def require_csrf(f):
         - IKKE bruk på read-only operations (GET)
         - Token må sendes i header (ikke cookie) for å fungere med ngrok
     """
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Hent token fra header
@@ -196,11 +198,13 @@ def require_csrf(f):
         valid, error = validate_csrf_token(token, max_age=CSRF_TOKEN_MAX_AGE)
 
         if not valid:
-            return jsonify({
-                "error": "CSRF validation failed",
-                "detail": error,
-                "hint": "Obtain a fresh token from GET /api/csrf-token"
-            }), 403
+            return jsonify(
+                {
+                    "error": "CSRF validation failed",
+                    "detail": error,
+                    "hint": "Obtain a fresh token from GET /api/csrf-token",
+                }
+            ), 403
 
         # Token er gyldig - kjør original funksjon
         return f(*args, **kwargs)

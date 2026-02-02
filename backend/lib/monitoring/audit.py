@@ -33,9 +33,10 @@ Dato: 2025-11-24
 import json
 import os
 from datetime import datetime
-from flask import request, g
-from typing import Optional, Dict, Any
 from pathlib import Path
+from typing import Any
+
+from flask import g, request
 
 
 class AuditLogger:
@@ -88,7 +89,7 @@ class AuditLogger:
         resource: str,
         action: str,
         result: str,
-        details: Optional[Dict[str, Any]] = None
+        details: dict[str, Any] | None = None,
     ):
         """
         Log en sikkerhetshendelse til audit log.
@@ -147,19 +148,19 @@ class AuditLogger:
             "result": result,
             "ip": self._get_client_ip(),
             "user_agent": self._get_user_agent(),
-            "details": details or {}
+            "details": details or {},
         }
 
         # Write to file (JSON Lines format)
         try:
-            with open(self.log_file, 'a', encoding='utf-8') as f:
-                f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+            with open(self.log_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
         except Exception as e:
             # Fallback: Print to stderr if file write fails
             print(f"⚠️ Audit log error: {e}", flush=True)
             print(f"   Entry: {json.dumps(entry)}", flush=True)
 
-    def _get_client_ip(self) -> Optional[str]:
+    def _get_client_ip(self) -> str | None:
         """
         Hent klient IP-adresse fra request.
 
@@ -173,14 +174,14 @@ class AuditLogger:
         """
         try:
             # Sjekk proxy headers først (for ngrok, nginx, etc.)
-            forwarded_for = request.headers.get('X-Forwarded-For')
+            forwarded_for = request.headers.get("X-Forwarded-For")
             if forwarded_for:
                 # X-Forwarded-For kan ha multiple IPs: "client, proxy1, proxy2"
                 # Første IP er klient
-                return forwarded_for.split(',')[0].strip()
+                return forwarded_for.split(",")[0].strip()
 
             # Nginx reverse proxy
-            real_ip = request.headers.get('X-Real-IP')
+            real_ip = request.headers.get("X-Real-IP")
             if real_ip:
                 return real_ip
 
@@ -190,7 +191,7 @@ class AuditLogger:
         except Exception:
             return None
 
-    def _get_user_agent(self) -> Optional[str]:
+    def _get_user_agent(self) -> str | None:
         """
         Hent User-Agent fra request.
 
@@ -204,11 +205,11 @@ class AuditLogger:
             str: User-Agent string eller None
         """
         try:
-            return request.headers.get('User-Agent')
+            return request.headers.get("User-Agent")
         except Exception:
             return None
 
-    def log_auth_success(self, user: str, details: Optional[Dict] = None):
+    def log_auth_success(self, user: str, details: dict | None = None):
         """Convenience method: Log successful authentication."""
         self.log_event(
             event_type="auth",
@@ -216,10 +217,10 @@ class AuditLogger:
             resource="auth:token",
             action="validate",
             result="success",
-            details=details
+            details=details,
         )
 
-    def log_auth_failure(self, reason: str, details: Optional[Dict] = None):
+    def log_auth_failure(self, reason: str, details: dict | None = None):
         """Convenience method: Log failed authentication."""
         self.log_event(
             event_type="auth",
@@ -227,7 +228,7 @@ class AuditLogger:
             resource="auth:token",
             action="validate",
             result="denied",
-            details={"reason": reason, **(details or {})}
+            details={"reason": reason, **(details or {})},
         )
 
     def log_access_denied(self, user: str, resource: str, reason: str):
@@ -238,7 +239,7 @@ class AuditLogger:
             resource=resource,
             action="access",
             result="denied",
-            details={"reason": reason}
+            details={"reason": reason},
         )
 
     def log_webhook_received(self, event_type: str, event_id: str):
@@ -249,18 +250,18 @@ class AuditLogger:
             resource="webhook:catenda",
             action="received",
             result="success",
-            details={"event_type": event_type, "event_id": event_id}
+            details={"event_type": event_type, "event_id": event_id},
         )
 
-    def log_security_event(self, threat_type: str, details: Optional[Dict] = None):
+    def log_security_event(self, threat_type: str, details: dict | None = None):
         """Convenience method: Log security event (CSRF, injection, etc.)."""
         self.log_event(
             event_type="security",
-            user=g.get('user', {}).get('email', 'anonymous'),
+            user=g.get("user", {}).get("email", "anonymous"),
             resource="security",
             action=threat_type,
             result="blocked",
-            details=details
+            details=details,
         )
 
 
@@ -271,10 +272,10 @@ audit = AuditLogger("audit.log")
 # Utility functions for log analysis
 def search_audit_log(
     log_file: str = "audit.log",
-    event_type: Optional[str] = None,
-    user: Optional[str] = None,
-    result: Optional[str] = None,
-    limit: int = 100
+    event_type: str | None = None,
+    user: str | None = None,
+    result: str | None = None,
+    limit: int = 100,
 ) -> list:
     """
     Søk i audit log (for debugging/analysis).
@@ -298,17 +299,17 @@ def search_audit_log(
     matches = []
 
     try:
-        with open(log_file, 'r', encoding='utf-8') as f:
+        with open(log_file, encoding="utf-8") as f:
             for line in f:
                 try:
                     entry = json.loads(line)
 
                     # Apply filters
-                    if event_type and entry.get('event_type') != event_type:
+                    if event_type and entry.get("event_type") != event_type:
                         continue
-                    if user and entry.get('user') != user:
+                    if user and entry.get("user") != user:
                         continue
-                    if result and entry.get('result') != result:
+                    if result and entry.get("result") != result:
                         continue
 
                     matches.append(entry)
@@ -336,7 +337,7 @@ def _test_audit_logging():
     print("Testing audit logging...")
 
     # Create temp log file
-    temp_log = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.log')
+    temp_log = tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".log")
     temp_log.close()
 
     try:
@@ -350,7 +351,7 @@ def _test_audit_logging():
             resource="case:TEST123",
             action="read",
             result="success",
-            details={"test": True}
+            details={"test": True},
         )
         print("✓ Event logged")
 

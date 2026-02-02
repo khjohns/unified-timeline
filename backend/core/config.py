@@ -4,6 +4,7 @@ Centralized configuration for KOE Automation System.
 All environment variables are loaded here using Pydantic Settings.
 This provides type validation and automatic .env file loading.
 """
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +15,7 @@ class Settings(BaseSettings):
     Pydantic-settings v2 automatically loads from .env files.
     Field names are automatically mapped to environment variables (case-insensitive).
     """
+
     # Catenda API credentials
     catenda_client_id: str = ""
     catenda_client_secret: str = ""
@@ -147,17 +149,17 @@ class Settings(BaseSettings):
     def get_catenda_config(self) -> dict:
         """Returner Catenda-konfigurasjon som dict (for bakoverkompatibilitet)."""
         return {
-            'catenda_client_id': self.catenda_client_id,
-            'catenda_client_secret': self.catenda_client_secret,
-            'catenda_project_id': self.catenda_project_id,
-            'catenda_library_id': self.catenda_library_id,
-            'catenda_folder_id': self.catenda_folder_id,
-            'catenda_topic_board_id': self.catenda_topic_board_id,
-            'catenda_access_token': self.catenda_access_token,
-            'catenda_refresh_token': self.catenda_refresh_token,
-            'catenda_redirect_uri': self.catenda_redirect_uri,
-            'data_dir': self.data_dir,
-            'react_app_url': self.react_app_url or self.dev_react_app_url,
+            "catenda_client_id": self.catenda_client_id,
+            "catenda_client_secret": self.catenda_client_secret,
+            "catenda_project_id": self.catenda_project_id,
+            "catenda_library_id": self.catenda_library_id,
+            "catenda_folder_id": self.catenda_folder_id,
+            "catenda_topic_board_id": self.catenda_topic_board_id,
+            "catenda_access_token": self.catenda_access_token,
+            "catenda_refresh_token": self.catenda_refresh_token,
+            "catenda_redirect_uri": self.catenda_redirect_uri,
+            "data_dir": self.data_dir,
+            "react_app_url": self.react_app_url or self.dev_react_app_url,
         }
 
     # Pydantic v2 configuration (replaces class Config)
@@ -165,7 +167,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",  # Ignore extra env vars
-        case_sensitive=False  # Case-insensitive env var matching
+        case_sensitive=False,  # Case-insensitive env var matching
     )
 
 

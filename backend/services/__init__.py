@@ -9,6 +9,6 @@ from services.catenda_service import CatendaService
 from services.forsering_service import ForseringService
 
 __all__ = [
-    'CatendaService',
-    'ForseringService',
+    "CatendaService",
+    "ForseringService",
 ]
