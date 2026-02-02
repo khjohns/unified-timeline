@@ -6,7 +6,6 @@ for posting comments, uploading documents, and managing references.
 """
 from typing import Dict, Any, Optional
 from pathlib import Path
-import threading
 
 from utils.logger import get_logger
 
@@ -58,40 +57,22 @@ class CatendaService:
         if not self.client:
             logger.warning("CatendaService initialized without API client")
 
-    def create_comment(self, topic_guid: str, comment_text: str, async_mode: bool = False) -> Optional[Dict[str, Any]]:
+    def create_comment(self, topic_guid: str, comment_text: str) -> Optional[Dict[str, Any]]:
         """
         Create a comment on a Catenda topic.
 
         Args:
             topic_guid: Catenda topic GUID
             comment_text: Comment text (supports markdown)
-            async_mode: If True, post comment in background thread (for Flask)
-                       ⚠️ TODO: Replace with Azure Service Bus queue in production
 
         Returns:
             Comment data dict if successful, None otherwise
-
-        Note:
-            In Flask/development, async_mode=True uses background threads.
-            In Azure Functions, this should use Service Bus for reliable delivery.
         """
         if not self.client:
             logger.warning("No Catenda client configured, skipping comment")
             return None
 
-        if async_mode:
-            # ⚠️ Background thread - works in Flask but NOT reliable in Azure Functions
-            # TODO: Replace with Azure Service Bus queue in production
-            thread = threading.Thread(
-                target=self._post_comment_sync,
-                args=(topic_guid, comment_text)
-            )
-            thread.daemon = True
-            thread.start()
-            logger.info(f"Comment queued for async posting to topic {topic_guid}")
-            return {"status": "queued"}
-        else:
-            return self._post_comment_sync(topic_guid, comment_text)
+        return self._post_comment_sync(topic_guid, comment_text)
 
     def _post_comment_sync(self, topic_guid: str, comment_text: str) -> Optional[Dict[str, Any]]:
         """

@@ -215,13 +215,11 @@ Azure SDK er nå lagt til i `backend/requirements.txt`:
 - Security headers
 - Cache-kontroll for assets
 
-### 3. ⚠️ Threading i background tasks (delvis løst)
+### 3. ✅ ~~Threading i background tasks~~ LØST
 
-**Status:** `catenda_webhook_service.py` er refaktorert til synkron operasjon.
-
-**Gjenstår:**
-- `backend/services/catenda_service.py:69` og `:84` bruker fortsatt threading
-- Langsiktig løsning: Azure Service Bus + separate Function triggers
+All threading-kode er fjernet:
+- `catenda_webhook_service.py` - refaktorert til synkron operasjon
+- `catenda_service.py` - `async_mode`-parameter og threading fjernet
 
 ### 4. ✅ ~~Event submission endpoints mangler~~ LØST
 
@@ -402,9 +400,7 @@ backend/services/catenda_webhook_service.py  # ✅ Synkron (ingen threading)
 
 ### Gjenstår å oppdatere
 
-```
-backend/services/catenda_service.py    # ⚠️ Bruker fortsatt threading (lav prioritet)
-```
+Ingen kritiske filer gjenstår.
 
 ---
 

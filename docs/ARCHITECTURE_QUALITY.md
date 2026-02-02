@@ -331,13 +331,9 @@ with uow.transaction():
     uow.commit()
 ```
 
-### 4. Threading i background tasks
+### 4. ~~Threading i background tasks~~ ✅ LØST
 
-```python
-# backend/services/catenda_webhook_service.py
-thread = threading.Thread(target=self._sync_to_catenda)
-thread.start()  # ❌ Fungerer IKKE i Azure Functions!
-```
+All threading-kode er fjernet. Catenda-operasjoner kjører synkront.
 
 ---
 
