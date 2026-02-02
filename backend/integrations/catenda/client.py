@@ -22,15 +22,7 @@ from pathlib import Path
 # Default timeout for HTTP requests (seconds)
 DEFAULT_TIMEOUT = 30
 
-# Konfigurer logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('catenda_api_test.log'),
-        logging.StreamHandler()
-    ]
-)
+# Use centralized logging (configured in core/logging_config.py)
 logger = logging.getLogger(__name__)
 
 
