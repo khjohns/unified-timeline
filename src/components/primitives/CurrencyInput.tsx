@@ -6,7 +6,7 @@
  * Default width is 'md' (~16-20 chars) which fits most currency amounts.
  */
 
-import { forwardRef, InputHTMLAttributes, useState, useEffect } from 'react';
+import { InputHTMLAttributes, useState, useEffect, Ref } from 'react';
 import clsx from 'clsx';
 import { InputWidth } from './Input';
 
@@ -28,6 +28,8 @@ export interface CurrencyInputProps
   helperText?: string;
   /** Label text */
   label?: string;
+  /** Ref to the input element */
+  ref?: Ref<HTMLInputElement>;
 }
 
 /**
@@ -65,24 +67,21 @@ function parseCurrency(input: string): number | null {
   return isNaN(parsed) ? null : parsed;
 }
 
-export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
-  (
-    {
-      className,
-      error,
-      fullWidth,
-      width = 'md', // Default to medium width for currency
-      disabled,
-      value,
-      onChange,
-      allowNegative = true,
-      helperText,
-      label,
-      id,
-      ...props
-    },
-    ref
-  ) => {
+export function CurrencyInput({
+  className,
+  error,
+  fullWidth,
+  width = 'md', // Default to medium width for currency
+  disabled,
+  value,
+  onChange,
+  allowNegative = true,
+  helperText,
+  label,
+  id,
+  ref,
+  ...props
+}: CurrencyInputProps) {
     // Internal display value (formatted string)
     const [displayValue, setDisplayValue] = useState(() => formatCurrency(value ?? null));
 
@@ -195,7 +194,4 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
         )}
       </div>
     );
-  }
-);
-
-CurrencyInput.displayName = 'CurrencyInput';
+}

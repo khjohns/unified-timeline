@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useId } from 'react';
+import { useCallback, useEffect, useId, Ref } from 'react';
 import { useDropzone, Accept, FileRejection, ErrorCode } from 'react-dropzone';
 import clsx from 'clsx';
 import { Cross2Icon, UploadIcon, FileTextIcon, ImageIcon } from '@radix-ui/react-icons';
@@ -37,6 +37,8 @@ export interface AttachmentUploadProps {
   className?: string;
   /** Callback for validation errors */
   onError?: (errors: string[]) => void;
+  /** Ref to the container element */
+  ref?: Ref<HTMLDivElement>;
 }
 
 /**
@@ -62,25 +64,22 @@ function getErrorMessage(code: ErrorCode | string, file: File, maxSize?: number)
  * - Image preview thumbnails
  * - Base64 encoding for backend submission
  */
-export const AttachmentUpload = forwardRef<HTMLDivElement, AttachmentUploadProps>(
-  (
-    {
-      value,
-      onChange,
-      multiple = true,
-      maxFiles = 10,
-      maxSize = 10 * 1024 * 1024,
-      accept,
-      disabled,
-      error,
-      acceptedFormatsText,
-      dropzoneText = 'Dra og slipp filer her, eller klikk for å velge',
-      id,
-      className,
-      onError,
-    },
-    ref
-  ) => {
+export function AttachmentUpload({
+  value,
+  onChange,
+  multiple = true,
+  maxFiles = 10,
+  maxSize = 10 * 1024 * 1024,
+  accept,
+  disabled,
+  error,
+  acceptedFormatsText,
+  dropzoneText = 'Dra og slipp filer her, eller klikk for å velge',
+  id,
+  className,
+  onError,
+  ref,
+}: AttachmentUploadProps) {
     const generatedId = useId();
     const fieldId = id || generatedId;
 
@@ -211,10 +210,7 @@ export const AttachmentUpload = forwardRef<HTMLDivElement, AttachmentUploadProps
         )}
       </div>
     );
-  }
-);
-
-AttachmentUpload.displayName = 'AttachmentUpload';
+}
 
 // Internal component for file list items
 interface FileListItemProps {

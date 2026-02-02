@@ -1,4 +1,4 @@
-import { forwardRef, InputHTMLAttributes } from 'react';
+import { InputHTMLAttributes, Ref } from 'react';
 import clsx from 'clsx';
 
 export type InputWidth = 'xs' | 'sm' | 'md' | 'lg' | 'full';
@@ -10,6 +10,8 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   fullWidth?: boolean;
   /** Semantic width of the input field */
   width?: InputWidth;
+  /** Ref to the input element */
+  ref?: Ref<HTMLInputElement>;
 }
 
 /**
@@ -35,64 +37,60 @@ const WIDTH_CLASSES: Record<InputWidth, string> = {
  * - Larger text and padding for better readability
  * - Focus state with pkt-border-focus (#e0adff)
  */
-export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, error, fullWidth, width, disabled, ...props }, ref) => {
-    // Determine width class (width prop takes precedence over fullWidth)
-    const widthClass = width ? WIDTH_CLASSES[width] : (fullWidth ? 'w-full' : undefined);
+export function Input({ className, error, fullWidth, width, disabled, ref, ...props }: InputProps) {
+  // Determine width class (width prop takes precedence over fullWidth)
+  const widthClass = width ? WIDTH_CLASSES[width] : (fullWidth ? 'w-full' : undefined);
 
-    return (
-      <input
-        ref={ref}
-        disabled={disabled}
-        className={clsx(
-          // Base styles - standard input size
-          'px-4 py-3 min-h-[40px]',
-          'text-base font-normal',
-          'bg-pkt-bg-default',
-          'transition-colors duration-200',
+  return (
+    <input
+      ref={ref}
+      disabled={disabled}
+      className={clsx(
+        // Base styles - standard input size
+        'px-4 py-3 min-h-[40px]',
+        'text-base font-normal',
+        'bg-pkt-bg-default',
+        'transition-colors duration-200',
 
-          // Border - 2px width, subtle rounding
-          'border-2 rounded',
+        // Border - 2px width, subtle rounding
+        'border-2 rounded',
 
-          // Default border color
-          !error && !disabled && 'border-pkt-border-default',
+        // Default border color
+        !error && !disabled && 'border-pkt-border-default',
 
-          // Error state
-          error && 'border-pkt-border-red',
+        // Error state
+        error && 'border-pkt-border-red',
 
-          // Disabled state
-          disabled && [
-            'border-pkt-border-disabled',
-            'bg-pkt-surface-gray',
-            'text-pkt-text-action-disabled',
-            'cursor-not-allowed',
-          ],
+        // Disabled state
+        disabled && [
+          'border-pkt-border-disabled',
+          'bg-pkt-surface-gray',
+          'text-pkt-text-action-disabled',
+          'cursor-not-allowed',
+        ],
 
-          // Focus state
-          !disabled && [
-            'focus:outline-none',
-            'focus:ring-4',
-            error
-              ? 'focus:ring-pkt-brand-red-400/50 focus:border-pkt-border-red'
-              : 'focus:ring-pkt-brand-purple-1000/30 focus:border-pkt-border-focus',
-          ],
+        // Focus state
+        !disabled && [
+          'focus:outline-none',
+          'focus:ring-4',
+          error
+            ? 'focus:ring-pkt-brand-red-400/50 focus:border-pkt-border-red'
+            : 'focus:ring-pkt-brand-purple-1000/30 focus:border-pkt-border-focus',
+        ],
 
-          // Hover state
-          !disabled && 'hover:border-pkt-border-hover',
+        // Hover state
+        !disabled && 'hover:border-pkt-border-hover',
 
-          // Placeholder
-          'placeholder:text-pkt-text-placeholder',
+        // Placeholder
+        'placeholder:text-pkt-text-placeholder',
 
-          // Width
-          widthClass,
+        // Width
+        widthClass,
 
-          className
-        )}
-        aria-invalid={error ? 'true' : 'false'}
-        {...props}
-      />
-    );
-  }
-);
-
-Input.displayName = 'Input';
+        className
+      )}
+      aria-invalid={error ? 'true' : 'false'}
+      {...props}
+    />
+  );
+}
