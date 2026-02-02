@@ -215,4 +215,19 @@ if __name__ == "__main__":
         print(f"  {DIM}Ready in{RESET}     {startup_ms}ms")
     print(f"{DIM}{'─'*50}{RESET}\n")
 
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # Detect if running in cloud environment
+    is_cloud = any([
+        os.getenv('RENDER'),            # Render
+        os.getenv('WEBSITE_HOSTNAME'),  # Azure App Service
+        os.getenv('DYNO'),              # Heroku
+        os.getenv('GAE_ENV'),           # Google App Engine
+        os.getenv('AWS_EXECUTION_ENV'), # AWS
+    ])
+
+    debug_mode = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
+
+    if debug_mode and is_cloud:
+        RED = "\033[31m"
+        logger.warning(f"{RED}ADVARSEL: debug=True i sky-miljø! Sett FLASK_DEBUG=false{RESET}")
+
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
