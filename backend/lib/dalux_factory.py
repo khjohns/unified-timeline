@@ -36,7 +36,7 @@ def get_dalux_client(
         base_url: Dalux base URL. If not provided, reads from DALUX_BASE_URL env.
 
     Returns:
-        Configured DaluxClient instance, or None if not configured.
+        Configured DaluxClient instance, or None if not configured/disabled.
 
     Example:
         # From environment
@@ -48,6 +48,12 @@ def get_dalux_client(
             base_url="https://node1.field.dalux.com/service/api/"
         )
     """
+    # Check if Dalux is explicitly disabled
+    from core.config import settings
+    if not settings.is_dalux_enabled:
+        logger.debug("Dalux integration disabled (DALUX_ENABLED=false)")
+        return None
+
     api_key = api_key or get_dalux_api_key()
     base_url = base_url or os.environ.get("DALUX_BASE_URL") or os.environ.get("DALUX_DEFAULT_BASE_URL")
 

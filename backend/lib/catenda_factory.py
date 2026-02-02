@@ -32,6 +32,11 @@ def get_catenda_client(with_auth: bool = True) -> Optional[CatendaClient]:
         if client:
             topics = client.list_topics()
     """
+    # Check if Catenda is explicitly disabled
+    if not settings.is_catenda_enabled:
+        logger.debug("Catenda integration disabled")
+        return None
+
     if not settings.catenda_client_id:
         logger.debug("Catenda not configured - no client_id")
         return None
