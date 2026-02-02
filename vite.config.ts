@@ -1,6 +1,7 @@
 import path from 'path';
 import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import license from 'rollup-plugin-license';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
@@ -35,6 +36,7 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [
         react(),
+        tailwindcss(),
         removeCssCorPlugin(),
         viteStaticCopy({
           targets: [
