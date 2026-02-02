@@ -359,12 +359,12 @@ def setup_webhooks_interactive():
         print(f"    State: {webhook.get('state')}\n")
     
     print("Neste steg:")
-    print("  1. Sørg for at webhook-serveren kjører:")
-    print("     python koe_automation_system.py")
+    print("  1. Sørg for at serveren kjører:")
+    print("     make run")
     print()
     print("  2. Test ved å opprette en ny topic i Catenda")
     print()
-    print("  3. Se logger i koe_automation.log")
+    print("  3. Se logger i unified_timeline.log")
 
 
 def setup_webhooks_automatic(target_url: str):

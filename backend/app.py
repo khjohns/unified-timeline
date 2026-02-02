@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-KOE Automation System - Backend API (Event Sourcing Architecture)
+Unified Timeline - Backend API
 
-Flask entrypoint using Event Sourcing Light architecture.
+Flask backend using Event Sourcing architecture.
 
 Functionality:
 1. Webhook: Detects new cases in Catenda -> Creates case -> Sends link to React App
@@ -11,7 +11,7 @@ Functionality:
 4. PDF: Accepts client-generated PDF or generates fallback -> Uploads to Catenda
 
 Architecture:
-- routes/event_routes.py: Event submission and state retrieval (Event Sourcing)
+- routes/event_routes.py: Event submission and state retrieval
 - routes/webhook_routes.py: Catenda webhook integration
 - routes/utility_routes.py: Health, CSRF, magic links
 - services/: Business logic (framework-agnostic)
@@ -20,7 +20,9 @@ Architecture:
 """
 
 import os
+import subprocess
 import sys
+import time
 from typing import Optional
 
 # Last .env fil (VIKTIG for sikkerhetsvariabler)
@@ -54,7 +56,7 @@ from utils.filtering_config import get_filter_summary
 # Logging Setup
 # ============================================================================
 
-logger = setup_logging('koe_automation.log')
+logger = setup_logging('unified_timeline.log')
 
 
 # ============================================================================
@@ -118,7 +120,7 @@ init_limiter(app)
 
 
 # ============================================================================
-# Register Blueprints (Event Sourcing Architecture)
+# Register Blueprints
 # ============================================================================
 
 from routes.utility_routes import utility_bp
@@ -133,7 +135,7 @@ from routes.fravik_routes import fravik_bp
 from routes.letter_routes import letter_bp
 from routes.error_handlers import register_error_handlers
 
-# Register event-sourced routes
+# Register routes
 app.register_blueprint(utility_bp)
 app.register_blueprint(events_bp)
 app.register_blueprint(webhook_bp)
@@ -145,7 +147,7 @@ app.register_blueprint(sync_bp)
 app.register_blueprint(fravik_bp)
 app.register_blueprint(letter_bp)
 
-logger.info("✅ Event Sourcing Blueprints registered (inkl. Forsering, Endringsordre, CloudEvents, Analytics, Sync, Fravik, Letter)")
+logger.info("✅ Blueprints registered")
 
 # Register error handlers
 register_error_handlers(app)
@@ -156,46 +158,60 @@ register_error_handlers(app)
 # ============================================================================
 
 if __name__ == "__main__":
-    # Check for Catenda configuration (optional)
-    if not settings.catenda_client_id:
-        logger.warning("⚠️  CATENDA_CLIENT_ID missing in .env - running without Catenda integration")
-        logger.info("   To enable: copy backend/.env.example to backend/.env and fill in values")
+    start_time = time.time()
 
-    print("\n" + "="*70)
-    print("🚀 KOE Backend API - Event Sourcing Architecture")
-    print("="*70)
-    print("\n📡 Server: http://localhost:8080")
-    print(f"🔍 Environment: {'Development' if app.config['DEBUG'] else 'Production'}")
-    print(f"🔗 CORS: {os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173')}")
-    print("\n📋 Available Endpoints:")
-    print("  ┌─ Event Submission")
-    print("  ├── POST   /api/events                      Submit single event")
-    print("  └── POST   /api/events/batch                Submit multiple events atomically")
-    print("\n  ┌─ State & Timeline")
-    print("  ├── GET    /api/cases/<id>/state            Get computed case state")
-    print("  ├── GET    /api/cases/<id>/timeline         Get event timeline")
-    print("  └── GET    /api/cases/<id>/historikk        Get event history")
-    print("\n  ┌─ Forsering (§33.8)")
-    print("  ├── POST   /api/forsering/opprett           Opprett forseringssak")
-    print("  ├── GET    /api/forsering/<id>/relaterte    Hent relaterte saker")
-    print("  ├── GET    /api/forsering/<id>/kontekst     Hent komplett kontekst")
-    print("  ├── GET    /api/forsering/by-relatert/<id>  Finn forsering for KOE-sak")
-    print("  └── POST   /api/forsering/valider           Valider 30%-regelen")
-    print("\n  ┌─ Endringsordre (§31.3)")
-    print("  ├── POST   /api/endringsordre/opprett       Opprett endringsordre")
-    print("  ├── GET    /api/endringsordre/<id>/relaterte   Hent relaterte KOE-saker")
-    print("  ├── GET    /api/endringsordre/<id>/kontekst    Hent komplett kontekst")
-    print("  ├── POST   /api/endringsordre/<id>/koe         Legg til KOE-sak")
-    print("  ├── DELETE /api/endringsordre/<id>/koe/<koe>   Fjern KOE-sak")
-    print("  ├── GET    /api/endringsordre/kandidater       Hent KOE-kandidater")
-    print("  └── GET    /api/endringsordre/by-relatert/<id> Finn EO for KOE-sak")
-    print("\n  ┌─ Utilities")
-    print("  ├── GET    /api/health                      Health check")
-    print("  ├── GET    /api/csrf-token                  Get CSRF token")
-    print("  ├── GET    /api/magic-link/verify           Verify magic link")
-    print("  └── POST   /api/validate-user               Validate user")
-    print("\n  └─ Webhooks")
-    print("      POST   /webhook/catenda/<secret>        Catenda webhook")
-    print("\n" + "="*70 + "\n")
+    # ANSI colors
+    BOLD = "\033[1m"
+    DIM = "\033[2m"
+    GREEN = "\033[32m"
+    CYAN = "\033[36m"
+    RESET = "\033[0m"
 
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    # Git version
+    try:
+        git_commit = subprocess.getoutput('git rev-parse --short HEAD')
+    except Exception:
+        git_commit = "unknown"
+
+    # Port (Azure App Service sets PORT env var)
+    port = int(os.getenv('PORT', 8080))
+
+    # Count routes per blueprint
+    blueprint_routes = {}
+    for rule in app.url_map.iter_rules():
+        if '.' in rule.endpoint:
+            bp_name = rule.endpoint.split('.')[0]
+            blueprint_routes[bp_name] = blueprint_routes.get(bp_name, 0) + 1
+
+    total_routes = len(list(app.url_map.iter_rules()))
+
+    # Configuration status
+    log_level = os.getenv('LOG_LEVEL', 'INFO')
+    log_format = os.getenv('LOG_FORMAT', 'json')
+    event_store = os.getenv('EVENT_STORE_BACKEND', 'csv')
+    entra_enabled = os.getenv('ENTRA_ENABLED', 'false').lower() == 'true'
+    catenda_ok = settings.is_catenda_enabled
+    dalux_ok = bool(os.getenv('DALUX_API_KEY'))
+
+    def status_color(enabled: bool) -> str:
+        return f"{GREEN}Enabled{RESET}" if enabled else f"{DIM}Disabled{RESET}"
+
+    startup_ms = int((time.time() - start_time) * 1000)
+
+    print(f"\n{DIM}{'─'*50}{RESET}")
+    print(f"{BOLD}  Unified Timeline API{RESET}  {DIM}{git_commit}{RESET}")
+    print(f"{DIM}{'─'*50}{RESET}")
+    print(f"\n  {DIM}Server{RESET}       {CYAN}http://localhost:{port}{RESET}")
+    print(f"  {DIM}Environment{RESET}  {'Development' if app.config['DEBUG'] else 'Production'}")
+    print(f"  {DIM}Log level{RESET}    {log_level} {DIM}({log_format}){RESET}")
+    print(f"  {DIM}Data store{RESET}   {event_store}")
+    print(f"  {DIM}Auth{RESET}         {GREEN}Entra ID{RESET}" if entra_enabled else f"  {DIM}Auth{RESET}         {DIM}Disabled{RESET}")
+    print(f"\n  {DIM}Integrations{RESET}")
+    print(f"    Catenda    {status_color(catenda_ok)}")
+    print(f"    Dalux      {status_color(dalux_ok)}")
+    print(f"\n  {DIM}Endpoints{RESET}    {total_routes} routes")
+    print(f"  {DIM}Docs{RESET}         GET /api/health, /api/routes")
+    print(f"  {DIM}Ready in{RESET}     {startup_ms}ms")
+    print(f"{DIM}{'─'*50}{RESET}\n")
+
+    app.run(host='0.0.0.0', port=port, debug=True)

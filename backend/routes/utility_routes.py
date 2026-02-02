@@ -8,7 +8,7 @@ Endpoints for:
 - User validation (Catenda project membership)
 """
 import logging
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 
 from lib.auth import generate_csrf_token, require_csrf
 
@@ -16,6 +16,21 @@ logger = logging.getLogger(__name__)
 
 # Create Blueprint
 utility_bp = Blueprint('utility', __name__)
+
+
+@utility_bp.route('/api/routes', methods=['GET'])
+def list_routes():
+    """List all registered API routes (for debugging/documentation)."""
+    routes = []
+    for rule in current_app.url_map.iter_rules():
+        methods = sorted(rule.methods - {'HEAD', 'OPTIONS'})
+        if methods:
+            routes.append({
+                'path': rule.rule,
+                'methods': methods,
+                'endpoint': rule.endpoint
+            })
+    return jsonify(sorted(routes, key=lambda x: x['path']))
 
 
 @utility_bp.route('/api/csrf-token', methods=['GET'])

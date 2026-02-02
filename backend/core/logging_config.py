@@ -12,6 +12,38 @@ import sys
 from pythonjsonlogger import jsonlogger
 
 
+# ANSI color codes
+class Colors:
+    RESET = "\033[0m"
+    DIM = "\033[2m"
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    BLUE = "\033[34m"
+    MAGENTA = "\033[35m"
+    CYAN = "\033[36m"
+
+
+class ColoredFormatter(logging.Formatter):
+    """Colored log formatter for terminal output."""
+
+    LEVEL_COLORS = {
+        logging.DEBUG: Colors.DIM,
+        logging.INFO: Colors.GREEN,
+        logging.WARNING: Colors.YELLOW,
+        logging.ERROR: Colors.RED,
+        logging.CRITICAL: Colors.MAGENTA,
+    }
+
+    def format(self, record):
+        # Color the level name
+        color = self.LEVEL_COLORS.get(record.levelno, Colors.RESET)
+        record.levelname = f"{color}{record.levelname:<8}{Colors.RESET}"
+        # Dim the logger name
+        record.name = f"{Colors.DIM}{record.name}{Colors.RESET}"
+        return super().format(record)
+
+
 class CustomJsonFormatter(jsonlogger.JsonFormatter):
     """Custom JSON formatter with extra fields for Azure Application Insights."""
 
@@ -23,7 +55,7 @@ class CustomJsonFormatter(jsonlogger.JsonFormatter):
             log_record['exception'] = self.formatException(record.exc_info)
 
 
-def setup_logging(log_file: str = 'koe_automation.log') -> logging.Logger:
+def setup_logging(log_file: str = 'unified_timeline.log') -> logging.Logger:
     """
     Configure application logging.
 
@@ -57,14 +89,19 @@ def setup_logging(log_file: str = 'koe_automation.log') -> logging.Logger:
         root_logger.addHandler(handler)
     else:
         # Text logging for development
-        logging.basicConfig(
-            level=getattr(logging, log_level, logging.INFO),
-            format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
-            handlers=[
-                logging.FileHandler(log_file),
-                logging.StreamHandler()
-            ]
-        )
+        log_fmt = '%(asctime)s  %(levelname)s  %(name)s  %(message)s'
+        date_fmt = '%H:%M:%S'
+
+        # Console handler with colors
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(ColoredFormatter(log_fmt, datefmt=date_fmt))
+
+        # File handler without colors
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(logging.Formatter(log_fmt, datefmt=date_fmt))
+
+        root_logger.addHandler(console_handler)
+        root_logger.addHandler(file_handler)
 
     # Silence noisy HTTP libraries (httpx, httpcore, hpack used by Supabase)
     for noisy_logger in ['httpx', 'httpcore', 'hpack', 'h2', 'h11']:
