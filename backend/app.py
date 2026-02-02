@@ -19,11 +19,16 @@ Architecture:
 - models/: Domain models (Pydantic) - events and state
 """
 
+import atexit
 import os
+import signal
 import subprocess
 import sys
 import time
 from typing import Optional
+
+# Server start time for uptime tracking
+SERVER_START_TIME: Optional[float] = None
 
 # Last .env fil (VIKTIG for sikkerhetsvariabler)
 from pathlib import Path
@@ -48,8 +53,26 @@ from lib.auth.magic_link import MagicLinkManager
 # Security
 from lib.security.rate_limiter import init_limiter
 
+# Request context
+from core.request_context import init_request_context
+
 # Filtering
 from utils.filtering_config import get_filter_summary
+
+
+def get_uptime() -> str:
+    """Get server uptime as human-readable string."""
+    if SERVER_START_TIME is None:
+        return "unknown"
+    seconds = int(time.time() - SERVER_START_TIME)
+    if seconds < 60:
+        return f"{seconds}s"
+    elif seconds < 3600:
+        return f"{seconds // 60}m {seconds % 60}s"
+    else:
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        return f"{hours}h {minutes}m"
 
 
 # ============================================================================
@@ -118,6 +141,9 @@ setup_cors(app)
 # Rate Limiting
 init_limiter(app)
 
+# Request context (request ID tracking)
+init_request_context(app)
+
 
 # ============================================================================
 # Register Blueprints
@@ -162,8 +188,37 @@ if __name__ == "__main__":
     BOLD = "\033[1m"
     DIM = "\033[2m"
     GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    RED = "\033[31m"
     CYAN = "\033[36m"
     RESET = "\033[0m"
+
+    # Startup validation
+    warnings = []
+    if not os.getenv('FLASK_SECRET_KEY'):
+        warnings.append("FLASK_SECRET_KEY ikke satt (bruker dev-default)")
+    if not os.getenv('CSRF_SECRET'):
+        warnings.append("CSRF_SECRET ikke satt")
+    if os.getenv('EVENT_STORE_BACKEND') == 'supabase':
+        if not os.getenv('SUPABASE_URL'):
+            warnings.append("SUPABASE_URL mangler (EVENT_STORE_BACKEND=supabase)")
+        if not os.getenv('SUPABASE_KEY'):
+            warnings.append("SUPABASE_KEY mangler (EVENT_STORE_BACKEND=supabase)")
+
+    # Graceful shutdown handler
+    def shutdown_handler(signum, frame):
+        sig_name = signal.Signals(signum).name
+        logger.info(f"Mottok {sig_name}, avslutter...")
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, shutdown_handler)
+    signal.signal(signal.SIGINT, shutdown_handler)
+
+    # Log shutdown on exit
+    @atexit.register
+    def log_shutdown():
+        if SERVER_START_TIME:
+            logger.info(f"Server stoppet. Kjørte i {get_uptime()}")
 
     # Git version
     try:
@@ -213,7 +268,18 @@ if __name__ == "__main__":
         print(f"\n  {DIM}Endpoints{RESET}    {total_routes} routes")
         print(f"  {DIM}Docs{RESET}         GET /api/health, /api/routes")
         print(f"  {DIM}Ready in{RESET}     {startup_ms}ms")
+
+        # Show startup warnings
+        if warnings:
+            print(f"\n  {YELLOW}Advarsler:{RESET}")
+            for warn in warnings:
+                print(f"    {YELLOW}!{RESET} {warn}")
+
     print(f"{DIM}{'─'*50}{RESET}\n")
+
+    # Set server start time for uptime tracking (both global and in app.config)
+    SERVER_START_TIME = time.time()
+    app.config['SERVER_START_TIME'] = SERVER_START_TIME
 
     # Detect if running in cloud environment
     is_cloud = any([

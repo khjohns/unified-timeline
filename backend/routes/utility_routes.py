@@ -79,21 +79,39 @@ def verify_magic_link():
 @utility_bp.route('/api/health', methods=['GET'])
 def health_check():
     """
-    Health check endpoint med database-sjekk.
+    Health check endpoint med database-sjekk og uptime.
 
     Returnerer:
     - status: "healthy" | "degraded" | "unhealthy"
+    - uptime: hvor lenge serveren har kjørt
     - checks: detaljer om hver komponent
     """
+    import time
+
     checks = {
         "database": {"status": "unknown", "latency_ms": None},
         "service": {"status": "healthy"}
     }
     overall_status = "healthy"
 
+    # Calculate uptime
+    start_time = current_app.config.get('SERVER_START_TIME')
+    if start_time:
+        uptime_seconds = int(time.time() - start_time)
+        if uptime_seconds < 60:
+            uptime_str = f"{uptime_seconds}s"
+        elif uptime_seconds < 3600:
+            uptime_str = f"{uptime_seconds // 60}m {uptime_seconds % 60}s"
+        else:
+            hours = uptime_seconds // 3600
+            minutes = (uptime_seconds % 3600) // 60
+            uptime_str = f"{hours}h {minutes}m"
+    else:
+        uptime_str = "unknown"
+        uptime_seconds = 0
+
     # Database check - prøv å hente metadata-count
     try:
-        import time
         from repositories import create_metadata_repository
 
         start = time.time()
@@ -111,7 +129,9 @@ def health_check():
     status_code = 200 if overall_status == "healthy" else 503
     return jsonify({
         "status": overall_status,
-        "service": "koe-backend",
+        "service": "unified-timeline",
+        "uptime": uptime_str,
+        "uptime_seconds": uptime_seconds,
         "checks": checks
     }), status_code
 
