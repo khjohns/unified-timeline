@@ -138,6 +138,22 @@ if app.config["SECRET_KEY"] == "dev-only-secret-CHANGE-IN-PRODUCTION":
         "⚠️  FLASK_SECRET_KEY not set - using dev default. Set in .env for production!"
     )
 
+# Flask 3.1+: Secret key fallbacks for key rotation
+# When rotating keys, add old key here to keep existing sessions valid
+# Format: FLASK_SECRET_KEY_FALLBACKS=oldkey1,oldkey2
+fallback_keys = os.getenv("FLASK_SECRET_KEY_FALLBACKS", "")
+if fallback_keys:
+    app.config["SECRET_KEY_FALLBACKS"] = [k.strip() for k in fallback_keys.split(",") if k.strip()]
+
+# Flask 3.1+: Form security limits (DoS protection)
+# MAX_FORM_MEMORY_SIZE: Max bytes for form data in memory (default 500KB)
+# MAX_FORM_PARTS: Max number of form fields/files (default 1000)
+app.config["MAX_FORM_MEMORY_SIZE"] = int(os.getenv("MAX_FORM_MEMORY_SIZE", 500 * 1024))
+app.config["MAX_FORM_PARTS"] = int(os.getenv("MAX_FORM_PARTS", 1000))
+
+# Max content length for uploads (16MB default)
+app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_CONTENT_LENGTH", 16 * 1024 * 1024))
+
 # CORS Configuration
 setup_cors(app)
 
