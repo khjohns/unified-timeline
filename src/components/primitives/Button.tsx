@@ -1,4 +1,5 @@
 import { ComponentPropsWithoutRef, Ref } from 'react';
+import { useFormStatus } from 'react-dom';
 import { clsx } from 'clsx';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -130,5 +131,58 @@ export function Button({ variant = 'primary', size = 'md', loading = false, clas
       )}
       {children}
     </button>
+  );
+}
+
+interface SubmitButtonProps extends Omit<ComponentPropsWithoutRef<'button'>, 'type'> {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  /**
+   * Explicit loading state (for React Hook Form's isSubmitting).
+   * Combined with useFormStatus - button shows loading if either is true.
+   */
+  loading?: boolean;
+  /** Ref to the button element */
+  ref?: Ref<HTMLButtonElement>;
+}
+
+/**
+ * Submit button that automatically shows loading state.
+ *
+ * Uses React 19's useFormStatus for forms with `action` prop,
+ * and also accepts explicit `loading` prop for React Hook Form compatibility.
+ *
+ * @example
+ * // With React 19 form actions (automatic loading)
+ * <form action={submitAction}>
+ *   <SubmitButton>Send</SubmitButton>
+ * </form>
+ *
+ * @example
+ * // With React Hook Form (explicit loading)
+ * <form onSubmit={handleSubmit(onSubmit)}>
+ *   <SubmitButton loading={isSubmitting}>Send</SubmitButton>
+ * </form>
+ */
+export function SubmitButton({
+  variant = 'primary',
+  size = 'md',
+  loading = false,
+  children,
+  ...props
+}: SubmitButtonProps) {
+  const { pending } = useFormStatus();
+  const isLoading = pending || loading;
+
+  return (
+    <Button
+      type="submit"
+      variant={variant}
+      size={size}
+      loading={isLoading}
+      {...props}
+    >
+      {children}
+    </Button>
   );
 }
