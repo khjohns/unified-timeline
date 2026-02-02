@@ -189,7 +189,7 @@ if __name__ == "__main__":
     event_store = os.getenv('EVENT_STORE_BACKEND', 'csv')
     entra_enabled = os.getenv('ENTRA_ENABLED', 'false').lower() == 'true'
     catenda_ok = settings.is_catenda_enabled
-    dalux_ok = bool(os.getenv('DALUX_API_KEY'))
+    dalux_ok = settings.is_dalux_enabled
 
     def status_color(enabled: bool) -> str:
         return f"{GREEN}Enabled{RESET}" if enabled else f"{DIM}Disabled{RESET}"

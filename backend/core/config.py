@@ -49,6 +49,28 @@ class Settings(BaseSettings):
         # Auto-detect: enabled if we have client credentials
         return bool(self.catenda_client_id and self.catenda_client_secret)
 
+    # Dalux API
+    dalux_api_key: str = ""
+    dalux_base_url: str = ""
+    dalux_enabled: str = ""  # "", "true", "false"
+
+    @property
+    def is_dalux_enabled(self) -> bool:
+        """
+        Check if Dalux integration is enabled.
+
+        Logic:
+        - If dalux_enabled is explicitly "false" → disabled
+        - If dalux_enabled is explicitly "true" → enabled
+        - Otherwise, auto-detect based on API key
+        """
+        if self.dalux_enabled.lower() == "false":
+            return False
+        if self.dalux_enabled.lower() == "true":
+            return True
+        # Auto-detect: enabled if we have API key
+        return bool(self.dalux_api_key)
+
     # Frontend URL (for magic links i Catenda-kommentarer)
     react_app_url: str = ""
     dev_react_app_url: str = ""
