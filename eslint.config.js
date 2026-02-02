@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import globals from 'globals';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import reactPlugin from 'eslint-plugin-react';
@@ -12,9 +13,11 @@ export default [
       'node_modules/**',
       '*.config.js',
       '*.config.ts',
-      'backend/**',  // Python backend with venv
-      'scripts/**',  // Node.js scripts
-      'e2e/**',      // Playwright e2e tests (has own config)
+      'backend/**',           // Python backend with venv
+      'scripts/**',           // Node.js scripts
+      'e2e/**',               // Playwright e2e tests (has own config)
+      'supabase/**',          // Supabase Edge Functions (Deno runtime)
+      'playwright-report/**', // Playwright test reports (generated)
     ],
   },
   js.configs.recommended,
@@ -30,57 +33,9 @@ export default [
         },
       },
       globals: {
-        // Browser globals
-        window: 'readonly',
-        document: 'readonly',
-        navigator: 'readonly',
-        console: 'writable',
-        process: 'readonly',
-        // DOM types
-        HTMLInputElement: 'readonly',
-        HTMLTextAreaElement: 'readonly',
-        HTMLElement: 'readonly',
-        HTMLDivElement: 'readonly',
-        HTMLButtonElement: 'readonly',
-        HTMLFormElement: 'readonly',
-        Element: 'readonly',
-        Node: 'readonly',
-        NodeList: 'readonly',
-        RequestInit: 'readonly',
-        // React
+        ...globals.browser,
+        ...globals.es2021,
         React: 'readonly',
-        fetch: 'readonly',
-        Blob: 'readonly',
-        URL: 'readonly',
-        FileReader: 'readonly',
-        File: 'readonly',
-        localStorage: 'readonly',
-        sessionStorage: 'readonly',
-        Headers: 'readonly',
-        FormData: 'readonly',
-        HTMLCanvasElement: 'readonly',
-        HTMLDataElement: 'readonly',
-        Event: 'readonly',
-        location: 'readonly',
-        alert: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearInterval: 'readonly',
-        requestAnimationFrame: 'readonly',
-        cancelAnimationFrame: 'readonly',
-        MutationObserver: 'readonly',
-        ResizeObserver: 'readonly',
-        IntersectionObserver: 'readonly',
-        CustomEvent: 'readonly',
-        AbortController: 'readonly',
-        Request: 'readonly',
-        Response: 'readonly',
-        URLSearchParams: 'readonly',
-        TextEncoder: 'readonly',
-        TextDecoder: 'readonly',
-        atob: 'readonly',
-        btoa: 'readonly',
       },
     },
     plugins: {
@@ -146,7 +101,11 @@ export default [
     files: ['**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}', '__tests__/**/*.{ts,tsx}', 'src/tests/**/*.{ts,tsx}'],
     languageOptions: {
       globals: {
-        // Jest globals
+        ...globals.browser,
+        ...globals.es2021,
+        // Vitest/Jest globals
+        vi: 'readonly',
+        vitest: 'readonly',
         jest: 'readonly',
         describe: 'readonly',
         it: 'readonly',
@@ -157,8 +116,6 @@ export default [
         beforeAll: 'readonly',
         afterAll: 'readonly',
         global: 'readonly',
-        // React for JSX
-        React: 'readonly',
       },
     },
     rules: {
