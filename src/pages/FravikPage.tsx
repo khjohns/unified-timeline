@@ -17,8 +17,7 @@ import { DownloadIcon, ReloadIcon, BarChartIcon } from '@radix-ui/react-icons';
 import { Alert, Badge, Button, Card, DataList, DataListItem, DropdownMenuItem } from '../components/primitives';
 import { useUserRole } from '../hooks/useUserRole';
 import { PageHeader } from '../components/PageHeader';
-import { STALE_TIME } from '../constants/queryConfig';
-import { fetchFravikState, fetchFravikEvents } from '../api/fravik';
+import { fravikQueries } from '../queries';
 import {
   AvbotendeTiltakModal,
   FravikDashboard,
@@ -47,39 +46,12 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 // HOOKS
 // ============================================================================
 
-function useFravikState(sakId: string, enabled: boolean = true) {
-  return useQuery<FravikState, Error>({
-    queryKey: ['fravik', sakId, 'state'],
-    queryFn: () => fetchFravikState(sakId),
-    staleTime: STALE_TIME.DEFAULT,
-    enabled: !!sakId && enabled,
-  });
-}
-
-function useFravikEvents(sakId: string, enabled: boolean = true) {
-  return useQuery<FravikEvent[], Error>({
-    queryKey: ['fravik', sakId, 'events'],
-    queryFn: () => fetchFravikEvents(sakId),
-    staleTime: STALE_TIME.DEFAULT,
-    enabled: !!sakId && enabled,
-  });
-}
-
-// Suspense-enabled versions for use with React Suspense
 function useFravikStateSuspense(sakId: string) {
-  return useSuspenseQuery<FravikState, Error>({
-    queryKey: ['fravik', sakId, 'state'],
-    queryFn: () => fetchFravikState(sakId),
-    staleTime: STALE_TIME.DEFAULT,
-  });
+  return useSuspenseQuery(fravikQueries.state(sakId));
 }
 
 function useFravikEventsSuspense(sakId: string) {
-  return useSuspenseQuery<FravikEvent[], Error>({
-    queryKey: ['fravik', sakId, 'events'],
-    queryFn: () => fetchFravikEvents(sakId),
-    staleTime: STALE_TIME.DEFAULT,
-  });
+  return useSuspenseQuery(fravikQueries.events(sakId));
 }
 
 // ============================================================================

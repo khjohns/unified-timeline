@@ -13,6 +13,7 @@ import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { fravikKeys } from '../../../queries';
 import {
   Alert,
   Badge,
@@ -320,7 +321,7 @@ export function MiljoVurderingModal({
     onSuccess: () => {
       clearBackup();
       vurderingForm.reset();
-      queryClient.invalidateQueries({ queryKey: ['fravik', sakId] });
+      queryClient.invalidateQueries({ queryKey: fravikKeys.detail(sakId) });
       onOpenChange(false);
       toast.success('Vurdering sendt', 'Din vurdering er registrert.');
       onSuccess?.();
@@ -341,7 +342,7 @@ export function MiljoVurderingModal({
     onSuccess: () => {
       clearBackup();
       sendTilbakeForm.reset();
-      queryClient.invalidateQueries({ queryKey: ['fravik', sakId] });
+      queryClient.invalidateQueries({ queryKey: fravikKeys.detail(sakId) });
       onOpenChange(false);
       toast.success('Søknad returnert', 'Søknaden er returnert til søker.');
       onSuccess?.();

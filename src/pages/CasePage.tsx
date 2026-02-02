@@ -9,6 +9,7 @@
 import { useMemo, Suspense, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { forseringKeys, endringsordreKeys } from '../queries';
 import { STALE_TIME } from '../constants/queryConfig';
 import { useAuth } from '../context/AuthContext';
 import { ApprovalProvider } from '../context/ApprovalContext';
@@ -128,14 +129,14 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
 
   // Fetch forsering relations (check if this case is part of any forsering)
   const { data: forseringData } = useQuery<FindForseringerResponse>({
-    queryKey: ['forsering', 'by-relatert', sakId],
+    queryKey: forseringKeys.byRelatert(sakId),
     queryFn: () => findForseringerForSak(sakId),
     staleTime: STALE_TIME.EXTENDED,
   });
 
   // Fetch endringsordre relations (check if this case is part of any endringsordre)
   const { data: endringsordreData } = useQuery<FindEOerResponse>({
-    queryKey: ['endringsordre', 'by-relatert', sakId],
+    queryKey: endringsordreKeys.byRelatert(sakId),
     queryFn: () => findEOerForSak(sakId),
     staleTime: STALE_TIME.EXTENDED,
   });

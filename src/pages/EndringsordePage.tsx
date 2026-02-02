@@ -13,9 +13,9 @@
 import { useMemo, useState, Suspense } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { STALE_TIME } from '../constants/queryConfig';
 import { useAuth } from '../context/AuthContext';
 import { useCaseStateSuspense } from '../hooks/useCaseState';
+import { sakKeys, endringsordreKeys, endringsordreQueries } from '../queries';
 import { useUserRole } from '../hooks/useUserRole';
 import { Alert, Button, Card } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
@@ -36,41 +36,20 @@ import type {
   TimelineEvent,
 } from '../types/timeline';
 import {
-  fetchEOKontekst,
-  fetchKandidatKOESaker,
   leggTilKOE,
   fjernKOE,
-  type EOKontekstResponse,
-  type KandidatKOE,
 } from '../api/endringsordre';
 
 // ============================================================================
 // HOOKS
 // ============================================================================
 
-function useEOKontekst(sakId: string, enabled: boolean = true) {
-  return useQuery<EOKontekstResponse, Error>({
-    queryKey: ['endringsordre', sakId, 'kontekst'],
-    queryFn: () => fetchEOKontekst(sakId),
-    staleTime: STALE_TIME.DEFAULT,
-    enabled: !!sakId && enabled,
-  });
-}
-
 function useEOKontekstSuspense(sakId: string) {
-  return useSuspenseQuery<EOKontekstResponse, Error>({
-    queryKey: ['endringsordre', sakId, 'kontekst'],
-    queryFn: () => fetchEOKontekst(sakId),
-    staleTime: STALE_TIME.DEFAULT,
-  });
+  return useSuspenseQuery(endringsordreQueries.kontekst(sakId));
 }
 
 function useKandidatKOESaker() {
-  return useQuery<{ success: boolean; kandidat_saker: KandidatKOE[] }, Error>({
-    queryKey: ['endringsordre', 'kandidater'],
-    queryFn: fetchKandidatKOESaker,
-    staleTime: STALE_TIME.EXTENDED,
-  });
+  return useQuery(endringsordreQueries.kandidater());
 }
 
 // ============================================================================
@@ -157,8 +136,8 @@ function EndringsordrePageContent({ sakId }: { sakId: string }) {
         koe_sak_id: koeSakId,
       }),
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['endringsordre', sakId, 'kontekst'] });
-      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
+      queryClient.invalidateQueries({ queryKey: endringsordreKeys.kontekst(sakId) });
+      queryClient.invalidateQueries({ queryKey: sakKeys.state(sakId) });
       // Show warning if Catenda sync failed
       if ('catenda_synced' in result && !result.catenda_synced) {
         setShowCatendaWarning(true);
@@ -174,8 +153,8 @@ function EndringsordrePageContent({ sakId }: { sakId: string }) {
         koe_sak_id: koeSakId,
       }),
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['endringsordre', sakId, 'kontekst'] });
-      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
+      queryClient.invalidateQueries({ queryKey: endringsordreKeys.kontekst(sakId) });
+      queryClient.invalidateQueries({ queryKey: sakKeys.state(sakId) });
       // Show warning if Catenda sync failed
       if ('catenda_synced' in result && !result.catenda_synced) {
         setShowCatendaWarning(true);

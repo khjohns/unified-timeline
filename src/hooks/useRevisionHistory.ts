@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { TimelineEvent, SporType, extractEventType } from '../types/timeline';
 import { HistorikkResponse, GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../types/api';
 import { fetchHistorikk } from '../api/state';
+import { sakKeys } from '../queries';
 import { STALE_TIME } from '../constants/queryConfig';
 
 export interface RevisionInfo {
@@ -250,7 +251,7 @@ export interface UseHistorikkResult {
  */
 export function useHistorikk(sakId: string): UseHistorikkResult {
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['sak', sakId, 'historikk'],
+    queryKey: sakKeys.historikk(sakId),
     queryFn: () => fetchHistorikk(sakId),
     enabled: !!sakId,
     staleTime: STALE_TIME.DEFAULT,

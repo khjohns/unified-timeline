@@ -14,6 +14,7 @@ import {
   leggTilInfrastruktur,
   oppdaterInfrastruktur,
 } from '../api/fravik';
+import { fravikKeys } from '../queries';
 import type {
   SoknadOpprettetData,
   SoknadOppdatertData,
@@ -187,14 +188,14 @@ export function useFravikSubmit(options?: UseFravikSubmitOptions) {
     },
     onSuccess: (result, variables) => {
       // Invalidate fravik list
-      queryClient.invalidateQueries({ queryKey: ['fravik-liste'] });
+      queryClient.invalidateQueries({ queryKey: fravikKeys.liste() });
 
       // Invalidate specific søknad state if applicable
       if (variables.type !== 'opprett') {
         const sakId = 'sakId' in variables ? variables.sakId : undefined;
         if (sakId) {
-          queryClient.invalidateQueries({ queryKey: ['fravik', sakId, 'state'] });
-          queryClient.invalidateQueries({ queryKey: ['fravik', sakId, 'events'] });
+          queryClient.invalidateQueries({ queryKey: fravikKeys.state(sakId) });
+          queryClient.invalidateQueries({ queryKey: fravikKeys.events(sakId) });
         }
       }
 

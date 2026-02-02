@@ -15,6 +15,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { fravikKeys } from '../../../queries';
 import {
   Alert,
   Badge,
@@ -189,7 +190,7 @@ export function EierBeslutningModal({
     onSuccess: () => {
       clearBackup();
       reset();
-      queryClient.invalidateQueries({ queryKey: ['fravik', sakId] });
+      queryClient.invalidateQueries({ queryKey: fravikKeys.detail(sakId) });
       onOpenChange(false);
       toast.success('Beslutning fattet', 'Din beslutning er registrert. Søknaden er nå ferdigbehandlet.');
       onSuccess?.();

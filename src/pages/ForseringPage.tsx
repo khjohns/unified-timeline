@@ -9,13 +9,13 @@
 import { useMemo, useState, Suspense } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { STALE_TIME } from '../constants/queryConfig';
 import { useAuth } from '../context/AuthContext';
 import { getAuthToken, ApiError } from '../api/client';
 import { useVerifyToken } from '../hooks/useVerifyToken';
 import { useCaseStateSuspense } from '../hooks/useCaseState';
 import { useUserRole } from '../hooks/useUserRole';
 import { useStandpunktEndringer } from '../hooks/useStandpunktEndringer';
+import { sakKeys, forseringKeys, forseringQueries } from '../queries';
 import { Alert, Button, Card } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { TokenExpiredAlert } from '../components/alerts/TokenExpiredAlert';
@@ -40,43 +40,22 @@ import {
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import type { ForseringData } from '../types/timeline';
 import {
-  fetchForseringKontekst,
-  fetchKandidatSaker,
   leggTilRelaterteSaker,
   fjernRelatertSak,
   stoppForsering,
   oppdaterKostnader,
-  type ForseringKontekstResponse,
-  type KandidatSak,
 } from '../api/forsering';
 
 // ============================================================================
 // HOOKS
 // ============================================================================
 
-function useForseringKontekst(sakId: string, enabled: boolean = true) {
-  return useQuery<ForseringKontekstResponse, Error>({
-    queryKey: ['forsering', sakId, 'kontekst'],
-    queryFn: () => fetchForseringKontekst(sakId),
-    staleTime: STALE_TIME.DEFAULT,
-    enabled: !!sakId && enabled,
-  });
-}
-
 function useForseringKontekstSuspense(sakId: string) {
-  return useSuspenseQuery<ForseringKontekstResponse, Error>({
-    queryKey: ['forsering', sakId, 'kontekst'],
-    queryFn: () => fetchForseringKontekst(sakId),
-    staleTime: STALE_TIME.DEFAULT,
-  });
+  return useSuspenseQuery(forseringQueries.kontekst(sakId));
 }
 
 function useKandidatSaker() {
-  return useQuery<{ success: boolean; kandidat_saker: KandidatSak[] }, Error>({
-    queryKey: ['forsering', 'kandidater'],
-    queryFn: fetchKandidatSaker,
-    staleTime: STALE_TIME.EXTENDED,
-  });
+  return useQuery(forseringQueries.kandidater());
 }
 
 // ============================================================================
@@ -165,8 +144,8 @@ function ForseringPageContent({ sakId }: { sakId: string }) {
     },
     onSuccess: () => {
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
-      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
+      queryClient.invalidateQueries({ queryKey: forseringKeys.kontekst(sakId) });
+      queryClient.invalidateQueries({ queryKey: sakKeys.state(sakId) });
     },
     onError: (error) => {
       if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
@@ -189,8 +168,8 @@ function ForseringPageContent({ sakId }: { sakId: string }) {
     },
     onSuccess: () => {
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
-      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
+      queryClient.invalidateQueries({ queryKey: forseringKeys.kontekst(sakId) });
+      queryClient.invalidateQueries({ queryKey: sakKeys.state(sakId) });
     },
     onError: (error) => {
       if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
@@ -215,8 +194,8 @@ function ForseringPageContent({ sakId }: { sakId: string }) {
     },
     onSuccess: (result) => {
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
-      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
+      queryClient.invalidateQueries({ queryKey: forseringKeys.kontekst(sakId) });
+      queryClient.invalidateQueries({ queryKey: sakKeys.state(sakId) });
       setStoppModalOpen(false);
       // Show warning if Catenda sync failed
       if (!result.catenda_synced) {
@@ -228,7 +207,7 @@ function ForseringPageContent({ sakId }: { sakId: string }) {
         setShowTokenExpired(true);
       } else if (error instanceof ApiError && error.status === 409) {
         setShowConflict(true);
-        queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
+        queryClient.invalidateQueries({ queryKey: sakKeys.state(sakId) });
       }
     },
   });
@@ -249,8 +228,8 @@ function ForseringPageContent({ sakId }: { sakId: string }) {
     },
     onSuccess: (result) => {
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
-      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
+      queryClient.invalidateQueries({ queryKey: forseringKeys.kontekst(sakId) });
+      queryClient.invalidateQueries({ queryKey: sakKeys.state(sakId) });
       setKostnaderModalOpen(false);
       // Show warning if Catenda sync failed
       if (!result.catenda_synced) {
@@ -262,7 +241,7 @@ function ForseringPageContent({ sakId }: { sakId: string }) {
         setShowTokenExpired(true);
       } else if (error instanceof ApiError && error.status === 409) {
         setShowConflict(true);
-        queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
+        queryClient.invalidateQueries({ queryKey: sakKeys.state(sakId) });
       }
     },
   });
@@ -432,12 +411,12 @@ function ForseringPageContent({ sakId }: { sakId: string }) {
         lastResponse={forseringData.bh_respons}
         avslatteSaker={avslatteSaker}
         onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
-          queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
+          queryClient.invalidateQueries({ queryKey: forseringKeys.kontekst(sakId) });
+          queryClient.invalidateQueries({ queryKey: sakKeys.state(sakId) });
         }}
         onConflict={() => {
           setShowConflict(true);
-          queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
+          queryClient.invalidateQueries({ queryKey: sakKeys.state(sakId) });
         }}
       />
 

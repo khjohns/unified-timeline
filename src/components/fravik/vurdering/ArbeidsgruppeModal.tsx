@@ -16,6 +16,7 @@ import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { fravikKeys } from '../../../queries';
 import {
   Alert,
   Badge,
@@ -247,7 +248,7 @@ export function ArbeidsgruppeModal({
     onSuccess: () => {
       clearBackup();
       reset();
-      queryClient.invalidateQueries({ queryKey: ['fravik', sakId] });
+      queryClient.invalidateQueries({ queryKey: fravikKeys.detail(sakId) });
       onOpenChange(false);
       toast.success('Innstilling sendt', 'Arbeidsgruppens innstilling er registrert.');
       onSuccess?.();

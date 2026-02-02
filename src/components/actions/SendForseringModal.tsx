@@ -40,6 +40,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { sakKeys } from '../../queries';
 import {
   opprettForseringssak,
   type OpprettForseringRequest,
@@ -189,7 +190,7 @@ export function SendForseringModal({
       }
       // Invalidate queries to refetch case data
       clearBackup();
-      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
+      queryClient.invalidateQueries({ queryKey: sakKeys.state(sakId) });
       reset();
       onOpenChange(false);
       toast.success('Forseringssak opprettet', 'Du blir nå videresendt til forseringssaken.');

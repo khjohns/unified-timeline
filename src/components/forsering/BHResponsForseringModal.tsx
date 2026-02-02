@@ -41,6 +41,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery } from '@tanstack/react-query';
+import { forseringKeys } from '../../queries';
 import {
   bhResponsForsering,
   validerForseringsgrunnlag,
@@ -269,7 +270,7 @@ export function BHResponsForseringModal({
 
   // Fetch grunnlag validation status when modal opens
   const { data: grunnlagValidering, isLoading: isLoadingGrunnlag } = useQuery({
-    queryKey: ['forsering', sakId, 'valider-grunnlag'],
+    queryKey: forseringKeys.validerGrunnlag(sakId),
     queryFn: () => validerForseringsgrunnlag(sakId),
     enabled: open,
     staleTime: 30000,

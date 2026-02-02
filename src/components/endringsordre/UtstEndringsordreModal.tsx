@@ -21,6 +21,7 @@ import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { getAuthToken } from '../../api/client';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { sakKeys, endringsordreKeys } from '../../queries';
 import { STALE_TIME } from '../../constants/queryConfig';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -245,7 +246,7 @@ export function UtstEndringsordreModal({
 
   // Fetch candidate KOE cases
   const { data: kandidaterData, isLoading: kandidaterLoading } = useQuery({
-    queryKey: ['endringsordre', 'kandidater'],
+    queryKey: endringsordreKeys.kandidater(),
     queryFn: fetchKandidatKOESaker,
     enabled: open,
     staleTime: STALE_TIME.DEFAULT,
@@ -281,8 +282,8 @@ export function UtstEndringsordreModal({
     },
     onSuccess: (response) => {
       clearBackup();
-      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
-      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'timeline'] });
+      queryClient.invalidateQueries({ queryKey: sakKeys.state(sakId) });
+      queryClient.invalidateQueries({ queryKey: sakKeys.timeline(sakId) });
       reset();
       setSelectedKoeIds(preselectedKoeIds);
       setCurrentStep(1);

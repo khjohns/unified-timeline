@@ -11,6 +11,7 @@ import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { fravikKeys } from '../../../queries';
 import { ChevronDownIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 import {
   Alert,
@@ -323,7 +324,7 @@ export function PLVurderingModal({
     onSuccess: () => {
       clearBackup();
       vurderingForm.reset();
-      queryClient.invalidateQueries({ queryKey: ['fravik', sakId] });
+      queryClient.invalidateQueries({ queryKey: fravikKeys.detail(sakId) });
       onOpenChange(false);
       toast.success('Vurdering sendt', 'Din vurdering er registrert.');
       onSuccess?.();
@@ -344,7 +345,7 @@ export function PLVurderingModal({
     onSuccess: () => {
       clearBackup();
       sendTilbakeForm.reset();
-      queryClient.invalidateQueries({ queryKey: ['fravik', sakId] });
+      queryClient.invalidateQueries({ queryKey: fravikKeys.detail(sakId) });
       onOpenChange(false);
       toast.success('Søknad returnert', 'Søknaden er returnert til søker.');
       onSuccess?.();
