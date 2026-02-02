@@ -1,5 +1,7 @@
 # Sikkerhetsarkitektur - Unified Timeline
 
+**Sist oppdatert:** 2026-02-02
+
 Dette dokumentet beskriver sikkerhetsarkitekturen for Unified Timeline-applikasjonen.
 
 ## Innhold
@@ -139,16 +141,19 @@ Produksjonsarkitekturen bygger på **Defense in Depth** med flere sikkerhetslag.
          │
 ┌────────────────────────────────────────────────────────────┐
 │  Lag 4: Data                                               │
-│  - Dataverse Row-Level Security (RLS)                      │
+│  - PostgreSQL Row-Level Security (Supabase/Azure)          │
 │  - Managed Identity (ingen credentials i kode)             │
 │  - Encryption at rest (AES-256)                            │
+│  - Event Sourcing med optimistisk låsing                   │
+│  - Unit of Work for atomiske transaksjoner ✅              │
 └────────────────────────────────────────────────────────────┘
          ▲
          │ Sikker tilgang
          │
 ┌────────────────────────────────────────────────────────────┐
 │  Lag 3: Autorisasjon                                       │
-│  - Gatekeeper (Azure Functions)                            │
+│  - Gatekeeper (Azure App Service / Flask)                  │
+│  - DI Container for testbar sikkerhetskode ✅              │
 │  - UUID-validering (format, eksistens)                     │
 │  - TTL-kontroll (utløpt?)                                  │
 │  - Prosjekt-scope (riktig prosjekt?)                       │
@@ -185,37 +190,45 @@ Produksjonsarkitekturen bygger på **Defense in Depth** med flere sikkerhetslag.
 
 ## Gap-analyse: Prototype → Produksjon
 
+### ✅ Løst
+
+| Gap | Tidligere | Nå |
+|-----|-----------|-----|
+| Fil-låsing | fcntl (kun Unix) | ✅ Supabase PostgreSQL transaksjoner |
+| DI Container | Hardkodet | ✅ `core/container.py` |
+| Unit of Work | Ingen | ✅ `core/unit_of_work.py` |
+| Threading | Background threads | ✅ Fjernet (Azure-kompatibel) |
+| Framework-lock | Flask-avhengig auth | ✅ Framework-agnostisk |
+
 ### Kritisk (må fikses før produksjon)
 
-| Gap | Nåværende | Produksjon |
-|-----|-----------|------------|
-| Token-lagring | Plaintext JSON-filer | Azure Key Vault |
-| Magic Link TTL | 72 timer, gjenbrukbar | 24/72 timer, gjenbrukbar |
-| CSRF Secret | Dev default hvis ikke satt | Påkrevd env-variabel |
-| Rate Limiting | In-memory | Redis-backend |
-| Fil-låsing | fcntl (kun Unix) | Database-transaksjoner |
-| TLS | Kun via ngrok | Azure Front Door + HSTS |
-| WAF | Ingen | Azure WAF |
-| DDoS | Ingen | Azure DDoS Protection |
+| Gap | Nåværende | Produksjon | Status |
+|-----|-----------|------------|--------|
+| Token-lagring | JSON-filer (dev) / Supabase (prod) | Azure Key Vault | ⏳ Valgfritt |
+| CSRF Secret | Dev default hvis ikke satt | Påkrevd env-variabel | ⚠️ Sjekk config |
+| Rate Limiting | In-memory | Redis eller App Service plan | ⏳ Ved behov |
+| TLS | Kun via ngrok | Azure App Service (innebygd) | ✅ Automatisk |
+| WAF | Ingen | Azure Front Door WAF | ⏳ Anbefalt |
+| DDoS | Ingen | Azure DDoS Protection | ⏳ Anbefalt |
 
 ### Høy prioritet
 
-| Gap | Nåværende | Produksjon |
-|-----|-----------|------------|
-| Logging | Lokal fil | Application Insights |
-| Secrets | Env-variabler (plaintext) | Azure Key Vault |
-| Autentisering | Catenda + Magic Link | + Entra ID SSO + MFA |
-| Kryptering | Ingen | AES-256 at rest |
-| RLS | Applikasjonsnivå | Dataverse RLS |
+| Gap | Nåværende | Produksjon | Status |
+|-----|-----------|------------|--------|
+| Logging | Lokal fil + JSON | Application Insights | ✅ Støttet |
+| Secrets | Env-variabler | Azure Key Vault | ⏳ Anbefalt |
+| Autentisering | Catenda + Magic Link | + Entra ID via IDA | ⏳ Må bestilles |
+| Kryptering | Supabase (managed) | AES-256 at rest | ✅ Supabase/Azure |
+| RLS | Applikasjonsnivå | PostgreSQL RLS | ⏳ Kan aktiveres |
 
 ### Medium prioritet
 
-| Gap | Nåværende | Produksjon |
-|-----|-----------|------------|
-| Access logs | Ikke indeksert | Azure Monitor / ELK |
-| Felt-kryptering | Ingen | Kryptert PII |
-| Nøkkelrotasjon | Ingen mekanisme | Automatisk rotasjon |
-| IP-whitelist | Kun CORS | Webhook IP-allowlist |
+| Gap | Nåværende | Produksjon | Status |
+|-----|-----------|------------|--------|
+| Access logs | Lokal fil | Azure Monitor | ⏳ Ved deploy |
+| Felt-kryptering | Ingen | Kryptert PII | ⏳ Vurder behov |
+| Nøkkelrotasjon | Manuell | Automatisk rotasjon | ⏳ Key Vault |
+| IP-whitelist | Kun CORS | Webhook IP-allowlist | ⏳ Catenda IPs |
 
 ---
 
@@ -248,7 +261,8 @@ Produksjonsarkitekturen bygger på **Defense in Depth** med flere sikkerhetslag.
 |--------|------------|
 | **Entra ID** | Microsoft Entra ID (tidligere Azure AD) - identitets- og tilgangsstyring |
 | **Catenda** | Prosjekthotell/BIM-plattform for byggebransjen |
-| **Dataverse** | Microsoft Dataverse - lavkode dataplattform |
+| **Supabase** | Managed PostgreSQL-plattform med innebygd RLS og auth |
+| **Azure App Service** | Azure-tjeneste for hosting av web-applikasjoner |
 | **Azure Front Door** | Microsoft Azure CDN og lastbalanserer med WAF |
 | **Application Insights** | Azure-tjeneste for applikasjonsovervåking |
 | **KQL** | Kusto Query Language - spørrespråk for Azure Monitor |
@@ -302,6 +316,30 @@ Eksisterende tester i `backend/tests/test_security/`:
 
 ## Anbefalinger for videre utvikling
 
-1. **Før MVP/pilot:** Implementer Redis-basert rate limiting og token-lagring
-2. **Før produksjon:** Full Azure-stack med Key Vault, Front Door, Application Insights
-3. **Kontinuerlig:** Penetrasjonstesting, security code review, dependency scanning
+### ✅ Fullført
+
+1. ~~Implementer DI Container for testbarhet~~ → `core/container.py`
+2. ~~Implementer Unit of Work for atomiske operasjoner~~ → `core/unit_of_work.py`
+3. ~~Fjern threading for Azure-kompatibilitet~~ → Synkron Catenda-integrasjon
+4. ~~Refaktorer auth til framework-agnostisk~~ → `integrations/catenda/auth.py`
+
+### Før produksjon
+
+1. **Bestill IDA/Entra ID-integrasjon** via Kompass (se [DEPLOYMENT.md](DEPLOYMENT.md#autentisering-ida-og-entra-id))
+2. **Aktiver Azure Key Vault** for secrets (anbefalt, ikke kritisk)
+3. **Konfigurer Application Insights** i Azure Portal
+4. **Vurder Azure Front Door + WAF** for ekstra beskyttelse
+
+### Kontinuerlig
+
+1. Penetrasjonstesting før lansering
+2. Security code review ved større endringer
+3. Dependency scanning (Dependabot er aktivert)
+4. Oppdater denne dokumentasjonen ved arkitekturendringer
+
+---
+
+## Se også
+
+- [DEPLOYMENT.md](DEPLOYMENT.md) – Hovedguide for produksjonsdeploy
+- [DEPLOYMENT.md#sikkerhet](DEPLOYMENT.md#sikkerhet) – 5 sikkerhetslag oversikt
