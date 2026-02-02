@@ -570,80 +570,84 @@ export function SendGrunnlagModal({
           </div>
         </SectionContainer>
 
-        {/* Seksjon 3: Tidspunkt og varsling */}
+        {/* Seksjon 3: Tidspunkt - når ble forholdet oppdaget */}
         <SectionContainer
-          title="Tidspunkt og varsling"
-          description="Dokumenter når forholdet ble oppdaget og varslet"
+          title="Tidspunkt"
+          description="Når ble endringsforholdet oppdaget?"
         >
-          <div className="space-y-3 sm:space-y-4">
-            <FormField
-              label="Dato forhold oppdaget"
-              required
-              error={errors.dato_oppdaget?.message}
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <Controller
-                  name="dato_oppdaget"
-                  control={control}
-                  render={({ field }) => (
-                    <DatePicker
-                      id="dato_oppdaget"
-                      data-testid="grunnlag-dato-oppdaget"
-                      value={field.value}
-                      onChange={field.onChange}
-                      error={!!errors.dato_oppdaget}
-                    />
-                  )}
-                />
-                {datoOppdaget && (
-                  <span className="text-sm text-pkt-text-body-subtle whitespace-nowrap">
-                    {beregnDagerSiden(datoOppdaget)} dager siden
-                  </span>
-                )}
-              </div>
-            </FormField>
-
-            {/* Varsel options - only in create mode (varsel already sent in update mode) */}
-            {!isUpdateMode && (
+          <FormField
+            label="Dato forhold oppdaget"
+            required
+            error={errors.dato_oppdaget?.message}
+            helpText="Datoen da forholdet som gir grunnlag for endringskravet ble kjent for deg"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <Controller
-                name="varsel_sendes_na"
+                name="dato_oppdaget"
                 control={control}
-                render={({ field: sendesNaField }) => (
-                  <Controller
-                    name="dato_varsel_sendt"
-                    control={control}
-                    render={({ field: datoField }) => (
-                      <VarselSeksjon
-                        checkboxLabel="Varselet ble sendt tidligere"
-                        harTidligere={!(sendesNaField.value ?? true)}
-                        onHarTidligereChange={(v) => sendesNaField.onChange(!v)}
-                        datoSendt={datoField.value}
-                        onDatoSendtChange={datoField.onChange}
-                        registerMetoder={register('varsel_metode')}
-                        idPrefix="grunnlag_varsel"
-                        testId="grunnlag-varsel-valg"
-                        extraContent={
-                          preklusjonsResultatVarsel?.alert && (
-                            <div className="mt-3">
-                              <Alert
-                                variant={preklusjonsResultatVarsel.alert.variant}
-                                title={preklusjonsResultatVarsel.alert.title}
-                              >
-                                {preklusjonsResultatVarsel.alert.message}
-                              </Alert>
-                            </div>
-                          )
-                        }
-                      />
-                    )}
+                render={({ field }) => (
+                  <DatePicker
+                    id="dato_oppdaget"
+                    data-testid="grunnlag-dato-oppdaget"
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={!!errors.dato_oppdaget}
                   />
                 )}
               />
-            )}
-          </div>
+              {datoOppdaget && (
+                <span className="text-sm text-pkt-text-body-subtle whitespace-nowrap">
+                  {beregnDagerSiden(datoOppdaget)} dager siden
+                </span>
+              )}
+            </div>
+          </FormField>
         </SectionContainer>
 
-        {/* Seksjon 4: Vedlegg */}
+        {/* Seksjon 4: Varsling - kun i create mode (varsel allerede sendt i update mode) */}
+        {!isUpdateMode && (
+          <SectionContainer
+            title="Varsling"
+            description="Når og hvordan ble byggherre varslet om forholdet?"
+          >
+            <Controller
+              name="varsel_sendes_na"
+              control={control}
+              render={({ field: sendesNaField }) => (
+                <Controller
+                  name="dato_varsel_sendt"
+                  control={control}
+                  render={({ field: datoField }) => (
+                    <VarselSeksjon
+                      checkboxLabel="Varselet ble sendt tidligere"
+                      harTidligere={!(sendesNaField.value ?? true)}
+                      onHarTidligereChange={(v) => sendesNaField.onChange(!v)}
+                      datoSendt={datoField.value}
+                      onDatoSendtChange={datoField.onChange}
+                      registerMetoder={register('varsel_metode')}
+                      idPrefix="grunnlag_varsel"
+                      testId="grunnlag-varsel-valg"
+                      extraContent={
+                        preklusjonsResultatVarsel?.alert && (
+                          <div className="mt-3">
+                            <Alert
+                              variant={preklusjonsResultatVarsel.alert.variant}
+                              title={preklusjonsResultatVarsel.alert.title}
+                            >
+                              {preklusjonsResultatVarsel.alert.message}
+                            </Alert>
+                          </div>
+                        )
+                      }
+                    />
+                  )}
+                />
+              )}
+            />
+          </SectionContainer>
+        )}
+
+        {/* Seksjon 5: Vedlegg */}
         <SectionContainer
           title="Vedlegg"
           description="Last opp dokumentasjon"
