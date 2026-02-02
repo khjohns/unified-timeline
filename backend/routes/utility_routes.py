@@ -144,8 +144,17 @@ def catenda_health_check():
     Prøver å hente prosjektlisten for å verifisere at token er gyldig.
 
     Returns:
-        JSON: {"status": "connected" | "disconnected" | "unconfigured", "message": "..."}
+        JSON: {"status": "connected" | "disconnected" | "disabled", "message": "..."}
     """
+    from core.config import settings
+
+    # Sjekk om Catenda er aktivert først
+    if not settings.is_catenda_enabled:
+        return jsonify({
+            "status": "disabled",
+            "message": "Catenda-integrasjon er deaktivert"
+        }), 200
+
     from app import get_system
 
     try:
