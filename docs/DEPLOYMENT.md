@@ -32,16 +32,17 @@ Veiledning for utrulling av Unified Timeline (KOE-system) til produksjon.
 | Aspekt | Prototype (Dev) | Produksjon |
 |--------|-----------------|------------|
 | Frontend | Vite dev server | Azure Static Web Apps |
-| Backend | Flask (Python) | Azure Functions (Python) |
-| Database | Supabase (PostgreSQL) | Azure PostgreSQL (anbefalt) |
+| Backend | Flask (Python) | **Azure App Service B1** (anbefalt) |
+| Database | Supabase (PostgreSQL) | Supabase eller Azure PostgreSQL |
 | Event-format | CloudEvents v1.0 | CloudEvents v1.0 |
 | Arkitektur | Event Sourcing + CQRS | Event Sourcing + CQRS |
 | Autentisering | Magic links / Supabase Auth | Magic links + Entra ID |
 | Sikkerhet | Basis CSRF/CORS | WAF, DDoS, RLS |
 | Hosting | Lokal / Vercel+Render | Azure |
+| Logging | Konsoll (text/JSON) | Application Insights |
 
-> **Merk:** Supabase brukes kun for utvikling. For produksjon anbefales Azure PostgreSQL.
-> Se [DATABASE_ARCHITECTURE.md](../backend/docs/DATABASE_ARCHITECTURE.md) for detaljer.
+> **Merk:** Azure App Service (B1) anbefales fremfor Azure Functions for denne applikasjonen.
+> Flask-appen deployes direkte uten kodeendringer. Se [AZURE_READINESS.md](AZURE_READINESS.md) for begrunnelse.
 
 ### Produksjonsmiljø
 
@@ -187,7 +188,73 @@ az staticwebapp create \
 
 ---
 
-## Backend: Azure Functions
+## Backend: Azure App Service (anbefalt)
+
+### Hvorfor App Service?
+
+For enterprise B2B-applikasjoner med forutsigbar trafikk er App Service det beste valget:
+
+| Aspekt | App Service B1 | Azure Functions |
+|--------|----------------|-----------------|
+| **Deploy** | `git push` → ferdig | Må porte Flask-routes |
+| **Kodeendringer** | Ingen | Ny `function_app.py` |
+| **Cold start** | Ingen | Ja (Consumption plan) |
+| **Pris** | ~140 kr/mnd | ~200-400 kr (Flex) |
+| **Kompleksitet** | Lav | Høyere |
+
+### Deploy til App Service
+
+```bash
+# 1. Opprett App Service
+az webapp create \
+  --name koe-backend \
+  --resource-group koe-rg \
+  --plan koe-plan \
+  --runtime "PYTHON:3.11"
+
+# 2. Konfigurer deployment fra GitHub
+az webapp deployment source config \
+  --name koe-backend \
+  --resource-group koe-rg \
+  --repo-url https://github.com/org/unified-timeline \
+  --branch main
+
+# 3. Sett miljøvariabler
+az webapp config appsettings set \
+  --name koe-backend \
+  --resource-group koe-rg \
+  --settings \
+    CATENDA_CLIENT_ID="..." \
+    CATENDA_CLIENT_SECRET="..." \
+    SUPABASE_URL="..." \
+    SUPABASE_KEY="..."
+
+# 4. Aktiver "Always On" (viktig for B1+)
+az webapp config set \
+  --name koe-backend \
+  --resource-group koe-rg \
+  --always-on true
+```
+
+### Startup-kommando
+
+I Azure Portal → App Service → Configuration → General settings:
+
+```
+gunicorn --bind=0.0.0.0 --timeout 600 app:app
+```
+
+Eller i `startup.txt`:
+```
+gunicorn --bind=0.0.0.0 --timeout 600 --workers 2 app:app
+```
+
+---
+
+## Backend: Azure Functions (alternativ)
+
+> **Merk:** Azure Functions er kun nødvendig hvis du trenger serverless skalering.
+> For de fleste brukstilfeller er App Service enklere og billigere.
 
 ### Struktur for Azure Functions
 
@@ -315,7 +382,7 @@ def webhook_catenda(req: func.HttpRequest) -> func.HttpResponse:
     # ... se function_app.py for full implementasjon
 ```
 
-> **⚠️ Manglende POST-endpoints:** `function_app.py` mangler fortsatt `POST /api/events` og `POST /api/events/batch` for event submission. Disse finnes i Flask-versjonen (`routes/event_routes.py`) og må porteres før full produksjonsdeploy.
+> **✅ POST-endpoints portert:** `function_app.py` inneholder nå `POST /api/events` og `POST /api/events/batch` for event submission.
 
 ### Deploy
 
@@ -868,7 +935,18 @@ jobs:
 
 ### Application Insights
 
-Konfigurer i `host.json`:
+#### Azure App Service (automatisk)
+
+App Service har innebygd Application Insights-støtte:
+
+1. **Aktiver i Azure Portal:** App Service → Application Insights → Turn on
+2. **Sett miljøvariabel:** `APPLICATIONINSIGHTS_CONNECTION_STRING`
+
+Logger sendes automatisk til Application Insights.
+
+#### Azure Functions
+
+Konfigurer i `host.json` (allerede på plass):
 
 ```json
 {
@@ -885,6 +963,31 @@ Konfigurer i `host.json`:
     }
   }
 }
+```
+
+#### Lokal utvikling
+
+Flask-appen støtter JSON-logging som er Application Insights-kompatibel:
+
+```bash
+# I .env
+LOG_FORMAT=json    # JSON-format (prod)
+LOG_FORMAT=text    # Lesbart format (dev)
+```
+
+For full Application Insights-integrasjon lokalt, legg til `opencensus-ext-azure`:
+
+```bash
+pip install opencensus-ext-azure
+```
+
+```python
+# I app.py (valgfritt)
+from opencensus.ext.azure.log_exporter import AzureLogHandler
+import logging
+
+logger = logging.getLogger(__name__)
+logger.addHandler(AzureLogHandler(connection_string='InstrumentationKey=...'))
 ```
 
 ### Alerts
@@ -932,7 +1035,8 @@ Lag Azure Dashboard med:
 - [ ] Security review gjennomført
 - [x] **CloudEvents v1.0 format implementert**
 - [x] **Event Sourcing GET-endpoints portert til Azure Functions** (`/state`, `/timeline`)
-- [ ] **Event Sourcing POST-endpoints portert til Azure Functions** (`/events`, `/events/batch`)
+- [x] **Event Sourcing POST-endpoints portert til Azure Functions** (`/events`, `/events/batch`)
+- [x] **Threading fjernet fra Catenda-tjenester** (Azure Functions-kompatibel)
 
 ### Etter deploy
 
@@ -946,7 +1050,7 @@ Lag Azure Dashboard med:
 - [ ] Verifiser logging i App Insights
 - [ ] Verifiser event log i event store
 
-**Event Sourcing POST-endpoints (krever portering fra Flask):**
+**Event Sourcing POST-endpoints:**
 - [ ] Smoke test: Submit event (`POST /api/events`)
 - [ ] Smoke test: Submit batch (`POST /api/events/batch`)
 - [ ] Smoke test: Optimistisk låsing (conflict handling)
