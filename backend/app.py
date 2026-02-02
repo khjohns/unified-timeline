@@ -147,8 +147,6 @@ app.register_blueprint(sync_bp)
 app.register_blueprint(fravik_bp)
 app.register_blueprint(letter_bp)
 
-logger.info("✅ Blueprints registered")
-
 # Register error handlers
 register_error_handlers(app)
 
@@ -198,20 +196,23 @@ if __name__ == "__main__":
 
     startup_ms = int((time.time() - start_time) * 1000)
 
-    print(f"\n{DIM}{'─'*50}{RESET}")
-    print(f"{BOLD}  Unified Timeline API{RESET}  {DIM}{git_commit}{RESET}")
-    print(f"{DIM}{'─'*50}{RESET}")
-    print(f"\n  {DIM}Server{RESET}       {CYAN}http://localhost:{port}{RESET}")
-    print(f"  {DIM}Environment{RESET}  {'Development' if app.config['DEBUG'] else 'Production'}")
-    print(f"  {DIM}Log level{RESET}    {log_level} {DIM}({log_format}){RESET}")
-    print(f"  {DIM}Data store{RESET}   {event_store}")
-    print(f"  {DIM}Auth{RESET}         {GREEN}Entra ID{RESET}" if entra_enabled else f"  {DIM}Auth{RESET}         {DIM}Disabled{RESET}")
-    print(f"\n  {DIM}Integrations{RESET}")
-    print(f"    Catenda    {status_color(catenda_ok)}")
-    print(f"    Dalux      {status_color(dalux_ok)}")
-    print(f"\n  {DIM}Endpoints{RESET}    {total_routes} routes")
-    print(f"  {DIM}Docs{RESET}         GET /api/health, /api/routes")
-    print(f"  {DIM}Ready in{RESET}     {startup_ms}ms")
+    # Only print banner once (skip in reloader parent process)
+    is_reloader_process = os.getenv('WERKZEUG_RUN_MAIN') == 'true'
+    if is_reloader_process or not app.config['DEBUG']:
+        print(f"\n{DIM}{'─'*50}{RESET}")
+        print(f"{BOLD}  Unified Timeline API{RESET}  {DIM}{git_commit}{RESET}")
+        print(f"{DIM}{'─'*50}{RESET}")
+        print(f"\n  {DIM}Server{RESET}       {CYAN}http://localhost:{port}{RESET}")
+        print(f"  {DIM}Environment{RESET}  {'Development' if app.config['DEBUG'] else 'Production'}")
+        print(f"  {DIM}Log level{RESET}    {log_level} {DIM}({log_format}){RESET}")
+        print(f"  {DIM}Data store{RESET}   {event_store}")
+        print(f"  {DIM}Auth{RESET}         {GREEN}Entra ID{RESET}" if entra_enabled else f"  {DIM}Auth{RESET}         {DIM}Disabled{RESET}")
+        print(f"\n  {DIM}Integrations{RESET}")
+        print(f"    Catenda    {status_color(catenda_ok)}")
+        print(f"    Dalux      {status_color(dalux_ok)}")
+        print(f"\n  {DIM}Endpoints{RESET}    {total_routes} routes")
+        print(f"  {DIM}Docs{RESET}         GET /api/health, /api/routes")
+        print(f"  {DIM}Ready in{RESET}     {startup_ms}ms")
     print(f"{DIM}{'─'*50}{RESET}\n")
 
     app.run(host='0.0.0.0', port=port, debug=True)

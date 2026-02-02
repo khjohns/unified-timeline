@@ -55,11 +55,14 @@ def init_limiter(app):
             storage_uri=RATE_LIMIT_STORAGE
         )
 
-        if RATE_LIMIT_STORAGE == 'memory://':
-            logger.warning("⚠️  Rate limiting bruker in-memory storage. "
-                         "Sett RATE_LIMIT_STORAGE til Redis for produksjon.")
-        else:
-            logger.info(f"✅ Rate limiting aktivert med storage: {RATE_LIMIT_STORAGE}")
+        # Only log once (skip in reloader parent process)
+        is_reloader = os.getenv('WERKZEUG_RUN_MAIN') == 'true'
+        is_debug = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
+        if is_reloader or not is_debug:
+            if RATE_LIMIT_STORAGE == 'memory://':
+                logger.warning("⚠️  Rate limiting: in-memory storage (bruk Redis i prod)")
+            else:
+                logger.info(f"✅ Rate limiting: {RATE_LIMIT_STORAGE}")
 
         return limiter
 
