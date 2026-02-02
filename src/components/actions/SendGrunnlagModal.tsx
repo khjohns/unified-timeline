@@ -3,8 +3,7 @@
  *
  * Action modal for submitting a new grunnlag (basis/foundation) claim,
  * or updating an existing one (when originalEvent is provided).
- * Uses React Hook Form + Zod for validation.
- * Enhanced with preclusion checks and legal warnings based on NS 8407.
+ * Uses the shared GrunnlagForm component for consistent UI.
  *
  * MODES:
  * - Create mode (default): Submit new grunnlag with event type 'grunnlag_opprettet'
@@ -15,27 +14,19 @@ import {
   Alert,
   AttachmentUpload,
   Button,
-  DatePicker,
   InlineDataList,
   InlineDataListItem,
-  FormField,
-  Input,
   Modal,
-  RadioGroup,
-  RadioItem,
   SectionContainer,
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-  Textarea,
   useToast,
 } from '../primitives';
-import { KontraktsregelInline } from '../shared';
-import { VarselSeksjon } from './shared/VarselSeksjon';
+import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
+import {
+  GrunnlagForm,
+  grunnlagFormSchema,
+  grunnlagFormRefine,
+  grunnlagFormRefineMessage,
+} from '../forms';
 import type { AttachmentFile } from '../../types';
 import type { GrunnlagTilstand } from '../../types/timeline';
 import { useForm, Controller } from 'react-hook-form';
@@ -43,45 +34,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useFormBackup } from '../../hooks/useFormBackup';
-import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { useState, useMemo, useEffect, useRef } from 'react';
-import {
-  HOVEDKATEGORI_OPTIONS,
-  getHovedkategori,
-  getHovedkategoriLabel,
-  getUnderkategoriObj,
-  getGrupperteUnderkategorier,
-} from '../../constants';
-import { getPreklusjonsvarsel, getPreklusjonsvarselMellomDatoer, beregnDagerSiden } from '../../utils/preklusjonssjekk';
+import { getHovedkategoriLabel } from '../../constants';
 
-// Schema for create mode - all fields required
-// Underkategori is only required if the hovedkategori has underkategorier (e.g., not Force Majeure)
-const createGrunnlagSchema = z.object({
-  hovedkategori: z.string().min(1, 'Kategori er påkrevd'),
-  underkategori: z.string().default(''),
-  tittel: z.string().min(3, 'Tittel må være minst 3 tegn').max(100, 'Tittel kan ikke være lengre enn 100 tegn'),
-  beskrivelse: z.string().min(10, 'Beskrivelse må være minst 10 tegn'),
-  dato_oppdaget: z.string().min(1, 'Dato oppdaget er påkrevd'),
-  varsel_sendes_na: z.boolean().optional(),
-  dato_varsel_sendt: z.string().optional(),
-  varsel_metode: z.array(z.string()).optional(),
+// Schema for create mode - extends grunnlagFormSchema with attachments
+const createGrunnlagSchema = grunnlagFormSchema.extend({
   attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
-}).refine(
-  (data) => {
-    // Check if hovedkategori has underkategorier
-    const hovedkat = getHovedkategori(data.hovedkategori);
-    if (!hovedkat || hovedkat.underkategorier.length === 0) {
-      // No underkategorier required (e.g., Force Majeure)
-      return true;
-    }
-    // Require underkategori to be selected
-    return data.underkategori.length > 0;
-  },
-  {
-    message: 'Hjemmel må velges',
-    path: ['underkategori'],
-  }
-);
+}).refine(grunnlagFormRefine, grunnlagFormRefineMessage);
 
 // Schema for update mode - all fields optional
 const updateGrunnlagSchema = z.object({
@@ -160,6 +119,11 @@ export function SendGrunnlagModal({
     };
   }, [isUpdateMode, grunnlag]);
 
+  const form = useForm<GrunnlagFormData>({
+    resolver: zodResolver(isUpdateMode ? updateGrunnlagSchema : createGrunnlagSchema),
+    defaultValues: computedDefaultValues,
+  });
+
   const {
     register,
     handleSubmit,
@@ -168,10 +132,7 @@ export function SendGrunnlagModal({
     setValue,
     control,
     watch,
-  } = useForm<GrunnlagFormData>({
-    resolver: zodResolver(isUpdateMode ? updateGrunnlagSchema : createGrunnlagSchema),
-    defaultValues: computedDefaultValues,
-  });
+  } = form;
 
   // Reset form when opening in update mode with new originalEvent
   useEffect(() => {
@@ -210,36 +171,6 @@ export function SendGrunnlagModal({
       hasCheckedBackup.current = false;
     }
   }, [open, hasBackup, isDirty, getBackup, reset, toast]);
-
-  const hovedkategoriValue = watch('hovedkategori');
-  const varselSendesNa = watch('varsel_sendes_na');
-  const datoOppdaget = watch('dato_oppdaget');
-  const datoVarselSendt = watch('dato_varsel_sendt');
-  const selectedUnderkategorier = watch('underkategori');
-
-  // Get selected category info
-  const valgtHovedkategori = useMemo(
-    () => getHovedkategori(selectedHovedkategori),
-    [selectedHovedkategori]
-  );
-
-  // Get selected underkategori info
-  const valgtUnderkategori = useMemo(() => {
-    if (!selectedUnderkategorier) return undefined;
-    return getUnderkategoriObj(selectedUnderkategorier);
-  }, [selectedUnderkategorier]);
-
-  // Calculate preclusion risk for current moment (when sending now)
-  const preklusjonsResultat = useMemo(() => {
-    if (!datoOppdaget) return null;
-    return getPreklusjonsvarsel(beregnDagerSiden(datoOppdaget), undefined, selectedHovedkategori);
-  }, [datoOppdaget, selectedHovedkategori]);
-
-  // Calculate preclusion risk between discovery and earlier notification date
-  const preklusjonsResultatVarsel = useMemo(() => {
-    if (!datoOppdaget || !datoVarselSendt || varselSendesNa) return null;
-    return getPreklusjonsvarselMellomDatoer(datoOppdaget, datoVarselSendt, undefined, selectedHovedkategori);
-  }, [datoOppdaget, datoVarselSendt, varselSendesNa, selectedHovedkategori]);
 
   // Track pending toast for dismissal
   const pendingToastId = useRef<string | null>(null);
@@ -398,256 +329,16 @@ export function SendGrunnlagModal({
           </Alert>
         )}
 
-        {/* Seksjon 1: Ansvarsgrunnlag */}
-        <SectionContainer
-          title="Ansvarsgrunnlag"
-        >
-          <div className="space-y-3 sm:space-y-4">
-            {/* Hovedkategori */}
-            <FormField
-              label="Kategori"
-              required
-              error={errors.hovedkategori?.message}
-              helpText="Velg rettslig grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder og hvilke krav som kan fremmes."
-            >
-              <Controller
-                name="hovedkategori"
-                control={control}
-                render={({ field }) => (
-                  <RadioGroup
-                    value={field.value}
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      handleHovedkategoriChange(value);
-                    }}
-                    data-testid="grunnlag-hovedkategori"
-                  >
-                    {HOVEDKATEGORI_OPTIONS.filter(opt => opt.value !== '').map((option) => {
-                      const erValgt = field.value === option.value;
-                      const kategoriInfo = erValgt ? getHovedkategori(option.value) : null;
-                      return (
-                        <div key={option.value}>
-                          <RadioItem
-                            value={option.value}
-                            label={option.label}
-                            error={!!errors.hovedkategori}
-                          />
-                          {erValgt && kategoriInfo && (
-                            <div className="mt-2 ml-6">
-                              <KontraktsregelInline
-                                custom={{
-                                  tekst: kategoriInfo.beskrivelse,
-                                  konsekvens: `Fristforlengelse: §${kategoriInfo.hjemmel_frist}${kategoriInfo.hjemmel_vederlag ? `, Vederlagsjustering: §${kategoriInfo.hjemmel_vederlag}` : ''}`,
-                                }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </RadioGroup>
-                )}
-              />
-            </FormField>
+        {/* Shared GrunnlagForm sections */}
+        <GrunnlagForm
+          form={form}
+          selectedHovedkategori={selectedHovedkategori}
+          onHovedkategoriChange={handleHovedkategoriChange}
+          hideVarsling={isUpdateMode}
+          testIdPrefix="grunnlag"
+        />
 
-            {/* Underkategori - Dynamic based on hovedkategori, grouped Select */}
-            {selectedHovedkategori && valgtHovedkategori && valgtHovedkategori.underkategorier.length > 0 && (
-              <Controller
-                name="underkategori"
-                control={control}
-                render={({ field }) => {
-                  const grupperteUnderkategorier = getGrupperteUnderkategorier(valgtHovedkategori.underkategorier);
-                  // Map underkategori til KontraktsregelInline hjemmel (der tilgjengelig)
-                  const hjemmelMap: Record<string, '§10.2' | '§14.4' | '§14.6' | '§15.2' | '§19.1' | '§21.4' | '§22' | '§23.1' | '§23.3' | '§24.1' | '§24.2.2' | '§26.3' | '§29.2' | '§32.1' | '§38.1'> = {
-                    'VALGRETT': '§14.6',
-                    'SVAR_VARSEL': '§24.2.2',
-                    'LOV_GJENSTAND': '§14.4',
-                    'LOV_PROSESS': '§15.2',
-                    'IRREG': '§32.1',
-                    'GRUNN': '§23.1',
-                    'KULTURMINNER': '§23.3',
-                    'PROSJ_RISIKO': '§24.1',
-                    'MEDVIRK': '§22',
-                    'GEBYR': '§26.3',
-                    'SAMORD': '§21.4',
-                    'NEKT_MH': '§10.2',
-                    'SKADE_BH': '§19.1',
-                    'BRUKSTAKELSE': '§38.1',
-                    'STANS_BET': '§29.2',
-                  };
-                  const hjemmel = field.value ? hjemmelMap[field.value] : undefined;
-                  return (
-                    <FormField
-                      label="Hjemmel"
-                      required
-                      error={errors.underkategori?.message}
-                    >
-                      <div className="space-y-2">
-                        <Select
-                          value={field.value || ''}
-                          onValueChange={field.onChange}
-                        >
-                          <SelectTrigger
-                            error={!!errors.underkategori}
-                            data-testid="grunnlag-underkategori-list"
-                          >
-                            <SelectValue placeholder="Velg hjemmel" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Array.from(grupperteUnderkategorier.entries()).map(([gruppeNavn, underkategorier]) => (
-                              <SelectGroup key={gruppeNavn ?? 'ungrouped'}>
-                                {gruppeNavn && <SelectLabel>{gruppeNavn}</SelectLabel>}
-                                {underkategorier.map((uk) => (
-                                  <SelectItem key={uk.kode} value={uk.kode}>
-                                    {uk.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectGroup>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {/* Vis hjemmel-info for valgt underkategori */}
-                        {field.value && valgtUnderkategori && (
-                          <div className="mt-2">
-                            {hjemmel ? (
-                              <KontraktsregelInline hjemmel={hjemmel} />
-                            ) : (
-                              <KontraktsregelInline
-                                custom={{
-                                  tekst: valgtUnderkategori.beskrivelse,
-                                  hjemmel: `§${valgtUnderkategori.hjemmel_basis}`,
-                                  konsekvens: `Varslingskrav: §${valgtUnderkategori.varselkrav_ref}`,
-                                }}
-                              />
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </FormField>
-                  );
-                }}
-              />
-            )}
-
-          </div>
-        </SectionContainer>
-
-        {/* Seksjon 2: Beskrivelse */}
-        <SectionContainer
-          title="Beskrivelse"
-          description="Beskriv forholdet som varsles"
-        >
-          <div className="space-y-3 sm:space-y-4">
-            <FormField
-              label="Tittel på varselet"
-              required
-              error={errors.tittel?.message}
-              helpText="Kort beskrivende tittel for enkel identifikasjon av saken"
-            >
-              <Input
-                id="tittel"
-                data-testid="grunnlag-tittel"
-                {...register('tittel')}
-                fullWidth
-              />
-            </FormField>
-
-            <FormField
-              label="Beskrivelse"
-              required
-              error={errors.beskrivelse?.message}
-              helpText="Beskriv ansvarsgrunnlaget for endringsmeldingen"
-            >
-              <Textarea
-                id="beskrivelse"
-                data-testid="grunnlag-beskrivelse"
-                {...register('beskrivelse')}
-                rows={5}
-                fullWidth
-                error={!!errors.beskrivelse}
-              />
-            </FormField>
-          </div>
-        </SectionContainer>
-
-        {/* Seksjon 3: Tidspunkt - når ble forholdet oppdaget */}
-        <SectionContainer
-          title="Tidspunkt"
-          description="Når ble endringsforholdet oppdaget?"
-        >
-          <FormField
-            label="Dato forhold oppdaget"
-            required
-            error={errors.dato_oppdaget?.message}
-            helpText="Datoen da forholdet som gir grunnlag for endringskravet ble kjent for deg"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <Controller
-                name="dato_oppdaget"
-                control={control}
-                render={({ field }) => (
-                  <DatePicker
-                    id="dato_oppdaget"
-                    data-testid="grunnlag-dato-oppdaget"
-                    value={field.value}
-                    onChange={field.onChange}
-                    error={!!errors.dato_oppdaget}
-                  />
-                )}
-              />
-              {datoOppdaget && (
-                <span className="text-sm text-pkt-text-body-subtle whitespace-nowrap">
-                  {beregnDagerSiden(datoOppdaget)} dager siden
-                </span>
-              )}
-            </div>
-          </FormField>
-        </SectionContainer>
-
-        {/* Seksjon 4: Varsling - kun i create mode (varsel allerede sendt i update mode) */}
-        {!isUpdateMode && (
-          <SectionContainer
-            title="Varsling"
-            description="Når og hvordan ble byggherre varslet om forholdet?"
-          >
-            <Controller
-              name="varsel_sendes_na"
-              control={control}
-              render={({ field: sendesNaField }) => (
-                <Controller
-                  name="dato_varsel_sendt"
-                  control={control}
-                  render={({ field: datoField }) => (
-                    <VarselSeksjon
-                      checkboxLabel="Varselet ble sendt tidligere"
-                      harTidligere={!(sendesNaField.value ?? true)}
-                      onHarTidligereChange={(v) => sendesNaField.onChange(!v)}
-                      datoSendt={datoField.value}
-                      onDatoSendtChange={datoField.onChange}
-                      registerMetoder={register('varsel_metode')}
-                      idPrefix="grunnlag_varsel"
-                      testId="grunnlag-varsel-valg"
-                      extraContent={
-                        preklusjonsResultatVarsel?.alert && (
-                          <div className="mt-3">
-                            <Alert
-                              variant={preklusjonsResultatVarsel.alert.variant}
-                              title={preklusjonsResultatVarsel.alert.title}
-                            >
-                              {preklusjonsResultatVarsel.alert.message}
-                            </Alert>
-                          </div>
-                        )
-                      }
-                    />
-                  )}
-                />
-              )}
-            />
-          </SectionContainer>
-        )}
-
-        {/* Seksjon 5: Vedlegg */}
+        {/* Vedlegg section (unique to modal) */}
         <SectionContainer
           title="Vedlegg"
           description="Last opp dokumentasjon"
