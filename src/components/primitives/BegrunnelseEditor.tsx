@@ -12,11 +12,10 @@
 import { useEditor, EditorContent, NodeViewWrapper, NodeViewProps, ReactNodeViewRenderer } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import { useEffect, useCallback, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import clsx from 'clsx';
 import {
   LockedValueNode,
-  parseLockedValueTokens,
   LOCKED_VALUE_TOKEN_REGEX,
   type LockedValueType,
 } from './LockedValueExtension';
@@ -63,31 +62,23 @@ function LockedValueNodeView({ node }: NodeViewProps) {
     tekst: 'bg-gray-50 border-gray-200 text-gray-800',
   };
 
-  const typeIcons: Record<LockedValueType, string> = {
-    dager: '\u{1F4C5}', // calendar
-    belop: '\u{1F4B0}', // money bag
-    prosent: '\u{1F4CA}', // chart
-    dato: '\u{1F4C6}', // tear-off calendar
-    paragraf: '\u{00A7}', // section sign
-    tekst: '\u{1F512}', // lock
-  };
-
   return (
-    <NodeViewWrapper as="span" className="inline">
+    <NodeViewWrapper as="span" className="inline" draggable data-drag-handle>
       <span
         className={clsx(
-          'inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5',
+          'inline-flex items-center px-1.5 py-0.5 mx-0.5',
           'border rounded-sm text-sm font-medium',
-          'select-none cursor-default',
+          'select-none cursor-grab active:cursor-grabbing',
           'transition-colors duration-150',
+          'hover:ring-2 hover:ring-offset-1 hover:ring-pkt-brand-purple-1000/30',
           typeStyles[type] || typeStyles.tekst
         )}
         contentEditable={false}
         data-locked-value
-        title={`Låst verdi (${type}) - endre i skjemaet over`}
+        data-drag-handle
+        title={`Låst verdi (${type}) - dra for å flytte, eller endre verdien i skjemaet over`}
       >
-        <span className="text-xs opacity-60">{typeIcons[type]}</span>
-        <span>{display}</span>
+        {display}
       </span>
     </NodeViewWrapper>
   );
@@ -124,21 +115,39 @@ function htmlToTokens(html: string): string {
     const value = span.getAttribute('data-locked-value') || '';
     const display = span.textContent || '';
     const token = `{{${type}:${value}:${display}}}`;
-    span.replaceWith(token);
+    // Create a text node to replace the span
+    const textNode = document.createTextNode(token);
+    span.parentNode?.replaceChild(textNode, span);
   });
 
-  // Get text content, preserving line breaks
-  // Replace <p> and <br> with newlines
-  let result = temp.innerHTML;
-  result = result.replace(/<\/p>\s*<p>/g, '\n\n');
-  result = result.replace(/<br\s*\/?>/g, '\n');
-  result = result.replace(/<\/?p>/g, '');
-  result = result.replace(/<\/?[^>]+(>|$)/g, ''); // Remove remaining HTML tags
+  // Process paragraphs - each <p> becomes a paragraph separated by double newlines
+  const paragraphs = temp.querySelectorAll('p');
+  const result: string[] = [];
 
-  // Decode HTML entities
-  const textArea = document.createElement('textarea');
-  textArea.innerHTML = result;
-  return textArea.value.trim();
+  paragraphs.forEach((p) => {
+    // Replace <br> with single newlines within paragraphs
+    let text = p.innerHTML.replace(/<br\s*\/?>/gi, '\n');
+    // Remove any remaining HTML tags
+    text = text.replace(/<[^>]+>/g, '');
+    // Decode HTML entities
+    const textArea = document.createElement('textarea');
+    textArea.innerHTML = text;
+    // Keep empty paragraphs as empty strings (they become blank lines)
+    result.push(textArea.value);
+  });
+
+  // If no paragraphs found, fall back to processing the whole content
+  if (result.length === 0) {
+    let text = temp.innerHTML;
+    text = text.replace(/<br\s*\/?>/gi, '\n');
+    text = text.replace(/<[^>]+>/g, '');
+    const textArea = document.createElement('textarea');
+    textArea.innerHTML = text;
+    return textArea.value.trim();
+  }
+
+  // Join paragraphs with double newlines
+  return result.join('\n\n');
 }
 
 // ============================================================================
@@ -157,11 +166,12 @@ export function BegrunnelseEditor({
   helpText,
 }: BegrunnelseEditorProps) {
   // Convert initial value (with tokens) to HTML
+  // Only compute once on mount - useEffect handles subsequent updates
   const initialContent = useMemo(() => {
     if (!value) return '';
     // Convert tokens to HTML and wrap in paragraphs
     const html = tokensToHtml(value);
-    // Split by double newlines for paragraphs
+    // Split by double newlines for paragraphs, single newlines become <br>
     const paragraphs = html.split(/\n\n+/).map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`);
     return paragraphs.join('');
   }, []);
@@ -256,7 +266,8 @@ export function BegrunnelseEditor({
           editor={editor}
           className={clsx(
             'px-3 py-3 bg-pkt-bg-default',
-            'text-pkt-text-body-default'
+            'text-pkt-text-body-default',
+            'begrunnelse-editor'
           )}
           style={{ minHeight }}
         />

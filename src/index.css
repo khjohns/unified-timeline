@@ -1037,27 +1037,27 @@ body {
     color: var(--color-pkt-text-body-default);
 }
 
-/* Begrunnelse Editor TipTap overrides */
-.begrunnelse-editor .tiptap {
+/* Begrunnelse Editor TipTap/ProseMirror overrides */
+.begrunnelse-editor .tiptap,
+.begrunnelse-editor .ProseMirror {
     outline: none;
     min-height: inherit;
 }
 
-.begrunnelse-editor .tiptap p {
-    margin: 0.5rem 0;
+.begrunnelse-editor .tiptap p,
+.begrunnelse-editor .ProseMirror p {
+    margin-bottom: 1em;
     line-height: 1.6;
 }
 
-.begrunnelse-editor .tiptap p:first-child {
-    margin-top: 0;
-}
-
-.begrunnelse-editor .tiptap p:last-child {
+.begrunnelse-editor .tiptap p:last-child,
+.begrunnelse-editor .ProseMirror p:last-child {
     margin-bottom: 0;
 }
 
 /* Placeholder for begrunnelse editor */
-.begrunnelse-editor .tiptap p.is-editor-empty:first-child::before {
+.begrunnelse-editor .tiptap p.is-editor-empty:first-child::before,
+.begrunnelse-editor .ProseMirror p.is-editor-empty:first-child::before {
     content: attr(data-placeholder);
     float: left;
     color: var(--color-pkt-text-placeholder);
