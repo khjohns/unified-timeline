@@ -13,12 +13,15 @@ Kritisk usikkerhet som skal verifiseres:
 
 import json
 import logging
+import random
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 # Default timeout for HTTP requests (seconds)
 DEFAULT_TIMEOUT = 30
@@ -33,6 +36,22 @@ class CatendaAuthError(Exception):
     pass
 
 
+class CatendaAPIError(Exception):
+    """Raised when Catenda API returns a non-retryable error."""
+
+    def __init__(self, message: str, status_code: int | None = None):
+        super().__init__(message)
+        self.status_code = status_code
+
+
+class CatendaRateLimitError(Exception):
+    """Raised when rate limit exceeded after retries."""
+
+    def __init__(self, message: str, retry_after: int | None = None):
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
 class CatendaClient:
     """
     Tester for Catenda API (REST v2 og BCF v3.0)
@@ -43,6 +62,8 @@ class CatendaClient:
         client_id: str,
         client_secret: str | None = None,
         access_token: str | None = None,
+        retry_enabled: bool | None = None,
+        max_retries: int | None = None,
     ):
         """
         Initialiser API tester med OAuth credentials.
@@ -51,6 +72,8 @@ class CatendaClient:
             client_id: OAuth Client ID fra Catenda
             client_secret: OAuth Client Secret (kun for Boost-kunder)
             access_token: Ferdig access token (hvis du allerede har hentet det manuelt)
+            retry_enabled: Override for retry-konfigurasjon (default: fra settings)
+            max_retries: Override for maks antall retry (default: fra settings)
         """
         self.client_id = client_id
         self.client_secret = client_secret
@@ -66,6 +89,27 @@ class CatendaClient:
         self.topic_board_id: str | None = None
         self.library_id: str | None = None
         self.test_topic_id: str | None = None
+
+        # Load retry configuration from settings
+        from core.config import settings
+
+        self._retry_enabled = (
+            retry_enabled
+            if retry_enabled is not None
+            else settings.catenda_retry_enabled
+        )
+        self._max_retries = (
+            max_retries
+            if max_retries is not None
+            else settings.catenda_retry_max_attempts
+        )
+        self._backoff_base = settings.catenda_retry_backoff_base
+        self._backoff_max = settings.catenda_retry_backoff_max
+        self._use_jitter = settings.catenda_retry_jitter
+        self._timeout = settings.catenda_request_timeout
+
+        # Create session with retry adapter for 5xx errors
+        self._session = self._create_session()
 
         logger.info("✅ CatendaClient initialisert")
 
@@ -346,6 +390,258 @@ class CatendaClient:
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
         }
+
+    # ==========================================
+    # HTTP REQUEST HELPERS WITH RETRY
+    # ==========================================
+
+    def _create_session(self) -> requests.Session:
+        """
+        Create a requests Session with retry adapter for 5xx errors.
+
+        The Session uses urllib3.Retry for automatic retry on server errors.
+        Rate limit (429) is handled manually in _make_request for Retry-After support.
+        """
+        session = requests.Session()
+
+        if not self._retry_enabled:
+            return session
+
+        # Configure urllib3 Retry for automatic retry on 5xx errors
+        retry_strategy = Retry(
+            total=self._max_retries,
+            status_forcelist=[500, 502, 503, 504],
+            allowed_methods=[
+                "HEAD",
+                "GET",
+                "PUT",
+                "POST",
+                "DELETE",
+                "PATCH",
+                "OPTIONS",
+            ],
+            backoff_factor=self._backoff_base,
+            backoff_max=self._backoff_max,
+            raise_on_status=False,  # Don't raise, we handle status codes ourselves
+        )
+
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
+
+        return session
+
+    def _calculate_backoff(self, attempt: int, retry_after: int | None = None) -> float:
+        """
+        Calculate backoff time with optional jitter.
+
+        Args:
+            attempt: Current attempt number (0-indexed)
+            retry_after: Retry-After header value in seconds (if provided by server)
+
+        Returns:
+            Backoff time in seconds
+        """
+        if retry_after is not None:
+            base = retry_after
+        else:
+            # Exponential backoff: base * 2^attempt
+            base = self._backoff_base * (2**attempt)
+
+        # Cap at maximum
+        base = min(base, self._backoff_max)
+
+        # Add jitter (±25%) if enabled
+        if self._use_jitter:
+            jitter = base * 0.25 * (2 * random.random() - 1)
+            base = base + jitter
+
+        return max(0, base)
+
+    def _parse_retry_after(self, response: requests.Response) -> int | None:
+        """
+        Parse Retry-After header from response.
+
+        Args:
+            response: HTTP response object
+
+        Returns:
+            Retry time in seconds, or None if not present/parseable
+        """
+        retry_after = response.headers.get("Retry-After")
+        if not retry_after:
+            return None
+
+        try:
+            # Try parsing as integer (seconds)
+            return int(retry_after)
+        except ValueError:
+            pass
+
+        try:
+            # Try parsing as HTTP date
+            from email.utils import parsedate_to_datetime
+
+            dt = parsedate_to_datetime(retry_after)
+            delta = (dt - datetime.now(dt.tzinfo)).total_seconds()
+            return max(0, int(delta))
+        except (ValueError, TypeError):
+            pass
+
+        return None
+
+    def _make_request(
+        self,
+        method: str,
+        url: str,
+        error_message: str = "API request failed",
+        **kwargs,
+    ) -> requests.Response:
+        """
+        Make HTTP request with retry logic for transient errors.
+
+        Handles:
+        - 429 Rate Limit: Retry with Retry-After header respect
+        - 5xx Server Errors: Automatic retry via urllib3 (session adapter)
+        - Timeouts/Connection Errors: Retry with exponential backoff
+
+        Does NOT retry:
+        - 401/403: Authentication errors (raises CatendaAuthError)
+        - 400/404/422: Client errors (raises CatendaAPIError)
+
+        Args:
+            method: HTTP method (GET, POST, etc.)
+            url: Full URL
+            error_message: Message prefix for error logging
+            **kwargs: Additional arguments for requests (json, params, etc.)
+
+        Returns:
+            Response object
+
+        Raises:
+            CatendaAuthError: For 401/403 errors
+            CatendaAPIError: For non-retryable client errors
+            CatendaRateLimitError: When rate limit exceeded after retries
+        """
+        # Set default timeout if not provided
+        kwargs.setdefault("timeout", self._timeout)
+
+        # Get headers (includes auth token)
+        kwargs.setdefault("headers", self.get_headers())
+
+        last_exception: Exception | None = None
+        last_response: requests.Response | None = None
+
+        for attempt in range(self._max_retries + 1):
+            try:
+                response = self._session.request(method, url, **kwargs)
+                last_response = response
+
+                # Handle authentication errors (no retry)
+                if response.status_code == 401:
+                    logger.error(f"❌ {error_message}: Token expired or invalid")
+                    raise CatendaAuthError("Access token expired or invalid")
+                elif response.status_code == 403:
+                    logger.error(f"❌ {error_message}: Insufficient permissions")
+                    raise CatendaAuthError("Insufficient permissions")
+
+                # Handle client errors (no retry)
+                if response.status_code in (400, 404, 422):
+                    logger.error(f"❌ {error_message}: HTTP {response.status_code}")
+                    if hasattr(response, "text"):
+                        logger.error(f"   Response: {response.text[:500]}")
+                    raise CatendaAPIError(
+                        f"{error_message}: HTTP {response.status_code}",
+                        status_code=response.status_code,
+                    )
+
+                # Handle rate limit (retry with Retry-After)
+                if response.status_code == 429:
+                    retry_after = self._parse_retry_after(response)
+                    if attempt < self._max_retries:
+                        backoff = self._calculate_backoff(attempt, retry_after)
+                        logger.warning(
+                            f"⚠️ Rate limit hit, retrying in {backoff:.1f}s "
+                            f"(attempt {attempt + 1}/{self._max_retries + 1})"
+                        )
+                        time.sleep(backoff)
+                        continue
+                    else:
+                        logger.error(
+                            f"❌ {error_message}: Rate limit exceeded after retries"
+                        )
+                        raise CatendaRateLimitError(
+                            f"Rate limit exceeded after {self._max_retries + 1} attempts",
+                            retry_after=retry_after,
+                        )
+
+                # Success or 5xx (which urllib3.Retry already handled)
+                if response.ok:
+                    return response
+
+                # Other errors (shouldn't happen after urllib3 retry)
+                response.raise_for_status()
+
+            except (
+                requests.exceptions.Timeout,
+                requests.exceptions.ConnectionError,
+            ) as e:
+                last_exception = e
+                if attempt < self._max_retries and self._retry_enabled:
+                    backoff = self._calculate_backoff(attempt)
+                    logger.warning(
+                        f"⚠️ Connection error, retrying in {backoff:.1f}s "
+                        f"(attempt {attempt + 1}/{self._max_retries + 1}): {e}"
+                    )
+                    time.sleep(backoff)
+                    continue
+                else:
+                    logger.error(f"❌ {error_message}: {e}")
+                    raise CatendaAPIError(f"{error_message}: {e}")
+
+            except (CatendaAuthError, CatendaAPIError, CatendaRateLimitError):
+                raise
+
+            except requests.exceptions.RequestException as e:
+                last_exception = e
+                logger.error(f"❌ {error_message}: {e}")
+                raise CatendaAPIError(f"{error_message}: {e}")
+
+        # Should not reach here, but just in case
+        if last_response is not None:
+            raise CatendaAPIError(
+                f"{error_message}: HTTP {last_response.status_code}",
+                status_code=last_response.status_code,
+            )
+        raise CatendaAPIError(f"{error_message}: {last_exception}")
+
+    def _safe_request(
+        self,
+        method: str,
+        url: str,
+        error_message: str = "API request failed",
+        **kwargs,
+    ) -> requests.Response | None:
+        """
+        Wrapper around _make_request that returns None on errors.
+
+        This preserves backward compatibility with existing methods that
+        return None on failure instead of raising exceptions.
+
+        Args:
+            method: HTTP method (GET, POST, etc.)
+            url: Full URL
+            error_message: Message prefix for error logging
+            **kwargs: Additional arguments for requests
+
+        Returns:
+            Response object or None on error
+        """
+        try:
+            return self._make_request(method, url, error_message, **kwargs)
+        except (CatendaAuthError, CatendaAPIError, CatendaRateLimitError) as e:
+            logger.error(f"❌ {error_message}: {e}")
+            return None
 
     # ==========================================
     # PROJECT & TOPIC BOARD DISCOVERY

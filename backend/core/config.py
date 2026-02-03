@@ -34,6 +34,14 @@ class Settings(BaseSettings):
     # Set to "false" to disable Catenda integration even if credentials exist
     catenda_enabled: str = ""  # "", "true", "false"
 
+    # Catenda API Retry Configuration
+    catenda_retry_enabled: bool = True
+    catenda_retry_max_attempts: int = 3
+    catenda_retry_backoff_base: float = 0.5
+    catenda_retry_backoff_max: float = 60.0
+    catenda_retry_jitter: bool = True
+    catenda_request_timeout: int = 30
+
     @property
     def is_catenda_enabled(self) -> bool:
         """
