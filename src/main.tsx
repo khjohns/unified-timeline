@@ -2,7 +2,12 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { STALE_TIME } from './constants/queryConfig';
+import {
+  STALE_TIME,
+  RETRY_CONFIG,
+  calculateRetryDelay,
+} from './constants/queryConfig';
+import { isRetryableError } from './api/client';
 import './index.css';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
@@ -23,16 +28,27 @@ if (route) {
   window.history.replaceState(null, '', newUrl);
 }
 
-// Configure React Query client
+// Configure React Query client with smart retry logic
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      // Only retry transient errors (network, 5xx, rate limit)
+      retry: (failureCount, error) => {
+        if (failureCount >= RETRY_CONFIG.MAX_QUERY_RETRIES) return false;
+        return isRetryableError(error);
+      },
+      // Exponential backoff with jitter
+      retryDelay: calculateRetryDelay,
       refetchOnWindowFocus: false,
       staleTime: STALE_TIME.DEFAULT,
     },
     mutations: {
-      retry: 0,
+      // Mutations get fewer retries to avoid duplicate state changes
+      retry: (failureCount, error) => {
+        if (failureCount >= RETRY_CONFIG.MAX_MUTATION_RETRIES) return false;
+        return isRetryableError(error);
+      },
+      retryDelay: calculateRetryDelay,
     },
   },
 });

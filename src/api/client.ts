@@ -72,6 +72,48 @@ export class ApiError extends Error {
 }
 
 /**
+ * HTTP status codes that indicate transient errors worth retrying.
+ * - 408: Request Timeout
+ * - 429: Too Many Requests (rate limited)
+ * - 500: Internal Server Error
+ * - 502: Bad Gateway
+ * - 503: Service Unavailable
+ * - 504: Gateway Timeout
+ */
+const RETRYABLE_STATUS_CODES = [408, 429, 500, 502, 503, 504];
+
+/**
+ * Check if an error is retryable (transient network/server issue).
+ *
+ * Used by React Query's retry function to decide whether to retry failed requests.
+ * Returns true for:
+ * - Network errors (status 0)
+ * - Server errors (5xx)
+ * - Rate limiting (429)
+ * - Timeouts (408)
+ *
+ * Returns false for:
+ * - Client errors (4xx except 408, 429)
+ * - Auth errors (401, 403)
+ * - Not found (404)
+ * - Validation errors (400, 422)
+ */
+export function isRetryableError(error: unknown): boolean {
+  // Network errors (fetch failed completely)
+  if (error instanceof TypeError) {
+    return true;
+  }
+
+  // ApiError with retryable status code
+  if (error instanceof ApiError) {
+    return RETRYABLE_STATUS_CODES.includes(error.status);
+  }
+
+  // Unknown errors - don't retry to be safe
+  return false;
+}
+
+/**
  * Generic API fetch wrapper with error handling
  */
 export async function apiFetch<T>(
