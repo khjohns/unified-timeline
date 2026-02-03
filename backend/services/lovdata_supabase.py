@@ -317,9 +317,11 @@ class LovdataSupabaseService:
             if not dok_id:
                 return None, []
 
-            # Normalize dok_id
-            if dok_id.startswith('NL/'):
-                dok_id = dok_id[3:]
+            # Normalize dok_id - remove all known prefixes
+            for prefix in ('NL/', 'SF/', 'LTI/', 'NLE/', 'NLO/'):
+                if dok_id.startswith(prefix):
+                    dok_id = dok_id[len(prefix):]
+                    break
 
             doc = {
                 'dok_id': dok_id,
@@ -631,18 +633,34 @@ class LovdataSupabaseService:
 
     def _find_document(self, identifier: str) -> dict | None:
         """Find document by ID or short title."""
-        # Normalize identifier
+        # Normalize identifier - handle various formats
         normalized = identifier.lower().replace('lov-', 'lov/').replace('for-', 'forskrift/')
 
-        # Try exact match on dok_id
-        result = self.client.table('lovdata_documents').select('*').eq('dok_id', normalized).execute()
-        if result.data:
-            return result.data[0]
+        # Build list of possible dok_id formats to try
+        candidates = [
+            normalized,
+            f"SF/{normalized}",  # SF prefix for forskrifter
+            f"NL/{normalized}",  # NL prefix for laws (if not stripped)
+        ]
+
+        # Try exact match on dok_id with various formats
+        for candidate in candidates:
+            result = self.client.table('lovdata_documents').select('*').eq('dok_id', candidate).execute()
+            if result.data:
+                return result.data[0]
+
+        # Try ILIKE match for partial dok_id (handles year variations)
+        for candidate in candidates:
+            result = self.client.table('lovdata_documents').select('*').ilike(
+                'dok_id', f'%{candidate}%'
+            ).limit(1).execute()
+            if result.data:
+                return result.data[0]
 
         # Try short_title match
         result = self.client.table('lovdata_documents').select('*').ilike(
             'short_title', f'%{identifier}%'
-        ).execute()
+        ).limit(1).execute()
         if result.data:
             return result.data[0]
 
