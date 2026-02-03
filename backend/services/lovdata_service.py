@@ -540,15 +540,30 @@ Fant {len(results)} treff (alias-søk):
         result_lines = []
 
         for r in results:
-            doc_type = "Lov" if r.get('doc_type') == 'lov' else "Forskrift"
-            title = r.get('title') or r.get('short_title') or r.get('dok_id')
-            snippet = r.get('snippet', '')
+            # Handle both dict and SearchResult dataclass
+            if hasattr(r, 'doc_type'):
+                # SearchResult dataclass
+                doc_type = "Lov" if r.doc_type == 'lov' else "Forskrift"
+                title = r.title or r.short_title or r.dok_id
+                snippet = r.snippet or ''
+                dok_id = r.dok_id
+                section_id = getattr(r, 'section_id', None)
+            else:
+                # Dict fallback
+                doc_type = "Lov" if r.get('doc_type') == 'lov' else "Forskrift"
+                title = r.get('title') or r.get('short_title') or r.get('dok_id')
+                snippet = r.get('snippet', '')
+                dok_id = r['dok_id']
+                section_id = r.get('section_id')
 
             # Clean up snippet (remove HTML if present)
             snippet = snippet.replace('<mark>', '**').replace('</mark>', '**')
 
-            result_lines.append(f"""### {doc_type}: {title}
-**ID:** `{r['dok_id']}`
+            # Include section_id if available
+            section_info = f" § {section_id}" if section_id else ""
+
+            result_lines.append(f"""### {doc_type}: {title}{section_info}
+**ID:** `{dok_id}`{f" **Paragraf:** `{section_id}`" if section_id else ""}
 
 {snippet}
 """)

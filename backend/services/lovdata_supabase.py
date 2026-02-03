@@ -97,6 +97,7 @@ class SearchResult:
     doc_type: str
     snippet: str
     rank: float
+    section_id: str | None = None
 
     @property
     def estimated_tokens(self) -> int:
@@ -753,7 +754,8 @@ class LovdataSupabaseService:
                 short_title=row.get('short_title', ''),
                 doc_type=row.get('doc_type', 'lov'),
                 snippet=snippet,
-                rank=row.get('rank', 0.0)
+                rank=row.get('rank', 0.0),
+                section_id=row.get('section_id')
             ))
 
         return results
