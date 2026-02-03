@@ -2,10 +2,12 @@
  * useConnectionStatus Hook
  *
  * Monitors backend and Catenda connection status.
- * Polls health endpoints periodically and provides real-time status.
+ * Uses a Context Provider to share status between all consumers,
+ * ensuring only one polling interval runs regardless of how many
+ * components use the hook.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 
 export type ConnectionState = 'connected' | 'disconnected' | 'checking' | 'unconfigured' | 'disabled';
 
@@ -14,6 +16,7 @@ export interface ConnectionStatus {
   catenda: ConnectionState;
   catendaEnabled: boolean;
   lastChecked: Date | null;
+  refresh: () => Promise<void>;
 }
 
 interface HealthResponse {
@@ -25,8 +28,10 @@ interface HealthResponse {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const POLL_INTERVAL = 30000; // 30 seconds
 
-export function useConnectionStatus() {
-  const [status, setStatus] = useState<ConnectionStatus>({
+const ConnectionStatusContext = createContext<ConnectionStatus | null>(null);
+
+export function ConnectionStatusProvider({ children }: { children: ReactNode }) {
+  const [status, setStatus] = useState<Omit<ConnectionStatus, 'refresh'>>({
     backend: 'checking',
     catenda: 'checking',
     catendaEnabled: true,
@@ -88,7 +93,7 @@ export function useConnectionStatus() {
     });
   }, [checkBackendHealth, checkCatendaHealth]);
 
-  // Initial check and polling
+  // Initial check and polling - runs only once for the entire app
   useEffect(() => {
     checkAll();
 
@@ -96,8 +101,22 @@ export function useConnectionStatus() {
     return () => clearInterval(interval);
   }, [checkAll]);
 
-  return {
+  const value: ConnectionStatus = {
     ...status,
     refresh: checkAll,
   };
+
+  return (
+    <ConnectionStatusContext.Provider value={value}>
+      {children}
+    </ConnectionStatusContext.Provider>
+  );
+}
+
+export function useConnectionStatus(): ConnectionStatus {
+  const context = useContext(ConnectionStatusContext);
+  if (!context) {
+    throw new Error('useConnectionStatus must be used within a ConnectionStatusProvider');
+  }
+  return context;
 }

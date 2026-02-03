@@ -16,6 +16,7 @@ import { SupabaseAuthProvider } from './context/SupabaseAuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './components/primitives/Toast';
+import { ConnectionStatusProvider } from './hooks/useConnectionStatus';
 
 // Handle GitHub Pages SPA routing redirect
 // When 404.html redirects to /index.html?route=%2Fdemo, we need to
@@ -69,13 +70,15 @@ root.render(
         <SupabaseAuthProvider>
           <ThemeProvider>
             <ToastProvider>
-              <AuthProvider>
-                <UserRoleProvider>
-                  <ErrorBoundary>
-                    <App />
-                  </ErrorBoundary>
-                </UserRoleProvider>
-              </AuthProvider>
+              <ConnectionStatusProvider>
+                <AuthProvider>
+                  <UserRoleProvider>
+                    <ErrorBoundary>
+                      <App />
+                    </ErrorBoundary>
+                  </UserRoleProvider>
+                </AuthProvider>
+              </ConnectionStatusProvider>
             </ToastProvider>
           </ThemeProvider>
         </SupabaseAuthProvider>
