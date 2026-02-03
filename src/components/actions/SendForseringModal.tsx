@@ -124,8 +124,14 @@ export function SendForseringModal({
   const erSubsidiaer = subsidiaerTriggers && subsidiaerTriggers.length > 0;
   const erGrunnlagAvslatt = subsidiaerTriggers?.includes('grunnlag_avslatt') ?? false;
 
-  // Calculate rejected days
-  const avslatteDager = fristData.krevde_dager - fristData.godkjent_dager;
+  // Calculate rejected days for §33.8 limit calculation
+  // Ved subsidiært standpunkt (grunnlagsavslag, preklusion, etc.):
+  //   Hvis BHs prinsipale avslag var berettiget → TE får 0 dager → alle krevde dager
+  // Ved direkte fristforlengelsesavslag:
+  //   Differansen mellom krevd og godkjent
+  const avslatteDager = erSubsidiaer
+    ? fristData.krevde_dager
+    : fristData.krevde_dager - fristData.godkjent_dager;
 
   // Form setup
   const {
@@ -274,9 +280,19 @@ export function SendForseringModal({
                 <InlineDataListItem label="Krevd" mono bold>
                   {fristData.krevde_dager} dager
                 </InlineDataListItem>
-                {fristData.godkjent_dager === 0 ? (
+                {erSubsidiaer ? (
+                  // Ved subsidiært standpunkt: Alle krevde dager regnes som avslått
                   <InlineDataListItem
-                    label={erSubsidiaer ? 'Subs. avslått' : 'Avslått'}
+                    label={erGrunnlagAvslatt ? 'Ansvarsgrunnlag avslått' : 'Prinsipalt avslått'}
+                    variant="danger"
+                    mono
+                    bold
+                  >
+                    {avslatteDager} dager
+                  </InlineDataListItem>
+                ) : fristData.godkjent_dager === 0 ? (
+                  <InlineDataListItem
+                    label="Avslått"
                     variant="danger"
                     mono
                     bold
@@ -285,11 +301,7 @@ export function SendForseringModal({
                   </InlineDataListItem>
                 ) : (
                   <>
-                    <InlineDataListItem
-                      label={erSubsidiaer ? 'Subs. godkjent' : 'Godkjent'}
-                      mono
-                      bold
-                    >
+                    <InlineDataListItem label="Godkjent" mono bold>
                       {fristData.godkjent_dager}
                     </InlineDataListItem>
                     <InlineDataListItem label="Avslått" variant="danger" mono bold>
