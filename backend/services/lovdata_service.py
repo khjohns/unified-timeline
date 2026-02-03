@@ -7,6 +7,10 @@ released November 2025 under NLOD 2.0 license.
 API Documentation: https://api.lovdata.no/
 Data source: tar.bz2 archives containing XML documents
 
+Storage backends:
+    - Supabase PostgreSQL (default when SUPABASE_URL is set) - for cloud deploy
+    - Local SQLite (fallback) - for local development
+
 Usage:
     service = LovdataService()
     text = service.lookup_law("avhendingslova", "3-9")
@@ -17,27 +21,66 @@ Usage:
 
 import os
 from pathlib import Path
-from typing import Any
 
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-# Cache directory for downloaded data
+# =============================================================================
+# Configuration
+# =============================================================================
+
+# Cache directory for SQLite fallback
 CACHE_DIR = Path(os.getenv("LOVDATA_CACHE_DIR", "/tmp/lovdata-cache"))
 
-# Lazy import to avoid circular dependencies
-_sync_service = None
+# Use Supabase if available
+USE_SUPABASE = bool(os.getenv("SUPABASE_URL"))
+
+# Token estimation: ~3.5 chars per token for Norwegian text
+CHARS_PER_TOKEN = 3.5
+LARGE_RESPONSE_THRESHOLD = 5000  # tokens
+
+# Lazy service singletons
+_supabase_service = None
+_sqlite_service = None
 
 
-def _get_sync_service():
-    """Get or create LovdataSyncService singleton."""
-    global _sync_service
-    if _sync_service is None:
+def _get_backend_service():
+    """
+    Get appropriate backend service based on configuration.
+
+    Uses Supabase when SUPABASE_URL is set, otherwise SQLite.
+    """
+    global _supabase_service, _sqlite_service
+
+    if USE_SUPABASE:
+        if _supabase_service is None:
+            try:
+                from services.lovdata_supabase import LovdataSupabaseService
+                _supabase_service = LovdataSupabaseService()
+                logger.info("Using Supabase backend for Lovdata")
+            except Exception as e:
+                logger.warning(f"Supabase unavailable, falling back to SQLite: {e}")
+                return _get_sqlite_service()
+        return _supabase_service
+    else:
+        return _get_sqlite_service()
+
+
+def _get_sqlite_service():
+    """Get SQLite backend service."""
+    global _sqlite_service
+    if _sqlite_service is None:
         from services.lovdata_sync import LovdataSyncService
-        _sync_service = LovdataSyncService(cache_dir=CACHE_DIR)
-    return _sync_service
+        _sqlite_service = LovdataSyncService(cache_dir=CACHE_DIR)
+        logger.info("Using SQLite backend for Lovdata")
+    return _sqlite_service
+
+
+def estimate_tokens(text: str) -> int:
+    """Estimate token count for Norwegian text."""
+    return int(len(text) / CHARS_PER_TOKEN)
 
 
 class LovdataService:
@@ -126,13 +169,8 @@ class LovdataService:
 
     def __init__(self):
         """Initialize LovdataService."""
-        self.client = httpx.Client(timeout=60.0)
-        self._laws_index: dict[str, dict[str, Any]] = {}
-        self._ensure_cache_dir()
-
-    def _ensure_cache_dir(self) -> None:
-        """Ensure cache directory exists."""
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        # Backend is lazily initialized on first use via _get_backend_service()
+        pass
 
     def _resolve_id(self, alias: str) -> str:
         """
@@ -179,13 +217,19 @@ class LovdataService:
 
         return url
 
-    def lookup_law(self, lov_id: str, paragraf: str | None = None) -> str:
+    def lookup_law(
+        self,
+        lov_id: str,
+        paragraf: str | None = None,
+        max_tokens: int | None = None
+    ) -> str:
         """
         Look up a Norwegian law or specific section.
 
         Args:
             lov_id: Law identifier or alias (e.g., "avhendingslova", "LOV-1992-07-03-93")
             paragraf: Optional section number (e.g., "3-9", "§ 3-9")
+            max_tokens: Optional token limit for truncating long responses
 
         Returns:
             Formatted law text with metadata and source link
@@ -194,10 +238,10 @@ class LovdataService:
         law_name = self._get_law_name(resolved_id)
         url = self._format_lovdata_url(resolved_id, paragraf)
 
-        logger.info(f"Looking up law: {resolved_id}, section: {paragraf}")
+        logger.info(f"Looking up law: {resolved_id}, section: {paragraf}, max_tokens: {max_tokens}")
 
         # Try to fetch from cache/API
-        content = self._fetch_law_content(resolved_id, paragraf)
+        content = self._fetch_law_content(resolved_id, paragraf, max_tokens=max_tokens)
 
         if content:
             return self._format_response(
@@ -216,38 +260,83 @@ class LovdataService:
                 url=url
             )
 
-    def _fetch_law_content(self, lov_id: str, paragraf: str | None = None) -> str | None:
+    def _fetch_law_content(
+        self,
+        lov_id: str,
+        paragraf: str | None = None,
+        max_tokens: int | None = None
+    ) -> str | None:
         """
-        Fetch law content from local cache (synced from Lovdata API).
+        Fetch law content from cache (Supabase or SQLite).
 
         Args:
             lov_id: Lovdata ID or alias
             paragraf: Optional section number
+            max_tokens: Optional token limit (truncates if exceeded)
 
         Returns:
             Law text content or None if not available
         """
-        sync_service = _get_sync_service()
+        backend = _get_backend_service()
 
         try:
             if paragraf:
                 # Get specific section
-                section = sync_service.get_section(lov_id, paragraf)
+                section = backend.get_section(lov_id, paragraf)
                 if section:
-                    # Format section with title if available
                     content = ""
                     if section.title:
                         content = f"**{section.title}**\n\n"
                     content += section.content
+
+                    # Apply token limit if specified
+                    if max_tokens:
+                        max_chars = int(max_tokens * CHARS_PER_TOKEN)
+                        if len(content) > max_chars:
+                            content = content[:max_chars] + "\n\n... [avkortet]"
+
                     return content
             else:
                 # Get document overview
-                doc = sync_service.get_document(lov_id)
+                doc = backend.get_document(lov_id)
                 if doc:
-                    return f"*Dokument lastet fra lokal cache. Bruk paragraf-parameter for spesifikke bestemmelser.*"
+                    return "*Dokument lastet fra cache. Bruk paragraf-parameter for spesifikke bestemmelser.*"
 
         except Exception as e:
             logger.warning(f"Failed to fetch law content for {lov_id}: {e}")
+
+        return None
+
+    def get_section_size(self, lov_id: str, paragraf: str) -> dict | None:
+        """
+        Get section size without fetching content.
+
+        Useful for Claude to decide whether to fetch full content.
+
+        Args:
+            lov_id: Law ID or alias
+            paragraf: Section number
+
+        Returns:
+            Dict with char_count and estimated_tokens, or None
+        """
+        backend = _get_backend_service()
+
+        try:
+            # Try Supabase method first
+            if hasattr(backend, 'get_section_size'):
+                return backend.get_section_size(lov_id, paragraf)
+
+            # Fallback: fetch section and measure
+            section = backend.get_section(lov_id, paragraf)
+            if section:
+                char_count = len(section.content)
+                return {
+                    'char_count': char_count,
+                    'estimated_tokens': estimate_tokens(section.content)
+                }
+        except Exception as e:
+            logger.warning(f"Failed to get section size: {e}")
 
         return None
 
@@ -263,8 +352,8 @@ class LovdataService:
         Returns:
             Dict with counts of synced documents
         """
-        sync_service = _get_sync_service()
-        return sync_service.sync_all(force=force)
+        backend = _get_backend_service()
+        return backend.sync_all(force=force)
 
     def get_sync_status(self) -> dict:
         """
@@ -273,13 +362,17 @@ class LovdataService:
         Returns:
             Dict with sync timestamps and file counts
         """
-        sync_service = _get_sync_service()
-        return sync_service.get_sync_status()
+        backend = _get_backend_service()
+        return backend.get_sync_status()
 
     def is_synced(self) -> bool:
         """Check if any data has been synced."""
-        status = self.get_sync_status()
-        return len(status) > 0
+        backend = _get_backend_service()
+        return backend.is_synced()
+
+    def get_backend_type(self) -> str:
+        """Return which backend is in use."""
+        return "supabase" if USE_SUPABASE else "sqlite"
 
     def _format_response(
         self,
@@ -392,9 +485,9 @@ Se fullstendig tekst på Lovdata:
 
         # Try FTS search first if data is synced
         if self.is_synced():
-            sync_service = _get_sync_service()
+            backend = _get_backend_service()
             try:
-                fts_results = sync_service.search(query, limit=limit)
+                fts_results = backend.search(query, limit=limit)
                 if fts_results:
                     return self._format_fts_results(query, fts_results)
             except Exception as e:

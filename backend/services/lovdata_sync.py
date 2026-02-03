@@ -16,7 +16,6 @@ import tarfile
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Iterator
 
 import httpx
 from bs4 import BeautifulSoup
@@ -350,7 +349,7 @@ class LovdataSyncService:
         Uses BeautifulSoup for HTML5-compatible parsing.
         """
         try:
-            with open(xml_path, 'r', encoding='utf-8') as f:
+            with open(xml_path, encoding='utf-8') as f:
                 content = f.read()
 
             soup = BeautifulSoup(content, 'html.parser')
@@ -451,7 +450,7 @@ class LovdataSyncService:
         sections = []
 
         try:
-            with open(xml_path, 'r', encoding='utf-8') as f:
+            with open(xml_path, encoding='utf-8') as f:
                 soup = BeautifulSoup(f.read(), 'html.parser')
 
             # Find all legalArticle elements (paragraphs)
