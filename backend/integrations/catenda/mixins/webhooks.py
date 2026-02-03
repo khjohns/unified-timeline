@@ -13,9 +13,6 @@ import requests
 if TYPE_CHECKING:
     from ..base import CatendaClientBase
 
-# Default timeout for HTTP requests (seconds)
-DEFAULT_TIMEOUT = 30
-
 logger = logging.getLogger(__name__)
 
 
@@ -25,7 +22,16 @@ class WebhooksMixin:
     # Type hints for attributes from CatendaClientBase
     base_url: str
 
-    def get_headers(self: "CatendaClientBase") -> dict[str, str]: ...
+    if TYPE_CHECKING:
+
+        def get_headers(self: "CatendaClientBase") -> dict[str, str]: ...
+        def _safe_request(
+            self: "CatendaClientBase",
+            method: str,
+            url: str,
+            error_message: str = "API request failed",
+            **kwargs,
+        ) -> requests.Response | None: ...
 
     def create_webhook(
         self: "CatendaClientBase",
@@ -55,25 +61,19 @@ class WebhooksMixin:
         if name:
             payload["name"] = name
 
-        try:
-            response = requests.post(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            webhook = response.json()
-
-            logger.info("Webhook opprettet!")
-            logger.info(f"   Webhook ID: {webhook['id']}")
-            logger.info(f"   State: {webhook['state']}")
-
-            return webhook
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved oppretting av webhook: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"Response: {e.response.text}")
+        response = self._safe_request(
+            "POST", url, "Feil ved oppretting av webhook", json=payload
+        )
+        if response is None:
             return None
+
+        webhook = response.json()
+
+        logger.info("Webhook opprettet!")
+        logger.info(f"   Webhook ID: {webhook['id']}")
+        logger.info(f"   State: {webhook['state']}")
+
+        return webhook
 
     def list_webhooks(self: "CatendaClientBase", project_id: str) -> list[dict]:
         """
@@ -89,26 +89,20 @@ class WebhooksMixin:
 
         url = f"{self.base_url}/v2/projects/{project_id}/webhooks/user"
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            webhooks = response.json()
-            logger.info(f"Fant {len(webhooks)} webhook(s)")
-
-            for hook in webhooks:
-                logger.info(f"  - {hook.get('name', 'Unnamed')} ({hook['event']})")
-                logger.info(
-                    f"    State: {hook['state']}, Failures: {hook.get('failureCount', 0)}"
-                )
-
-            return webhooks
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av webhooks: {e}")
+        response = self._safe_request("GET", url, "Feil ved henting av webhooks")
+        if response is None:
             return []
+
+        webhooks = response.json()
+        logger.info(f"Fant {len(webhooks)} webhook(s)")
+
+        for hook in webhooks:
+            logger.info(f"  - {hook.get('name', 'Unnamed')} ({hook['event']})")
+            logger.info(
+                f"    State: {hook['state']}, Failures: {hook.get('failureCount', 0)}"
+            )
+
+        return webhooks
 
     def delete_webhook(
         self: "CatendaClientBase", project_id: str, webhook_id: str
@@ -127,23 +121,13 @@ class WebhooksMixin:
 
         url = f"{self.base_url}/v2/projects/{project_id}/webhooks/user/{webhook_id}"
 
-        try:
-            response = requests.delete(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
+        response = self._safe_request("DELETE", url, "Feil ved sletting av webhook")
+        if response is None:
+            return False
 
-            if response.status_code == 204:
-                logger.info("Webhook slettet")
-                return True
-            else:
-                logger.warning(
-                    f"Uventet statuskode ved sletting: {response.status_code}"
-                )
-                return False
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved sletting av webhook: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"Response: {e.response.text}")
+        if response.status_code == 204:
+            logger.info("Webhook slettet")
+            return True
+        else:
+            logger.warning(f"Uventet statuskode ved sletting: {response.status_code}")
             return False

@@ -13,9 +13,6 @@ import requests
 if TYPE_CHECKING:
     from ..base import CatendaClientBase
 
-# Default timeout for HTTP requests (seconds)
-DEFAULT_TIMEOUT = 30
-
 logger = logging.getLogger(__name__)
 
 
@@ -26,11 +23,22 @@ class BIMMixin:
     base_url: str
     topic_board_id: str | None
 
-    def get_headers(self: "CatendaClientBase") -> dict[str, str]: ...
-    def get_all_viewpoints(self: "CatendaClientBase", topic_id: str) -> list[dict]: ...
-    def get_viewpoint_selection(
-        self: "CatendaClientBase", topic_id: str, viewpoint_id: str
-    ) -> list[dict]: ...
+    if TYPE_CHECKING:
+
+        def get_headers(self: "CatendaClientBase") -> dict[str, str]: ...
+        def _safe_request(
+            self: "CatendaClientBase",
+            method: str,
+            url: str,
+            error_message: str = "API request failed",
+            **kwargs,
+        ) -> requests.Response | None: ...
+        def get_all_viewpoints(
+            self: "CatendaClientBase", topic_id: str
+        ) -> list[dict]: ...
+        def get_viewpoint_selection(
+            self: "CatendaClientBase", topic_id: str, viewpoint_id: str
+        ) -> list[dict]: ...
 
     def get_bim_objects_for_topic(
         self: "CatendaClientBase", topic_id: str
@@ -111,30 +119,26 @@ class BIMMixin:
             # If we omit 'fields', we get everything by default.
         }
 
-        try:
-            response = requests.post(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
+        response = self._safe_request(
+            "POST", url, f"Feil ved produktsok for GUID {ifc_guid}", json=payload
+        )
+        if response is None:
+            return None
+
+        products = response.json()
+
+        if products and len(products) > 0:
+            product = products[0]
+            logger.info(
+                f"Fant produkt: {product.get('attributes', {}).get('Name', 'Uten navn')}"
             )
-            response.raise_for_status()
+            logger.info(f"   Type: {product.get('ifcType')}")
 
-            products = response.json()
+            # Log number of property sets for overview
+            psets = product.get("propertySets", {})
+            logger.info(f"   Property Sets: {len(psets)} stk funnet")
 
-            if products and len(products) > 0:
-                product = products[0]
-                logger.info(
-                    f"Fant produkt: {product.get('attributes', {}).get('Name', 'Uten navn')}"
-                )
-                logger.info(f"   Type: {product.get('ifcType')}")
-
-                # Log number of property sets for overview
-                psets = product.get("propertySets", {})
-                logger.info(f"   Property Sets: {len(psets)} stk funnet")
-
-                return product
-            else:
-                logger.warning(f"Ingen produkter funnet med GUID {ifc_guid}")
-                return None
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved produktsok: {e}")
+            return product
+        else:
+            logger.warning(f"Ingen produkter funnet med GUID {ifc_guid}")
             return None

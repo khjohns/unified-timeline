@@ -13,9 +13,6 @@ import requests
 if TYPE_CHECKING:
     from ..base import CatendaClientBase
 
-# Default timeout for HTTP requests (seconds)
-DEFAULT_TIMEOUT = 30
-
 logger = logging.getLogger(__name__)
 
 
@@ -27,7 +24,16 @@ class BoardsMixin:
     topic_board_id: str | None
     project_id: str | None
 
-    def get_headers(self: "CatendaClientBase") -> dict[str, str]: ...
+    if TYPE_CHECKING:
+
+        def get_headers(self: "CatendaClientBase") -> dict[str, str]: ...
+        def _safe_request(
+            self: "CatendaClientBase",
+            method: str,
+            url: str,
+            error_message: str = "API request failed",
+            **kwargs,
+        ) -> requests.Response | None: ...
 
     def list_topic_boards(self: "CatendaClientBase") -> list[dict]:
         """
@@ -40,23 +46,17 @@ class BoardsMixin:
 
         url = f"{self.base_url}/opencde/bcf/3.0/projects"
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            boards = response.json()
-            logger.info(f"Fant {len(boards)} topic board(s)")
-
-            for board in boards:
-                logger.info(f"  - {board['name']} (ID: {board['project_id']})")
-
-            return boards
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av topic boards: {e}")
+        response = self._safe_request("GET", url, "Feil ved henting av topic boards")
+        if response is None:
             return []
+
+        boards = response.json()
+        logger.info(f"Fant {len(boards)} topic board(s)")
+
+        for board in boards:
+            logger.info(f"  - {board['name']} (ID: {board['project_id']})")
+
+        return boards
 
     def select_topic_board(self: "CatendaClientBase", board_index: int = 0) -> bool:
         """
@@ -104,19 +104,13 @@ class BoardsMixin:
         logger.info(f"Henter topic board {board_id}...")
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}"
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            board = response.json()
-            logger.info(f"Hentet board: {board.get('name')}")
-            return board
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av topic board: {e}")
+        response = self._safe_request("GET", url, "Feil ved henting av topic board")
+        if response is None:
             return None
+
+        board = response.json()
+        logger.info(f"Hentet board: {board.get('name')}")
+        return board
 
     def create_topic_board(
         self: "CatendaClientBase", name: str, project_id: str | None = None
@@ -141,23 +135,17 @@ class BoardsMixin:
 
         payload = {"name": name, "bimsync_project_id": project_id}
 
-        try:
-            response = requests.post(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            board = response.json()
-            logger.info(
-                f"Opprettet board: {board.get('name')} (ID: {board.get('project_id')})"
-            )
-            return board
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved opprettelse av topic board: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"   Response: {e.response.text}")
+        response = self._safe_request(
+            "POST", url, "Feil ved opprettelse av topic board", json=payload
+        )
+        if response is None:
             return None
+
+        board = response.json()
+        logger.info(
+            f"Opprettet board: {board.get('name')} (ID: {board.get('project_id')})"
+        )
+        return board
 
     def update_topic_board(
         self: "CatendaClientBase", name: str, board_id: str | None = None
@@ -182,19 +170,15 @@ class BoardsMixin:
 
         payload = {"name": name}
 
-        try:
-            response = requests.put(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            board = response.json()
-            logger.info(f"Oppdatert board: {board.get('name')}")
-            return board
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved oppdatering av topic board: {e}")
+        response = self._safe_request(
+            "PUT", url, "Feil ved oppdatering av topic board", json=payload
+        )
+        if response is None:
             return None
+
+        board = response.json()
+        logger.info(f"Oppdatert board: {board.get('name')}")
+        return board
 
     def get_topic_board_extensions(
         self: "CatendaClientBase", board_id: str | None = None
@@ -216,19 +200,13 @@ class BoardsMixin:
         logger.info(f"Henter extensions for board {board_id}...")
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions"
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            extensions = response.json()
-            logger.info("Hentet extensions")
-            return extensions
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av extensions: {e}")
+        response = self._safe_request("GET", url, "Feil ved henting av extensions")
+        if response is None:
             return None
+
+        extensions = response.json()
+        logger.info("Hentet extensions")
+        return extensions
 
     def get_topic_board_with_custom_fields(
         self: "CatendaClientBase",
@@ -259,21 +237,17 @@ class BoardsMixin:
         url = f"{self.base_url}/v2/projects/{project_id}/issues/boards/{board_id}"
         params = {"include": "customFields,customFieldInstances"}
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            board = response.json()
-            logger.info(
-                f"Hentet board med {len(board.get('customFieldInstances', []))} custom field(s)"
-            )
-            return board
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av board med custom fields: {e}")
+        response = self._safe_request(
+            "GET", url, "Feil ved henting av board med custom fields", params=params
+        )
+        if response is None:
             return None
+
+        board = response.json()
+        logger.info(
+            f"Hentet board med {len(board.get('customFieldInstances', []))} custom field(s)"
+        )
+        return board
 
     def get_topic_board_details(
         self: "CatendaClientBase", topic_board_id: str | None = None
@@ -295,16 +269,12 @@ class BoardsMixin:
         logger.info(f"Henter detaljer for topic board {board_id}...")
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}"
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            board_data = response.json()
-            logger.info(f"Detaljer hentet for board '{board_data['name']}'")
-            return board_data
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av topic board detaljer: {e}")
+        response = self._safe_request(
+            "GET", url, "Feil ved henting av topic board detaljer"
+        )
+        if response is None:
             return None
+
+        board_data = response.json()
+        logger.info(f"Detaljer hentet for board '{board_data['name']}'")
+        return board_data

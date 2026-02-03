@@ -13,9 +13,6 @@ import requests
 if TYPE_CHECKING:
     from ..base import CatendaClientBase
 
-# Default timeout for HTTP requests (seconds)
-DEFAULT_TIMEOUT = 30
-
 logger = logging.getLogger(__name__)
 
 
@@ -27,7 +24,16 @@ class TopicsMixin:
     topic_board_id: str | None
     test_topic_id: str | None
 
-    def get_headers(self: "CatendaClientBase") -> dict[str, str]: ...
+    if TYPE_CHECKING:
+
+        def get_headers(self: "CatendaClientBase") -> dict[str, str]: ...
+        def _safe_request(
+            self: "CatendaClientBase",
+            method: str,
+            url: str,
+            error_message: str = "API request failed",
+            **kwargs,
+        ) -> requests.Response | None: ...
 
     def list_topics(
         self: "CatendaClientBase", limit: int | None = None, fetch_all: bool = False
@@ -50,67 +56,59 @@ class TopicsMixin:
 
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics"
 
-        try:
-            if fetch_all:
-                # Fetch all topics with pagination
-                all_topics = []
-                page_size = 500  # Max allowed by API
-                skip = 0
+        if fetch_all:
+            # Fetch all topics with pagination
+            all_topics: list[dict] = []
+            page_size = 500  # Max allowed by API
+            skip = 0
 
-                while True:
-                    params = {"$top": str(page_size), "$skip": str(skip)}
-                    response = requests.get(
-                        url,
-                        headers=self.get_headers(),
-                        params=params,
-                        timeout=DEFAULT_TIMEOUT,
-                    )
-                    response.raise_for_status()
-
-                    batch = response.json()
-                    if not batch:
-                        break
-
-                    all_topics.extend(batch)
-                    logger.info(
-                        f"  Hentet {len(batch)} topics (totalt: {len(all_topics)})"
-                    )
-
-                    if len(batch) < page_size:
-                        break  # Last page
-
-                    skip += page_size
-
-                topics = all_topics
-            else:
-                # Standard fetch with optional limit
-                params = {}
-                if limit:
-                    params["$top"] = str(limit)
-
-                response = requests.get(
-                    url,
-                    headers=self.get_headers(),
-                    params=params,
-                    timeout=DEFAULT_TIMEOUT,
+            while True:
+                params = {"$top": str(page_size), "$skip": str(skip)}
+                response = self._safe_request(
+                    "GET", url, "Feil ved henting av topics", params=params
                 )
-                response.raise_for_status()
-                topics = response.json()
+                if response is None:
+                    return all_topics  # Return what we have so far
 
-            logger.info(f"Fant {len(topics)} topic(s)")
+                batch = response.json()
+                if not batch:
+                    break
 
-            for topic in topics[:10]:  # Log only first 10
-                logger.info(
-                    f"  - {topic['title']} (ID: {topic['guid']}, Status: {topic.get('topic_status', 'N/A')})"
-                )
-            if len(topics) > 10:
-                logger.info(f"  ... og {len(topics) - 10} til")
+                all_topics.extend(batch)
+                logger.info(f"  Hentet {len(batch)} topics (totalt: {len(all_topics)})")
 
-            return topics
+                if len(batch) < page_size:
+                    break  # Last page
 
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av topics: {e}")
-            return []
+                skip += page_size
+
+            topics = all_topics
+        else:
+            # Standard fetch with optional limit
+            params = {}
+            if limit:
+                params["$top"] = str(limit)
+
+            response = self._safe_request(
+                "GET",
+                url,
+                "Feil ved henting av topics",
+                params=params if params else None,
+            )
+            if response is None:
+                return []
+            topics = response.json()
+
+        logger.info(f"Fant {len(topics)} topic(s)")
+
+        for topic in topics[:10]:  # Log only first 10
+            logger.info(
+                f"  - {topic['title']} (ID: {topic['guid']}, Status: {topic.get('topic_status', 'N/A')})"
+            )
+        if len(topics) > 10:
+            logger.info(f"  ... og {len(topics) - 10} til")
+
+        return topics
 
     def select_topic(self: "CatendaClientBase", topic_index: int = 0) -> bool:
         """
@@ -160,20 +158,14 @@ class TopicsMixin:
 
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}"
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            topic = response.json()
-            logger.info(f"Topic hentet: {topic['title']}")
-
-            return topic
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av topic: {e}")
+        response = self._safe_request("GET", url, "Feil ved henting av topic")
+        if response is None:
             return None
+
+        topic = response.json()
+        logger.info(f"Topic hentet: {topic['title']}")
+
+        return topic
 
     def create_topic(
         self: "CatendaClientBase",
@@ -210,22 +202,16 @@ class TopicsMixin:
         if topic_status:
             payload["topic_status"] = topic_status
 
-        try:
-            response = requests.post(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            topic = response.json()
-            logger.info(f"Topic opprettet: {topic['title']} (GUID: {topic['guid']})")
-
-            return topic
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved oppretting av topic: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"Response: {e.response.text}")
+        response = self._safe_request(
+            "POST", url, "Feil ved oppretting av topic", json=payload
+        )
+        if response is None:
             return None
+
+        topic = response.json()
+        logger.info(f"Topic opprettet: {topic['title']} (GUID: {topic['guid']})")
+
+        return topic
 
     def delete_topic(self: "CatendaClientBase", topic_id: str) -> bool:
         """
@@ -245,16 +231,15 @@ class TopicsMixin:
 
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}"
 
-        try:
-            response = requests.delete(url, headers=self.get_headers(), timeout=30)
-            if response.status_code == 204:
-                logger.info(f"Topic slettet: {topic_id}")
-                return True
-            else:
-                logger.error(f"Feil ved sletting: {response.status_code}")
-                return False
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved sletting av topic: {e}")
+        response = self._safe_request("DELETE", url, "Feil ved sletting av topic")
+        if response is None:
+            return False
+
+        if response.status_code == 204:
+            logger.info(f"Topic slettet: {topic_id}")
+            return True
+        else:
+            logger.error(f"Feil ved sletting: {response.status_code}")
             return False
 
     def update_topic(
@@ -313,16 +298,12 @@ class TopicsMixin:
         if topic_status:
             logger.info(f"   Status: {topic_status}")
 
-        try:
-            response = requests.put(
-                url, headers=self.get_headers(), json=payload, timeout=30
-            )
-            response.raise_for_status()
-            result = response.json()
-            logger.info(f"Topic oppdatert: {topic_guid}")
-            return result
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved oppdatering av topic: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"Response: {e.response.text}")
+        response = self._safe_request(
+            "PUT", url, "Feil ved oppdatering av topic", json=payload
+        )
+        if response is None:
             return None
+
+        result = response.json()
+        logger.info(f"Topic oppdatert: {topic_guid}")
+        return result

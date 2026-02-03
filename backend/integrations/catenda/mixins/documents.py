@@ -17,9 +17,6 @@ from ..exceptions import CatendaAuthError
 if TYPE_CHECKING:
     from ..base import CatendaClientBase
 
-# Default timeout for HTTP requests (seconds)
-DEFAULT_TIMEOUT = 30
-
 logger = logging.getLogger(__name__)
 
 
@@ -32,7 +29,23 @@ class DocumentsMixin:
     topic_board_id: str | None
     library_id: str | None
 
-    def get_headers(self: "CatendaClientBase") -> dict[str, str]: ...
+    if TYPE_CHECKING:
+
+        def get_headers(self: "CatendaClientBase") -> dict[str, str]: ...
+        def _safe_request(
+            self: "CatendaClientBase",
+            method: str,
+            url: str,
+            error_message: str = "API request failed",
+            **kwargs,
+        ) -> requests.Response | None: ...
+        def _make_request(
+            self: "CatendaClientBase",
+            method: str,
+            url: str,
+            error_message: str = "API request failed",
+            **kwargs,
+        ) -> requests.Response: ...
 
     # ==========================================
     # PROJECT MANAGEMENT (v2 API)
@@ -48,15 +61,13 @@ class DocumentsMixin:
         logger.info("Henter tilgjengelige prosjekter...")
         url = f"{self.base_url}/v2/projects"
 
-        try:
-            response = requests.get(url, headers=self.get_headers(), timeout=30)
-            response.raise_for_status()
-            projects = response.json()
-            logger.info(f"Fant {len(projects)} prosjekt(er)")
-            return projects
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved listing av prosjekter: {e}")
+        response = self._safe_request("GET", url, "Feil ved listing av prosjekter")
+        if response is None:
             return []
+
+        projects = response.json()
+        logger.info(f"Fant {len(projects)} prosjekt(er)")
+        return projects
 
     def get_project_details(self: "CatendaClientBase", project_id: str) -> dict | None:
         """
@@ -71,19 +82,15 @@ class DocumentsMixin:
         logger.info(f"Henter v2-prosjektdetaljer for {project_id}...")
         url = f"{self.base_url}/v2/projects/{project_id}"
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            project_data = response.json()
-            logger.info(f"Prosjektdetaljer hentet for '{project_data['name']}'")
-            return project_data
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av prosjektdetaljer: {e}")
+        response = self._safe_request(
+            "GET", url, "Feil ved henting av prosjektdetaljer"
+        )
+        if response is None:
             return None
+
+        project_data = response.json()
+        logger.info(f"Prosjektdetaljer hentet for '{project_data['name']}'")
+        return project_data
 
     def find_user_in_project(
         self: "CatendaClientBase", project_id: str, email: str
@@ -112,37 +119,31 @@ class DocumentsMixin:
 
         url = f"{self.base_url}/v2/projects/{project_id}/members"
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            members = response.json()
-            logger.info(f"Hentet {len(members)} medlemmer fra prosjektet")
-
-            # Search for email (case-insensitive)
-            normalized_email = email.lower().strip()
-            for member in members:
-                # Use the dedicated 'email' field for matching
-                if "user" in member and member["user"]:
-                    user_details = member["user"]
-                    email_from_api = user_details.get("email")
-
-                    if email_from_api:
-                        user_email = email_from_api.lower().strip()
-                        if user_email == normalized_email:
-                            logger.info(
-                                f"Fant bruker: {user_details.get('name', 'Ukjent navn')} med rolle '{member.get('role')}'"
-                            )
-                            return user_details
-
-            logger.warning(f"Fant ikke bruker med e-post '{email}' i prosjektet")
+        response = self._safe_request("GET", url, "Feil ved sok etter bruker")
+        if response is None:
             return None
 
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved sok etter bruker: {e}")
-            return None
+        members = response.json()
+        logger.info(f"Hentet {len(members)} medlemmer fra prosjektet")
+
+        # Search for email (case-insensitive)
+        normalized_email = email.lower().strip()
+        for member in members:
+            # Use the dedicated 'email' field for matching
+            if "user" in member and member["user"]:
+                user_details = member["user"]
+                email_from_api = user_details.get("email")
+
+                if email_from_api:
+                    user_email = email_from_api.lower().strip()
+                    if user_email == normalized_email:
+                        logger.info(
+                            f"Fant bruker: {user_details.get('name', 'Ukjent navn')} med rolle '{member.get('role')}'"
+                        )
+                        return user_details
+
+        logger.warning(f"Fant ikke bruker med e-post '{email}' i prosjektet")
+        return None
 
     # ==========================================
     # LIBRARY MANAGEMENT (v2 API)
@@ -159,26 +160,19 @@ class DocumentsMixin:
             List of libraries
         """
         logger.info(f"Henter libraries for prosjekt {project_id}...")
-
         url = f"{self.base_url}/v2/projects/{project_id}/libraries"
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            libraries = response.json()
-            logger.info(f"Fant {len(libraries)} library/libraries")
-
-            for lib in libraries:
-                logger.info(f"  - {lib['name']} (ID: {lib['id']}, Type: {lib['type']})")
-
-            return libraries
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av libraries: {e}")
+        response = self._safe_request("GET", url, "Feil ved henting av libraries")
+        if response is None:
             return []
+
+        libraries = response.json()
+        logger.info(f"Fant {len(libraries)} library/libraries")
+
+        for lib in libraries:
+            logger.info(f"  - {lib['name']} (ID: {lib['id']}, Type: {lib['type']})")
+
+        return libraries
 
     def select_library(
         self: "CatendaClientBase", project_id: str, library_name: str = "Documents"
@@ -235,6 +229,9 @@ class DocumentsMixin:
 
         Returns:
             Library item data including 'id' (library-item-id)
+
+        Raises:
+            CatendaAuthError: If access token has expired
         """
         if not self.library_id:
             logger.error("Ingen library valgt")
@@ -272,37 +269,37 @@ class DocumentsMixin:
         headers["Content-Type"] = "application/octet-stream"
         headers["Bimsync-Params"] = json.dumps(bimsync_params)
 
+        # Use _make_request to propagate CatendaAuthError on 401
         try:
-            response = requests.post(
-                url, headers=headers, data=file_data, timeout=DEFAULT_TIMEOUT
+            response = self._make_request(
+                "POST",
+                url,
+                "Feil ved opplasting av dokument",
+                headers=headers,
+                data=file_data,
             )
-            response.raise_for_status()
-
-            result = response.json()
-
-            # API returns a list with one element
-            if isinstance(result, list) and len(result) > 0:
-                library_item = result[0]
-            else:
-                library_item = result
-
-            library_item_id = library_item["id"]
-
-            logger.info("Dokument lastet opp!")
-            logger.info(f"   library-item-id: {library_item_id}")
-            logger.info(f"   Navn: {library_item['name']}")
-            logger.info(f"   Type: {library_item['type']}")
-
-            return library_item
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved opplasting av dokument: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"Response: {e.response.text}")
-                # Raise specific error for 401 to allow proper handling upstream
-                if e.response.status_code == 401:
-                    raise CatendaAuthError("Catenda access token expired") from e
+        except CatendaAuthError:
+            # Re-raise auth errors for upstream handling
+            raise
+        except Exception:
             return None
+
+        result = response.json()
+
+        # API returns a list with one element
+        if isinstance(result, list) and len(result) > 0:
+            library_item = result[0]
+        else:
+            library_item = result
+
+        library_item_id = library_item["id"]
+
+        logger.info("Dokument lastet opp!")
+        logger.info(f"   library-item-id: {library_item_id}")
+        logger.info(f"   Navn: {library_item['name']}")
+        logger.info(f"   Type: {library_item['type']}")
+
+        return library_item
 
     # ==========================================
     # FOLDERS (v2 API)
@@ -346,28 +343,24 @@ class DocumentsMixin:
         if include_subfolders:
             params["subFolders"] = "true"
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            items = response.json()
-
-            # Filter out folders - check both item.type and document.type
-            folders = [
-                item
-                for item in items
-                if item.get("type") == "folder"
-                or item.get("document", {}).get("type") == "folder"
-            ]
-
-            logger.info(f"Totalt {len(items)} items, fant {len(folders)} mappe(r)")
-            return folders
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av mapper: {e}")
+        response = self._safe_request(
+            "GET", url, "Feil ved henting av mapper", params=params
+        )
+        if response is None:
             return []
+
+        items = response.json()
+
+        # Filter out folders - check both item.type and document.type
+        folders = [
+            item
+            for item in items
+            if item.get("type") == "folder"
+            or item.get("document", {}).get("type") == "folder"
+        ]
+
+        logger.info(f"Totalt {len(items)} items, fant {len(folders)} mappe(r)")
+        return folders
 
     def get_library_item(
         self: "CatendaClientBase", project_id: str, item_id: str
@@ -388,23 +381,19 @@ class DocumentsMixin:
 
         url = f"{self.base_url}/v2/projects/{project_id}/libraries/{self.library_id}/items/{item_id}"
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-            item = response.json()
-            # Check both top-level type and document.type
-            doc_type = (
-                item.get("document", {}).get("type") if item.get("document") else None
-            )
-            logger.info(
-                f"Hentet item: {item.get('name')} (type={item.get('type')}, document.type={doc_type})"
-            )
-            return item
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av item {item_id}: {e}")
+        response = self._safe_request("GET", url, f"Feil ved henting av item {item_id}")
+        if response is None:
             return None
+
+        item = response.json()
+        # Check both top-level type and document.type
+        doc_type = (
+            item.get("document", {}).get("type") if item.get("document") else None
+        )
+        logger.info(
+            f"Hentet item: {item.get('name')} (type={item.get('type')}, document.type={doc_type})"
+        )
+        return item
 
     def create_folder(
         self: "CatendaClientBase",
@@ -437,28 +426,22 @@ class DocumentsMixin:
 
         logger.info(f"Oppretter mappe: {folder_name}")
 
-        try:
-            response = requests.post(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            result = response.json()
-
-            # API can return list or object
-            if isinstance(result, list) and len(result) > 0:
-                folder = result[0]
-            else:
-                folder = result
-
-            logger.info(f"Mappe opprettet: {folder['id']}")
-            return folder
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved opprettelse av mappe: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"Response: {e.response.text}")
+        response = self._safe_request(
+            "POST", url, "Feil ved opprettelse av mappe", json=payload
+        )
+        if response is None:
             return None
+
+        result = response.json()
+
+        # API can return list or object
+        if isinstance(result, list) and len(result) > 0:
+            folder = result[0]
+        else:
+            folder = result
+
+        logger.info(f"Mappe opprettet: {folder['id']}")
+        return folder
 
     def get_or_create_folder(
         self: "CatendaClientBase",
@@ -530,25 +513,19 @@ class DocumentsMixin:
         if description:
             payload["description"] = description
 
-        try:
-            response = requests.post(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            doc_ref = response.json()
-
-            logger.info("Document reference opprettet!")
-            logger.info(f"   Reference GUID: {doc_ref['guid']}")
-            logger.info(f"   Document GUID: {doc_ref.get('document_guid', 'N/A')}")
-
-            return doc_ref
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved oppretting av document reference: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"Response: {e.response.text}")
+        response = self._safe_request(
+            "POST", url, "Feil ved oppretting av document reference", json=payload
+        )
+        if response is None:
             return None
+
+        doc_ref = response.json()
+
+        logger.info("Document reference opprettet!")
+        logger.info(f"   Reference GUID: {doc_ref['guid']}")
+        logger.info(f"   Document GUID: {doc_ref.get('document_guid', 'N/A')}")
+
+        return doc_ref
 
     def list_document_references(
         self: "CatendaClientBase", topic_id: str | None = None
@@ -575,22 +552,18 @@ class DocumentsMixin:
             f"/topics/{topic_id}/document_references"
         )
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            doc_refs = response.json()
-            logger.info(f"Fant {len(doc_refs)} document reference(s)")
-
-            for ref in doc_refs:
-                logger.info(f"  - {ref.get('description', 'No description')}")
-                logger.info(f"    Document GUID: {ref.get('document_guid', 'N/A')}")
-                logger.info(f"    URL: {ref.get('url', 'N/A')}")
-
-            return doc_refs
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av document references: {e}")
+        response = self._safe_request(
+            "GET", url, "Feil ved henting av document references"
+        )
+        if response is None:
             return []
+
+        doc_refs = response.json()
+        logger.info(f"Fant {len(doc_refs)} document reference(s)")
+
+        for ref in doc_refs:
+            logger.info(f"  - {ref.get('description', 'No description')}")
+            logger.info(f"    Document GUID: {ref.get('document_guid', 'N/A')}")
+            logger.info(f"    URL: {ref.get('url', 'N/A')}")
+
+        return doc_refs

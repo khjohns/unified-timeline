@@ -14,9 +14,6 @@ import requests
 if TYPE_CHECKING:
     from ..base import CatendaClientBase
 
-# Default timeout for HTTP requests (seconds)
-DEFAULT_TIMEOUT = 30
-
 logger = logging.getLogger(__name__)
 
 
@@ -27,7 +24,16 @@ class CommentsMixin:
     base_url: str
     topic_board_id: str | None
 
-    def get_headers(self: "CatendaClientBase") -> dict[str, str]: ...
+    if TYPE_CHECKING:
+
+        def get_headers(self: "CatendaClientBase") -> dict[str, str]: ...
+        def _safe_request(
+            self: "CatendaClientBase",
+            method: str,
+            url: str,
+            error_message: str = "API request failed",
+            **kwargs,
+        ) -> requests.Response | None: ...
 
     # ==========================================
     # COMMENTS (BCF API)
@@ -59,26 +65,19 @@ class CommentsMixin:
 
         payload = {"comment": comment_text}
 
-        try:
-            # Add timeout to prevent hanging (30 seconds total)
-            response = requests.post(
-                url, headers=self.get_headers(), json=payload, timeout=30
-            )
-            response.raise_for_status()
-
-            comment = response.json()
-
-            logger.info("Kommentar opprettet!")
-            logger.info(f"   Comment GUID: {comment['guid']}")
-            logger.info(f"   Forfatter: {comment.get('author', 'N/A')}")
-
-            return comment
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved oppretting av kommentar: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"Response: {e.response.text}")
+        response = self._safe_request(
+            "POST", url, "Feil ved oppretting av kommentar", json=payload
+        )
+        if response is None:
             return None
+
+        comment = response.json()
+
+        logger.info("Kommentar opprettet!")
+        logger.info(f"   Comment GUID: {comment['guid']}")
+        logger.info(f"   Forfatter: {comment.get('author', 'N/A')}")
+
+        return comment
 
     def get_comments(self: "CatendaClientBase", topic_id: str) -> list[dict]:
         """
@@ -101,20 +100,14 @@ class CommentsMixin:
             f"/topics/{topic_id}/comments"
         )
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            comments = response.json()
-            logger.info(f"Fant {len(comments)} kommentar(er)")
-
-            return comments
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av kommentarer: {e}")
+        response = self._safe_request("GET", url, "Feil ved henting av kommentarer")
+        if response is None:
             return []
+
+        comments = response.json()
+        logger.info(f"Fant {len(comments)} kommentar(er)")
+
+        return comments
 
     # ==========================================
     # VIEWPOINTS (BCF API)
@@ -134,21 +127,17 @@ class CommentsMixin:
         logger.info(f"Henter viewpoints for topic {topic_id}...")
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}/viewpoints"
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-            viewpoints = response.json()
-            logger.info(f"Fant {len(viewpoints)} viewpoint(s).")
-            # Log the viewpoints for debugging
-            logger.debug(
-                f"Raw viewpoints: {json.dumps(viewpoints, indent=2, ensure_ascii=False)}"
-            )
-            return viewpoints
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av viewpoints: {e}")
+        response = self._safe_request("GET", url, "Feil ved henting av viewpoints")
+        if response is None:
             return []
+
+        viewpoints = response.json()
+        logger.info(f"Fant {len(viewpoints)} viewpoint(s).")
+        # Log the viewpoints for debugging
+        logger.debug(
+            f"Raw viewpoints: {json.dumps(viewpoints, indent=2, ensure_ascii=False)}"
+        )
+        return viewpoints
 
     def get_viewpoint_details(
         self: "CatendaClientBase", topic_id: str, viewpoint_id: str
@@ -170,20 +159,18 @@ class CommentsMixin:
         logger.info(f"Henter detaljer for viewpoint {viewpoint_id}...")
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}/viewpoints/{viewpoint_id}"
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-            viewpoint = response.json()
-            logger.info(f"Detaljer hentet for viewpoint {viewpoint_id}.")
-            logger.debug(
-                f"Viewpoint details: {json.dumps(viewpoint, indent=2, ensure_ascii=False)}"
-            )
-            return viewpoint
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av viewpoint-detaljer: {e}")
+        response = self._safe_request(
+            "GET", url, "Feil ved henting av viewpoint-detaljer"
+        )
+        if response is None:
             return None
+
+        viewpoint = response.json()
+        logger.info(f"Detaljer hentet for viewpoint {viewpoint_id}.")
+        logger.debug(
+            f"Viewpoint details: {json.dumps(viewpoint, indent=2, ensure_ascii=False)}"
+        )
+        return viewpoint
 
     def get_viewpoint_selection(
         self: "CatendaClientBase", topic_id: str, viewpoint_id: str
@@ -197,22 +184,15 @@ class CommentsMixin:
 
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}/viewpoints/{viewpoint_id}/selection"
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            if response.status_code == 404:
-                return []
-            response.raise_for_status()
-
-            data = response.json()
-            # API returns an object: {"selection": [...]}
-            return data.get("selection", [])
-        except requests.exceptions.RequestException as e:
-            logger.error(
-                f"Kunne ikke hente selection for viewpoint {viewpoint_id}: {e}"
-            )
+        response = self._safe_request(
+            "GET", url, f"Kunne ikke hente selection for viewpoint {viewpoint_id}"
+        )
+        if response is None:
             return []
+
+        data = response.json()
+        # API returns an object: {"selection": [...]}
+        return data.get("selection", [])
 
     def extract_ifc_guids_from_viewpoints(
         self: "CatendaClientBase", viewpoints: list[dict]

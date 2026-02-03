@@ -13,9 +13,6 @@ import requests
 if TYPE_CHECKING:
     from ..base import CatendaClientBase
 
-# Default timeout for HTTP requests (seconds)
-DEFAULT_TIMEOUT = 30
-
 logger = logging.getLogger(__name__)
 
 
@@ -27,12 +24,21 @@ class CustomFieldsMixin:
     topic_board_id: str | None
     project_id: str | None
 
-    def get_headers(self: "CatendaClientBase") -> dict[str, str]: ...
-    def get_topic_board_with_custom_fields(
-        self: "CatendaClientBase",
-        board_id: str | None = None,
-        project_id: str | None = None,
-    ) -> dict | None: ...
+    if TYPE_CHECKING:
+
+        def get_headers(self: "CatendaClientBase") -> dict[str, str]: ...
+        def _safe_request(
+            self: "CatendaClientBase",
+            method: str,
+            url: str,
+            error_message: str = "API request failed",
+            **kwargs,
+        ) -> requests.Response | None: ...
+        def get_topic_board_with_custom_fields(
+            self: "CatendaClientBase",
+            board_id: str | None = None,
+            project_id: str | None = None,
+        ) -> dict | None: ...
 
     # ------------------------------------------
     # Board-level Custom Field Management
@@ -55,24 +61,17 @@ class CustomFieldsMixin:
         url = f"{self.base_url}/v2/projects/{project_id}/issues/boards/{board_id}"
         params = {"include": "customFields,customFieldInstances"}
 
-        try:
-            response = requests.patch(
-                url,
-                headers=self.get_headers(),
-                json=payload,
-                params=params,
-                timeout=DEFAULT_TIMEOUT,
-            )
-            response.raise_for_status()
-
-            board = response.json()
-            return board
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved oppdatering av custom fields: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"   Response: {e.response.text}")
+        response = self._safe_request(
+            "PATCH",
+            url,
+            "Feil ved oppdatering av custom fields",
+            json=payload,
+            params=params,
+        )
+        if response is None:
             return None
+
+        return response.json()
 
     def add_custom_field_to_board(
         self: "CatendaClientBase",
@@ -312,19 +311,13 @@ class CustomFieldsMixin:
         logger.info(f"Henter custom fields for prosjekt {project_id}...")
         url = f"{self.base_url}/v2/projects/{project_id}/custom-fields"
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            fields = response.json()
-            logger.info(f"Fant {len(fields)} custom field(s)")
-            return fields
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av custom fields: {e}")
+        response = self._safe_request("GET", url, "Feil ved henting av custom fields")
+        if response is None:
             return []
+
+        fields = response.json()
+        logger.info(f"Fant {len(fields)} custom field(s)")
+        return fields
 
     def create_project_custom_field(
         self: "CatendaClientBase",
@@ -357,23 +350,17 @@ class CustomFieldsMixin:
         if description:
             payload["description"] = description
 
-        try:
-            response = requests.post(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            field = response.json()
-            logger.info(
-                f"Opprettet custom field: {field.get('name')} (ID: {field.get('id')})"
-            )
-            return field
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved opprettelse av custom field: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"   Response: {e.response.text}")
+        response = self._safe_request(
+            "POST", url, "Feil ved opprettelse av custom field", json=payload
+        )
+        if response is None:
             return None
+
+        field = response.json()
+        logger.info(
+            f"Opprettet custom field: {field.get('name')} (ID: {field.get('id')})"
+        )
+        return field
 
     def get_project_custom_field(
         self: "CatendaClientBase", custom_field_id: str, project_id: str | None = None
@@ -397,16 +384,11 @@ class CustomFieldsMixin:
             f"{self.base_url}/v2/projects/{project_id}/custom-fields/{custom_field_id}"
         )
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-            return response.json()
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av custom field: {e}")
+        response = self._safe_request("GET", url, "Feil ved henting av custom field")
+        if response is None:
             return None
+
+        return response.json()
 
     def update_project_custom_field(
         self: "CatendaClientBase",
@@ -447,19 +429,15 @@ class CustomFieldsMixin:
         if archived is not None:
             payload["archived"] = archived
 
-        try:
-            response = requests.patch(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            field = response.json()
-            logger.info(f"Oppdatert custom field: {field.get('name')}")
-            return field
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved oppdatering av custom field: {e}")
+        response = self._safe_request(
+            "PATCH", url, "Feil ved oppdatering av custom field", json=payload
+        )
+        if response is None:
             return None
+
+        field = response.json()
+        logger.info(f"Oppdatert custom field: {field.get('name')}")
+        return field
 
     def add_enumeration_items(
         self: "CatendaClientBase",
@@ -490,21 +468,15 @@ class CustomFieldsMixin:
 
         payload = {"enumerationItemsToAdd": items}
 
-        try:
-            response = requests.patch(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            field = response.json()
-            logger.info("Enumeration items lagt til")
-            return field
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved tillegg av enumeration items: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"   Response: {e.response.text}")
+        response = self._safe_request(
+            "PATCH", url, "Feil ved tillegg av enumeration items", json=payload
+        )
+        if response is None:
             return None
+
+        field = response.json()
+        logger.info("Enumeration items lagt til")
+        return field
 
     # ------------------------------------------
     # Topic Board Statuses
@@ -534,19 +506,15 @@ class CustomFieldsMixin:
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions/statuses"
         params = {"includeUnlinked": str(include_unlinked).lower()}
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            statuses = response.json()
-            logger.info(f"Fant {len(statuses)} status(er)")
-            return statuses
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av statuser: {e}")
+        response = self._safe_request(
+            "GET", url, "Feil ved henting av statuser", params=params
+        )
+        if response is None:
             return []
+
+        statuses = response.json()
+        logger.info(f"Fant {len(statuses)} status(er)")
+        return statuses
 
     def create_status(
         self: "CatendaClientBase",
@@ -596,21 +564,15 @@ class CustomFieldsMixin:
 
         logger.debug(f"   Create status payload: {payload}")
 
-        try:
-            response = requests.post(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            status = response.json()
-            logger.info(f"Opprettet status: {status.get('name')}")
-            return status
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved opprettelse av status: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"   Response: {e.response.text}")
+        response = self._safe_request(
+            "POST", url, "Feil ved opprettelse av status", json=payload
+        )
+        if response is None:
             return None
+
+        status = response.json()
+        logger.info(f"Opprettet status: {status.get('name')}")
+        return status
 
     def update_status(
         self: "CatendaClientBase",
@@ -649,19 +611,15 @@ class CustomFieldsMixin:
         if status_type:
             payload["type"] = status_type
 
-        try:
-            response = requests.put(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            status = response.json()
-            logger.info(f"Oppdatert status: {status.get('name')}")
-            return status
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved oppdatering av status: {e}")
+        response = self._safe_request(
+            "PUT", url, "Feil ved oppdatering av status", json=payload
+        )
+        if response is None:
             return None
+
+        status = response.json()
+        logger.info(f"Oppdatert status: {status.get('name')}")
+        return status
 
     def delete_status(
         self: "CatendaClientBase", name: str, board_id: str | None = None
@@ -686,20 +644,14 @@ class CustomFieldsMixin:
 
         payload = {"name": name}
 
-        try:
-            response = requests.delete(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            logger.info(f"Slettet status: {name}")
-            return True
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved sletting av status: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"   Response: {e.response.text}")
+        response = self._safe_request(
+            "DELETE", url, "Feil ved sletting av status", json=payload
+        )
+        if response is None:
             return False
+
+        logger.info(f"Slettet status: {name}")
+        return True
 
     # ------------------------------------------
     # Topic Board Types
@@ -729,19 +681,15 @@ class CustomFieldsMixin:
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions/types"
         params = {"includeUnlinked": str(include_unlinked).lower()}
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            types = response.json()
-            logger.info(f"Fant {len(types)} type(r)")
-            return types
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av typer: {e}")
+        response = self._safe_request(
+            "GET", url, "Feil ved henting av typer", params=params
+        )
+        if response is None:
             return []
+
+        types = response.json()
+        logger.info(f"Fant {len(types)} type(r)")
+        return types
 
     def create_type(
         self: "CatendaClientBase",
@@ -776,21 +724,15 @@ class CustomFieldsMixin:
 
         payload = {"name": name, "color": final_color}
 
-        try:
-            response = requests.post(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            topic_type = response.json()
-            logger.info(f"Opprettet type: {topic_type.get('name')}")
-            return topic_type
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved opprettelse av type: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"   Response: {e.response.text}")
+        response = self._safe_request(
+            "POST", url, "Feil ved opprettelse av type", json=payload
+        )
+        if response is None:
             return None
+
+        topic_type = response.json()
+        logger.info(f"Opprettet type: {topic_type.get('name')}")
+        return topic_type
 
     def update_type(
         self: "CatendaClientBase",
@@ -825,19 +767,15 @@ class CustomFieldsMixin:
         if color:
             payload["color"] = color
 
-        try:
-            response = requests.put(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            topic_type = response.json()
-            logger.info(f"Oppdatert type: {topic_type.get('name')}")
-            return topic_type
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved oppdatering av type: {e}")
+        response = self._safe_request(
+            "PUT", url, "Feil ved oppdatering av type", json=payload
+        )
+        if response is None:
             return None
+
+        topic_type = response.json()
+        logger.info(f"Oppdatert type: {topic_type.get('name')}")
+        return topic_type
 
     def delete_type(
         self: "CatendaClientBase", name: str, board_id: str | None = None
@@ -862,17 +800,11 @@ class CustomFieldsMixin:
 
         payload = {"name": name}
 
-        try:
-            response = requests.delete(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            logger.info(f"Slettet type: {name}")
-            return True
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved sletting av type: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"   Response: {e.response.text}")
+        response = self._safe_request(
+            "DELETE", url, "Feil ved sletting av type", json=payload
+        )
+        if response is None:
             return False
+
+        logger.info(f"Slettet type: {name}")
+        return True

@@ -13,9 +13,6 @@ import requests
 if TYPE_CHECKING:
     from ..base import CatendaClientBase
 
-# Default timeout for HTTP requests (seconds)
-DEFAULT_TIMEOUT = 30
-
 logger = logging.getLogger(__name__)
 
 
@@ -26,7 +23,16 @@ class RelationsMixin:
     base_url: str
     topic_board_id: str | None
 
-    def get_headers(self: "CatendaClientBase") -> dict[str, str]: ...
+    if TYPE_CHECKING:
+
+        def get_headers(self: "CatendaClientBase") -> dict[str, str]: ...
+        def _safe_request(
+            self: "CatendaClientBase",
+            method: str,
+            url: str,
+            error_message: str = "API request failed",
+            **kwargs,
+        ) -> requests.Response | None: ...
 
     def list_related_topics(
         self: "CatendaClientBase", topic_id: str, include_project_topics: bool = True
@@ -56,25 +62,24 @@ class RelationsMixin:
         if include_project_topics:
             params["includeBimsyncProjectTopics"] = "true"
 
-        try:
-            response = requests.get(
-                url, headers=self.get_headers(), params=params, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            related = response.json()
-            logger.info(f"Fant {len(related)} relatert(e) topic(s)")
-
-            for rel in related:
-                logger.info(
-                    f"  - {rel.get('related_topic_guid')} (Board: {rel.get('bimsync_issue_board_ref')})"
-                )
-
-            return related
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved henting av relaterte topics: {e}")
+        response = self._safe_request(
+            "GET",
+            url,
+            "Feil ved henting av relaterte topics",
+            params=params if params else None,
+        )
+        if response is None:
             return []
+
+        related = response.json()
+        logger.info(f"Fant {len(related)} relatert(e) topic(s)")
+
+        for rel in related:
+            logger.info(
+                f"  - {rel.get('related_topic_guid')} (Board: {rel.get('bimsync_issue_board_ref')})"
+            )
+
+        return related
 
     def create_topic_relations(
         self: "CatendaClientBase", topic_id: str, related_topic_guids: list[str]
@@ -107,23 +112,17 @@ class RelationsMixin:
         # Payload is a list of objects
         payload = [{"related_topic_guid": guid} for guid in related_topic_guids]
 
-        try:
-            response = requests.put(
-                url, headers=self.get_headers(), json=payload, timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            logger.info("Relasjoner opprettet!")
-            for guid in related_topic_guids:
-                logger.info(f"  - {topic_id} -> {guid}")
-
-            return True
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved oppretting av topic-relasjoner: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                logger.error(f"Response: {e.response.text}")
+        response = self._safe_request(
+            "PUT", url, "Feil ved oppretting av topic-relasjoner", json=payload
+        )
+        if response is None:
             return False
+
+        logger.info("Relasjoner opprettet!")
+        for guid in related_topic_guids:
+            logger.info(f"  - {topic_id} -> {guid}")
+
+        return True
 
     def delete_topic_relation(
         self: "CatendaClientBase", topic_id: str, related_topic_id: str
@@ -149,15 +148,9 @@ class RelationsMixin:
             f"/topics/{topic_id}/related_topics/{related_topic_id}"
         )
 
-        try:
-            response = requests.delete(
-                url, headers=self.get_headers(), timeout=DEFAULT_TIMEOUT
-            )
-            response.raise_for_status()
-
-            logger.info("Relasjon slettet")
-            return True
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Feil ved sletting av relasjon: {e}")
+        response = self._safe_request("DELETE", url, "Feil ved sletting av relasjon")
+        if response is None:
             return False
+
+        logger.info("Relasjon slettet")
+        return True
