@@ -1124,7 +1124,7 @@ export function RespondVederlagModal({
                         kr {hovedkravBelop?.toLocaleString('nb-NO') || 0},-
                       </span>
                       {vederlagTilstand?.krav_fremmet_i_tide === false && (
-                        <Badge variant="warning" size="sm">Redusert</Badge>
+                        <Badge variant="danger" size="sm">Prekludert</Badge>
                       )}
                     </div>
                     {vederlagEvent?.dato_oppdaget && (
