@@ -307,7 +307,11 @@ class LovdataSupabaseService:
             ).execute()
 
     def _parse_xml(self, content: str, doc_type: str) -> tuple[dict | None, list[dict]]:
-        """Parse XML/HTML content."""
+        """
+        Parse XML/HTML content from Lovdata.
+
+        Handles various XML structures used in Norwegian law documents.
+        """
         try:
             soup = BeautifulSoup(content, 'html.parser')
 
@@ -317,9 +321,11 @@ class LovdataSupabaseService:
             if not dok_id:
                 return None, []
 
-            # Normalize dok_id
-            if dok_id.startswith('NL/'):
-                dok_id = dok_id[3:]
+            # Normalize dok_id - remove all known prefixes
+            for prefix in ('NL/', 'SF/', 'LTI/', 'NLE/', 'NLO/'):
+                if dok_id.startswith(prefix):
+                    dok_id = dok_id[len(prefix):]
+                    break
 
             doc = {
                 'dok_id': dok_id,
@@ -331,38 +337,178 @@ class LovdataSupabaseService:
                 'doc_type': doc_type,
             }
 
-            # Parse sections
-            sections = []
-            for article in soup.find_all('article', class_='legalArticle'):
-                value_span = article.find('span', class_='legalArticleValue')
-                if not value_span:
-                    continue
-
-                section_id = value_span.get_text(strip=True).replace('§', '').strip()
-
-                title_span = article.find('span', class_='legalArticleTitle')
-                title = title_span.get_text(strip=True) if title_span else None
-
-                content_parts = []
-                for ledd in article.find_all('article', class_='legalP'):
-                    content_parts.append(ledd.get_text(strip=True))
-
-                if not content_parts:
-                    content_parts.append(article.get_text(strip=True))
-
-                sections.append({
-                    'dok_id': dok_id,
-                    'section_id': section_id,
-                    'title': title,
-                    'content': '\n\n'.join(content_parts),
-                    'address': article.get('data-absoluteaddress'),
-                })
+            # Parse sections - try multiple strategies
+            sections = self._extract_sections(soup, dok_id)
 
             return doc, sections
 
         except Exception as e:
-            logger.error(f"Parse error: {e}")
+            logger.error(f"Parse error for {dok_id if 'dok_id' in dir() else 'unknown'}: {e}")
             return None, []
+
+    def _extract_sections(self, soup: BeautifulSoup, dok_id: str) -> list[dict]:
+        """
+        Extract sections (paragraphs) from parsed HTML.
+
+        Tries multiple extraction strategies to handle varying XML structures.
+        """
+        sections = []
+        seen_ids = set()
+
+        # Strategy 1: Find all legalArticle elements (standard structure)
+        for article in soup.find_all('article', class_='legalArticle'):
+            section = self._parse_legal_article(article, dok_id)
+            if section and section['section_id'] not in seen_ids:
+                sections.append(section)
+                seen_ids.add(section['section_id'])
+
+        # Strategy 2: Find elements with data-absoluteaddress containing /paragraf/
+        if not sections:
+            for elem in soup.find_all(attrs={'data-absoluteaddress': True}):
+                addr = elem.get('data-absoluteaddress', '')
+                if '/paragraf/' in addr and '/ledd/' not in addr:
+                    section = self._parse_element_by_address(elem, dok_id, addr)
+                    if section and section['section_id'] not in seen_ids:
+                        sections.append(section)
+                        seen_ids.add(section['section_id'])
+
+        # Strategy 3: Look for headers with § symbol
+        if not sections:
+            for header in soup.find_all(['h2', 'h3', 'h4', 'h5', 'h6']):
+                text = header.get_text()
+                if '§' in text:
+                    section = self._parse_header_section(header, dok_id)
+                    if section and section['section_id'] not in seen_ids:
+                        sections.append(section)
+                        seen_ids.add(section['section_id'])
+
+        return sections
+
+    def _parse_legal_article(self, article, dok_id: str) -> dict | None:
+        """Parse a legalArticle element."""
+        # Find section ID from legalArticleValue span
+        value_span = article.find('span', class_='legalArticleValue')
+        if not value_span:
+            # Try finding in header
+            header = article.find(['h2', 'h3', 'h4', 'h5', 'h6'], class_='legalArticleHeader')
+            if header:
+                value_span = header.find('span', class_='legalArticleValue')
+
+        if not value_span:
+            return None
+
+        section_id = value_span.get_text(strip=True)
+        # Normalize section_id: remove § and extra whitespace
+        section_id = section_id.replace('§', '').strip()
+        # Handle "§ 1-1" format -> "1-1"
+        section_id = ' '.join(section_id.split())
+
+        if not section_id:
+            return None
+
+        # Get title
+        title_span = article.find('span', class_='legalArticleTitle')
+        title = title_span.get_text(strip=True) if title_span else None
+
+        # Get content from legalP elements (direct children only to avoid duplicates)
+        content_parts = []
+
+        # Find direct legalP children
+        for child in article.children:
+            if hasattr(child, 'get') and child.get('class'):
+                classes = child.get('class', [])
+                if isinstance(classes, list):
+                    class_str = ' '.join(classes)
+                else:
+                    class_str = classes
+
+                # Match legalP but not listLegalP, footnoteLegalP, etc.
+                if class_str == 'legalP' or (isinstance(classes, list) and 'legalP' in classes and len(classes) == 1):
+                    content_parts.append(child.get_text(strip=True))
+
+        # Fallback: get all text from legalP descendants
+        if not content_parts:
+            for ledd in article.find_all('article', class_='legalP', recursive=True):
+                text = ledd.get_text(strip=True)
+                if text and text not in content_parts:
+                    content_parts.append(text)
+
+        # Last fallback: get all text from article
+        if not content_parts:
+            # Get text but exclude the header
+            header = article.find(['h2', 'h3', 'h4', 'h5', 'h6'])
+            if header:
+                header.decompose()
+            text = article.get_text(strip=True)
+            if text:
+                content_parts.append(text)
+
+        if not content_parts:
+            return None
+
+        return {
+            'dok_id': dok_id,
+            'section_id': section_id,
+            'title': title,
+            'content': '\n\n'.join(content_parts),
+            'address': article.get('data-absoluteaddress'),
+        }
+
+    def _parse_element_by_address(self, elem, dok_id: str, addr: str) -> dict | None:
+        """Parse element using data-absoluteaddress."""
+        import re
+
+        # Extract section number from address like /kapittel/1/paragraf/5/
+        match = re.search(r'/paragraf/(\d+)/', addr)
+        if not match:
+            return None
+
+        section_num = match.group(1)
+
+        # Get content
+        content = elem.get_text(strip=True)
+        if not content:
+            return None
+
+        return {
+            'dok_id': dok_id,
+            'section_id': section_num,
+            'title': None,
+            'content': content,
+            'address': addr,
+        }
+
+    def _parse_header_section(self, header, dok_id: str) -> dict | None:
+        """Parse section from header element containing §."""
+        import re
+
+        text = header.get_text(strip=True)
+
+        # Try to extract section number
+        match = re.search(r'§\s*(\d+(?:-\d+)?(?:\s*[a-z])?)', text)
+        if not match:
+            return None
+
+        section_id = match.group(1).strip()
+
+        # Get content from following siblings
+        content_parts = []
+        for sibling in header.find_next_siblings():
+            if sibling.name in ['h2', 'h3', 'h4', 'h5', 'h6']:
+                break  # Stop at next header
+            if sibling.name == 'article':
+                content_parts.append(sibling.get_text(strip=True))
+
+        if not content_parts:
+            return None
+
+        return {
+            'dok_id': dok_id,
+            'section_id': section_id,
+            'title': None,
+            'content': '\n\n'.join(content_parts),
+            'address': None,
+        }
 
     def _extract_meta(self, header, class_name: str) -> str | None:
         """Extract metadata value from header."""
@@ -583,8 +729,8 @@ class LovdataSupabaseService:
         Returns:
             List of SearchResult objects
         """
-        # Use PostgreSQL function for search
-        result = self.client.rpc('search_lovdata', {
+        # Use fast PostgreSQL function for search (avoids slow ts_headline)
+        result = self.client.rpc('search_lovdata_fast', {
             'query_text': query,
             'max_results': limit
         }).execute()
@@ -631,18 +777,34 @@ class LovdataSupabaseService:
 
     def _find_document(self, identifier: str) -> dict | None:
         """Find document by ID or short title."""
-        # Normalize identifier
+        # Normalize identifier - handle various formats
         normalized = identifier.lower().replace('lov-', 'lov/').replace('for-', 'forskrift/')
 
-        # Try exact match on dok_id
-        result = self.client.table('lovdata_documents').select('*').eq('dok_id', normalized).execute()
-        if result.data:
-            return result.data[0]
+        # Build list of possible dok_id formats to try
+        candidates = [
+            normalized,
+            f"SF/{normalized}",  # SF prefix for forskrifter
+            f"NL/{normalized}",  # NL prefix for laws (if not stripped)
+        ]
+
+        # Try exact match on dok_id with various formats
+        for candidate in candidates:
+            result = self.client.table('lovdata_documents').select('*').eq('dok_id', candidate).execute()
+            if result.data:
+                return result.data[0]
+
+        # Try ILIKE match for partial dok_id (handles year variations)
+        for candidate in candidates:
+            result = self.client.table('lovdata_documents').select('*').ilike(
+                'dok_id', f'%{candidate}%'
+            ).limit(1).execute()
+            if result.data:
+                return result.data[0]
 
         # Try short_title match
         result = self.client.table('lovdata_documents').select('*').ilike(
             'short_title', f'%{identifier}%'
-        ).execute()
+        ).limit(1).execute()
         if result.data:
             return result.data[0]
 
