@@ -37,6 +37,7 @@ import {
   Alert,
   AttachmentUpload,
   Badge,
+  BegrunnelseEditor,
   Button,
   CurrencyInput,
   ExpandableText,
@@ -755,7 +756,7 @@ export function RespondVederlagModal({
       harPrekludertKrav: computed.harPrekludertKrav,
     };
 
-    return generateVederlagResponseBegrunnelse(input);
+    return generateVederlagResponseBegrunnelse(input, { useTokens: true });
   }, [
     vederlagEvent?.metode,
     vederlagEvent?.krever_justert_ep,
@@ -2088,20 +2089,21 @@ export function RespondVederlagModal({
                   </>
                 )}
 
-                {/* Begrunnelse (redigerbar, pre-populert med auto-generert) */}
+                {/* Begrunnelse (redigerbar med låste verdier) */}
                 <FormField
                   label="Begrunnelse"
                   error={errors.begrunnelse?.message}
-                  helpText="Automatisk generert basert på valgene dine. Du kan redigere teksten fritt."
                 >
                   <div className="space-y-2">
-                    <Textarea
-                      {...register('begrunnelse', {
-                        onChange: markBegrunnelseAsEdited,
-                      })}
-                      rows={12}
-                      fullWidth
+                    <BegrunnelseEditor
+                      value={formData.begrunnelse || autoBegrunnelse || ''}
+                      onChange={(value) => {
+                        setValue('begrunnelse', value, { shouldDirty: true });
+                        markBegrunnelseAsEdited();
+                      }}
                       error={!!errors.begrunnelse}
+                      fullWidth
+                      minHeight={250}
                     />
                     <div className="flex justify-end">
                       <Button
