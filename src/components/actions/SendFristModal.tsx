@@ -43,6 +43,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useFormBackup } from '../../hooks/useFormBackup';
+import { useCatendaStatusHandler } from '../../hooks/useCatendaStatusHandler';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -141,6 +142,7 @@ export function SendFristModal({
 }: SendFristModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const toast = useToast();
+  const { handleCatendaStatus } = useCatendaStatusHandler({ onWarning: onCatendaWarning });
 
   const {
     register,
@@ -200,9 +202,7 @@ export function SendFristModal({
       reset();
       onOpenChange(false);
       toast.success('Fristkrav sendt', 'Kravet ditt er registrert og sendt til byggherre.');
-      if (!result.catenda_synced) {
-        onCatendaWarning?.();
-      }
+      handleCatendaStatus(result);
     },
     onError: (error) => {
       // Dismiss pending toast

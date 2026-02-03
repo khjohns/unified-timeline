@@ -8,14 +8,18 @@
  * - Pre-validates magic link token before submission
  * - Generates client-side PDF for Catenda upload
  * - Throws TOKEN_EXPIRED error if token is invalid
+ * - Shows retry feedback to user during network issues
  */
 
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { useRef, useEffect } from 'react';
 import { submitEvent, EventSubmitResponse } from '../api/events';
 import { EventType } from '../types/timeline';
-import { getAuthToken } from '../api/client';
+import { getAuthToken, isRetryableError } from '../api/client';
 import { useVerifyToken } from './useVerifyToken';
+import { useToast } from '../components/primitives';
 import { sakKeys, sakQueries } from '../queries';
+import { RETRY_CONFIG, calculateRetryDelay } from '../constants/queryConfig';
 
 export interface SubmitEventPayload {
   eventType: EventType;
@@ -76,6 +80,11 @@ export function useSubmitEvent(sakId: string, options: UseSubmitEventOptions = {
   const queryClient = useQueryClient();
   const { onSuccess, onError, generatePdf = true } = options;
   const verifyToken = useVerifyToken();
+  const toast = useToast();
+
+  // Refs for tracking retry toast state
+  const retryToastId = useRef<string | null>(null);
+  const didRetry = useRef(false);
 
   // Fetch current state for PDF generation
   const { data: stateData } = useQuery({
@@ -83,7 +92,7 @@ export function useSubmitEvent(sakId: string, options: UseSubmitEventOptions = {
     enabled: !!sakId && generatePdf,
   });
 
-  return useMutation<EventSubmitResponse, Error, SubmitEventPayload>({
+  const mutation = useMutation<EventSubmitResponse, Error, SubmitEventPayload>({
     mutationFn: async ({ eventType, data, catendaTopicId }) => {
       // 1. Validate token before proceeding
       const token = getAuthToken();
@@ -126,7 +135,39 @@ export function useSubmitEvent(sakId: string, options: UseSubmitEventOptions = {
         pdfFilename,
       });
     },
+
+    // Override retry to track retry state for toast notifications
+    retry: (failureCount, error) => {
+      if (failureCount >= RETRY_CONFIG.MAX_MUTATION_RETRIES) return false;
+      if (!isRetryableError(error)) return false;
+
+      // Mark that we're retrying and show/update toast
+      didRetry.current = true;
+      if (retryToastId.current) {
+        toast.dismiss(retryToastId.current);
+      }
+      retryToastId.current = toast.pending(
+        'Tilkoblingsproblem, prøver igjen...',
+        `Forsøk ${failureCount + 1} av ${RETRY_CONFIG.MAX_MUTATION_RETRIES + 1}`
+      );
+
+      return true;
+    },
+    retryDelay: calculateRetryDelay,
+
     onSuccess: (data) => {
+      // Dismiss retry toast if present
+      if (retryToastId.current) {
+        toast.dismiss(retryToastId.current);
+        retryToastId.current = null;
+      }
+
+      // Show "connection restored" toast if we retried
+      if (didRetry.current) {
+        toast.success('Gjenopprettet tilkobling', 'Forespørselen ble fullført.');
+        didRetry.current = false;
+      }
+
       // Invalidate case state, timeline, and historikk to trigger refetch
       queryClient.invalidateQueries({ queryKey: sakKeys.state(sakId) });
       queryClient.invalidateQueries({ queryKey: sakKeys.timeline(sakId) });
@@ -136,8 +177,28 @@ export function useSubmitEvent(sakId: string, options: UseSubmitEventOptions = {
       onSuccess?.(data);
     },
     onError: (error) => {
+      // Dismiss retry toast if present
+      if (retryToastId.current) {
+        toast.dismiss(retryToastId.current);
+        retryToastId.current = null;
+      }
+      didRetry.current = false;
+
       // Call user callback
       onError?.(error);
     },
   });
+
+  // Reset retry state when mutation is reset
+  useEffect(() => {
+    if (mutation.isIdle) {
+      didRetry.current = false;
+      if (retryToastId.current) {
+        toast.dismiss(retryToastId.current);
+        retryToastId.current = null;
+      }
+    }
+  }, [mutation.isIdle, toast]);
+
+  return mutation;
 }

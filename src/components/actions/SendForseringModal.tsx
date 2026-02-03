@@ -18,6 +18,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { useVerifyToken } from '../../hooks/useVerifyToken';
+import { useCatendaStatusHandler } from '../../hooks/useCatendaStatusHandler';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { getAuthToken } from '../../api/client';
 import { useNavigate } from 'react-router-dom';
@@ -119,6 +120,7 @@ export function SendForseringModal({
   const queryClient = useQueryClient();
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const toast = useToast();
+  const { handleCatendaStatus } = useCatendaStatusHandler({ onWarning: onCatendaWarning });
 
   // Derived subsidiary state
   const erSubsidiaer = subsidiaerTriggers && subsidiaerTriggers.length > 0;
@@ -200,9 +202,13 @@ export function SendForseringModal({
       reset();
       onOpenChange(false);
       toast.success('Forseringssak opprettet', 'Du blir nå videresendt til forseringssaken.');
-      // Show warning if Catenda sync failed
-      if ('catenda_synced' in response && !response.catenda_synced) {
-        onCatendaWarning?.();
+      // Handle Catenda sync status with appropriate feedback (OpprettForseringResponse may include these fields)
+      const catendaResult = response as unknown as {
+        catenda_synced?: boolean;
+        catenda_skipped_reason?: 'no_topic_id' | 'not_authenticated' | 'error' | 'catenda_disabled' | 'no_client' | 'sync_not_attempted';
+      };
+      if (catendaResult.catenda_synced !== undefined) {
+        handleCatendaStatus(catendaResult);
       }
       // Navigate to the new forsering case
       navigate(`/forsering/${response.forsering_sak_id}`);

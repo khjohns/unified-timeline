@@ -31,6 +31,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useCatendaStatusHandler } from '../../hooks/useCatendaStatusHandler';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
@@ -95,6 +96,7 @@ export function ReviseFristModal({
 }: ReviseFristModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const toast = useToast();
+  const { handleCatendaStatus } = useCatendaStatusHandler({ onWarning: onCatendaWarning });
   // This revision will become the next version
   const nextVersion = currentVersion + 1;
 
@@ -228,9 +230,7 @@ export function ReviseFristModal({
           ? 'Det reviderte kravet er registrert og sendt til byggherre.'
           : 'Kravet er nå spesifisert og sendt til byggherre.'
       );
-      if (!result.catenda_synced) {
-        onCatendaWarning?.();
-      }
+      handleCatendaStatus(result);
     },
     onError: (error) => {
       // Dismiss pending toast

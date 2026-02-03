@@ -42,7 +42,7 @@ export interface EventSubmitResponse {
   /** Whether the event was synced to Catenda (prosjekthotellet) */
   catenda_synced?: boolean;
   /** Reason why Catenda sync was skipped or failed */
-  catenda_skipped_reason?: 'no_topic_id' | 'not_authenticated' | 'error';
+  catenda_skipped_reason?: 'no_topic_id' | 'not_authenticated' | 'error' | 'catenda_disabled';
 }
 
 export interface EventPayload {

@@ -58,6 +58,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useCatendaStatusHandler } from '../../hooks/useCatendaStatusHandler';
 import {
   VEDERLAGSMETODER_OPTIONS,
   getVederlagsmetodeLabel,
@@ -336,6 +337,7 @@ export function RespondVederlagModal({
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
+  const { handleCatendaStatus } = useCatendaStatusHandler({ onWarning: onCatendaWarning });
 
   // Scroll to top of modal content
   const scrollToTop = useCallback(() => {
@@ -470,9 +472,7 @@ export function RespondVederlagModal({
         isUpdateMode ? 'Svar oppdatert' : 'Svar sendt',
         isUpdateMode ? 'Ditt oppdaterte svar på vederlagskravet er registrert.' : 'Ditt svar på vederlagskravet er registrert.'
       );
-      if (!result.catenda_synced) {
-        onCatendaWarning?.();
-      }
+      handleCatendaStatus(result);
     },
     onError: (error) => {
       // Dismiss pending toast

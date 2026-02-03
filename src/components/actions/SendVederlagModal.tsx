@@ -39,6 +39,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useFormBackup } from '../../hooks/useFormBackup';
+import { useCatendaStatusHandler } from '../../hooks/useCatendaStatusHandler';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { sjekkRiggDriftFrist, sjekkVederlagspreklusjon, beregnDagerSiden } from '../../utils/preklusjonssjekk';
@@ -118,6 +119,7 @@ export function SendVederlagModal({
 }: SendVederlagModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const toast = useToast();
+  const { handleCatendaStatus } = useCatendaStatusHandler({ onWarning: onCatendaWarning });
 
   const {
     register,
@@ -177,9 +179,7 @@ export function SendVederlagModal({
       reset();
       onOpenChange(false);
       toast.success('Vederlagskrav sendt', 'Kravet ditt er registrert og sendt til byggherre.');
-      if (!result.catenda_synced) {
-        onCatendaWarning?.();
-      }
+      handleCatendaStatus(result);
     },
     onError: (error) => {
       // Dismiss pending toast

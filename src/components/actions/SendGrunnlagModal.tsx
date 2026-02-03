@@ -34,6 +34,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useFormBackup } from '../../hooks/useFormBackup';
+import { useCatendaStatusHandler } from '../../hooks/useCatendaStatusHandler';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { getHovedkategoriLabel } from '../../constants';
 
@@ -85,6 +86,7 @@ export function SendGrunnlagModal({
   const [selectedHovedkategori, setSelectedHovedkategori] = useState<string>('');
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const toast = useToast();
+  const { handleCatendaStatus } = useCatendaStatusHandler({ onWarning: onCatendaWarning });
 
   // Compute default values based on mode
   const computedDefaultValues = useMemo((): Partial<GrunnlagFormData> => {
@@ -192,10 +194,8 @@ export function SendGrunnlagModal({
           ? 'Endringene i ansvarsgrunnlaget er registrert.'
           : 'Endringsforholdet er registrert og varslet til byggherre.'
       );
-      // Show warning if Catenda sync failed
-      if (!result.catenda_synced) {
-        onCatendaWarning?.();
-      }
+      // Handle Catenda sync status with appropriate feedback
+      handleCatendaStatus(result);
     },
     onError: (error) => {
       // Dismiss pending toast

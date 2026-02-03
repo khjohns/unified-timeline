@@ -54,6 +54,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useCatendaStatusHandler } from '../../hooks/useCatendaStatusHandler';
 import { differenceInDays, format, parseISO } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import type { SubsidiaerTrigger, FristTilstand, FristBeregningResultat } from '../../types/timeline';
@@ -267,6 +268,7 @@ export function RespondFristModal({
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
+  const { handleCatendaStatus } = useCatendaStatusHandler({ onWarning: onCatendaWarning });
 
   // Scroll to top of modal content
   const scrollToTop = useCallback(() => {
@@ -387,9 +389,7 @@ export function RespondFristModal({
         isUpdateMode ? 'Svar oppdatert' : 'Svar sendt',
         isUpdateMode ? 'Ditt oppdaterte svar på fristkravet er registrert.' : 'Ditt svar på fristkravet er registrert.'
       );
-      if (!result.catenda_synced) {
-        onCatendaWarning?.();
-      }
+      handleCatendaStatus(result);
     },
     onError: (error) => {
       // Dismiss pending toast

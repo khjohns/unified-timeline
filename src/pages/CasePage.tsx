@@ -823,23 +823,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
         </>
       )}
 
-      {/* Catenda sync warning */}
-      {modals.catendaWarning.open && (
-        <div className="fixed bottom-4 right-4 max-w-md z-50">
-          <Alert variant="info" title="Ikke synkronisert til Catenda">
-            Endringen er lagret lokalt, men ble ikke synkronisert til Catenda.
-            Saken mangler muligens Catenda-kobling.
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-2"
-              onClick={() => modals.catendaWarning.setOpen(false)}
-            >
-              Lukk
-            </Button>
-          </Alert>
-        </div>
-      )}
+      {/* Catenda sync warning - legacy, now handled via toast in useCatendaStatusHandler */}
 
       {/* Onboarding Guide */}
       <OnboardingGuide

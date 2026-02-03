@@ -51,6 +51,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useFormBackup } from '../../hooks/useFormBackup';
+import { useCatendaStatusHandler } from '../../hooks/useCatendaStatusHandler';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import type { GrunnlagResponsResultat, SakState } from '../../types/timeline';
@@ -135,6 +136,7 @@ export function RespondGrunnlagModal({
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [activeTab, setActiveTab] = useState<'vurdering' | 'begrunnelse'>('vurdering');
   const toast = useToast();
+  const { handleCatendaStatus } = useCatendaStatusHandler({ onWarning: onCatendaWarning });
 
   // Tab definitions
   const tabs = [
@@ -244,9 +246,7 @@ export function RespondGrunnlagModal({
           ? 'Din endring av svaret på ansvarsgrunnlaget er registrert.'
           : 'Ditt svar på ansvarsgrunnlaget er registrert.'
       );
-      if (!result.catenda_synced) {
-        onCatendaWarning?.();
-      }
+      handleCatendaStatus(result);
     },
     onError: (error) => {
       // Dismiss pending toast
