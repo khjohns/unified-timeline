@@ -18,12 +18,28 @@ Lovdata MCP-integrasjonen (commit `9e00cee`) fungerer kun delvis. Testrapporten 
 
 ### Gratis Public Data API
 
-- **Endpoint:** `https://api.lovdata.no/v1/publicData/get/{filename}.zip`
-- **Format:** ZIP-fil (~130 MB) med ~35.000 XML-dokumenter
-- **Datasett:**
-  - `lti-2001-2023.zip` - Historisk data
-  - `lti-2024-{dato}.zip` - Inneværende år (oppdateres løpende)
+**Direkte nedlastingslenker (ingen autentisering):**
+
+| Datasett | URL |
+|----------|-----|
+| **Gjeldende lover** | `https://api.lovdata.no/v1/publicData/get/gjeldende-lover.tar.bz2` |
+| **Sentrale forskrifter** | `https://api.lovdata.no/v1/publicData/get/gjeldende-sentrale-forskrifter.tar.bz2` |
+
+- **Format:** `tar.bz2`-arkiv med XML/HTML-dokumenter
 - **Lisens:** NLOD 2.0
+- **Flere datasett:** Se https://api.lovdata.no/swagger#/Public%20data
+
+**Dokumentidentifikatorer (FRBR-basert):**
+
+| Type | Prefiks | Eksempel |
+|------|---------|----------|
+| refID (work) | - | `lov/2005-05-20-28` |
+| dokID (expression) | `NL/`, `LTI/`, `NLE/` | `NL/lov/2005-05-20-28` |
+
+- `LTI/` - Kunngjort i Lovtidend
+- `NL/` - Konsolidert lov
+- `NLE/` - Engelsk versjon
+- `NLO/` - Opphevet lov
 
 ### Betalt REST API
 
