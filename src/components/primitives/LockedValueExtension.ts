@@ -106,9 +106,9 @@ export const LockedValueNode = Node.create({
   inline: true,
   group: 'inline',
 
-  // Can be selected but not directly edited
+  // Can be selected and dragged to new positions
   selectable: true,
-  draggable: false,
+  draggable: true,
 
   addAttributes() {
     return {
