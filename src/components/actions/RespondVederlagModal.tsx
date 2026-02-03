@@ -1123,7 +1123,7 @@ export function RespondVederlagModal({
                       <span className="font-mono text-sm">
                         kr {hovedkravBelop?.toLocaleString('nb-NO') || 0},-
                       </span>
-                      {grunnlagStatus === 'delvis_godkjent' && (
+                      {vederlagTilstand?.krav_fremmet_i_tide === false && (
                         <Badge variant="warning" size="sm">Redusert</Badge>
                       )}
                     </div>
