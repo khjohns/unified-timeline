@@ -5,16 +5,13 @@
  * It can be triggered by a database webhook on INSERT to the feedback table.
  *
  * Environment variables required:
- * - SMTP_HOST: SMTP server hostname
- * - SMTP_PORT: SMTP server port (usually 587 or 465)
- * - SMTP_USER: SMTP username
- * - SMTP_PASS: SMTP password
+ * - RESEND_API_KEY: API key from resend.com
  * - NOTIFICATION_EMAIL: Email address to receive notifications
- * - SMTP_FROM: Sender email address
+ * - EMAIL_FROM: Sender email address (must be verified in Resend)
  */
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts';
+import { Resend } from 'https://esm.sh/resend@2.0.0';
 
 interface FeedbackPayload {
   type: 'INSERT';
@@ -55,30 +52,17 @@ serve(async (req) => {
     const feedback = payload.record;
 
     // Get environment variables
-    const smtpHost = Deno.env.get('SMTP_HOST');
-    const smtpPort = parseInt(Deno.env.get('SMTP_PORT') || '587');
-    const smtpUser = Deno.env.get('SMTP_USER');
-    const smtpPass = Deno.env.get('SMTP_PASS');
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
     const notificationEmail = Deno.env.get('NOTIFICATION_EMAIL');
-    const smtpFrom = Deno.env.get('SMTP_FROM') || 'noreply@unified-timeline.no';
+    const emailFrom = Deno.env.get('EMAIL_FROM') || 'Unified Timeline <onboarding@resend.dev>';
 
-    if (!smtpHost || !smtpUser || !smtpPass || !notificationEmail) {
-      console.error('Missing required environment variables for email');
+    if (!resendApiKey || !notificationEmail) {
+      console.error('Missing required environment variables: RESEND_API_KEY or NOTIFICATION_EMAIL');
       return new Response('Email configuration missing', { status: 500 });
     }
 
-    // Create SMTP client
-    const client = new SMTPClient({
-      connection: {
-        hostname: smtpHost,
-        port: smtpPort,
-        tls: true,
-        auth: {
-          username: smtpUser,
-          password: smtpPass,
-        },
-      },
-    });
+    // Create Resend client
+    const resend = new Resend(resendApiKey);
 
     // Format email content
     const typeLabel = feedbackTypeLabels[feedback.type] || feedback.type;
@@ -149,20 +133,26 @@ ${feedback.page_url ? `Side: ${feedback.page_url}` : ''}
 Feedback ID: ${feedback.id}
     `.trim();
 
-    // Send email
-    await client.send({
-      from: smtpFrom,
-      to: notificationEmail,
+    // Send email via Resend
+    const { data, error } = await resend.emails.send({
+      from: emailFrom,
+      to: [notificationEmail],
       subject: subject,
-      content: textContent,
       html: htmlContent,
+      text: textContent,
     });
 
-    await client.close();
+    if (error) {
+      console.error('Resend error:', error);
+      return new Response(JSON.stringify({ error: error.message }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 500,
+      });
+    }
 
-    console.log(`Feedback notification sent for ID: ${feedback.id}`);
+    console.log(`Feedback notification sent for ID: ${feedback.id}, email ID: ${data?.id}`);
 
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, emailId: data?.id }), {
       headers: { 'Content-Type': 'application/json' },
       status: 200,
     });
