@@ -1123,9 +1123,6 @@ export function RespondVederlagModal({
                       <span className="font-mono text-sm">
                         kr {hovedkravBelop?.toLocaleString('nb-NO') || 0},-
                       </span>
-                      {vederlagTilstand?.krav_fremmet_i_tide === false && (
-                        <Badge variant="danger" size="sm">Prekludert</Badge>
-                      )}
                     </div>
                     {vederlagEvent?.dato_oppdaget && (
                       <span className="text-xs text-pkt-grays-gray-500">
