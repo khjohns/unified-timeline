@@ -56,12 +56,26 @@
  */
 
 import type { VederlagsMetode, FristVarselType } from '../types/timeline';
+import { lockedValueFormatters } from '../components/primitives/LockedValueExtension';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
 type BelopVurdering = 'godkjent' | 'delvis' | 'avslatt';
+
+/**
+ * Options for begrunnelse generation
+ */
+export interface BegrunnelseGeneratorOptions {
+  /**
+   * When true, numeric values (amounts, days, percentages) are wrapped in
+   * locked value tokens: {{type:value:display}}
+   * These tokens render as non-editable badges in the BegrunnelseEditor.
+   * @default false
+   */
+  useTokens?: boolean;
+}
 
 export interface VederlagResponseInput {
   // Claim context
@@ -109,8 +123,34 @@ export interface VederlagResponseInput {
 // HELPERS
 // ============================================================================
 
-function formatCurrency(amount: number): string {
+/**
+ * Format currency, optionally as a locked token
+ */
+function formatCurrency(amount: number, useTokens = false): string {
+  if (useTokens) {
+    return lockedValueFormatters.belop(amount);
+  }
   return `kr ${amount.toLocaleString('nb-NO')},-`;
+}
+
+/**
+ * Format days, optionally as a locked token
+ */
+function formatDager(dager: number, useTokens = false): string {
+  if (useTokens) {
+    return lockedValueFormatters.dager(dager);
+  }
+  return `${dager} dager`;
+}
+
+/**
+ * Format percentage, optionally as a locked token
+ */
+function formatProsent(prosent: number, useTokens = false): string {
+  if (useTokens) {
+    return lockedValueFormatters.prosent(prosent);
+  }
+  return `${prosent}%`;
 }
 
 /**
@@ -258,8 +298,9 @@ function generateMetodeSection(input: VederlagResponseInput): string {
 /**
  * Generate the amount evaluation section for hovedkrav
  */
-function generateHovedkravSection(input: VederlagResponseInput): string {
+function generateHovedkravSection(input: VederlagResponseInput, options: BegrunnelseGeneratorOptions = {}): string {
   const { hovedkravVurdering, hovedkravBelop, hovedkravGodkjentBelop, hovedkravVarsletITide } = input;
+  const { useTokens = false } = options;
 
   if (!hovedkravBelop) {
     return '';
@@ -273,7 +314,7 @@ function generateHovedkravSection(input: VederlagResponseInput): string {
   if (isPrekludert) {
     // Prinsipalt: prekludert (§34.1.2)
     lines.push(
-      `${terminologi.kravLabel} på ${formatCurrency(hovedkravBelop)} avvises prinsipalt som prekludert iht. §34.1.2, ` +
+      `${terminologi.kravLabel} på ${formatCurrency(hovedkravBelop, useTokens)} avvises prinsipalt som prekludert iht. §34.1.2, ` +
       `da varselet ikke ble fremsatt «uten ugrunnet opphold» etter at entreprenøren ble eller burde blitt klar over forholdet.`
     );
 
@@ -283,7 +324,8 @@ function generateHovedkravSection(input: VederlagResponseInput): string {
       hovedkravBelop,
       hovedkravVurdering,
       hovedkravGodkjentBelop,
-      isRegningsarbeidOrEnhetspriser
+      isRegningsarbeidOrEnhetspriser,
+      useTokens
     );
     lines.push(subsidiaerText);
 
@@ -293,26 +335,28 @@ function generateHovedkravSection(input: VederlagResponseInput): string {
   // Ikke prekludert - vanlig vurdering
   switch (hovedkravVurdering) {
     case 'godkjent':
-      return `${terminologi.kravLabel} på ${formatCurrency(hovedkravBelop)} ${terminologi.akseptVerb}.`;
+      return `${terminologi.kravLabel} på ${formatCurrency(hovedkravBelop, useTokens)} ${terminologi.akseptVerb}.`;
 
     case 'delvis': {
       const godkjent = hovedkravGodkjentBelop ?? 0;
-      const prosent = hovedkravBelop > 0 ? ((godkjent / hovedkravBelop) * 100).toFixed(0) : 0;
+      const prosentValue = hovedkravBelop > 0 ? Math.round((godkjent / hovedkravBelop) * 100) : 0;
       return (
-        `${terminologi.kravLabel} ${terminologi.akseptVerb} delvis med ${formatCurrency(godkjent)} ` +
-        `av krevde ${formatCurrency(hovedkravBelop)} (${prosent}%).`
+        `${terminologi.kravLabel} ${terminologi.akseptVerb} delvis med ${formatCurrency(godkjent, useTokens)} ` +
+        `av krevde ${formatCurrency(hovedkravBelop, useTokens)} (${formatProsent(prosentValue, useTokens)}).`
       );
     }
 
     case 'avslatt':
-      return `${terminologi.kravLabel} på ${formatCurrency(hovedkravBelop)} avvises.`;
+      return `${terminologi.kravLabel} på ${formatCurrency(hovedkravBelop, useTokens)} avvises.`;
   }
 }
 
 /**
  * Generate section for særskilte krav (rigg/drift)
  */
-function generateRiggSection(input: VederlagResponseInput): string {
+function generateRiggSection(input: VederlagResponseInput, options: BegrunnelseGeneratorOptions = {}): string {
+  const { useTokens = false } = options;
+
   if (!input.harRiggKrav || !input.riggBelop) {
     return '';
   }
@@ -323,7 +367,7 @@ function generateRiggSection(input: VederlagResponseInput): string {
   if (isPrekludert) {
     // Prinsipalt: prekludert
     lines.push(
-      `Kravet om dekning av økte rigg- og driftskostnader på ${formatCurrency(input.riggBelop)} ` +
+      `Kravet om dekning av økte rigg- og driftskostnader på ${formatCurrency(input.riggBelop, useTokens)} ` +
       `avvises prinsipalt som prekludert iht. §34.1.3, da varselet ikke ble fremsatt «uten ugrunnet opphold» ` +
       `etter at entreprenøren ble eller burde blitt klar over at utgiftene ville påløpe.`
     );
@@ -334,7 +378,9 @@ function generateRiggSection(input: VederlagResponseInput): string {
         'rigg- og driftskostnader',
         input.riggBelop,
         input.riggVurdering,
-        input.riggGodkjentBelop
+        input.riggGodkjentBelop,
+        false,
+        useTokens
       );
       lines.push(subsidiaerText);
     }
@@ -344,7 +390,8 @@ function generateRiggSection(input: VederlagResponseInput): string {
       'rigg- og driftskostnader',
       input.riggBelop,
       input.riggVurdering ?? 'avslatt',
-      input.riggGodkjentBelop
+      input.riggGodkjentBelop,
+      useTokens
     ));
   }
 
@@ -354,7 +401,9 @@ function generateRiggSection(input: VederlagResponseInput): string {
 /**
  * Generate section for særskilte krav (produktivitetstap)
  */
-function generateProduktivitetSection(input: VederlagResponseInput): string {
+function generateProduktivitetSection(input: VederlagResponseInput, options: BegrunnelseGeneratorOptions = {}): string {
+  const { useTokens = false } = options;
+
   if (!input.harProduktivitetKrav || !input.produktivitetBelop) {
     return '';
   }
@@ -365,7 +414,7 @@ function generateProduktivitetSection(input: VederlagResponseInput): string {
   if (isPrekludert) {
     // Prinsipalt: prekludert
     lines.push(
-      `Kravet om dekning av produktivitetstap på ${formatCurrency(input.produktivitetBelop)} ` +
+      `Kravet om dekning av produktivitetstap på ${formatCurrency(input.produktivitetBelop, useTokens)} ` +
       `avvises prinsipalt som prekludert iht. §34.1.3, da varselet ikke ble fremsatt «uten ugrunnet opphold» ` +
       `etter at entreprenøren burde ha innsett at forstyrrelsene medførte merkostnader.`
     );
@@ -376,7 +425,9 @@ function generateProduktivitetSection(input: VederlagResponseInput): string {
         'produktivitetstap',
         input.produktivitetBelop,
         input.produktivitetVurdering,
-        input.produktivitetGodkjentBelop
+        input.produktivitetGodkjentBelop,
+        false,
+        useTokens
       );
       lines.push(subsidiaerText);
     }
@@ -386,7 +437,8 @@ function generateProduktivitetSection(input: VederlagResponseInput): string {
       'produktivitetstap',
       input.produktivitetBelop,
       input.produktivitetVurdering ?? 'avslatt',
-      input.produktivitetGodkjentBelop
+      input.produktivitetGodkjentBelop,
+      useTokens
     ));
   }
 
@@ -400,22 +452,23 @@ function generateKravVurderingText(
   kravType: string,
   krevdBelop: number,
   vurdering: BelopVurdering,
-  godkjentBelop?: number
+  godkjentBelop?: number,
+  useTokens = false
 ): string {
   switch (vurdering) {
     case 'godkjent':
-      return `Kravet om dekning av ${kravType} på ${formatCurrency(krevdBelop)} ${getVurderingVerb('godkjent')}.`;
+      return `Kravet om dekning av ${kravType} på ${formatCurrency(krevdBelop, useTokens)} ${getVurderingVerb('godkjent')}.`;
 
     case 'delvis': {
       const belop = godkjentBelop ?? 0;
       return (
         `Kravet om dekning av ${kravType} ${getVurderingVerb('delvis')} med ` +
-        `${formatCurrency(belop)} av krevde ${formatCurrency(krevdBelop)}.`
+        `${formatCurrency(belop, useTokens)} av krevde ${formatCurrency(krevdBelop, useTokens)}.`
       );
     }
 
     case 'avslatt':
-      return `Kravet om dekning av ${kravType} på ${formatCurrency(krevdBelop)} ${getVurderingVerb('avslatt')}.`;
+      return `Kravet om dekning av ${kravType} på ${formatCurrency(krevdBelop, useTokens)} ${getVurderingVerb('avslatt')}.`;
   }
 }
 
@@ -428,17 +481,18 @@ function generateSubsidiaerKravText(
   krevdBelop: number,
   vurdering: BelopVurdering,
   godkjentBelop?: number,
-  isEstimatBasert?: boolean
+  _isEstimatBasert?: boolean,
+  useTokens = false
 ): string {
   // For regningsarbeid bruker vi "overslaget", for enhetspriser/fastpris bruker vi "kravet"
   const prefix = `Subsidiært, dersom ${kravType} ikke anses prekludert,`;
 
   switch (vurdering) {
     case 'godkjent':
-      return `${prefix} aksepteres ${formatCurrency(krevdBelop)}.`;
+      return `${prefix} aksepteres ${formatCurrency(krevdBelop, useTokens)}.`;
 
     case 'delvis':
-      return `${prefix} aksepteres ${formatCurrency(godkjentBelop ?? 0)} av krevde ${formatCurrency(krevdBelop)}.`;
+      return `${prefix} aksepteres ${formatCurrency(godkjentBelop ?? 0, useTokens)} av krevde ${formatCurrency(krevdBelop, useTokens)}.`;
 
     case 'avslatt':
       return `${prefix} ville ${kravType} uansett blitt avvist.`;
@@ -448,14 +502,15 @@ function generateSubsidiaerKravText(
 /**
  * Generate the conclusion section with totals
  */
-function generateKonklusjonSection(input: VederlagResponseInput): string {
+function generateKonklusjonSection(input: VederlagResponseInput, options: BegrunnelseGeneratorOptions = {}): string {
+  const { useTokens = false } = options;
   const lines: string[] = [];
   const terminologi = getMetodeTerminologi(input);
 
   // Prinsipalt resultat
   lines.push(
-    `Samlet ${terminologi.belopLabel} utgjør etter dette ${formatCurrency(input.totalGodkjent)} ` +
-    `av totalt krevde ${formatCurrency(input.totalKrevd)}.`
+    `Samlet ${terminologi.belopLabel} utgjør etter dette ${formatCurrency(input.totalGodkjent, useTokens)} ` +
+    `av totalt krevde ${formatCurrency(input.totalKrevd, useTokens)}.`
   );
 
   // Subsidiært resultat (kun hvis det er prekluderte krav)
@@ -467,7 +522,7 @@ function generateKonklusjonSection(input: VederlagResponseInput): string {
       const kravType = hovedkravPrekludert ? 'kravene' : 'særskilte kravene';
       lines.push(
         `Dersom de prekluderte ${kravType} hadde vært varslet i tide, ville samlet ${terminologi.belopLabel} ` +
-        `utgjort ${formatCurrency(input.totalGodkjentSubsidiaer)} (subsidiært standpunkt).`
+        `utgjort ${formatCurrency(input.totalGodkjentSubsidiaer, useTokens)} (subsidiært standpunkt).`
       );
     }
   }
@@ -481,8 +536,14 @@ function generateKonklusjonSection(input: VederlagResponseInput): string {
 
 /**
  * Generate complete auto-begrunnelse for BH's response to vederlagskrav
+ *
+ * @param input - The input data for the response
+ * @param options - Generator options (useTokens for locked values)
  */
-export function generateVederlagResponseBegrunnelse(input: VederlagResponseInput): string {
+export function generateVederlagResponseBegrunnelse(
+  input: VederlagResponseInput,
+  options: BegrunnelseGeneratorOptions = {}
+): string {
   const sections: string[] = [];
 
   // 0. Grunnlagsavslag eller preklusjon - hele vederlagskravet er subsidiært
@@ -511,25 +572,25 @@ export function generateVederlagResponseBegrunnelse(input: VederlagResponseInput
     sections.push(terminologi.introLabel);
 
     // 2a. Hovedkrav
-    const hovedkravSection = generateHovedkravSection(input);
+    const hovedkravSection = generateHovedkravSection(input, options);
     if (hovedkravSection) {
       sections.push(hovedkravSection);
     }
 
     // 2b. Rigg/drift (særskilt krav)
-    const riggSection = generateRiggSection(input);
+    const riggSection = generateRiggSection(input, options);
     if (riggSection) {
       sections.push(riggSection);
     }
 
     // 2c. Produktivitetstap (særskilt krav)
-    const produktivitetSection = generateProduktivitetSection(input);
+    const produktivitetSection = generateProduktivitetSection(input, options);
     if (produktivitetSection) {
       sections.push(produktivitetSection);
     }
 
     // 3. Konklusjon
-    const konklusjonSection = generateKonklusjonSection(input);
+    const konklusjonSection = generateKonklusjonSection(input, options);
     if (konklusjonSection) {
       sections.push(konklusjonSection);
     }
@@ -707,8 +768,9 @@ function generateFristVilkarSection(input: FristResponseInput): string {
 /**
  * Generate the calculation section for frist response
  */
-function generateFristBeregningSection(input: FristResponseInput): string {
+function generateFristBeregningSection(input: FristResponseInput, options: BegrunnelseGeneratorOptions = {}): string {
   const { krevdDager, godkjentDager, erPrekludert, vilkarOppfylt, varselType, sendForesporsel, erGrunnlagSubsidiaer } = input;
+  const { useTokens = false } = options;
 
   // Skip calculation section when sending forespørsel or varsel about deadline extension without specified days
   if (sendForesporsel || (varselType === 'varsel' && krevdDager === 0)) {
@@ -718,26 +780,31 @@ function generateFristBeregningSection(input: FristResponseInput): string {
   const erSubsidiaer = erPrekludert || !vilkarOppfylt || erGrunnlagSubsidiaer;
   const prefix = erSubsidiaer ? 'Subsidiært, hva gjelder antall dager: ' : 'Hva gjelder antall dager: ';
 
+  const fmtKrevd = formatDager(krevdDager, useTokens);
+  const fmtGodkjent = formatDager(godkjentDager, useTokens);
+
   if (godkjentDager === 0) {
-    return prefix + `Kravet om ${krevdDager} dager fristforlengelse kan ikke imøtekommes.`;
+    return prefix + `Kravet om ${fmtKrevd} fristforlengelse kan ikke imøtekommes.`;
   }
 
   if (godkjentDager >= krevdDager) {
-    return prefix + `Kravet om ${krevdDager} dagers fristforlengelse godkjennes i sin helhet.`;
+    return prefix + `Kravet om ${fmtKrevd}s fristforlengelse godkjennes i sin helhet.`;
   }
 
-  const prosent = krevdDager > 0 ? ((godkjentDager / krevdDager) * 100).toFixed(0) : 0;
+  const prosentValue = krevdDager > 0 ? Math.round((godkjentDager / krevdDager) * 100) : 0;
+  const fmtProsent = formatProsent(prosentValue, useTokens);
   return (
     prefix +
-    `Kravet godkjennes delvis med ${godkjentDager} dager av krevde ${krevdDager} dager (${prosent}%).`
+    `Kravet godkjennes delvis med ${fmtGodkjent} av krevde ${fmtKrevd} (${fmtProsent}).`
   );
 }
 
 /**
  * Generate the conclusion section for frist response
  */
-function generateFristKonklusjonSection(input: FristResponseInput): string {
+function generateFristKonklusjonSection(input: FristResponseInput, options: BegrunnelseGeneratorOptions = {}): string {
   const { krevdDager, godkjentDager, prinsipaltResultat, visSubsidiaertResultat, varselType, sendForesporsel } = input;
+  const { useTokens = false } = options;
   const lines: string[] = [];
 
   // Handle forespørsel case - no conclusion needed as we're waiting for specification
@@ -752,13 +819,16 @@ function generateFristKonklusjonSection(input: FristResponseInput): string {
     return lines.join(' ');
   }
 
+  const fmtKrevd = formatDager(krevdDager, useTokens);
+  const fmtGodkjent = formatDager(godkjentDager, useTokens);
+
   // Prinsipalt resultat
   if (prinsipaltResultat === 'avslatt') {
-    lines.push(`Kravet om ${krevdDager} dagers fristforlengelse avvises i sin helhet.`);
+    lines.push(`Kravet om ${fmtKrevd} fristforlengelse avvises i sin helhet.`);
   } else if (prinsipaltResultat === 'godkjent') {
-    lines.push(`Samlet godkjennes ${godkjentDager} dagers fristforlengelse.`);
+    lines.push(`Samlet godkjennes ${fmtGodkjent} fristforlengelse.`);
   } else {
-    lines.push(`Samlet godkjennes ${godkjentDager} av ${krevdDager} krevde dager.`);
+    lines.push(`Samlet godkjennes ${fmtGodkjent} av ${fmtKrevd} krevd.`);
   }
 
   // Subsidiært standpunkt
@@ -766,7 +836,7 @@ function generateFristKonklusjonSection(input: FristResponseInput): string {
     if (godkjentDager > 0) {
       lines.push(
         `Dersom byggherren ikke får medhold i sin prinsipale avvisning, ` +
-        `kan entreprenøren maksimalt ha krav på ${godkjentDager} dager (subsidiært standpunkt).`
+        `kan entreprenøren maksimalt ha krav på ${fmtGodkjent} (subsidiært standpunkt).`
       );
     } else {
       lines.push(
@@ -793,7 +863,7 @@ function generateForceMajeureVederlagSection(_input: FristResponseInput): string
 /**
  * Generate §33.8 forsering warning if applicable
  */
-function generateForseringWarningSection(input: FristResponseInput): string {
+function generateForseringWarningSection(input: FristResponseInput, _options: BegrunnelseGeneratorOptions = {}): string {
   const { krevdDager, godkjentDager, prinsipaltResultat } = input;
   const avslatteDager = krevdDager - godkjentDager;
 
@@ -816,8 +886,14 @@ function generateForseringWarningSection(input: FristResponseInput): string {
 
 /**
  * Generate complete auto-begrunnelse for BH's response to fristkrav
+ *
+ * @param input - The input data for the response
+ * @param options - Generator options (useTokens for locked values)
  */
-export function generateFristResponseBegrunnelse(input: FristResponseInput): string {
+export function generateFristResponseBegrunnelse(
+  input: FristResponseInput,
+  options: BegrunnelseGeneratorOptions = {}
+): string {
   const sections: string[] = [];
 
   // Skip if forespørsel - minimal response
@@ -860,11 +936,11 @@ export function generateFristResponseBegrunnelse(input: FristResponseInput): str
   sections.push(vilkarSection);
 
   // 3. Beregning section (always evaluated, possibly subsidiary)
-  const beregningSection = generateFristBeregningSection(input);
+  const beregningSection = generateFristBeregningSection(input, options);
   sections.push(beregningSection);
 
   // 4. Konklusjon
-  const konklusjonSection = generateFristKonklusjonSection(input);
+  const konklusjonSection = generateFristKonklusjonSection(input, options);
   sections.push(konklusjonSection);
 
   // 5. §33.3 Force majeure vederlag notice (if applicable)
@@ -874,7 +950,7 @@ export function generateFristResponseBegrunnelse(input: FristResponseInput): str
   }
 
   // 6. §33.8 Forsering warning (if applicable)
-  const forseringSection = generateForseringWarningSection(input);
+  const forseringSection = generateForseringWarningSection(input, options);
   if (forseringSection) {
     sections.push(forseringSection);
   }
