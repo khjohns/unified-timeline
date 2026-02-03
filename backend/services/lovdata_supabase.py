@@ -326,7 +326,7 @@ class LovdataSupabaseService:
                 'ref_id': self._extract_meta(header, 'refid') or dok_id,
                 'title': self._extract_meta(header, 'title') or '',
                 'short_title': self._extract_meta(header, 'titleShort') or '',
-                'date_in_force': self._extract_meta(header, 'dateInForce'),
+                'date_in_force': self._parse_date(self._extract_meta(header, 'dateInForce')),
                 'ministry': self._extract_meta(header, 'ministry'),
                 'doc_type': doc_type,
             }
@@ -377,6 +377,25 @@ class LovdataSupabaseService:
 
         dd = header.find('dd', class_=class_name)
         return dd.get_text(strip=True) if dd else None
+
+    def _parse_date(self, date_str: str | None) -> str | None:
+        """
+        Parse date string, handling multiple dates.
+
+        Some laws have multiple dates like "1965-07-01, 1967-04-23".
+        We take the first valid date.
+        """
+        if not date_str:
+            return None
+
+        # Handle multiple dates separated by comma
+        first_date = date_str.split(',')[0].strip()
+
+        # Validate it looks like a date (YYYY-MM-DD)
+        if len(first_date) >= 10 and first_date[4] == '-' and first_date[7] == '-':
+            return first_date[:10]  # Take only YYYY-MM-DD part
+
+        return None
 
     def _upsert_documents(self, documents: list[dict], doc_type: str) -> None:
         """Insert or update documents in Supabase using true upsert."""
