@@ -979,3 +979,88 @@ body {
     pointer-events: none;
     height: 0;
 }
+
+/* ============================================
+   Begrunnelse Editor - Locked Values Styling
+   ============================================ */
+
+/* Base locked value styling (fallback for non-React rendering) */
+.locked-value {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    margin: 0 0.125rem;
+    border: 1px solid;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    user-select: none;
+    cursor: default;
+    white-space: nowrap;
+}
+
+/* Type-specific colors using Punkt design tokens */
+.locked-value--dager {
+    background-color: var(--color-pkt-brand-blue-200);
+    border-color: var(--color-pkt-border-blue);
+    color: var(--color-pkt-brand-dark-blue-1000);
+}
+
+.locked-value--belop {
+    background-color: var(--color-pkt-brand-light-green-400);
+    border-color: var(--color-pkt-border-green);
+    color: var(--color-pkt-brand-dark-green-1000);
+}
+
+.locked-value--prosent {
+    background-color: #f3e8ff; /* Light purple, complements --color-pkt-brand-purple-1000 */
+    border-color: var(--color-pkt-brand-purple-1000);
+    color: var(--color-pkt-brand-dark-blue-1000);
+}
+
+.locked-value--dato {
+    background-color: var(--color-pkt-brand-yellow-500);
+    border-color: var(--color-pkt-border-yellow);
+    color: var(--color-pkt-brand-dark-blue-1000);
+}
+
+.locked-value--paragraf {
+    background-color: var(--color-pkt-bg-subtle);
+    border-color: var(--color-pkt-border-gray);
+    color: var(--color-pkt-text-body-dark);
+}
+
+.locked-value--tekst {
+    background-color: var(--color-pkt-bg-subtle);
+    border-color: var(--color-pkt-border-gray);
+    color: var(--color-pkt-text-body-default);
+}
+
+/* Begrunnelse Editor TipTap overrides */
+.begrunnelse-editor .tiptap {
+    outline: none;
+    min-height: inherit;
+}
+
+.begrunnelse-editor .tiptap p {
+    margin: 0.5rem 0;
+    line-height: 1.6;
+}
+
+.begrunnelse-editor .tiptap p:first-child {
+    margin-top: 0;
+}
+
+.begrunnelse-editor .tiptap p:last-child {
+    margin-bottom: 0;
+}
+
+/* Placeholder for begrunnelse editor */
+.begrunnelse-editor .tiptap p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: var(--color-pkt-text-placeholder);
+    pointer-events: none;
+    height: 0;
+}

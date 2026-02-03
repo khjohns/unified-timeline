@@ -32,6 +32,7 @@ import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import {
   Alert,
   Badge,
+  BegrunnelseEditor,
   Button,
   DataList,
   DataListItem,
@@ -587,7 +588,7 @@ export function RespondFristModal({
       visSubsidiaertResultat: visSubsidiaertResultat,
     };
 
-    return generateFristResponseBegrunnelse(input);
+    return generateFristResponseBegrunnelse(input, { useTokens: true });
   }, [
     varselType,
     effektivKrevdDager,
@@ -1798,20 +1799,21 @@ export function RespondFristModal({
                   </>
                 )}
 
-                {/* Begrunnelse (redigerbar, pre-populert med auto-generert) */}
+                {/* Begrunnelse (redigerbar med låste verdier) */}
                 <FormField
                   label="Begrunnelse"
                   error={errors.begrunnelse?.message}
-                  helpText="Automatisk generert basert på valgene dine. Du kan redigere teksten fritt."
                 >
                   <div className="space-y-2">
-                    <Textarea
-                      {...register('begrunnelse', {
-                        onChange: markBegrunnelseAsEdited,
-                      })}
-                      rows={12}
-                      fullWidth
+                    <BegrunnelseEditor
+                      value={formData.begrunnelse || autoBegrunnelse || ''}
+                      onChange={(value) => {
+                        setValue('begrunnelse', value, { shouldDirty: true });
+                        markBegrunnelseAsEdited();
+                      }}
                       error={!!errors.begrunnelse}
+                      fullWidth
+                      minHeight={250}
                     />
                     <div className="flex justify-end">
                       <Button
