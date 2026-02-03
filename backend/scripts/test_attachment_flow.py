@@ -25,7 +25,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from integrations.catenda.client import CatendaClient
+from integrations.catenda import CatendaClient
 from integrations.dalux.client import DaluxClient
 
 

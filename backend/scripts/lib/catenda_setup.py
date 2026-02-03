@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Optional
 from dotenv import load_dotenv
 
 if TYPE_CHECKING:
-    from integrations.catenda.client import CatendaClient
+    from integrations.catenda import CatendaClient
 
 
 def setup_script_path() -> Path:

@@ -30,7 +30,7 @@ from api.validators import (
     validate_vederlag_event,
 )
 from core.config import settings
-from integrations.catenda.client import CatendaAuthError
+from integrations.catenda import CatendaAuthError
 from lib.auth.csrf_protection import require_csrf
 from lib.auth.magic_link import get_magic_link_manager, require_magic_link
 from lib.catenda_factory import get_catenda_client

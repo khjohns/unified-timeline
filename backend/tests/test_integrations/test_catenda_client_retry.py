@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from integrations.catenda.client import (
+from integrations.catenda import (
     CatendaAPIError,
     CatendaAuthError,
     CatendaClient,

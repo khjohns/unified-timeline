@@ -11,7 +11,7 @@ Handles:
 from datetime import datetime
 from typing import Any
 
-from integrations.catenda.client import CatendaClient
+from integrations.catenda import CatendaClient
 from integrations.dalux import DaluxAPIError, DaluxAuthError, DaluxClient
 from models.sync_models import (
     DaluxCatendaSyncMapping,
