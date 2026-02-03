@@ -744,7 +744,7 @@ def validate_config():
                 try:
                     # Set the board and try to list topics
                     catenda_client.topic_board_id = catenda_board_id
-                    topics = catenda_client.list_topics(limit=1)
+                    catenda_client.list_topics(limit=1)  # Test connection
                     catenda_ok = True
                 except Exception as e:
                     errors.append(f"Catenda connection error: {str(e)}")

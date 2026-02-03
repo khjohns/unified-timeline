@@ -1102,8 +1102,8 @@ class CatendaInteractiveMenu:
 
                 labels = extensions.get("topic_label", [])
                 print(f"\n   Labels ({len(labels)}):")
-                for l in labels[:10]:
-                    print(f"     - {l}")
+                for label in labels[:10]:
+                    print(f"     - {label}")
                 if len(labels) > 10:
                     print(f"     ... og {len(labels) - 10} til")
 

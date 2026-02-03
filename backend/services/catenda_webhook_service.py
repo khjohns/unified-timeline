@@ -210,8 +210,6 @@ class WebhookService:
             sakstype = get_sakstype_from_topic_type(topic_type)
             logger.info(f"📋 Topic type: '{topic_type}' -> Sakstype: '{sakstype}'")
 
-            byggherre = "Not specified"
-            leverandor = "Not specified"
             project_name = "Unknown project"
             v2_project_id = None
 
@@ -224,15 +222,8 @@ class WebhookService:
                     if project_details:
                         project_name = project_details.get("name", project_name)
 
-            # Extract custom fields (Byggherre, Leverandør)
-            custom_fields = topic_data.get("bimsync_custom_fields", [])
-            for field in custom_fields:
-                field_name = field.get("customFieldName")
-                field_value = field.get("value")
-                if field_name == "Byggherre" and field_value:
-                    byggherre = field_value
-                elif field_name == "Leverandør" and field_value:
-                    leverandor = field_value
+            # NOTE: Custom fields (Byggherre, Leverandør) extracted but not currently used
+            # TODO: Consider using these fields for party identification
 
             # Extract author
             author_name = (

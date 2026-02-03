@@ -143,7 +143,9 @@ if app.config["SECRET_KEY"] == "dev-only-secret-CHANGE-IN-PRODUCTION":
 # Format: FLASK_SECRET_KEY_FALLBACKS=oldkey1,oldkey2
 fallback_keys = os.getenv("FLASK_SECRET_KEY_FALLBACKS", "")
 if fallback_keys:
-    app.config["SECRET_KEY_FALLBACKS"] = [k.strip() for k in fallback_keys.split(",") if k.strip()]
+    app.config["SECRET_KEY_FALLBACKS"] = [
+        k.strip() for k in fallback_keys.split(",") if k.strip()
+    ]
 
 # Flask 3.1+: Form security limits (DoS protection)
 # MAX_FORM_MEMORY_SIZE: Max bytes for form data in memory (default 500KB)
@@ -152,7 +154,9 @@ app.config["MAX_FORM_MEMORY_SIZE"] = int(os.getenv("MAX_FORM_MEMORY_SIZE", 500 *
 app.config["MAX_FORM_PARTS"] = int(os.getenv("MAX_FORM_PARTS", 1000))
 
 # Max content length for uploads (16MB default)
-app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_CONTENT_LENGTH", 16 * 1024 * 1024))
+app.config["MAX_CONTENT_LENGTH"] = int(
+    os.getenv("MAX_CONTENT_LENGTH", 16 * 1024 * 1024)
+)
 
 # CORS Configuration
 setup_cors(app)

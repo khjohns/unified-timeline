@@ -688,7 +688,6 @@ class DaluxSyncService:
         )
 
         for i, change in enumerate(sorted_changes):
-            action = change.get("action", "")
             fields = change.get("fields", {})
 
             # Extract initial description from first event (regardless of action type)

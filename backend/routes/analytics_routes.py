@@ -159,7 +159,7 @@ def get_summary():
         total_vederlag_godkjent = 0
         last_activity = None
 
-        for sak_id, state in states.items():
+        for state in states.values():
             # Sakstype - bruk enum value for riktig JSON-serialisering
             sakstype_enum = getattr(state, "sakstype", None)
             sakstype = sakstype_enum.value if sakstype_enum else "standard"
@@ -255,7 +255,7 @@ def get_by_category():
             }
         )
 
-        for sak_id, state in states.items():
+        for state in states.values():
             if state.grunnlag and state.grunnlag.hovedkategori:
                 kategori = state.grunnlag.hovedkategori or "UKJENT"
                 by_category[kategori]["antall"] += 1
@@ -436,7 +436,7 @@ def get_vederlag_analytics():
 
         krav_amounts = []
 
-        for sak_id, state in states.items():
+        for state in states.values():
             if not state.vederlag:
                 continue
 
@@ -593,7 +593,7 @@ def get_response_times():
             krav_count = 0
             respons_count = 0
 
-            for sak_id, events in all_cases_events.items():
+            for events in all_cases_events.values():
                 krav_time = None
                 respons_time = None
 

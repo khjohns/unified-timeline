@@ -49,6 +49,17 @@ ignore = [
     "E501",   # Line too long (handled by formatter)
     "B008",   # Do not perform function calls in argument defaults (needed for FastAPI/Flask)
     "SIM108", # Use ternary operator (not always clearer)
+    "SIM102", # Nested if - sometimes clearer than combined
+    "SIM117", # Nested with - often clearer separate
+    "SIM103", # Return condition directly - less readable
+    "SIM105", # Use contextlib.suppress - try/except/pass often clearer
+    "SIM110", # Use any() - explicit loop often clearer
+    "SIM115", # Context manager for open - not always possible (lock patterns)
+    "SIM116", # Dict instead of if/elif - less readable for mapping
+    "UP007",  # Union[X, Y] vs X | Y - Union more readable for long type lists
+    "B905",   # zip() without strict= (Python 3.10+ - ikke kritisk)
+    "B904",   # TODO: Exception chaining (raise from) - fikses separat
+    "B011",   # assert False in demo code - OK
 ]
 
 # Allow autofix for all enabled rules
@@ -57,6 +68,18 @@ unfixable = []
 
 # Allow unused variables when underscore-prefixed
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+# Entry points må laste .env før andre imports
+"app.py" = ["E402"]
+"function_app.py" = ["E402"]
+# Scripts har ofte path-setup før imports og demo-kode
+"scripts/*.py" = ["E402", "F841"]
+# Services med conditional imports
+"services/reportlab_pdf_generator.py" = ["E402"]
+# Test-filer har ofte setup før imports, ubrukte variabler, og brede exceptions
+"tests/**/*.py" = ["E402", "F841", "B007", "B017"]
+"conftest.py" = ["E402"]
 
 [tool.ruff.lint.isort]
 # Group imports: stdlib, third-party, first-party
