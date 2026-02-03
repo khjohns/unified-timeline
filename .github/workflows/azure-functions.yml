@@ -1,5 +1,8 @@
 name: Azure Functions (Backend)
 
+# DISABLED: Azure ikke i bruk ennå
+# Fjern 'if: false' på jobbene når Azure er konfigurert
+
 # =============================================================================
 # Deployment workflow for backend to Azure Functions
 #
@@ -49,6 +52,7 @@ env:
 
 jobs:
   build-and-test:
+    if: false  # DISABLED - fjern når Azure er konfigurert
     runs-on: ubuntu-latest
     name: Build and Test
 
@@ -84,6 +88,7 @@ jobs:
           echo "Syntax verification passed"
 
   deploy:
+    if: false  # DISABLED - fjern når Azure er konfigurert
     runs-on: ubuntu-latest
     needs: build-and-test
     name: Deploy to Azure Functions

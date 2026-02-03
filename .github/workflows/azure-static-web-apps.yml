@@ -1,5 +1,8 @@
 name: Azure Static Web Apps (Frontend)
 
+# DISABLED: Azure ikke i bruk ennå
+# Fjern 'if: false' på jobbene når Azure er konfigurert
+
 # =============================================================================
 # Deployment workflow for frontend to Azure Static Web Apps
 #
@@ -38,8 +41,8 @@ on:
 
 jobs:
   build_and_deploy:
-    # Don't run on closed PRs that weren't merged
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    # DISABLED - fjern 'false &&' når Azure er konfigurert
+    if: false && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed'))
     runs-on: ubuntu-latest
     name: Build and Deploy
 
@@ -89,7 +92,8 @@ jobs:
 
   # Close PR preview environment
   close_pull_request:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    # DISABLED - fjern 'false &&' når Azure er konfigurert
+    if: false && github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     name: Close Pull Request
     steps:

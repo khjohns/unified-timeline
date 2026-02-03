@@ -13,6 +13,9 @@
 
 name: Deploy Backend to Azure App Service
 
+# DISABLED: Azure ikke i bruk ennå
+# Fjern 'if: false' når Azure er konfigurert
+
 on:
   push:
     branches: [main]
@@ -27,6 +30,7 @@ env:
 
 jobs:
   build-and-deploy:
+    if: false  # DISABLED - fjern når Azure er konfigurert
     runs-on: ubuntu-latest
 
     steps:
