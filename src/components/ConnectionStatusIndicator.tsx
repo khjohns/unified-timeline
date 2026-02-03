@@ -21,6 +21,7 @@ function StatusDot({ state, label, description }: StatusDotProps) {
     disconnected: 'bg-pkt-status-disconnected',
     checking: 'bg-pkt-status-neutral animate-pulse',
     unconfigured: 'bg-pkt-status-neutral',
+    disabled: 'bg-pkt-status-neutral',
   };
 
   const stateLabels: Record<ConnectionState, string> = {
@@ -28,6 +29,7 @@ function StatusDot({ state, label, description }: StatusDotProps) {
     disconnected: 'Frakoblet',
     checking: 'Sjekker...',
     unconfigured: 'Ikke konfigurert',
+    disabled: 'Deaktivert',
   };
 
   return (
@@ -56,7 +58,7 @@ function StatusDot({ state, label, description }: StatusDotProps) {
 }
 
 export function ConnectionStatusIndicator() {
-  const { backend, catenda } = useConnectionStatus();
+  const { backend, catenda, catendaEnabled } = useConnectionStatus();
 
   const getBackendDescription = () => {
     if (backend === 'connected') return 'API-serveren svarer normalt';
@@ -78,11 +80,13 @@ export function ConnectionStatusIndicator() {
         label="Backend"
         description={getBackendDescription()}
       />
-      <StatusDot
-        state={catenda}
-        label="Catenda"
-        description={getCatendaDescription()}
-      />
+      {catendaEnabled && (
+        <StatusDot
+          state={catenda}
+          label="Catenda"
+          description={getCatendaDescription()}
+        />
+      )}
     </div>
   );
 }

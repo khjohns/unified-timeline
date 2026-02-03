@@ -7,11 +7,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-export type ConnectionState = 'connected' | 'disconnected' | 'checking' | 'unconfigured';
+export type ConnectionState = 'connected' | 'disconnected' | 'checking' | 'unconfigured' | 'disabled';
 
 export interface ConnectionStatus {
   backend: ConnectionState;
   catenda: ConnectionState;
+  catendaEnabled: boolean;
   lastChecked: Date | null;
 }
 
@@ -28,6 +29,7 @@ export function useConnectionStatus() {
   const [status, setStatus] = useState<ConnectionStatus>({
     backend: 'checking',
     catenda: 'checking',
+    catendaEnabled: true,
     lastChecked: null,
   });
 
@@ -57,6 +59,7 @@ export function useConnectionStatus() {
         const data: HealthResponse = await response.json();
         if (data.status === 'connected') return 'connected';
         if (data.status === 'unconfigured') return 'unconfigured';
+        if (data.status === 'disabled') return 'disabled';
         return 'disconnected';
       }
       return 'disconnected';
@@ -80,6 +83,7 @@ export function useConnectionStatus() {
     setStatus({
       backend: backendState,
       catenda: catendaState,
+      catendaEnabled: catendaState !== 'disabled',
       lastChecked: new Date(),
     });
   }, [checkBackendHealth, checkCatendaHealth]);
