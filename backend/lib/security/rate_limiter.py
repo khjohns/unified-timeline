@@ -33,6 +33,16 @@ RATE_LIMIT_STORAGE = os.getenv("RATE_LIMIT_STORAGE", "memory://")
 # - sliding-window-counter: Balanse mellom de to
 RATE_LIMIT_STRATEGY = os.getenv("RATE_LIMIT_STRATEGY", "fixed-window")
 
+# Rate limit headers (Flask-Limiter 4.x)
+# Når aktivert, legges følgende headers til i responses:
+# - X-RateLimit-Limit: Maks antall requests
+# - X-RateLimit-Remaining: Gjenstående requests
+# - X-RateLimit-Reset: Unix timestamp for når vinduet nullstilles
+# - Retry-After: Sekunder til neste request tillates (kun ved 429)
+RATE_LIMIT_HEADERS_ENABLED = (
+    os.getenv("RATE_LIMIT_HEADERS_ENABLED", "true").lower() == "true"
+)
+
 # Limiter instance (initialized when Flask app is created)
 limiter = None
 
@@ -61,6 +71,7 @@ def init_limiter(app):
             default_limits=[RATE_LIMIT_DEFAULT],
             storage_uri=RATE_LIMIT_STORAGE,
             strategy=RATE_LIMIT_STRATEGY,
+            headers_enabled=RATE_LIMIT_HEADERS_ENABLED,
         )
 
         # Only log once (skip in reloader parent process)
