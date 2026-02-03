@@ -44,7 +44,7 @@ class SystemContext:
         self.magic_links = magic_link_manager
 
         if not self._authenticate():
-            logger.warning("⚠️ Kunne ikke autentisere mot Catenda ved oppstart.")
+            logger.warning("Kunne ikke autentisere mot Catenda ved oppstart")
 
     def _authenticate(self) -> bool:
         """Enkel autentisering med lagret token eller client credentials"""

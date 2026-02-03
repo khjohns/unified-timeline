@@ -736,7 +736,7 @@ def create_event_repository(backend: str | None = None, **kwargs) -> EventReposi
     if backend is None:
         backend = os.environ.get("EVENT_STORE_BACKEND", "json")
 
-    logger.info(f"🗄️ Creating event repository with backend: {backend}")
+    logger.debug(f"Creating event repository with backend: {backend}")
 
     if backend == "json":
         from .event_repository import JsonFileEventRepository

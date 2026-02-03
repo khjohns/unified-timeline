@@ -400,7 +400,7 @@ def submit_event():
             if metadata and metadata.catenda_topic_id:
                 catenda_topic_id = metadata.catenda_topic_id
                 logger.info(
-                    f"📋 Retrieved catenda_topic_id from metadata: {catenda_topic_id}"
+                    f"Retrieved catenda_topic_id from metadata: {catenda_topic_id}"
                 )
 
         # Optional client-generated PDF (PREFERRED)
@@ -421,9 +421,9 @@ def submit_event():
         )
 
         if client_pdf_base64:
-            logger.info(f"✅ Client provided PDF: {client_pdf_filename}")
+            logger.debug(f"Client provided PDF: {client_pdf_filename}")
         else:
-            logger.info("⚠️ No client PDF, backend will generate as fallback if needed")
+            logger.debug("No client PDF, using server fallback")
 
         # 1. Validate event data against constants BEFORE parsing
         event_type = event_data.get("event_type")
@@ -432,7 +432,7 @@ def submit_event():
         try:
             _validate_event_by_type(event_type, data_payload)
         except ApiValidationError as e:
-            logger.error(f"❌ API validation error: {e}")
+            logger.warning(f"Validation error: {e}")
             return jsonify(_build_validation_error_response(e)), 400
 
         # 2. Parse event (validates server-controlled fields)
@@ -496,7 +496,7 @@ def submit_event():
             last_event_at=datetime.now(UTC),
         )
 
-        logger.info(f"✅ Event persisted, new version: {new_version}")
+        logger.debug(f"Event persisted, version: {new_version}")
 
         # 9. Catenda Integration (PDF + Comment + Status Sync) - optional
         catenda_success = False
@@ -539,7 +539,7 @@ def submit_event():
         ), 201
 
     except CatendaAuthError as e:
-        logger.error(f"❌ Catenda token expired: {e}")
+        logger.error(f"Catenda token expired: {e}")
         return jsonify(
             {
                 "success": False,
@@ -548,12 +548,12 @@ def submit_event():
             }
         ), 401
     except ValueError as e:
-        logger.error(f"❌ Validation error: {e}")
+        logger.error(f"Validation error: {e}")
         return jsonify(
             {"success": False, "error": "VALIDATION_ERROR", "message": str(e)}
         ), 400
     except Exception as e:
-        logger.error(f"❌ Internal error: {e}", exc_info=True)
+        logger.error(f"Internal error: {e}", exc_info=True)
         return jsonify(
             {"success": False, "error": "INTERNAL_ERROR", "message": str(e)}
         ), 500
@@ -772,7 +772,7 @@ def list_cases():
         )
 
     except Exception as e:
-        logger.error(f"❌ Failed to list cases: {e}", exc_info=True)
+        logger.error(f"Failed to list cases: {e}", exc_info=True)
         return jsonify({"error": "INTERNAL_ERROR", "message": str(e)}), 500
 
 
@@ -784,35 +784,34 @@ def get_case_state(sak_id: str):
 
     Response includes version for optimistic locking.
     """
-    logger.info(f"📊 State request for sak_id: {sak_id}")
-
     events_data, version = _get_event_repo().get_events(sak_id)
-    logger.info(f"📊 Retrieved {len(events_data)} raw events, version: {version}")
 
     if not events_data:
-        logger.warning(f"⚠️ No events found for sak_id: {sak_id}")
+        logger.warning(f"Case not found: {sak_id}")
         return jsonify({"error": "Sak ikke funnet"}), 404
 
     # Parse events from stored data with error handling
     events = []
+    parse_errors = 0
     for i, e in enumerate(events_data):
         try:
             parsed = parse_event(e)
             events.append(parsed)
         except Exception as parse_error:
-            logger.error(f"❌ Failed to parse event {i}: {parse_error}")
-            logger.error(f"   Raw event data: {e}")
+            parse_errors += 1
+            logger.error(f"Failed to parse event {i}: {parse_error}")
 
-    logger.info(f"📊 Successfully parsed {len(events)} of {len(events_data)} events")
+    if parse_errors > 0:
+        logger.warning(f"Parsed {len(events)}/{len(events_data)} events for {sak_id}")
 
     if not events:
-        logger.error(f"❌ All events failed to parse for sak_id: {sak_id}")
+        logger.error(f"All events failed to parse for {sak_id}")
         return jsonify({"error": "Kunne ikke lese hendelser"}), 500
 
     try:
         state = _get_timeline_service().compute_state(events)
     except Exception as compute_error:
-        logger.error(f"❌ Failed to compute state: {compute_error}", exc_info=True)
+        logger.error(f"Failed to compute state for {sak_id}: {compute_error}", exc_info=True)
         return jsonify({"error": "Kunne ikke beregne saksstatus"}), 500
 
     return jsonify({"version": version, "state": state.model_dump(mode="json")})
@@ -844,29 +843,28 @@ def get_case_timeline(sak_id: str):
         ]
     }
     """
-    logger.info(f"📋 Timeline request for sak_id: {sak_id}")
-
     events_data, version = _get_event_repo().get_events(sak_id)
-    logger.info(f"📋 Retrieved {len(events_data)} raw events, version: {version}")
 
     if not events_data:
-        logger.warning(f"⚠️ No events found for sak_id: {sak_id}")
+        logger.warning(f"Case not found: {sak_id}")
         return jsonify({"error": "Sak ikke funnet"}), 404
 
     # Parse events from stored data with error handling
     events = []
+    parse_errors = 0
     for i, e in enumerate(events_data):
         try:
             parsed = parse_event(e)
             events.append(parsed)
         except Exception as parse_error:
-            logger.error(f"❌ Failed to parse event {i}: {parse_error}")
-            logger.error(f"   Raw event data: {e}")
+            parse_errors += 1
+            logger.error(f"Failed to parse event {i}: {parse_error}")
 
-    logger.info(f"📋 Successfully parsed {len(events)} of {len(events_data)} events")
+    if parse_errors > 0:
+        logger.warning(f"Parsed {len(events)}/{len(events_data)} events for {sak_id}")
 
     if not events:
-        logger.error(f"❌ All events failed to parse for sak_id: {sak_id}")
+        logger.error(f"All events failed to parse for {sak_id}")
         return jsonify({"error": "Kunne ikke lese hendelser"}), 500
 
     # Always return CloudEvents format
@@ -885,29 +883,28 @@ def get_case_historikk(sak_id: str):
     Returns a chronological list of all claim versions and BH responses,
     with version numbers to enable side-by-side comparison in the UI.
     """
-    logger.info(f"📜 Historikk request for sak_id: {sak_id}")
-
     events_data, version = _get_event_repo().get_events(sak_id)
-    logger.info(f"📜 Retrieved {len(events_data)} raw events, version: {version}")
 
     if not events_data:
-        logger.warning(f"⚠️ No events found for sak_id: {sak_id}")
+        logger.warning(f"Case not found: {sak_id}")
         return jsonify({"error": "Sak ikke funnet"}), 404
 
     # Parse events from stored data with error handling
     events = []
+    parse_errors = 0
     for i, e in enumerate(events_data):
         try:
             parsed = parse_event(e)
             events.append(parsed)
         except Exception as parse_error:
-            logger.error(f"❌ Failed to parse event {i}: {parse_error}")
-            logger.error(f"   Raw event data: {e}")
+            parse_errors += 1
+            logger.error(f"Failed to parse event {i}: {parse_error}")
 
-    logger.info(f"📜 Successfully parsed {len(events)} of {len(events_data)} events")
+    if parse_errors > 0:
+        logger.warning(f"Parsed {len(events)}/{len(events_data)} events for {sak_id}")
 
     if not events:
-        logger.error(f"❌ All events failed to parse for sak_id: {sak_id}")
+        logger.error(f"All events failed to parse for {sak_id}")
         return jsonify({"error": "Kunne ikke lese hendelser"}), 500
 
     # Build historikk for all three tracks
@@ -953,12 +950,12 @@ def _prepare_catenda_context(sak_id: str) -> CatendaContext | None:
     """
     catenda_service = get_catenda_service()
     if not catenda_service:
-        logger.warning("❌ Catenda service not configured, skipping")
+        logger.debug("Catenda service not configured")
         return None
 
     metadata = _get_metadata_repo().get(sak_id)
     if not metadata:
-        logger.warning(f"❌ No metadata found for case {sak_id}")
+        logger.warning(f"No metadata found for case {sak_id}")
         return None
 
     config = settings.get_catenda_config()
@@ -966,7 +963,7 @@ def _prepare_catenda_context(sak_id: str) -> CatendaContext | None:
     board_id = metadata.catenda_board_id if metadata else None
 
     if not project_id or not board_id:
-        logger.warning(f"❌ Missing project/board ID for case {sak_id}")
+        logger.warning(f"Missing project/board ID for case {sak_id}")
         return None
 
     catenda_service.set_topic_board_id(board_id)
@@ -1005,10 +1002,10 @@ def _resolve_pdf(
                 temp_pdf.write(pdf_data)
                 pdf_path = temp_pdf.name
             filename = client_pdf_filename or f"KOE_{sak_id}.pdf"
-            logger.info(f"✅ Client PDF decoded: {len(pdf_data)} bytes")
+            logger.debug(f"Client PDF decoded: {len(pdf_data)} bytes")
             return pdf_path, filename, "client"
         except Exception as e:
-            logger.error(f"❌ Failed to decode client PDF: {e}")
+            logger.error(f"Failed to decode client PDF: {e}")
 
     # PRIORITY 2: Fallback to server generation
     try:
@@ -1030,18 +1027,18 @@ def _resolve_pdf(
         pdf_bytes = pdf_generator.generate_pdf(state, events_list, pdf_path)
 
         if pdf_bytes is None and pdf_path:
-            logger.info(f"✅ Server PDF generated: {filename}")
+            logger.debug(f"Server PDF generated: {filename}")
             return pdf_path, filename, "server"
         elif pdf_bytes:
             with open(pdf_path, "wb") as f:
                 f.write(pdf_bytes)
-            logger.info(f"✅ Server PDF generated: {filename}")
+            logger.debug(f"Server PDF generated: {filename}")
             return pdf_path, filename, "server"
 
     except ImportError as e:
-        logger.warning(f"⚠️ ReportLab not installed: {e}")
+        logger.warning(f"ReportLab not installed: {e}")
     except Exception as e:
-        logger.error(f"❌ Failed to generate PDF: {e}", exc_info=True)
+        logger.error(f"Failed to generate PDF: {e}", exc_info=True)
 
     return None, None, None
 
@@ -1071,11 +1068,11 @@ def _upload_and_link_pdf(
         ctx.project_id, pdf_path, filename, ctx.folder_id
     )
     if not doc_result:
-        logger.error("❌ Failed to upload PDF to Catenda")
+        logger.error("Failed to upload PDF to Catenda")
         return None
 
     compact_guid = doc_result.get("id") or doc_result.get("library_item_id")
-    logger.info(f"✅ PDF uploaded to Catenda: {compact_guid}")
+    logger.debug(f"PDF uploaded to Catenda: {compact_guid}")
 
     # Format GUID with dashes for BCF API
     if compact_guid and len(compact_guid) == 32:
@@ -1132,13 +1129,13 @@ def _post_catenda_comment(
         comment_text = comment_generator.generate_comment(state, event, magic_link)
         ctx.service.create_comment(topic_id, comment_text)
 
-        logger.info(f"✅ Comment posted to Catenda for case {sak_id}")
+        logger.debug(f"Comment posted to Catenda for case {sak_id}")
         return True
 
     except ImportError:
         logger.warning("Comment generator not available, skipping comment")
     except Exception as e:
-        logger.error(f"❌ Failed to post comment: {e}")
+        logger.error(f"Failed to post comment: {e}")
 
     return False
 
@@ -1156,7 +1153,7 @@ def _sync_topic_status(
         new_status: Current status
     """
     if old_status == new_status:
-        logger.debug(f"📊 Status unchanged ({new_status}), skipping Catenda update")
+        logger.debug(f"Status unchanged ({new_status}), skipping Catenda update")
         return
 
     catenda_status = map_status_to_catenda(new_status)
@@ -1166,9 +1163,9 @@ def _sync_topic_status(
 
     result = ctx.service.update_topic_status(topic_id, new_status)
     if result:
-        logger.info(f"✅ Topic status updated to: {catenda_status}")
+        logger.debug(f"Topic status updated to: {catenda_status}")
     else:
-        logger.warning("⚠️ Topic status update failed or returned None")
+        logger.warning("Topic status update failed")
 
 
 def _post_to_catenda(
@@ -1204,7 +1201,7 @@ def _post_to_catenda(
         - catenda_documents: List of uploaded document info dicts
     """
     try:
-        logger.info(f"🔄 _post_to_catenda called for case {sak_id}, topic {topic_id}")
+        logger.debug(f"Posting to Catenda: case={sak_id}, topic={topic_id}")
 
         catenda_documents: list[dict[str, Any]] = []
 
@@ -1246,7 +1243,7 @@ def _post_to_catenda(
         # Re-raise auth errors to trigger proper error handling upstream
         raise
     except Exception as e:
-        logger.error(f"❌ Failed to post to Catenda: {e}", exc_info=True)
+        logger.error(f"Failed to post to Catenda: {e}", exc_info=True)
         return False, None, []
 
 
