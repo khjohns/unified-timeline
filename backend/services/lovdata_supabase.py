@@ -14,8 +14,6 @@ Usage:
     results = service.search("erstatning bolig")
 """
 
-import bz2
-import io
 import os
 import tarfile
 from dataclasses import dataclass
@@ -172,7 +170,12 @@ class LovdataSupabaseService:
         return results
 
     def sync_dataset(self, dataset_name: str, filename: str, force: bool = False) -> int:
-        """Sync a single dataset."""
+        """
+        Sync a single dataset with streaming/chunked processing.
+
+        Memory-efficient: processes files in batches to avoid loading everything
+        into memory at once. Suitable for Render's 512MB free tier.
+        """
         url = f"{LOVDATA_API_BASE}/{filename}"
         doc_type = "lov" if dataset_name == "lover" else "forskrift"
 
@@ -193,71 +196,115 @@ class LovdataSupabaseService:
         self._set_sync_status(dataset_name, 'syncing')
 
         try:
-            # Download and extract
+            # Stream download to temp file to avoid memory issues
             logger.info(f"Downloading {filename}...")
-            archive_data = self._download_archive(url)
-
-            logger.info("Extracting and parsing XML files...")
-            documents, sections = self._extract_and_parse(archive_data, doc_type)
-
-            logger.info(f"Inserting {len(documents)} documents into Supabase...")
-            self._upsert_documents(documents, doc_type)
-            self._upsert_sections(sections)
+            total_docs = self._stream_sync(url, doc_type)
 
             # Update sync metadata
             self._set_sync_status(
                 dataset_name,
                 'idle',
                 last_modified=self._get_remote_last_modified(url),
-                file_count=len(documents)
+                file_count=total_docs
             )
 
-            logger.info(f"Sync complete: {len(documents)} documents")
-            return len(documents)
+            logger.info(f"Sync complete: {total_docs} documents")
+            return total_docs
 
         except Exception:
             self._set_sync_status(dataset_name, 'error')
             raise
 
-    def _download_archive(self, url: str) -> bytes:
-        """Download tar.bz2 archive."""
-        with httpx.Client(timeout=300.0) as client:
-            response = client.get(url, follow_redirects=True)
-            response.raise_for_status()
-            return response.content
+    def _stream_sync(self, url: str, doc_type: str) -> int:
+        """
+        Stream download and process in chunks.
 
-    def _extract_and_parse(
-        self,
-        data: bytes,
-        doc_type: str
-    ) -> tuple[list[dict], list[dict]]:
-        """Extract archive and parse XML files."""
-        documents = []
-        sections = []
+        Downloads to temp file, then processes XML files in batches
+        to minimize memory usage.
+        """
+        import tempfile
 
-        decompressed = bz2.decompress(data)
+        total_docs = 0
+        batch_size = 50  # Process 50 documents at a time
+        doc_batch = []
+        section_batch = []
+        seen_dok_ids = set()  # Track for deduplication
 
-        with tarfile.open(fileobj=io.BytesIO(decompressed), mode='r') as tar:
-            for member in tar.getmembers():
-                if not member.isfile() or not member.name.endswith('.xml'):
-                    continue
+        # Download to temp file (streaming)
+        with tempfile.NamedTemporaryFile(suffix='.tar.bz2', delete=True) as tmp:
+            logger.info("Streaming download to temp file...")
+            with httpx.Client(timeout=300.0) as client:
+                with client.stream('GET', url, follow_redirects=True) as response:
+                    response.raise_for_status()
+                    for chunk in response.iter_bytes(chunk_size=65536):
+                        tmp.write(chunk)
+            tmp.flush()
+            tmp.seek(0)
 
-                try:
-                    f = tar.extractfile(member)
-                    if f is None:
+            logger.info("Processing XML files in batches...")
+
+            # Open tar directly with bz2 decompression (streaming)
+            with tarfile.open(fileobj=tmp, mode='r:bz2') as tar:
+                for member in tar:
+                    if not member.isfile() or not member.name.endswith('.xml'):
                         continue
 
-                    content = f.read().decode('utf-8')
-                    doc, secs = self._parse_xml(content, doc_type)
+                    try:
+                        f = tar.extractfile(member)
+                        if f is None:
+                            continue
 
-                    if doc:
-                        documents.append(doc)
-                        sections.extend(secs)
+                        content = f.read().decode('utf-8')
+                        doc, secs = self._parse_xml(content, doc_type)
 
-                except Exception as e:
-                    logger.warning(f"Failed to parse {member.name}: {e}")
+                        if doc:
+                            dok_id = doc['dok_id']
+                            # Deduplicate in-memory
+                            if dok_id in seen_dok_ids:
+                                continue
+                            seen_dok_ids.add(dok_id)
 
-        return documents, sections
+                            doc_batch.append(doc)
+                            section_batch.extend(secs)
+                            total_docs += 1
+
+                            # Flush batch when full
+                            if len(doc_batch) >= batch_size:
+                                self._flush_batch(doc_batch, section_batch, doc_type)
+                                doc_batch = []
+                                section_batch = []
+                                logger.info(f"Processed {total_docs} documents...")
+
+                    except Exception as e:
+                        logger.warning(f"Failed to parse {member.name}: {e}")
+
+            # Flush remaining
+            if doc_batch:
+                self._flush_batch(doc_batch, section_batch, doc_type)
+                logger.info(f"Processed {total_docs} documents (final batch)")
+
+        return total_docs
+
+    def _flush_batch(self, documents: list[dict], sections: list[dict], doc_type: str) -> None:
+        """Insert a batch of documents and sections."""
+        if documents:
+            self.client.table('lovdata_documents').upsert(
+                documents,
+                on_conflict='dok_id'
+            ).execute()
+
+        if sections:
+            # Deduplicate sections within batch
+            seen = {}
+            for sec in sections:
+                key = (sec['dok_id'], sec['section_id'])
+                seen[key] = sec
+            unique_sections = list(seen.values())
+
+            self.client.table('lovdata_sections').upsert(
+                unique_sections,
+                on_conflict='dok_id,section_id'
+            ).execute()
 
     def _parse_xml(self, content: str, doc_type: str) -> tuple[dict | None, list[dict]]:
         """Parse XML/HTML content."""
