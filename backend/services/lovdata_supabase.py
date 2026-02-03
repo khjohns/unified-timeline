@@ -336,10 +336,17 @@ class LovdataSupabaseService:
         if not documents:
             return
 
+        # Deduplicate by dok_id (keep last occurrence - usually most recent)
+        seen = {}
+        for doc in documents:
+            seen[doc['dok_id']] = doc
+        unique_docs = list(seen.values())
+        logger.info(f"Deduped {len(documents)} -> {len(unique_docs)} unique documents")
+
         # Use upsert with ON CONFLICT DO UPDATE on dok_id
         batch_size = 100
-        for i in range(0, len(documents), batch_size):
-            batch = documents[i:i + batch_size]
+        for i in range(0, len(unique_docs), batch_size):
+            batch = unique_docs[i:i + batch_size]
             self.client.table('lovdata_documents').upsert(
                 batch,
                 on_conflict='dok_id'
@@ -351,10 +358,18 @@ class LovdataSupabaseService:
         if not sections:
             return
 
+        # Deduplicate by (dok_id, section_id) - keep last occurrence
+        seen = {}
+        for sec in sections:
+            key = (sec['dok_id'], sec['section_id'])
+            seen[key] = sec
+        unique_sections = list(seen.values())
+        logger.info(f"Deduped {len(sections)} -> {len(unique_sections)} unique sections")
+
         # Use upsert with ON CONFLICT DO UPDATE on (dok_id, section_id)
         batch_size = 500
-        for i in range(0, len(sections), batch_size):
-            batch = sections[i:i + batch_size]
+        for i in range(0, len(unique_sections), batch_size):
+            batch = unique_sections[i:i + batch_size]
             self.client.table('lovdata_sections').upsert(
                 batch,
                 on_conflict='dok_id,section_id'
