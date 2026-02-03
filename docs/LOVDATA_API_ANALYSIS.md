@@ -27,6 +27,8 @@ Lovdata MCP-integrasjonen (commit `9e00cee`) fungerer kun delvis. Testrapporten 
 
 - **Format:** `tar.bz2`-arkiv med XML/HTML-dokumenter
 - **Lisens:** NLOD 2.0
+- **Rate Limiting:** Ingen (offentlige endepunkter)
+- **Liste datasett:** `GET /v1/publicData/list`
 - **Flere datasett:** Se https://api.lovdata.no/swagger#/Public%20data
 
 **Dokumentidentifikatorer (FRBR-basert):**
@@ -41,12 +43,29 @@ Lovdata MCP-integrasjonen (commit `9e00cee`) fungerer kun delvis. Testrapporten 
 - `NLE/` - Engelsk versjon
 - `NLO/` - Opphevet lov
 
-### Betalt REST API
+### Betalt REST API (krever X-API-Key)
 
-- Krever API-konto fra Lovdata
-- Autentisering via Basic Auth eller `X-API-Key` header
-- Endepunkter for søk, dokumenthenting, metadata
-- **Pris:** Ikke publisert - må kontakte Lovdata
+Autentisering: `X-API-Key` header eller Basic Auth.
+
+| Kategori | Endepunkter | Beskrivelse |
+|----------|-------------|-------------|
+| **Structured Rules** | 5 | Hent enkeltlover i XML-format |
+| **Content Services** | 10 | Metadata, indeks, historikk |
+| **Services** | 3 | Søk, referansegenerering |
+| **AI Functionality** | 3 | Strategisøk, responsegenerering |
+| **Document Upload** | 1 | Last opp dokumenter |
+
+**Nøkkelendepunkter (betalt):**
+```
+GET /v1/structuredRules/get/{base}/{ruleFile}     # Hent enkeltlov i XML
+GET /v1/search                                      # Fulltekstsøk
+GET /documentMeta                                   # Dokumentmetadata
+GET /documentIndex                                  # Innholdsfortegnelse
+```
+
+**Rate Limiting:** 200 kall/minutt (gjelder kun autentiserte kall)
+
+**Pris:** Ikke publisert - kontakt Lovdata
 
 ## Problemer i Nåværende Implementasjon
 
