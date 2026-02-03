@@ -43,7 +43,7 @@ npm run seed:users
 | bh-prosjektleder | bh-prosjektleder@test.local | BhTest123! | PL | Prosjektavdeling |
 | bh-seksjonsleder | bh-seksjonsleder@test.local | BhTest123! | SL | Seksjon Bygg |
 | bh-avdelingsleder | bh-avdelingsleder@test.local | BhTest123! | AL | Avdeling Prosjekt |
-| bh-direktør | bh-direktør@test.local | BhTest123! | DU | Direktørens kontor |
+| bh-direktor | bh-direktor@test.local | BhTest123! | DU | Direktørens kontor |
 | bh-admin | bh-admin@test.local | BhTest123! | AD | Administrasjon |
 | bh-kontroller | bh-kontroller@test.local | BhTest123! | PL | Kontroll |
 | bh-okonomi | bh-okonomi@test.local | BhTest123! | SL | Økonomiavdeling |

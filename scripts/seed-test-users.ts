@@ -15,7 +15,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 // Konfigurasjon
 const SUPABASE_URL = process.env.SUPABASE_URL
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error('Mangler miljøvariabler:')
@@ -148,7 +148,7 @@ const testUsers: TestUser[] = [
     department: 'Avdeling Prosjekt',
   },
   {
-    username: 'bh-direktør',
+    username: 'bh-direktor',
     password: 'BhTest123!',
     group: 'byggherre',
     displayName: 'Dagny Direktør',
