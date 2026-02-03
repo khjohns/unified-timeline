@@ -1,6 +1,6 @@
 # Sikkerhetsarkitektur - Unified Timeline
 
-**Sist oppdatert:** 2026-02-02
+**Sist oppdatert:** 2026-02-03
 
 Dette dokumentet beskriver sikkerhetsarkitekturen for Unified Timeline-applikasjonen.
 
@@ -63,10 +63,14 @@ Nåværende implementasjon er en utviklingsprototype med grunnleggende sikkerhet
 ┌────────────────────────────────────────────────────────────┐
 │  Lag 1: Nettverk/Transport                                 │
 │  - CORS (localhost:3000, 127.0.0.1:3000, ngrok)            │
-│  - Rate Limiting (in-memory):                              │
+│  - Rate Limiting (Flask-Limiter 4.x, in-memory/Redis):     │
 │    • Submissions: 10/min                                   │
 │    • Webhooks: 100/min                                     │
 │    • Default: 2000/dag, 500/time                           │
+│    • Meta limits: 10 brudd/time, 50 brudd/dag              │
+│    • Strategy: fixed-window (konfigurerbart)               │
+│    • Exempt: /health, /ready, /metrics, localhost          │
+│    • Headers: X-RateLimit-Limit/Remaining/Reset            │
 │  - HTTPS via ngrok (utviklingsmiljø)                       │
 │  - Ingen WAF eller DDoS-beskyttelse                        │
 └────────────────────────────────────────────────────────────┘
@@ -108,7 +112,7 @@ Nåværende implementasjon er en utviklingsprototype med grunnleggende sikkerhet
 | CSRF | `backend/lib/auth/csrf_protection.py` | HMAC-signerte tokens med TTL |
 | Catenda Auth | `backend/integrations/catenda/auth.py` | OAuth-integrasjon for roller |
 | Validering | `backend/lib/security/validation.py` | Input-validatorer |
-| Rate Limiting | `backend/lib/security/rate_limiter.py` | Flask-Limiter wrapper |
+| Rate Limiting | `backend/lib/security/rate_limiter.py` | Flask-Limiter 4.x med headers, meta limits, request filters |
 | Webhook | `backend/lib/security/webhook_security.py` | Secret path + idempotens |
 | Audit | `backend/lib/monitoring/audit.py` | JSON Lines logging |
 | CORS | `backend/core/cors_config.py` | Tillatte origins |
@@ -177,7 +181,9 @@ Produksjonsarkitekturen bygger på **Defense in Depth** med flere sikkerhetslag.
 │  Lag 1: Nettverk                                           │
 │  - Azure Front Door + WAF                                  │
 │  - DDoS Protection                                         │
-│  - Rate Limiting (100 req/min per IP)                      │
+│  - Rate Limiting (Flask-Limiter + Redis):                  │
+│    • App-nivå: headers, meta limits, request filters       │
+│    • Azure-nivå: Front Door rate limiting                  │
 │  - TLS 1.3 (encrypted transport)                           │
 └────────────────────────────────────────────────────────────┘
          ▲
@@ -206,7 +212,7 @@ Produksjonsarkitekturen bygger på **Defense in Depth** med flere sikkerhetslag.
 |-----|-----------|------------|--------|
 | Token-lagring | JSON-filer (dev) / Supabase (prod) | Azure Key Vault | ⏳ Valgfritt |
 | CSRF Secret | Dev default hvis ikke satt | Påkrevd env-variabel | ⚠️ Sjekk config |
-| Rate Limiting | In-memory | Redis eller App Service plan | ⏳ Ved behov |
+| Rate Limiting | In-memory (Redis-klar, meta limits, headers) | Redis for distribuert | ✅ Klar (bytt storage_uri) |
 | TLS | Kun via ngrok | Azure App Service (innebygd) | ✅ Automatisk |
 | WAF | Ingen | Azure Front Door WAF | ⏳ Anbefalt |
 | DDoS | Ingen | Azure DDoS Protection | ⏳ Anbefalt |
