@@ -198,6 +198,24 @@ export function CaseDashboard({
               />
             </div>
           )}
+          {/* §32.2 Preklusjon: BH mener varselet kom for sent */}
+          {state.grunnlag.grunnlag_varslet_i_tide === false && (
+            <div className="mb-2 px-2.5 py-1.5 rounded-md bg-alert-warning-bg border border-alert-warning-border">
+              <p className="text-xs font-medium text-alert-warning-text">
+                BH påberoper §32.2-preklusjon (varslet for sent)
+                {state.grunnlag.bh_resultat && (
+                  <span className="font-normal">
+                    {' '}– subsidiært{' '}
+                    {state.grunnlag.bh_resultat === 'godkjent'
+                      ? 'godkjent'
+                      : state.grunnlag.bh_resultat === 'avslatt'
+                      ? 'avslått'
+                      : 'delvis godkjent'}
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
           <InlineDataList stackOnMobile>
             {state.grunnlag.dato_oppdaget && (
               <InlineDataListItem label="Oppdaget">

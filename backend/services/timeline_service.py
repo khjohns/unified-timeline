@@ -543,10 +543,19 @@ class TimelineService:
         # Map respons til status
         grunnlag.status = self._respons_til_status(event.data.resultat)
 
-        # Hvis godkjent, lås grunnlaget
-        if event.data.resultat == GrunnlagResponsResultat.GODKJENT:
+        # Hvis godkjent OG ikke prekludert (§32.2), lås grunnlaget
+        # Preklusjon betyr tvist - selv om subsidiært resultat er "godkjent"
+        er_prekludert = (
+            hasattr(event.data, "grunnlag_varslet_i_tide")
+            and event.data.grunnlag_varslet_i_tide is False
+        )
+        if event.data.resultat == GrunnlagResponsResultat.GODKJENT and not er_prekludert:
             grunnlag.laast = True
             grunnlag.status = SporStatus.LAAST
+        elif er_prekludert:
+            # Ved preklusjon: Hold status som UNDER_FORHANDLING (tvist)
+            grunnlag.status = SporStatus.UNDER_FORHANDLING
+            grunnlag.laast = False
 
         # Spor hvilken versjon BH responderte på
         grunnlag.bh_respondert_versjon = max(0, grunnlag.antall_versjoner - 1)
