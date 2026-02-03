@@ -729,8 +729,8 @@ class LovdataSupabaseService:
         Returns:
             List of SearchResult objects
         """
-        # Use PostgreSQL function for search
-        result = self.client.rpc('search_lovdata', {
+        # Use fast PostgreSQL function for search (avoids slow ts_headline)
+        result = self.client.rpc('search_lovdata_fast', {
             'query_text': query,
             'max_results': limit
         }).execute()
