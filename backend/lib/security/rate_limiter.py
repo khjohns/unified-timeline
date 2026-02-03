@@ -27,6 +27,12 @@ RATE_LIMIT_DEFAULT = os.getenv("RATE_LIMIT_DEFAULT", "2000 per day, 500 per hour
 # For produksjon: redis://host:port eller Azure Redis
 RATE_LIMIT_STORAGE = os.getenv("RATE_LIMIT_STORAGE", "memory://")
 
+# Rate limit strategy (Flask-Limiter 4.x)
+# - fixed-window: Enkleste, lavest ressursbruk (default)
+# - moving-window: Mer nøyaktig, krever Redis
+# - sliding-window-counter: Balanse mellom de to
+RATE_LIMIT_STRATEGY = os.getenv("RATE_LIMIT_STRATEGY", "fixed-window")
+
 # Limiter instance (initialized when Flask app is created)
 limiter = None
 
@@ -54,6 +60,7 @@ def init_limiter(app):
             key_func=get_remote_address,
             default_limits=[RATE_LIMIT_DEFAULT],
             storage_uri=RATE_LIMIT_STORAGE,
+            strategy=RATE_LIMIT_STRATEGY,
         )
 
         # Only log once (skip in reloader parent process)
