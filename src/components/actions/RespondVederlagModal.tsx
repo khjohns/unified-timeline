@@ -771,11 +771,11 @@ export function RespondVederlagModal({
     computed,
   ]);
 
-  // Steps configuration - 4 steps with optional preklusjon (Oversikt fjernet)
+  // Steps configuration - 4 steps with optional varslingsvurdering (Oversikt fjernet)
   const steps = useMemo(() => {
     if (harPreklusjonsSteg) {
       return [
-        { label: 'Preklusjon' },
+        { label: 'Varsling' },
         { label: 'Beregningsmetode' },
         { label: 'Beløp' },
         { label: 'Oppsummering' },
@@ -1111,8 +1111,8 @@ export function RespondVederlagModal({
               ================================================================ */}
           {currentStepType === 'preklusjon' && (
             <SectionContainer
-              title="Preklusjon"
-              description="Vurder om kravene ble varslet i tide. Ved manglende varsel tapes kravet."
+              title="Varslingsvurdering"
+              description="Vurder om kravene ble varslet i tide. Sen varsling kan gi konsekvenser for kravets omfang."
             >
               {/* §34.1.2: Hovedkrav preklusjon (kun SVIKT/ANDRE kategorier) */}
               {har34_1_2_Preklusjon && (
