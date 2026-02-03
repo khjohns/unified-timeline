@@ -5,27 +5,82 @@ Provides access to Norwegian laws and regulations via the free Lovdata API
 released November 2025 under NLOD 2.0 license.
 
 API Documentation: https://api.lovdata.no/
-Data source: ZIP files containing ~35,000 XML documents
+Data source: tar.bz2 archives containing XML documents
+
+Storage backends:
+    - Supabase PostgreSQL (default when SUPABASE_URL is set) - for cloud deploy
+    - Local SQLite (fallback) - for local development
 
 Usage:
     service = LovdataService()
     text = service.lookup_law("avhendingslova", "3-9")
+
+    # Sync data from Lovdata API
+    service.sync()
 """
 
 import os
-import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any
-
-import httpx
 
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-# Cache directory for downloaded data
+# =============================================================================
+# Configuration
+# =============================================================================
+
+# Cache directory for SQLite fallback
 CACHE_DIR = Path(os.getenv("LOVDATA_CACHE_DIR", "/tmp/lovdata-cache"))
+
+# Use Supabase if available
+USE_SUPABASE = bool(os.getenv("SUPABASE_URL"))
+
+# Token estimation: ~3.5 chars per token for Norwegian text
+CHARS_PER_TOKEN = 3.5
+LARGE_RESPONSE_THRESHOLD = 5000  # tokens
+
+# Lazy service singletons
+_supabase_service = None
+_sqlite_service = None
+
+
+def _get_backend_service():
+    """
+    Get appropriate backend service based on configuration.
+
+    Uses Supabase when SUPABASE_URL is set, otherwise SQLite.
+    """
+    global _supabase_service, _sqlite_service
+
+    if USE_SUPABASE:
+        if _supabase_service is None:
+            try:
+                from services.lovdata_supabase import LovdataSupabaseService
+                _supabase_service = LovdataSupabaseService()
+                logger.info("Using Supabase backend for Lovdata")
+            except Exception as e:
+                logger.warning(f"Supabase unavailable, falling back to SQLite: {e}")
+                return _get_sqlite_service()
+        return _supabase_service
+    else:
+        return _get_sqlite_service()
+
+
+def _get_sqlite_service():
+    """Get SQLite backend service."""
+    global _sqlite_service
+    if _sqlite_service is None:
+        from services.lovdata_sync import LovdataSyncService
+        _sqlite_service = LovdataSyncService(cache_dir=CACHE_DIR)
+        logger.info("Using SQLite backend for Lovdata")
+    return _sqlite_service
+
+
+def estimate_tokens(text: str) -> int:
+    """Estimate token count for Norwegian text."""
+    return int(len(text) / CHARS_PER_TOKEN)
 
 
 class LovdataService:
@@ -114,13 +169,8 @@ class LovdataService:
 
     def __init__(self):
         """Initialize LovdataService."""
-        self.client = httpx.Client(timeout=60.0)
-        self._laws_index: dict[str, dict[str, Any]] = {}
-        self._ensure_cache_dir()
-
-    def _ensure_cache_dir(self) -> None:
-        """Ensure cache directory exists."""
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        # Backend is lazily initialized on first use via _get_backend_service()
+        pass
 
     def _resolve_id(self, alias: str) -> str:
         """
@@ -167,13 +217,19 @@ class LovdataService:
 
         return url
 
-    def lookup_law(self, lov_id: str, paragraf: str | None = None) -> str:
+    def lookup_law(
+        self,
+        lov_id: str,
+        paragraf: str | None = None,
+        max_tokens: int | None = None
+    ) -> str:
         """
         Look up a Norwegian law or specific section.
 
         Args:
             lov_id: Law identifier or alias (e.g., "avhendingslova", "LOV-1992-07-03-93")
             paragraf: Optional section number (e.g., "3-9", "§ 3-9")
+            max_tokens: Optional token limit for truncating long responses
 
         Returns:
             Formatted law text with metadata and source link
@@ -182,10 +238,10 @@ class LovdataService:
         law_name = self._get_law_name(resolved_id)
         url = self._format_lovdata_url(resolved_id, paragraf)
 
-        logger.info(f"Looking up law: {resolved_id}, section: {paragraf}")
+        logger.info(f"Looking up law: {resolved_id}, section: {paragraf}, max_tokens: {max_tokens}")
 
         # Try to fetch from cache/API
-        content = self._fetch_law_content(resolved_id, paragraf)
+        content = self._fetch_law_content(resolved_id, paragraf, max_tokens=max_tokens)
 
         if content:
             return self._format_response(
@@ -204,71 +260,119 @@ class LovdataService:
                 url=url
             )
 
-    def _fetch_law_content(self, lov_id: str, paragraf: str | None = None) -> str | None:
+    def _fetch_law_content(
+        self,
+        lov_id: str,
+        paragraf: str | None = None,
+        max_tokens: int | None = None
+    ) -> str | None:
         """
-        Fetch law content from cache or API.
+        Fetch law content from cache (Supabase or SQLite).
 
         Args:
-            lov_id: Lovdata ID
+            lov_id: Lovdata ID or alias
             paragraf: Optional section number
+            max_tokens: Optional token limit (truncates if exceeded)
 
         Returns:
             Law text content or None if not available
         """
-        # Check if we have cached XML data
-        cache_file = CACHE_DIR / f"{lov_id}.xml"
+        backend = _get_backend_service()
 
-        if cache_file.exists():
-            try:
-                return self._parse_law_xml(cache_file, paragraf)
-            except Exception as e:
-                logger.warning(f"Failed to parse cached law {lov_id}: {e}")
+        try:
+            if paragraf:
+                # Get specific section
+                section = backend.get_section(lov_id, paragraf)
+                if section:
+                    content = ""
+                    if section.title:
+                        content = f"**{section.title}**\n\n"
+                    content += section.content
 
-        # For now, return None - full API integration requires downloading ZIP
-        # TODO: Implement ZIP download and XML extraction
+                    # Apply token limit if specified
+                    if max_tokens:
+                        max_chars = int(max_tokens * CHARS_PER_TOKEN)
+                        if len(content) > max_chars:
+                            content = content[:max_chars] + "\n\n... [avkortet]"
+
+                    return content
+            else:
+                # Get document overview
+                doc = backend.get_document(lov_id)
+                if doc:
+                    return "*Dokument lastet fra cache. Bruk paragraf-parameter for spesifikke bestemmelser.*"
+
+        except Exception as e:
+            logger.warning(f"Failed to fetch law content for {lov_id}: {e}")
+
         return None
 
-    def _parse_law_xml(self, xml_path: Path, paragraf: str | None = None) -> str | None:
+    def get_section_size(self, lov_id: str, paragraf: str) -> dict | None:
         """
-        Parse law XML file and extract content.
+        Get section size without fetching content.
+
+        Useful for Claude to decide whether to fetch full content.
 
         Args:
-            xml_path: Path to XML file
-            paragraf: Optional section to extract
+            lov_id: Law ID or alias
+            paragraf: Section number
 
         Returns:
-            Extracted text content or None
+            Dict with char_count and estimated_tokens, or None
         """
+        backend = _get_backend_service()
+
         try:
-            tree = ET.parse(xml_path)
-            root = tree.getroot()
+            # Try Supabase method first
+            if hasattr(backend, 'get_section_size'):
+                return backend.get_section_size(lov_id, paragraf)
 
-            if paragraf:
-                # Find specific section
-                section_num = paragraf.lstrip("§").strip()
-                # XML structure varies - try common patterns
-                for elem in root.iter():
-                    if elem.get("paragraf") == section_num or elem.get("id") == f"§{section_num}":
-                        return self._extract_text(elem)
-            else:
-                # Return full law text
-                return self._extract_text(root)
-
-        except ET.ParseError as e:
-            logger.error(f"XML parse error: {e}")
-            return None
+            # Fallback: fetch section and measure
+            section = backend.get_section(lov_id, paragraf)
+            if section:
+                char_count = len(section.content)
+                return {
+                    'char_count': char_count,
+                    'estimated_tokens': estimate_tokens(section.content)
+                }
+        except Exception as e:
+            logger.warning(f"Failed to get section size: {e}")
 
         return None
 
-    def _extract_text(self, element: ET.Element) -> str:
-        """Extract text content from XML element, preserving structure."""
-        texts = []
-        for elem in element.iter():
-            if elem.text:
-                texts.append(elem.text.strip())
-            if elem.tail:
-                texts.append(elem.tail.strip())
-        return "\n".join(filter(None, texts))
+    def sync(self, force: bool = False) -> dict[str, int]:
+        """
+        Sync law data from Lovdata API.
+
+        Downloads and indexes all laws and regulations.
+
+        Args:
+            force: Force re-download even if up-to-date
+
+        Returns:
+            Dict with counts of synced documents
+        """
+        backend = _get_backend_service()
+        return backend.sync_all(force=force)
+
+    def get_sync_status(self) -> dict:
+        """
+        Get sync status for cached data.
+
+        Returns:
+            Dict with sync timestamps and file counts
+        """
+        backend = _get_backend_service()
+        return backend.get_sync_status()
+
+    def is_synced(self) -> bool:
+        """Check if any data has been synced."""
+        backend = _get_backend_service()
+        return backend.is_synced()
+
+    def get_backend_type(self) -> str:
+        """Return which backend is in use."""
+        return "supabase" if USE_SUPABASE else "sqlite"
 
     def _format_response(
         self,
@@ -306,6 +410,13 @@ class LovdataService:
         """Format fallback response when content is not cached."""
         section_header = f"§ {paragraf}" if paragraf else "(hele loven)"
 
+        # Check sync status for better message
+        sync_status = self.get_sync_status()
+        if sync_status:
+            tip_msg = "*Lovdata er synkronisert, men denne loven ble ikke funnet i cache.*"
+        else:
+            tip_msg = "*Tips: Kjør `python -m services.lovdata_sync` for å laste ned lovdata.*"
+
         return f"""## {law_name}
 
 **Paragraf:** {section_header}
@@ -313,13 +424,14 @@ class LovdataService:
 
 ---
 
-Lovteksten er ikke lastet i cache. Se fullstendig tekst på Lovdata:
+Lovteksten er ikke tilgjengelig i lokal cache.
 
-**Lenke:** [{url}]({url})
+**Se fullstendig tekst på Lovdata:**
+[{url}]({url})
 
 ---
 
-*Tips: For å laste ned og cache lovdata, kjør `lovdata-mcp --sync`*
+{tip_msg}
 **Lisens:** NLOD 2.0 - Norsk lisens for offentlige data
 """
 
@@ -360,6 +472,8 @@ Se fullstendig tekst på Lovdata:
         """
         Search Norwegian laws and regulations.
 
+        Uses full-text search if data is synced, otherwise falls back to alias matching.
+
         Args:
             query: Search query
             limit: Maximum number of results
@@ -369,7 +483,17 @@ Se fullstendig tekst på Lovdata:
         """
         logger.info(f"Searching laws for: {query} (limit={limit})")
 
-        # Simple keyword matching against known laws
+        # Try FTS search first if data is synced
+        if self.is_synced():
+            backend = _get_backend_service()
+            try:
+                fts_results = backend.search(query, limit=limit)
+                if fts_results:
+                    return self._format_fts_results(query, fts_results)
+            except Exception as e:
+                logger.warning(f"FTS search failed, falling back to alias search: {e}")
+
+        # Fallback: Simple keyword matching against known laws
         results = []
         query_lower = query.lower()
 
@@ -391,7 +515,7 @@ Se fullstendig tekst på Lovdata:
 
 Ingen treff i indekserte lover.
 
-**Tips:** Prøv å søke direkte på Lovdata:
+**Tips:** Kjør `service.sync()` for å laste ned lovdata, eller søk direkte på Lovdata:
 https://lovdata.no/sok?q={query.replace(' ', '+')}
 """
 
@@ -401,13 +525,43 @@ https://lovdata.no/sok?q={query.replace(' ', '+')}
 
         return f"""## Søkeresultater for "{query}"
 
-Fant {len(results)} treff:
+Fant {len(results)} treff (alias-søk):
 
 {chr(10).join(result_lines)}
 
 ---
 
-**Fullt søk på Lovdata:** https://lovdata.no/sok?q={query.replace(' ', '+')}
+*For fulltekstsøk, kjør `service.sync()` først.*
+**Søk på Lovdata:** https://lovdata.no/sok?q={query.replace(' ', '+')}
+"""
+
+    def _format_fts_results(self, query: str, results: list[dict]) -> str:
+        """Format full-text search results."""
+        result_lines = []
+
+        for r in results:
+            doc_type = "Lov" if r.get('doc_type') == 'lov' else "Forskrift"
+            title = r.get('title') or r.get('short_title') or r.get('dok_id')
+            snippet = r.get('snippet', '')
+
+            # Clean up snippet (remove HTML if present)
+            snippet = snippet.replace('<mark>', '**').replace('</mark>', '**')
+
+            result_lines.append(f"""### {doc_type}: {title}
+**ID:** `{r['dok_id']}`
+
+{snippet}
+""")
+
+        return f"""## Søkeresultater for "{query}"
+
+Fant {len(results)} treff (fulltekstsøk):
+
+{chr(10).join(result_lines)}
+
+---
+
+**Søk på Lovdata:** https://lovdata.no/sok?q={query.replace(' ', '+')}
 """
 
     def list_available_laws(self) -> str:

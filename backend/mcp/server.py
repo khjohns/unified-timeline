@@ -52,7 +52,8 @@ class MCPServer:
                 "description": (
                     "Slå opp norsk lov eller spesifikk paragraf fra Lovdata. "
                     "Støtter kortnavn (avhendingslova, buofl, pbl) eller full ID. "
-                    "Eksempel: lov('avhendingslova', '3-9') eller lov('bustadoppføringslova', '12')"
+                    "Bruk 'sjekk_storrelse' først for lange paragrafer (>5000 tokens). "
+                    "Eksempel: lov('avhendingslova', '3-9')"
                 ),
                 "inputSchema": {
                     "type": "object",
@@ -61,8 +62,7 @@ class MCPServer:
                             "type": "string",
                             "description": (
                                 "Lovens kortnavn eller ID. "
-                                "Eksempler: 'avhendingslova', 'buofl', 'plan-og-bygningsloven', "
-                                "'LOV-1992-07-03-93'"
+                                "Eksempler: 'avhendingslova', 'buofl', 'plan-og-bygningsloven'"
                             )
                         },
                         "paragraf": {
@@ -70,7 +70,14 @@ class MCPServer:
                             "description": (
                                 "Paragrafnummer (valgfritt). "
                                 "Eksempler: '3-9', '21-4', '12'. "
-                                "Utelat for å få oversikt over hele loven."
+                                "Utelat for dokumentoversikt."
+                            )
+                        },
+                        "max_tokens": {
+                            "type": "integer",
+                            "description": (
+                                "Maks antall tokens i respons (valgfritt). "
+                                "Bruk for å begrense lange paragrafer. Standard: ingen grense."
                             )
                         }
                     },
@@ -131,6 +138,60 @@ class MCPServer:
                     "type": "object",
                     "properties": {},
                     "required": []
+                }
+            },
+            {
+                "name": "sync",
+                "description": (
+                    "Synkroniser lovdata fra Lovdata API. "
+                    "Laster ned gjeldende lover og forskrifter til lokal cache. "
+                    "Må kjøres minst én gang for at lov() og sok() skal returnere innhold."
+                ),
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "force": {
+                            "type": "boolean",
+                            "description": "Tving re-nedlasting selv om data er oppdatert",
+                            "default": False
+                        }
+                    },
+                    "required": []
+                }
+            },
+            {
+                "name": "status",
+                "description": (
+                    "Vis status for synkronisert lovdata. "
+                    "Viser når data sist ble synkronisert og antall dokumenter."
+                ),
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            },
+            {
+                "name": "sjekk_storrelse",
+                "description": (
+                    "Sjekk størrelsen på en paragraf før henting. "
+                    "Returnerer estimert antall tokens. "
+                    "Bruk dette for å avgjøre om du bør be brukeren om bekreftelse "
+                    "før du henter store paragrafer (>5000 tokens)."
+                ),
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "lov_id": {
+                            "type": "string",
+                            "description": "Lovens kortnavn eller ID"
+                        },
+                        "paragraf": {
+                            "type": "string",
+                            "description": "Paragrafnummer (f.eks. '3-9')"
+                        }
+                    },
+                    "required": ["lov_id", "paragraf"]
                 }
             }
         ]
@@ -226,7 +287,8 @@ class MCPServer:
             if tool_name == "lov":
                 content = self.lovdata.lookup_law(
                     arguments.get("lov_id", ""),
-                    arguments.get("paragraf")
+                    arguments.get("paragraf"),
+                    max_tokens=arguments.get("max_tokens")
                 )
             elif tool_name == "forskrift":
                 content = self.lovdata.lookup_regulation(
@@ -240,6 +302,23 @@ class MCPServer:
                 )
             elif tool_name == "liste":
                 content = self.lovdata.list_available_laws()
+            elif tool_name == "sync":
+                force = arguments.get("force", False)
+                results = self.lovdata.sync(force=force)
+                content = self._format_sync_results(results)
+            elif tool_name == "status":
+                status = self.lovdata.get_sync_status()
+                content = self._format_status(status)
+            elif tool_name == "sjekk_storrelse":
+                size_info = self.lovdata.get_section_size(
+                    arguments.get("lov_id", ""),
+                    arguments.get("paragraf", "")
+                )
+                content = self._format_size_check(
+                    arguments.get("lov_id", ""),
+                    arguments.get("paragraf", ""),
+                    size_info
+                )
             else:
                 content = f"Ukjent verktøy: {tool_name}"
                 logger.warning(f"Unknown tool requested: {tool_name}")
@@ -264,6 +343,79 @@ class MCPServer:
                 ],
                 "isError": True
             }
+
+    def _format_sync_results(self, results: dict[str, int]) -> str:
+        """Format sync results for display."""
+        lines = ["## Synkronisering fullført\n"]
+
+        total = 0
+        for dataset, count in results.items():
+            if count >= 0:
+                lines.append(f"- **{dataset}**: {count} dokumenter indeksert")
+                total += count
+            else:
+                lines.append(f"- **{dataset}**: Feilet")
+
+        lines.append(f"\n**Totalt:** {total} dokumenter")
+        lines.append("\n*Lovdata er nå tilgjengelig for oppslag og søk.*")
+
+        return "\n".join(lines)
+
+    def _format_status(self, status: dict) -> str:
+        """Format sync status for display."""
+        if not status:
+            return """## Lovdata Status
+
+**Status:** Ikke synkronisert
+
+Kjør `sync()` for å laste ned lovdata fra Lovdata API.
+"""
+
+        lines = ["## Lovdata Status\n"]
+
+        # Show backend type
+        lines.append(f"**Backend:** {self.lovdata.get_backend_type()}\n")
+
+        for dataset, info in status.items():
+            lines.append(f"### {dataset.title()}")
+            lines.append(f"- **Sist synkronisert:** {info.get('synced_at', 'Ukjent')}")
+            lines.append(f"- **Antall filer:** {info.get('file_count', 0)}")
+            lines.append(f"- **Kilde oppdatert:** {info.get('last_modified', 'Ukjent')}")
+            lines.append("")
+
+        return "\n".join(lines)
+
+    def _format_size_check(
+        self,
+        lov_id: str,
+        paragraf: str,
+        size_info: dict | None
+    ) -> str:
+        """Format size check result."""
+        if not size_info:
+            return f"Fant ikke § {paragraf} i {lov_id}."
+
+        tokens = size_info.get('estimated_tokens', 0)
+        chars = size_info.get('char_count', 0)
+
+        # Determine if this is a large response
+        if tokens > 5000:
+            warning = (
+                f"\n**Advarsel:** Denne paragrafen er stor ({tokens:,} tokens). "
+                f"Vurder å be brukeren om bekreftelse før henting, "
+                f"eller bruk `max_tokens` parameter for å begrense."
+            )
+        elif tokens > 2000:
+            warning = "\n*Mellomstor paragraf - bør gå greit å hente.*"
+        else:
+            warning = "\n*Liten paragraf - trygt å hente.*"
+
+        return f"""## Størrelse: {lov_id} § {paragraf}
+
+- **Tegn:** {chars:,}
+- **Estimerte tokens:** {tokens:,}
+{warning}
+"""
 
     def handle_resources_list(self) -> dict[str, Any]:
         """Return list of available resources (none for now)."""
