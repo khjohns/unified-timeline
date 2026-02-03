@@ -1,0 +1,176 @@
+# Lovdata API - Kartlegging og Begrensninger
+
+**Dato:** 2026-02-03
+**Kontekst:** Analyse av Lovdata MCP-integrasjon i unified-timeline
+
+## Sammendrag
+
+Lovdata MCP-integrasjonen (commit `9e00cee`) fungerer kun delvis. Testrapporten viser at **lovtekst ikke returneres** - kun lenker. Dette skyldes arkitektoniske begrensninger i Lovdata sitt gratis API.
+
+## Lovdata API Struktur
+
+### To tilgangsnivåer
+
+| Nivå | Tilgang | Pris |
+|------|---------|------|
+| **Public Data** | Bulk ZIP-nedlasting av alle XML-filer | Gratis (NLOD 2.0) |
+| **REST API** | Sanntids søk og oppslag | Betalingstjeneste |
+
+### Gratis Public Data API
+
+- **Endpoint:** `https://api.lovdata.no/v1/publicData/get/{filename}.zip`
+- **Format:** ZIP-fil (~130 MB) med ~35.000 XML-dokumenter
+- **Datasett:**
+  - `lti-2001-2023.zip` - Historisk data
+  - `lti-2024-{dato}.zip` - Inneværende år (oppdateres løpende)
+- **Lisens:** NLOD 2.0
+
+### Betalt REST API
+
+- Krever API-konto fra Lovdata
+- Autentisering via Basic Auth eller `X-API-Key` header
+- Endepunkter for søk, dokumenthenting, metadata
+- **Pris:** Ikke publisert - må kontakte Lovdata
+
+## Problemer i Nåværende Implementasjon
+
+### 1. Manglende ZIP-nedlasting
+
+```python
+# backend/services/lovdata_service.py:207-229
+def _fetch_law_content(self, lov_id: str, paragraf: str | None = None) -> str | None:
+    cache_file = CACHE_DIR / f"{lov_id}.xml"
+
+    if cache_file.exists():
+        return self._parse_law_xml(cache_file, paragraf)
+
+    # For now, return None - full API integration requires downloading ZIP
+    # TODO: Implement ZIP download and XML extraction
+    return None  # <-- Alltid None fordi ZIP aldri lastes ned
+```
+
+**Konsekvens:** Alle lovoppslag returnerer fallback-respons med kun lenke.
+
+### 2. Søk kun mot hardkodede aliaser
+
+```python
+# backend/services/lovdata_service.py:359-396
+def search(self, query: str, limit: int = 10) -> str:
+    # Simple keyword matching against known laws
+    for alias, lov_id in self.LOV_ALIASES.items():
+        if query_lower in alias or query_lower in law_name.lower():
+            ...
+```
+
+**Konsekvens:** Søk fungerer kun hvis query matcher kortnavn eller lovnavn - ikke fulltekstsøk i selve lovteksten.
+
+### 3. Ingen synkroniseringsmekanisme
+
+Meldingen "kjør `lovdata-mcp --sync`" refererer til funksjonalitet som ikke er implementert.
+
+## Tekniske Begrensninger i Gratis API
+
+| Begrensning | Beskrivelse |
+|-------------|-------------|
+| **Kun bulk-nedlasting** | Ingen REST-endepunkt for enkeltlover |
+| **Stort datasett** | ~130 MB ZIP, ~35.000 XML-filer |
+| **Ingen webhooks** | Må polle for oppdateringer |
+| **Ingen sanntidssøk** | Må bygge egen søkeindeks |
+| **XML-parsing nødvendig** | Dokumenter er i XML-HTML-hybrid format |
+
+## Anbefalte Løsninger
+
+### Alternativ A: Implementer Full Bulk-nedlasting
+
+1. Legg til kommando for å laste ned ZIP fra `api.lovdata.no`
+2. Pakk ut og indekser XML-filer lokalt
+3. Implementer fulltekstsøk (f.eks. med SQLite FTS eller Elasticsearch)
+4. Kjør periodisk synkronisering (cron/celery)
+
+**Fordeler:** Helt gratis, full kontroll
+**Ulemper:** Kompleks implementasjon, stort lagringsbruk, vedlikeholdsbyrde
+
+### Alternativ B: Bruk eksisterende Python-pakke "lovlig"
+
+```bash
+pip install lovlig
+```
+
+```python
+from lovlig import sync_datasets
+
+# Last ned, pakk ut, og spor endringer
+sync_datasets()
+```
+
+**Fordeler:** Ferdig løsning, endringssporing inkludert
+**Ulemper:** Ekstern avhengighet, fortsatt bulk-nedlasting
+
+### Alternativ C: Betalt Lovdata API
+
+Kontakt Lovdata for tilgang til REST API med:
+- Sanntids oppslag av enkeltlover
+- Fulltekstsøk
+- Strukturert JSON-respons
+
+**Fordeler:** Enklest integrasjon, alltid oppdatert
+**Ulemper:** Kostnad (ukjent)
+
+### Alternativ D: Hybrid tilnærming
+
+1. Bruk gratis API for bulk-nedlasting av mest brukte lover
+2. Fallback til lovdata.no-lenker for andre
+3. Vurder betalt API senere ved behov
+
+## Umiddelbare Tiltak
+
+### Minimum Viable Fix
+
+Oppdater MCP-responsene til å være ærlige om begrensninger:
+
+```python
+def _format_fallback_response(self, ...):
+    return f"""## {law_name}
+
+⚠️ **Lovtekst ikke tilgjengelig direkte**
+
+Lovdata sitt gratis API tilbyr kun bulk-nedlasting av datasett,
+ikke direkte oppslag av enkeltlover.
+
+**Se fullstendig tekst på Lovdata:**
+[{url}]({url})
+
+---
+*For å aktivere lokal lovdata-cache, se docs/LOVDATA_SETUP.md*
+"""
+```
+
+### Fjern villedende melding
+
+Endre fra:
+```
+Tips: For å laste ned og cache lovdata, kjør `lovdata-mcp --sync`
+```
+
+Til:
+```
+Tips: Bulk-nedlasting fra Lovdata API er ikke implementert ennå.
+Se docs/LOVDATA_API_ANALYSIS.md for status.
+```
+
+## Ressurser
+
+- [Lovdata API dokumentasjon](https://api.lovdata.no/publicData)
+- [Lovdata annonsering av gratis API](https://www.kode24.no/artikkel/lovdata-apner-gratis-api-ser-for-seg-ki-bruk/248594)
+- [Python-pakken "lovlig" på PyPI](https://pypi.org/project/lovlig/)
+- [data.norge.no - Norsk Lovtidend datasett](https://data.norge.no/en/datasets/c0c6a87c-f597-3735-965f-650be23426a0/norsk-lovtidend-avdeling-i)
+
+## Konklusjon
+
+**Nåværende MCP-integrasjon er ikke operativ for sitt primærformål.** Den fungerer som lenke-generator, ikke lovoppslag.
+
+For full funksjonalitet kreves enten:
+1. Implementering av bulk-nedlasting og lokal indeksering (~2-3 dagers arbeid)
+2. Abonnement på Lovdata sitt betalte REST API (ukjent kostnad)
+
+Anbefaling: Start med **Alternativ D (hybrid)** - fiks meldinger til å være ærlige om begrensninger, og evaluer behovet for full implementering basert på faktisk bruk.
