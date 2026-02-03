@@ -58,7 +58,7 @@ export interface AktorInfo {
 
 export type GrunnlagEndringType = 'opprettet' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert';
 export type VederlagEndringType = 'sendt' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert';
-export type FristEndringType = 'sendt' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert';
+export type FristEndringType = 'sendt' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert' | 'spesifisert';
 
 export interface GrunnlagHistorikkEntry {
   versjon: number;
@@ -68,10 +68,12 @@ export interface GrunnlagHistorikkEntry {
   event_id: string;
 
   // TE-krav felter (for opprettet/oppdatert/trukket)
+  tittel?: string | null;
   hovedkategori?: string | null;
   underkategori?: string | string[] | null;
   beskrivelse?: string | null;
   kontraktsreferanser?: string[] | null;
+  dato_oppdaget?: string | null; // Kritisk for preklusjonsvurdering (§33.4)
 
   // BH-respons felter (for respons/respons_oppdatert)
   bh_resultat?: string | null;
@@ -93,12 +95,20 @@ export interface VederlagHistorikkEntry {
   begrunnelse?: string | null;
   inkluderer_rigg_drift?: boolean | null;
   inkluderer_produktivitet?: boolean | null;
+  rigg_drift_belop?: number | null; // Særskilt krav §34.1.3
+  produktivitet_belop?: number | null; // Særskilt krav §34.1.3
+  krav_fremmet_dato?: string | null; // Preklusjonsrelevant
 
   // BH-respons felter (for respons/respons_oppdatert)
   bh_resultat?: string | null;
   bh_resultat_label?: string | null;
   godkjent_belop?: number | null;
   bh_begrunnelse?: string | null;
+  hold_tilbake?: boolean | null; // §30.2 tilbakeholdelse
+
+  // Subsidiært standpunkt
+  subsidiaer_resultat?: string | null;
+  subsidiaer_godkjent_belop?: number | null;
 }
 
 export interface FristHistorikkEntry {
@@ -114,12 +124,18 @@ export interface FristHistorikkEntry {
   varsel_type_label?: string | null;
   begrunnelse?: string | null;
   ny_sluttdato?: string | null;
+  frist_varsel_dato?: string | null; // §33.4 varseldato
+  spesifisert_varsel_dato?: string | null; // §33.6 varseldato
 
   // BH-respons felter (for respons/respons_oppdatert)
   bh_resultat?: string | null;
   bh_resultat_label?: string | null;
   godkjent_dager?: number | null;
   bh_begrunnelse?: string | null;
+
+  // Subsidiært standpunkt
+  subsidiaer_resultat?: string | null;
+  subsidiaer_godkjent_dager?: number | null;
 }
 
 export interface HistorikkResponse {

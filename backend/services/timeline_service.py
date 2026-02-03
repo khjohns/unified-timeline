@@ -1449,6 +1449,17 @@ class TimelineService:
 
             if event.event_type == EventType.VEDERLAG_KRAV_SENDT:
                 te_versjon = 1
+                # Hent særskilte beløp
+                rigg_drift_belop = None
+                produktivitet_belop = None
+                if event.data.saerskilt_krav:
+                    if event.data.saerskilt_krav.rigg_drift:
+                        rigg_drift_belop = event.data.saerskilt_krav.rigg_drift.belop
+                    if event.data.saerskilt_krav.produktivitet:
+                        produktivitet_belop = (
+                            event.data.saerskilt_krav.produktivitet.belop
+                        )
+
                 entry = VederlagHistorikkEntry(
                     versjon=te_versjon,
                     tidsstempel=event.tidsstempel,
@@ -1469,11 +1480,25 @@ class TimelineService:
                         event.data.saerskilt_krav
                         and event.data.saerskilt_krav.produktivitet
                     ),
+                    rigg_drift_belop=rigg_drift_belop,
+                    produktivitet_belop=produktivitet_belop,
+                    krav_fremmet_dato=getattr(event.data, "krav_fremmet_dato", None),
                 )
                 historikk.append(entry.model_dump(mode="json"))
 
             elif event.event_type == EventType.VEDERLAG_KRAV_OPPDATERT:
                 te_versjon += 1
+                # Hent særskilte beløp
+                rigg_drift_belop = None
+                produktivitet_belop = None
+                if event.data.saerskilt_krav:
+                    if event.data.saerskilt_krav.rigg_drift:
+                        rigg_drift_belop = event.data.saerskilt_krav.rigg_drift.belop
+                    if event.data.saerskilt_krav.produktivitet:
+                        produktivitet_belop = (
+                            event.data.saerskilt_krav.produktivitet.belop
+                        )
+
                 entry = VederlagHistorikkEntry(
                     versjon=te_versjon,
                     tidsstempel=event.tidsstempel,
@@ -1494,6 +1519,9 @@ class TimelineService:
                         event.data.saerskilt_krav
                         and event.data.saerskilt_krav.produktivitet
                     ),
+                    rigg_drift_belop=rigg_drift_belop,
+                    produktivitet_belop=produktivitet_belop,
+                    krav_fremmet_dato=getattr(event.data, "krav_fremmet_dato", None),
                 )
                 historikk.append(entry.model_dump(mode="json"))
 
@@ -1522,6 +1550,13 @@ class TimelineService:
                     ),
                     godkjent_belop=event.data.total_godkjent_belop,
                     bh_begrunnelse=getattr(event.data, "begrunnelse", None),
+                    hold_tilbake=getattr(event.data, "hold_tilbake", None),
+                    subsidiaer_resultat=event.data.subsidiaer_resultat.value
+                    if getattr(event.data, "subsidiaer_resultat", None)
+                    else None,
+                    subsidiaer_godkjent_belop=getattr(
+                        event.data, "subsidiaer_godkjent_belop", None
+                    ),
                 )
                 historikk.append(entry.model_dump(mode="json"))
 
@@ -1540,6 +1575,13 @@ class TimelineService:
                     ),
                     godkjent_belop=event.data.total_godkjent_belop,
                     bh_begrunnelse=getattr(event.data, "begrunnelse", None),
+                    hold_tilbake=getattr(event.data, "hold_tilbake", None),
+                    subsidiaer_resultat=event.data.subsidiaer_resultat.value
+                    if getattr(event.data, "subsidiaer_resultat", None)
+                    else None,
+                    subsidiaer_godkjent_belop=getattr(
+                        event.data, "subsidiaer_godkjent_belop", None
+                    ),
                 )
                 historikk.append(entry.model_dump(mode="json"))
 
@@ -1582,6 +1624,17 @@ class TimelineService:
 
             if event.event_type == EventType.FRIST_KRAV_SENDT:
                 te_versjon = 1
+                # Hent varseldatoer fra VarselInfo
+                frist_varsel_dato = None
+                spesifisert_varsel_dato = None
+                if hasattr(event.data, "frist_varsel") and event.data.frist_varsel:
+                    frist_varsel_dato = event.data.frist_varsel.dato_sendt
+                if (
+                    hasattr(event.data, "spesifisert_varsel")
+                    and event.data.spesifisert_varsel
+                ):
+                    spesifisert_varsel_dato = event.data.spesifisert_varsel.dato_sendt
+
                 entry = FristHistorikkEntry(
                     versjon=te_versjon,
                     tidsstempel=event.tidsstempel,
@@ -1597,11 +1650,24 @@ class TimelineService:
                     ),
                     begrunnelse=event.data.begrunnelse,
                     ny_sluttdato=event.data.ny_sluttdato,
+                    frist_varsel_dato=frist_varsel_dato,
+                    spesifisert_varsel_dato=spesifisert_varsel_dato,
                 )
                 historikk.append(entry.model_dump(mode="json"))
 
             elif event.event_type == EventType.FRIST_KRAV_OPPDATERT:
                 te_versjon += 1
+                # Hent varseldatoer fra VarselInfo
+                frist_varsel_dato = None
+                spesifisert_varsel_dato = None
+                if hasattr(event.data, "frist_varsel") and event.data.frist_varsel:
+                    frist_varsel_dato = event.data.frist_varsel.dato_sendt
+                if (
+                    hasattr(event.data, "spesifisert_varsel")
+                    and event.data.spesifisert_varsel
+                ):
+                    spesifisert_varsel_dato = event.data.spesifisert_varsel.dato_sendt
+
                 entry = FristHistorikkEntry(
                     versjon=te_versjon,
                     tidsstempel=event.tidsstempel,
@@ -1617,11 +1683,24 @@ class TimelineService:
                     ),
                     begrunnelse=event.data.begrunnelse,
                     ny_sluttdato=event.data.ny_sluttdato,
+                    frist_varsel_dato=frist_varsel_dato,
+                    spesifisert_varsel_dato=spesifisert_varsel_dato,
                 )
                 historikk.append(entry.model_dump(mode="json"))
 
             elif event.event_type == EventType.FRIST_KRAV_SPESIFISERT:
                 te_versjon += 1
+                # Hent varseldatoer fra VarselInfo
+                frist_varsel_dato = None
+                spesifisert_varsel_dato = None
+                if hasattr(event.data, "frist_varsel") and event.data.frist_varsel:
+                    frist_varsel_dato = event.data.frist_varsel.dato_sendt
+                if (
+                    hasattr(event.data, "spesifisert_varsel")
+                    and event.data.spesifisert_varsel
+                ):
+                    spesifisert_varsel_dato = event.data.spesifisert_varsel.dato_sendt
+
                 entry = FristHistorikkEntry(
                     versjon=te_versjon,
                     tidsstempel=event.tidsstempel,
@@ -1633,6 +1712,8 @@ class TimelineService:
                     varsel_type_label="Spesifisert krav (§33.6)",
                     begrunnelse=event.data.begrunnelse,
                     ny_sluttdato=event.data.ny_sluttdato,
+                    frist_varsel_dato=frist_varsel_dato,
+                    spesifisert_varsel_dato=spesifisert_varsel_dato,
                 )
                 historikk.append(entry.model_dump(mode="json"))
 
@@ -1661,6 +1742,12 @@ class TimelineService:
                     ),
                     godkjent_dager=event.data.godkjent_dager,
                     bh_begrunnelse=getattr(event.data, "begrunnelse", None),
+                    subsidiaer_resultat=event.data.subsidiaer_resultat.value
+                    if getattr(event.data, "subsidiaer_resultat", None)
+                    else None,
+                    subsidiaer_godkjent_dager=getattr(
+                        event.data, "subsidiaer_godkjent_dager", None
+                    ),
                 )
                 historikk.append(entry.model_dump(mode="json"))
 
@@ -1679,6 +1766,12 @@ class TimelineService:
                     ),
                     godkjent_dager=event.data.godkjent_dager,
                     bh_begrunnelse=getattr(event.data, "begrunnelse", None),
+                    subsidiaer_resultat=event.data.subsidiaer_resultat.value
+                    if getattr(event.data, "subsidiaer_resultat", None)
+                    else None,
+                    subsidiaer_godkjent_dager=getattr(
+                        event.data, "subsidiaer_godkjent_dager", None
+                    ),
                 )
                 historikk.append(entry.model_dump(mode="json"))
 
@@ -1726,10 +1819,12 @@ class TimelineService:
                     aktor=aktor_info,
                     endring_type="opprettet",
                     event_id=event.event_id,
+                    tittel=getattr(event.data, "tittel", None),
                     hovedkategori=event.data.hovedkategori,
                     underkategori=event.data.underkategori,
                     beskrivelse=event.data.beskrivelse,
                     kontraktsreferanser=event.data.kontraktsreferanser or [],
+                    dato_oppdaget=getattr(event.data, "dato_oppdaget", None),
                 )
                 historikk.append(entry.model_dump(mode="json"))
 
@@ -1741,10 +1836,12 @@ class TimelineService:
                     aktor=aktor_info,
                     endring_type="oppdatert",
                     event_id=event.event_id,
+                    tittel=getattr(event.data, "tittel", None),
                     hovedkategori=event.data.hovedkategori,
                     underkategori=event.data.underkategori,
                     beskrivelse=event.data.beskrivelse,
                     kontraktsreferanser=event.data.kontraktsreferanser or [],
+                    dato_oppdaget=getattr(event.data, "dato_oppdaget", None),
                 )
                 historikk.append(entry.model_dump(mode="json"))
 

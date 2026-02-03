@@ -117,10 +117,12 @@ class GrunnlagHistorikkEntry(BaseModel):
     event_id: str
 
     # TE-krav felter (for opprettet/oppdatert/trukket)
+    tittel: str | None = None
     hovedkategori: str | None = None
     underkategori: str | list[str] | None = None
     beskrivelse: str | None = None
     kontraktsreferanser: list[str] | None = None
+    dato_oppdaget: str | None = None  # Kritisk for preklusjonsvurdering (§33.4)
 
     # BH-respons felter (for respons/respons_oppdatert)
     bh_resultat: str | None = None
@@ -195,12 +197,20 @@ class VederlagHistorikkEntry(BaseModel):
     begrunnelse: str | None = None
     inkluderer_rigg_drift: bool | None = None
     inkluderer_produktivitet: bool | None = None
+    rigg_drift_belop: float | None = None  # Særskilt krav §34.1.3
+    produktivitet_belop: float | None = None  # Særskilt krav §34.1.3
+    krav_fremmet_dato: str | None = None  # Preklusjonsrelevant
 
     # BH-respons felter (for respons/respons_oppdatert)
     bh_resultat: str | None = None
     bh_resultat_label: str | None = None
     godkjent_belop: float | None = None
     bh_begrunnelse: str | None = None
+    hold_tilbake: bool | None = None  # §30.2 tilbakeholdelse
+
+    # Subsidiært standpunkt (når BH avviser men angir hva resultatet ville vært)
+    subsidiaer_resultat: str | None = None
+    subsidiaer_godkjent_belop: float | None = None
 
 
 class VederlagResponse(BaseModel):
@@ -270,7 +280,7 @@ class FristHistorikkEntry(BaseModel):
     tidsstempel: datetime
     aktor: AktorInfo
     endring_type: Literal[
-        "sendt", "oppdatert", "trukket", "respons", "respons_oppdatert"
+        "sendt", "oppdatert", "trukket", "respons", "respons_oppdatert", "spesifisert"
     ]
     event_id: str
 
@@ -280,12 +290,18 @@ class FristHistorikkEntry(BaseModel):
     varsel_type_label: str | None = None
     begrunnelse: str | None = None
     ny_sluttdato: str | None = None
+    frist_varsel_dato: str | None = None  # §33.4 varseldato
+    spesifisert_varsel_dato: str | None = None  # §33.6 varseldato
 
     # BH-respons felter (for respons/respons_oppdatert)
     bh_resultat: str | None = None
     bh_resultat_label: str | None = None
     godkjent_dager: int | None = None
     bh_begrunnelse: str | None = None
+
+    # Subsidiært standpunkt (når BH avviser men angir hva resultatet ville vært)
+    subsidiaer_resultat: str | None = None
+    subsidiaer_godkjent_dager: int | None = None
 
 
 class FristResponse(BaseModel):

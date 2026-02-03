@@ -59,6 +59,7 @@ const ENDRING_TYPE_LABELS: Record<string, string> = {
   oppdatert: 'Oppdatert',
   sendt: 'Sendt',
   trukket: 'Trukket',
+  spesifisert: 'Spesifisert (§33.6)',
   respons: 'BH respons',
   respons_oppdatert: 'BH respons oppdatert',
 };
@@ -238,9 +239,11 @@ function buildGrunnlagSheet(
     'Aktør',
     'Rolle',
     'Type endring',
+    'Tittel',
     'Hovedkategori',
     'Underkategori',
     'Beskrivelse',
+    'Dato oppdaget',
     'Kontraktsreferanser',
     'BH resultat',
     'BH begrunnelse',
@@ -252,9 +255,11 @@ function buildGrunnlagSheet(
     e.aktor.navn,
     formatRolle(e.aktor.rolle),
     formatEndringType(e.endring_type),
+    e.tittel || '-',
     e.hovedkategori ? getHovedkategoriLabel(e.hovedkategori) : '-',
     formatUnderkategorier(e.underkategori),
     e.beskrivelse || '-',
+    e.dato_oppdaget ? formatDateMedium(e.dato_oppdaget) : '-',
     e.kontraktsreferanser?.join(', ') || '-',
     e.bh_resultat ? getResultatLabel(e.bh_resultat) : '-',
     e.bh_begrunnelse || '-',
@@ -266,7 +271,7 @@ function buildGrunnlagSheet(
   // Bold header row
   ws.getRow(1).font = { bold: true };
 
-  setColumnWidths(ws, [8, 16, 20, 16, 18, 28, 30, 40, 25, 18, 40]);
+  setColumnWidths(ws, [8, 16, 20, 16, 18, 30, 28, 30, 40, 14, 25, 18, 40]);
 }
 
 function buildVederlagSheet(
@@ -283,11 +288,15 @@ function buildVederlagSheet(
     'Type endring',
     'Krevd beløp',
     'Metode',
+    'Krav fremmet',
+    'Rigg/drift beløp',
+    'Produktivitet beløp',
     'Begrunnelse',
-    'Inkl. rigg/drift',
-    'Inkl. produktivitet',
     'BH resultat',
     'Godkjent beløp',
+    'Hold tilbake',
+    'Subs. resultat',
+    'Subs. beløp',
     'BH begrunnelse',
   ];
 
@@ -299,11 +308,15 @@ function buildVederlagSheet(
     formatEndringType(e.endring_type),
     formatCurrency(e.krav_belop),
     e.metode ? getVederlagsmetodeLabel(e.metode) : '-',
+    e.krav_fremmet_dato ? formatDateMedium(e.krav_fremmet_dato) : '-',
+    formatCurrency(e.rigg_drift_belop),
+    formatCurrency(e.produktivitet_belop),
     e.begrunnelse || '-',
-    formatBoolean(e.inkluderer_rigg_drift),
-    formatBoolean(e.inkluderer_produktivitet),
     e.bh_resultat ? getResultatLabel(e.bh_resultat) : '-',
     formatCurrency(e.godkjent_belop),
+    e.hold_tilbake != null ? formatBoolean(e.hold_tilbake) : '-',
+    e.subsidiaer_resultat ? getResultatLabel(e.subsidiaer_resultat) : '-',
+    formatCurrency(e.subsidiaer_godkjent_belop),
     e.bh_begrunnelse || '-',
   ]);
 
@@ -312,7 +325,7 @@ function buildVederlagSheet(
 
   ws.getRow(1).font = { bold: true };
 
-  setColumnWidths(ws, [8, 16, 20, 16, 18, 14, 28, 35, 14, 16, 18, 14, 35]);
+  setColumnWidths(ws, [8, 16, 20, 16, 18, 14, 28, 14, 14, 14, 35, 18, 14, 12, 18, 14, 35]);
 }
 
 function buildFristSheet(
@@ -329,10 +342,14 @@ function buildFristSheet(
     'Type endring',
     'Krevd dager',
     'Varseltype',
+    'Varsel dato (§33.4)',
+    'Spesifisert dato (§33.6)',
     'Begrunnelse',
     'Ny sluttdato',
     'BH resultat',
     'Godkjent dager',
+    'Subs. resultat',
+    'Subs. dager',
     'BH begrunnelse',
   ];
 
@@ -344,10 +361,14 @@ function buildFristSheet(
     formatEndringType(e.endring_type),
     e.krav_dager != null ? `${e.krav_dager} dager` : '-',
     e.varsel_type ? getFristVarseltypeLabel(e.varsel_type) : '-',
+    e.frist_varsel_dato ? formatDateMedium(e.frist_varsel_dato) : '-',
+    e.spesifisert_varsel_dato ? formatDateMedium(e.spesifisert_varsel_dato) : '-',
     e.begrunnelse || '-',
     e.ny_sluttdato || '-',
     e.bh_resultat ? getResultatLabel(e.bh_resultat) : '-',
     e.godkjent_dager != null ? `${e.godkjent_dager} dager` : '-',
+    e.subsidiaer_resultat ? getResultatLabel(e.subsidiaer_resultat) : '-',
+    e.subsidiaer_godkjent_dager != null ? `${e.subsidiaer_godkjent_dager} dager` : '-',
     e.bh_begrunnelse || '-',
   ]);
 
@@ -356,7 +377,7 @@ function buildFristSheet(
 
   ws.getRow(1).font = { bold: true };
 
-  setColumnWidths(ws, [8, 16, 20, 16, 18, 12, 22, 35, 12, 18, 14, 35]);
+  setColumnWidths(ws, [8, 16, 20, 16, 18, 12, 22, 14, 14, 35, 12, 18, 14, 18, 12, 35]);
 }
 
 // ========== MAIN EXPORT FUNCTION ==========
