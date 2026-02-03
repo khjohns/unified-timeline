@@ -888,6 +888,12 @@ Se også: [plan-godkjenning-workflow.md](plan-godkjenning-workflow.md) for godkj
 | `DATAVERSE_CONNECTION` | Key Vault | Dataverse connection string |
 | `ALLOWED_ORIGINS` | Config | CORS-tillatte origins |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure | App Insights tilkobling |
+| `RATE_LIMIT_STORAGE` | Config | Rate limit backend (`memory://` eller `redis://...`) |
+| `RATE_LIMIT_STRATEGY` | Config | `fixed-window`, `moving-window`, `sliding-window-counter` |
+| `RATE_LIMIT_HEADERS_ENABLED` | Config | `true`/`false` - X-RateLimit-* headers |
+| `RATE_LIMIT_META` | Config | Meta limits (f.eks. `10 per hour, 50 per day`) |
+| `RATE_LIMIT_EXEMPT_PATHS` | Config | Paths unntatt fra limiting (f.eks. `/health,/ready`) |
+| `RATE_LIMIT_EXEMPT_IPS` | Config | IPs unntatt fra limiting (f.eks. `127.0.0.1`) |
 
 ### Konfigurer via Azure CLI
 

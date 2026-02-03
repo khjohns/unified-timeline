@@ -348,8 +348,8 @@ Systemet implementerer NS 8407:2011 totalentreprisekontrakt:
 | Pydantic | 2.0+ | Datavalidering og modeller |
 | pydantic-settings | 2.0+ | Miljøvariabel-håndtering |
 | Flask-CORS | 4.0 | CORS-håndtering |
-| Flask-Limiter | 3.5 | Rate limiting |
-| requests | 2.31 | HTTP-klient |
+| Flask-Limiter | 4.x | Rate limiting (headers, meta limits, filters) |
+| requests | 2.32+ | HTTP-klient |
 | CloudEvents | 1.0 | Standardisert event-format (CNCF) |
 
 ---
@@ -616,7 +616,7 @@ E2E-testene dekker komplette brukerflyter med Playwright:
 - ⏳ Azure Landing Zone (infrastruktur)
 - ⏳ DataverseRepository (erstatte JSON-filer)
 - ⏳ Azure Functions-migrering
-- ⏳ Redis for state (rate limiting, idempotency)
+- ⏳ Redis for distribuert state (rate limiting klar, idempotency)
 
 ---
 
