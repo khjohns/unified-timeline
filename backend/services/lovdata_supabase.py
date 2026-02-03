@@ -332,36 +332,35 @@ class LovdataSupabaseService:
         return dd.get_text(strip=True) if dd else None
 
     def _upsert_documents(self, documents: list[dict], doc_type: str) -> None:
-        """Insert or update documents in Supabase."""
+        """Insert or update documents in Supabase using true upsert."""
         if not documents:
             return
 
-        # Delete existing documents of this type first
-        self.client.table('lovdata_documents').delete().eq('doc_type', doc_type).execute()
-
-        # Insert in batches
+        # Use upsert with ON CONFLICT DO UPDATE on dok_id
         batch_size = 100
         for i in range(0, len(documents), batch_size):
             batch = documents[i:i + batch_size]
-            self.client.table('lovdata_documents').insert(batch).execute()
+            self.client.table('lovdata_documents').upsert(
+                batch,
+                on_conflict='dok_id'
+            ).execute()
+            logger.debug(f"Upserted documents batch {i//batch_size + 1}")
 
     def _upsert_sections(self, sections: list[dict]) -> None:
-        """Insert sections in Supabase."""
+        """Insert or update sections in Supabase using true upsert."""
         if not sections:
             return
 
-        # Get unique dok_ids
-        dok_ids = list(set(s['dok_id'] for s in sections))
-
-        # Delete existing sections for these documents
-        for dok_id in dok_ids:
-            self.client.table('lovdata_sections').delete().eq('dok_id', dok_id).execute()
-
-        # Insert in batches
+        # Use upsert with ON CONFLICT DO UPDATE on (dok_id, section_id)
         batch_size = 500
         for i in range(0, len(sections), batch_size):
             batch = sections[i:i + batch_size]
-            self.client.table('lovdata_sections').insert(batch).execute()
+            self.client.table('lovdata_sections').upsert(
+                batch,
+                on_conflict='dok_id,section_id'
+            ).execute()
+            if i % 2000 == 0:
+                logger.info(f"Upserted {i + len(batch)} sections...")
 
     def _get_remote_last_modified(self, url: str) -> datetime | None:
         """Get Last-Modified header from URL."""
