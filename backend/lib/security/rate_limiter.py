@@ -43,6 +43,25 @@ RATE_LIMIT_HEADERS_ENABLED = (
     os.getenv("RATE_LIMIT_HEADERS_ENABLED", "true").lower() == "true"
 )
 
+# Meta limits (Flask-Limiter 4.x)
+# Overordnet beskyttelse mot misbruk - begrenser antall rate limit brudd.
+# Hvis en klient bryter limits for ofte, blokkeres de midlertidig.
+# Format: "antall per tidsperiode" (f.eks. "10 per hour, 50 per day")
+# Tom streng = deaktivert
+RATE_LIMIT_META = os.getenv("RATE_LIMIT_META", "10 per hour, 50 per day")
+
+# Paths som er unntatt fra rate limiting (kommaseparert)
+# Typisk: health checks, metrics, readiness probes
+RATE_LIMIT_EXEMPT_PATHS = os.getenv(
+    "RATE_LIMIT_EXEMPT_PATHS", "/health,/ready,/metrics"
+).split(",")
+
+# IP-adresser som er unntatt fra rate limiting (kommaseparert)
+# Typisk: localhost, interne lastbalanserere, monitoring
+RATE_LIMIT_EXEMPT_IPS = os.getenv(
+    "RATE_LIMIT_EXEMPT_IPS", "127.0.0.1,::1"
+).split(",")
+
 # Limiter instance (initialized when Flask app is created)
 limiter = None
 
@@ -62,8 +81,14 @@ def init_limiter(app):
     global limiter
 
     try:
+        from flask import request
         from flask_limiter import Limiter
         from flask_limiter.util import get_remote_address
+
+        # Parse meta limits (hvis konfigurert)
+        meta_limits = []
+        if RATE_LIMIT_META:
+            meta_limits = [limit.strip() for limit in RATE_LIMIT_META.split(",")]
 
         limiter = Limiter(
             app=app,
@@ -72,7 +97,18 @@ def init_limiter(app):
             storage_uri=RATE_LIMIT_STORAGE,
             strategy=RATE_LIMIT_STRATEGY,
             headers_enabled=RATE_LIMIT_HEADERS_ENABLED,
+            meta_limits=meta_limits if meta_limits else None,
         )
+
+        # Request filter: Unnta spesifikke paths (health checks, metrics, etc.)
+        @limiter.request_filter
+        def exempt_paths():
+            return request.path in RATE_LIMIT_EXEMPT_PATHS
+
+        # Request filter: Unnta spesifikke IP-adresser (localhost, interne tjenester)
+        @limiter.request_filter
+        def exempt_ips():
+            return request.remote_addr in RATE_LIMIT_EXEMPT_IPS
 
         # Only log once (skip in reloader parent process)
         is_reloader = os.getenv("WERKZEUG_RUN_MAIN") == "true"
@@ -84,6 +120,8 @@ def init_limiter(app):
                 )
             else:
                 logger.info(f"✅ Rate limiting: {RATE_LIMIT_STORAGE}")
+            if meta_limits:
+                logger.info(f"   Meta limits: {meta_limits}")
 
         return limiter
 
