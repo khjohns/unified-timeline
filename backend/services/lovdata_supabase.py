@@ -38,6 +38,8 @@ except ImportError:
     SUPABASE_AVAILABLE = False
     Client = None
 
+from lib.supabase import safe_execute, with_retry
+
 
 # =============================================================================
 # Configuration
@@ -286,6 +288,7 @@ class LovdataSupabaseService:
 
         return total_docs
 
+    @with_retry()
     def _flush_batch(self, documents: list[dict], sections: list[dict], doc_type: str) -> None:
         """Insert a batch of documents and sections."""
         if documents:
@@ -604,12 +607,15 @@ class LovdataSupabaseService:
 
     def _get_sync_status(self, dataset: str) -> dict | None:
         """Get sync status from database."""
-        try:
+
+        @with_retry()
+        def _execute() -> dict | None:
             result = self.client.table('lovdata_sync_meta').select('*').eq('dataset', dataset).execute()
             return result.data[0] if result.data else None
-        except Exception:
-            return None
 
+        return safe_execute(_execute, f"Failed to get sync status for {dataset}", default=None)
+
+    @with_retry()
     def _set_sync_status(
         self,
         dataset: str,
@@ -618,7 +624,7 @@ class LovdataSupabaseService:
         file_count: int | None = None
     ) -> None:
         """Update sync status in database."""
-        data = {
+        data: dict = {
             'dataset': dataset,
             'status': status,
             'synced_at': datetime.now().isoformat(),
@@ -634,6 +640,7 @@ class LovdataSupabaseService:
     # Query Methods with Token Awareness
     # -------------------------------------------------------------------------
 
+    @with_retry()
     def get_section(
         self,
         dok_id: str,
@@ -685,6 +692,7 @@ class LovdataSupabaseService:
             char_count=char_count
         )
 
+    @with_retry()
     def get_section_size(self, dok_id: str, section_id: str) -> dict | None:
         """
         Get section size info without content.
@@ -713,6 +721,7 @@ class LovdataSupabaseService:
             'estimated_tokens': int(char_count / CHARS_PER_TOKEN)
         }
 
+    @with_retry()
     def search(
         self,
         query: str,
@@ -766,17 +775,20 @@ class LovdataSupabaseService:
 
     def get_sync_status(self) -> dict:
         """Get sync status for all datasets."""
-        try:
+
+        @with_retry()
+        def _execute() -> dict:
             result = self.client.table('lovdata_sync_meta').select('*').execute()
             return {row['dataset']: row for row in result.data} if result.data else {}
-        except Exception:
-            return {}
+
+        return safe_execute(_execute, "Failed to get sync status", default={}) or {}
 
     def is_synced(self) -> bool:
         """Check if any data has been synced."""
         status = self.get_sync_status()
         return len(status) > 0 and any(s.get('file_count', 0) > 0 for s in status.values())
 
+    @with_retry()
     def _find_document(self, identifier: str) -> dict | None:
         """Find document by ID or short title."""
         # Normalize identifier - handle various formats

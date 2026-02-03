@@ -171,6 +171,7 @@ except ImportError:
     SUPABASE_AVAILABLE = False
     Client = None
 
+from lib.supabase import ConflictError, classify_error, with_retry
 from models.cloudevents import CLOUDEVENTS_NAMESPACE, CLOUDEVENTS_SPECVERSION
 
 from .event_repository import ConcurrencyError, EventRepository
@@ -383,6 +384,7 @@ class SupabaseEventRepository(EventRepository):
         """Append single event with optimistic locking."""
         return self.append_batch([event], expected_version, sakstype)
 
+    @with_retry()
     def append_batch(
         self, events: list, expected_version: int, sakstype: SaksType | None = None
     ) -> int:
@@ -398,6 +400,11 @@ class SupabaseEventRepository(EventRepository):
             expected_version: Expected current version (0 for new case)
             sakstype: Optional sakstype to determine table.
                       If None, auto-detects from first event.
+
+        Raises:
+            ConcurrencyError: Version conflict (optimistic locking)
+            TransientError: Network/timeout errors (after retries exhausted)
+            PermanentError: Auth/validation errors
         """
         if not events:
             raise ValueError("Kan ikke legge til tom event-liste")
@@ -430,13 +437,17 @@ class SupabaseEventRepository(EventRepository):
             return expected_version + len(events)
 
         except Exception as e:
+            # Classify the error
+            classified = classify_error(e)
+
             # Check if it's a unique constraint violation (version conflict)
-            error_str = str(e).lower()
-            if "unique" in error_str or "duplicate" in error_str:
+            if isinstance(classified, ConflictError):
                 # Re-fetch actual version
                 actual_version = self._get_current_version(sak_id, table_name)
                 raise ConcurrencyError(expected_version, actual_version)
-            raise
+
+            # Re-raise classified error (TransientError will be retried by caller if decorated)
+            raise classified from e
 
     def get_events(
         self, sak_id: str, sakstype: SaksType | None = None
@@ -475,6 +486,7 @@ class SupabaseEventRepository(EventRepository):
 
         return [], 0
 
+    @with_retry()
     def _get_events_from_table(
         self, sak_id: str, table_name: str
     ) -> tuple[list[dict], int]:
@@ -498,6 +510,7 @@ class SupabaseEventRepository(EventRepository):
 
         return formatted_events, current_version
 
+    @with_retry()
     def _get_current_version(self, sak_id: str, table_name: str | None = None) -> int:
         """Get current version for a case (0 if not exists)."""
         if table_name is None:
@@ -544,12 +557,14 @@ class SupabaseEventRepository(EventRepository):
 
         return list(all_ids)
 
+    @with_retry()
     def _get_sak_ids_from_table(self, table_name: str) -> list[str]:
         """Get unique sak_ids from a specific table."""
         result = self.client.table(table_name).select("sak_id").execute()
 
         return list(set(row["sak_id"] for row in result.data))
 
+    @with_retry()
     def get_events_by_type(
         self, sak_id: str, event_type: str, sakstype: SaksType | None = None
     ) -> list[dict]:

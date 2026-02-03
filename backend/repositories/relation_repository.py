@@ -19,6 +19,7 @@ except ImportError:
     SUPABASE_AVAILABLE = False
     Client = None
 
+from lib.supabase import safe_execute, with_retry
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -83,9 +84,11 @@ class RelationRepository:
             relation_type: Type of relation ('forsering' or 'endringsordre')
 
         Returns:
-            True if added, False if already exists
+            True if added, False on error
         """
-        try:
+
+        @with_retry()
+        def _execute() -> bool:
             self.client.table(self.TABLE_NAME).upsert(
                 {
                     "source_sak_id": source_sak_id,
@@ -100,9 +103,7 @@ class RelationRepository:
             )
             return True
 
-        except Exception as e:
-            logger.error(f"Failed to add relation: {e}")
-            return False
+        return safe_execute(_execute, "Failed to add relation", default=False) or False
 
     def add_relations_batch(
         self,
@@ -133,7 +134,8 @@ class RelationRepository:
             for target_sak_id in target_sak_ids
         ]
 
-        try:
+        @with_retry()
+        def _execute() -> int:
             self.client.table(self.TABLE_NAME).upsert(
                 rows,
                 on_conflict="source_sak_id,target_sak_id,relation_type",
@@ -144,9 +146,7 @@ class RelationRepository:
             )
             return len(target_sak_ids)
 
-        except Exception as e:
-            logger.error(f"Failed to add relations batch: {e}")
-            return 0
+        return safe_execute(_execute, "Failed to add relations batch", default=0) or 0
 
     def remove_relation(
         self,
@@ -165,7 +165,9 @@ class RelationRepository:
         Returns:
             True if removed, False if not found
         """
-        try:
+
+        @with_retry()
+        def _execute() -> bool:
             query = (
                 self.client.table(self.TABLE_NAME)
                 .delete()
@@ -185,9 +187,7 @@ class RelationRepository:
 
             return removed
 
-        except Exception as e:
-            logger.error(f"Failed to remove relation: {e}")
-            return False
+        return safe_execute(_execute, "Failed to remove relation", default=False) or False
 
     def get_containers_for_sak(
         self,
@@ -206,7 +206,9 @@ class RelationRepository:
         Returns:
             List of source_sak_ids (forseringer or EOs that reference this KOE)
         """
-        try:
+
+        @with_retry()
+        def _execute() -> list[str]:
             result = (
                 self.client.table(self.TABLE_NAME)
                 .select("source_sak_id")
@@ -217,9 +219,12 @@ class RelationRepository:
 
             return [row["source_sak_id"] for row in result.data] if result.data else []
 
-        except Exception as e:
-            logger.error(f"Failed to get containers for {target_sak_id}: {e}")
-            return []
+        return (
+            safe_execute(
+                _execute, f"Failed to get containers for {target_sak_id}", default=[]
+            )
+            or []
+        )
 
     def get_related_saks(
         self,
@@ -236,7 +241,9 @@ class RelationRepository:
         Returns:
             List of target_sak_ids (KOEs referenced by this forsering/EO)
         """
-        try:
+
+        @with_retry()
+        def _execute() -> list[str]:
             query = (
                 self.client.table(self.TABLE_NAME)
                 .select("target_sak_id")
@@ -250,9 +257,12 @@ class RelationRepository:
 
             return [row["target_sak_id"] for row in result.data] if result.data else []
 
-        except Exception as e:
-            logger.error(f"Failed to get related saks for {source_sak_id}: {e}")
-            return []
+        return (
+            safe_execute(
+                _execute, f"Failed to get related saks for {source_sak_id}", default=[]
+            )
+            or []
+        )
 
     def get_all_relations(
         self,
@@ -267,7 +277,9 @@ class RelationRepository:
         Returns:
             List of relation dicts with source_sak_id, target_sak_id, relation_type
         """
-        try:
+
+        @with_retry()
+        def _execute() -> list[dict]:
             query = self.client.table(self.TABLE_NAME).select("*")
 
             if relation_type:
@@ -277,9 +289,7 @@ class RelationRepository:
 
             return result.data if result.data else []
 
-        except Exception as e:
-            logger.error(f"Failed to get all relations: {e}")
-            return []
+        return safe_execute(_execute, "Failed to get all relations", default=[]) or []
 
     def clear_all_relations(self, relation_type: RelationType | None = None) -> int:
         """
@@ -291,7 +301,9 @@ class RelationRepository:
         Returns:
             Number of relations removed
         """
-        try:
+
+        @with_retry()
+        def _execute() -> int:
             query = self.client.table(self.TABLE_NAME).delete()
 
             if relation_type:
@@ -309,9 +321,7 @@ class RelationRepository:
             )
             return count
 
-        except Exception as e:
-            logger.error(f"Failed to clear relations: {e}")
-            return 0
+        return safe_execute(_execute, "Failed to clear relations", default=0) or 0
 
 
 def create_relation_repository(**kwargs) -> RelationRepository:

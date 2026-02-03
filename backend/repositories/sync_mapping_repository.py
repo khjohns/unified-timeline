@@ -20,6 +20,7 @@ except ImportError:
     SUPABASE_AVAILABLE = False
     Client = None
 
+from lib.supabase import safe_execute, with_retry
 from models.sync_models import (
     DaluxCatendaSyncMapping,
     TaskSyncRecord,
@@ -72,6 +73,7 @@ class SyncMappingRepository:
     # SYNC MAPPINGS
     # ==========================================
 
+    @with_retry()
     def create_sync_mapping(self, mapping: DaluxCatendaSyncMapping) -> str:
         """
         Create a new sync mapping.
@@ -92,16 +94,12 @@ class SyncMappingRepository:
             "sync_interval_minutes": mapping.sync_interval_minutes,
         }
 
-        try:
-            result = self.client.table(self.SYNC_MAPPINGS_TABLE).insert(data).execute()
-            if not result.data or len(result.data) == 0:
-                raise ValueError("Insert operation returned no data")
-            mapping_id = result.data[0]["id"]
-            logger.info(f"Created sync mapping {mapping_id}")
-            return mapping_id
-        except Exception as e:
-            logger.error(f"Failed to create sync mapping: {e}")
-            raise
+        result = self.client.table(self.SYNC_MAPPINGS_TABLE).insert(data).execute()
+        if not result.data or len(result.data) == 0:
+            raise ValueError("Insert operation returned no data")
+        mapping_id = result.data[0]["id"]
+        logger.info(f"Created sync mapping {mapping_id}")
+        return mapping_id
 
     def get_sync_mapping(self, mapping_id: str) -> DaluxCatendaSyncMapping | None:
         """
@@ -113,7 +111,9 @@ class SyncMappingRepository:
         Returns:
             Sync mapping or None if not found
         """
-        try:
+
+        @with_retry()
+        def _execute() -> DaluxCatendaSyncMapping | None:
             result = (
                 self.client.table(self.SYNC_MAPPINGS_TABLE)
                 .select("*")
@@ -126,9 +126,9 @@ class SyncMappingRepository:
 
             return self._row_to_sync_mapping(result.data[0])
 
-        except Exception as e:
-            logger.error(f"Failed to get sync mapping {mapping_id}: {e}")
-            return None
+        return safe_execute(
+            _execute, f"Failed to get sync mapping {mapping_id}", default=None
+        )
 
     def get_sync_mapping_by_project(
         self, project_id: str, dalux_project_id: str | None = None
@@ -143,7 +143,9 @@ class SyncMappingRepository:
         Returns:
             Sync mapping or None if not found
         """
-        try:
+
+        @with_retry()
+        def _execute() -> DaluxCatendaSyncMapping | None:
             query = (
                 self.client.table(self.SYNC_MAPPINGS_TABLE)
                 .select("*")
@@ -160,9 +162,11 @@ class SyncMappingRepository:
 
             return self._row_to_sync_mapping(result.data[0])
 
-        except Exception as e:
-            logger.error(f"Failed to get sync mapping for project {project_id}: {e}")
-            return None
+        return safe_execute(
+            _execute,
+            f"Failed to get sync mapping for project {project_id}",
+            default=None,
+        )
 
     def list_sync_mappings(
         self, project_id: str | None = None, enabled_only: bool = False
@@ -177,7 +181,9 @@ class SyncMappingRepository:
         Returns:
             List of sync mappings
         """
-        try:
+
+        @with_retry()
+        def _execute() -> list[DaluxCatendaSyncMapping]:
             query = self.client.table(self.SYNC_MAPPINGS_TABLE).select("*")
 
             if project_id:
@@ -189,9 +195,7 @@ class SyncMappingRepository:
 
             return [self._row_to_sync_mapping(row) for row in result.data]
 
-        except Exception as e:
-            logger.error(f"Failed to list sync mappings: {e}")
-            return []
+        return safe_execute(_execute, "Failed to list sync mappings", default=[]) or []
 
     def update_sync_mapping(self, mapping_id: str, updates: dict) -> bool:
         """
@@ -207,15 +211,20 @@ class SyncMappingRepository:
         # Add updated_at
         updates["updated_at"] = datetime.utcnow().isoformat()
 
-        try:
+        @with_retry()
+        def _execute() -> bool:
             self.client.table(self.SYNC_MAPPINGS_TABLE).update(updates).eq(
                 "id", mapping_id
             ).execute()
             logger.info(f"Updated sync mapping {mapping_id}")
             return True
-        except Exception as e:
-            logger.error(f"Failed to update sync mapping {mapping_id}: {e}")
-            return False
+
+        return (
+            safe_execute(
+                _execute, f"Failed to update sync mapping {mapping_id}", default=False
+            )
+            or False
+        )
 
     def update_sync_status(
         self, mapping_id: str, status: str, error: str | None = None
@@ -250,16 +259,22 @@ class SyncMappingRepository:
         Returns:
             True if successful
         """
-        try:
+
+        @with_retry()
+        def _execute() -> bool:
             # Task sync records are deleted via CASCADE
             self.client.table(self.SYNC_MAPPINGS_TABLE).delete().eq(
                 "id", mapping_id
             ).execute()
             logger.info(f"Deleted sync mapping {mapping_id}")
             return True
-        except Exception as e:
-            logger.error(f"Failed to delete sync mapping {mapping_id}: {e}")
-            return False
+
+        return (
+            safe_execute(
+                _execute, f"Failed to delete sync mapping {mapping_id}", default=False
+            )
+            or False
+        )
 
     def _row_to_sync_mapping(self, row: dict) -> DaluxCatendaSyncMapping:
         """Convert database row to Pydantic model."""
@@ -284,6 +299,7 @@ class SyncMappingRepository:
     # TASK SYNC RECORDS
     # ==========================================
 
+    @with_retry()
     def create_task_sync_record(self, record: TaskSyncRecord) -> str:
         """
         Create a new task sync record.
@@ -305,18 +321,14 @@ class SyncMappingRepository:
             "retry_count": record.retry_count,
         }
 
-        try:
-            result = (
-                self.client.table(self.TASK_SYNC_RECORDS_TABLE).insert(data).execute()
-            )
-            if not result.data or len(result.data) == 0:
-                raise ValueError("Insert operation returned no data")
-            record_id = result.data[0]["id"]
-            logger.debug(f"Created task sync record {record_id}")
-            return record_id
-        except Exception as e:
-            logger.error(f"Failed to create task sync record: {e}")
-            raise
+        result = (
+            self.client.table(self.TASK_SYNC_RECORDS_TABLE).insert(data).execute()
+        )
+        if not result.data or len(result.data) == 0:
+            raise ValueError("Insert operation returned no data")
+        record_id = result.data[0]["id"]
+        logger.debug(f"Created task sync record {record_id}")
+        return record_id
 
     def get_task_sync_record(
         self, mapping_id: str, dalux_task_id: str
@@ -331,7 +343,9 @@ class SyncMappingRepository:
         Returns:
             Task sync record or None if not found
         """
-        try:
+
+        @with_retry()
+        def _execute() -> TaskSyncRecord | None:
             result = (
                 self.client.table(self.TASK_SYNC_RECORDS_TABLE)
                 .select("*")
@@ -345,9 +359,7 @@ class SyncMappingRepository:
 
             return self._row_to_task_sync_record(result.data[0])
 
-        except Exception as e:
-            logger.error(f"Failed to get task sync record: {e}")
-            return None
+        return safe_execute(_execute, "Failed to get task sync record", default=None)
 
     def get_task_sync_record_by_catenda_topic(
         self, catenda_topic_guid: str
@@ -361,7 +373,9 @@ class SyncMappingRepository:
         Returns:
             Task sync record or None if not found
         """
-        try:
+
+        @with_retry()
+        def _execute() -> TaskSyncRecord | None:
             result = (
                 self.client.table(self.TASK_SYNC_RECORDS_TABLE)
                 .select("*")
@@ -374,9 +388,9 @@ class SyncMappingRepository:
 
             return self._row_to_task_sync_record(result.data[0])
 
-        except Exception as e:
-            logger.error(f"Failed to get task sync record by topic: {e}")
-            return None
+        return safe_execute(
+            _execute, "Failed to get task sync record by topic", default=None
+        )
 
     def list_task_sync_records(
         self, mapping_id: str, status: str | None = None
@@ -391,7 +405,9 @@ class SyncMappingRepository:
         Returns:
             List of task sync records
         """
-        try:
+
+        @with_retry()
+        def _execute() -> list[TaskSyncRecord]:
             query = (
                 self.client.table(self.TASK_SYNC_RECORDS_TABLE)
                 .select("*")
@@ -405,9 +421,9 @@ class SyncMappingRepository:
 
             return [self._row_to_task_sync_record(row) for row in result.data]
 
-        except Exception as e:
-            logger.error(f"Failed to list task sync records: {e}")
-            return []
+        return (
+            safe_execute(_execute, "Failed to list task sync records", default=[]) or []
+        )
 
     def update_task_sync_record(self, record_id: str, updates: dict) -> bool:
         """
@@ -422,16 +438,24 @@ class SyncMappingRepository:
         """
         updates["updated_at"] = datetime.utcnow().isoformat()
 
-        try:
+        @with_retry()
+        def _execute() -> bool:
             self.client.table(self.TASK_SYNC_RECORDS_TABLE).update(updates).eq(
                 "id", record_id
             ).execute()
             logger.debug(f"Updated task sync record {record_id}")
             return True
-        except Exception as e:
-            logger.error(f"Failed to update task sync record {record_id}: {e}")
-            return False
 
+        return (
+            safe_execute(
+                _execute,
+                f"Failed to update task sync record {record_id}",
+                default=False,
+            )
+            or False
+        )
+
+    @with_retry()
     def upsert_task_sync_record(self, record: TaskSyncRecord) -> str:
         """
         Create or update a task sync record.
@@ -456,20 +480,16 @@ class SyncMappingRepository:
             "updated_at": datetime.utcnow().isoformat(),
         }
 
-        try:
-            result = (
-                self.client.table(self.TASK_SYNC_RECORDS_TABLE)
-                .upsert(data, on_conflict="sync_mapping_id,dalux_task_id")
-                .execute()
-            )
-            if not result.data or len(result.data) == 0:
-                raise ValueError("Upsert operation returned no data")
-            record_id = result.data[0]["id"]
-            logger.debug(f"Upserted task sync record {record_id}")
-            return record_id
-        except Exception as e:
-            logger.error(f"Failed to upsert task sync record: {e}")
-            raise
+        result = (
+            self.client.table(self.TASK_SYNC_RECORDS_TABLE)
+            .upsert(data, on_conflict="sync_mapping_id,dalux_task_id")
+            .execute()
+        )
+        if not result.data or len(result.data) == 0:
+            raise ValueError("Upsert operation returned no data")
+        record_id = result.data[0]["id"]
+        logger.debug(f"Upserted task sync record {record_id}")
+        return record_id
 
     def mark_task_synced(
         self, record_id: str, dalux_updated_at: datetime, catenda_updated_at: datetime
@@ -522,7 +542,9 @@ class SyncMappingRepository:
 
     def _get_task_sync_record_by_id(self, record_id: str) -> TaskSyncRecord | None:
         """Get task sync record by ID."""
-        try:
+
+        @with_retry()
+        def _execute() -> TaskSyncRecord | None:
             result = (
                 self.client.table(self.TASK_SYNC_RECORDS_TABLE)
                 .select("*")
@@ -532,8 +554,10 @@ class SyncMappingRepository:
             if not result.data:
                 return None
             return self._row_to_task_sync_record(result.data[0])
-        except Exception:
-            return None
+
+        return safe_execute(
+            _execute, f"Failed to get task sync record {record_id}", default=None
+        )
 
     def _row_to_task_sync_record(self, row: dict) -> TaskSyncRecord:
         """Convert database row to Pydantic model."""

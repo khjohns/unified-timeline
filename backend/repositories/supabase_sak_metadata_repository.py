@@ -60,6 +60,7 @@ except ImportError:
     SUPABASE_AVAILABLE = False
     Client = None
 
+from lib.supabase import with_retry
 from models.sak_metadata import SakMetadata
 
 
@@ -138,11 +139,13 @@ class SupabaseSakMetadataRepository:
             else None,
         }
 
+    @with_retry()
     def create(self, metadata: SakMetadata) -> None:
         """Create new case metadata entry."""
         row = self._metadata_to_row(metadata)
         self.client.table(self.TABLE_NAME).insert(row).execute()
 
+    @with_retry()
     def get(self, sak_id: str) -> SakMetadata | None:
         """Get case metadata by ID."""
         result = (
@@ -157,6 +160,7 @@ class SupabaseSakMetadataRepository:
             return self._row_to_metadata(result.data[0])
         return None
 
+    @with_retry()
     def update_cache(
         self,
         sak_id: str,
@@ -183,6 +187,7 @@ class SupabaseSakMetadataRepository:
                 "sak_id", sak_id
             ).execute()
 
+    @with_retry()
     def get_by_topic_id(self, topic_id: str) -> SakMetadata | None:
         """Get case metadata by Catenda topic ID."""
         result = (
@@ -197,6 +202,7 @@ class SupabaseSakMetadataRepository:
             return self._row_to_metadata(result.data[0])
         return None
 
+    @with_retry()
     def list_all(self) -> list[SakMetadata]:
         """List all cases (for case list view)."""
         result = (
@@ -208,6 +214,7 @@ class SupabaseSakMetadataRepository:
 
         return [self._row_to_metadata(row) for row in result.data]
 
+    @with_retry()
     def list_by_sakstype(self, sakstype: str) -> list[SakMetadata]:
         """List cases filtered by sakstype."""
         result = (
@@ -220,6 +227,7 @@ class SupabaseSakMetadataRepository:
 
         return [self._row_to_metadata(row) for row in result.data]
 
+    @with_retry()
     def delete(self, sak_id: str) -> bool:
         """Delete case metadata by ID."""
         result = (
@@ -229,6 +237,7 @@ class SupabaseSakMetadataRepository:
         # Supabase returns the deleted rows
         return len(result.data) > 0
 
+    @with_retry()
     def exists(self, sak_id: str) -> bool:
         """Check if case exists."""
         result = (
@@ -241,6 +250,7 @@ class SupabaseSakMetadataRepository:
 
         return len(result.data) > 0
 
+    @with_retry()
     def upsert(self, metadata: SakMetadata) -> None:
         """
         Insert or update case metadata.

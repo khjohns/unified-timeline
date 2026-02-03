@@ -42,6 +42,14 @@ class Settings(BaseSettings):
     catenda_retry_jitter: bool = True
     catenda_request_timeout: int = 30
 
+    # Supabase Retry Configuration
+    supabase_retry_enabled: bool = True
+    supabase_retry_max_attempts: int = 3
+    supabase_retry_backoff_base: float = 0.5
+    supabase_retry_backoff_max: float = 30.0
+    supabase_retry_jitter: bool = True
+    supabase_request_timeout: int = 30
+
     @property
     def is_catenda_enabled(self) -> bool:
         """
