@@ -181,6 +181,7 @@ from routes.event_routes import events_bp
 from routes.forsering_routes import forsering_bp
 from routes.fravik_routes import fravik_bp
 from routes.letter_routes import letter_bp
+from routes.mcp_routes import mcp_bp  # MCP server for Lovdata integration
 from routes.sync_routes import sync_bp
 from routes.utility_routes import utility_bp
 
@@ -195,6 +196,7 @@ app.register_blueprint(analytics_bp)
 app.register_blueprint(sync_bp)
 app.register_blueprint(fravik_bp)
 app.register_blueprint(letter_bp)
+app.register_blueprint(mcp_bp)
 
 # Register error handlers
 register_error_handlers(app)
