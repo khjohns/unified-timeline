@@ -298,7 +298,7 @@ const entreprenorRules: StatusAlertRule[] = [
     getMessage: () => ({
       type: 'warning',
       title: 'Fristforlengelse avslått',
-      description: 'Byggherre har avslått kravet. Du kan vurdere forsering (§33.8) for å kreve dagmulktkompensasjon.',
+      description: 'Byggherre har avslått kravet. Du kan vurdere forsering (§33.8) for å kreve forseringskostnadene dekket.',
       relatedSpor: 'frist',
     }),
   },
@@ -650,10 +650,20 @@ const byggherreRules: StatusAlertRule[] = [
   },
 
   // 10. Kan utstede endringsordre
+  // Krever at minst ett krav (vederlag/frist) faktisk er sendt og behandlet.
+  // Ellers venter vi fortsatt på at TE spesifiserer krav.
   {
     id: 'bh-kan-utstede-eo',
-    condition: (state, actions, context) =>
-      state.kan_utstede_eo && actions.canIssueEO && !context.harEndringsordre,
+    condition: (state, actions, context) => {
+      if (!state.kan_utstede_eo || !actions.canIssueEO || context.harEndringsordre) {
+        return false;
+      }
+      // Sjekk at minst ett krav har blitt sendt (ikke bare utkast/ikke_relevant)
+      const { vederlag, frist } = state;
+      const vederlagSendt = vederlag.status !== 'utkast' && vederlag.status !== 'ikke_relevant';
+      const fristSendt = frist.status !== 'utkast' && frist.status !== 'ikke_relevant';
+      return vederlagSendt || fristSendt;
+    },
     getMessage: () => ({
       type: 'success',
       title: 'Klar for endringsordre',
