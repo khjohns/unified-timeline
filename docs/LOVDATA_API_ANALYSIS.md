@@ -84,15 +84,83 @@ def search(self, query: str, limit: int = 10) -> str:
 
 Meldingen "kjør `lovdata-mcp --sync`" refererer til funksjonalitet som ikke er implementert.
 
+## XML-dokumentstruktur
+
+Lovdata bruker et XML/HTML5-hybrid format som kan åpnes direkte i nettleser.
+
+### Grunnstruktur
+
+```xml
+<html>
+  <head>
+    <title>Lovens tittel</title>
+    <base href="..."/>
+  </head>
+  <body>
+    <header class="documentHeader">
+      <!-- Metadata som dl/dt/dd-par -->
+    </header>
+    <main class="documentBody">
+      <!-- Selve lovteksten -->
+    </main>
+  </body>
+</html>
+```
+
+### Hierarki for regelverk
+
+| Element | Klasse | Beskrivelse | Eksempel |
+|---------|--------|-------------|----------|
+| `<section>` | `section` | Kapittel/del | Kapittel 3 |
+| `<article>` | `legalArticle` | Paragraf | § 3-9 |
+| `<article>` | `numberedLegalP` | Nummer | § 4-2 nr 3 |
+| `<article>` | `legalP` | Ledd | første ledd |
+| `<ol>`/`<ul>` | `defaultList` | Liste | bokstav a, b, c |
+| `<li>` | - | Listepunkt | a) |
+
+### Viktige klassenavn
+
+**Metadata (i `<header>`):**
+- `class=dokid` - Dokumentets unike ID (f.eks. `NL/lov/1992-07-03-93`)
+- `class=titleShort` - Korttittel (f.eks. "avhendingslova")
+- `class=title` - Full tittel
+- `class=dateInForce` - Ikrafttredelsesdato
+- `class=ministry` - Ansvarlig departement
+
+**Innhold (i `<main>`):**
+- `span.legalArticleHeader` - Paragrafoverskrift (inneholder `§ X-X`)
+- `span.legalArticleValue` - Paragrafnummer
+- `span.legalArticleTitle` - Paragraftittel (valgfri)
+- `article.legalP` - Ledd i paragraf
+
+### Unik adressering
+
+Hvert element har `data-absoluteaddress` attributt:
+```
+/kapittel/3/paragraf/9/ledd/1/
+```
+
+### Parsing-eksempel for § 3-9
+
+```python
+# Finn paragraf 3-9
+for article in soup.find_all('article', class_='legalArticle'):
+    header = article.find('span', class_='legalArticleValue')
+    if header and '3-9' in header.text:
+        # Hent alle ledd
+        for ledd in article.find_all('article', class_='legalP'):
+            print(ledd.get_text())
+```
+
 ## Tekniske Begrensninger i Gratis API
 
 | Begrensning | Beskrivelse |
 |-------------|-------------|
 | **Kun bulk-nedlasting** | Ingen REST-endepunkt for enkeltlover |
-| **Stort datasett** | ~130 MB ZIP, ~35.000 XML-filer |
+| **Stort datasett** | `tar.bz2`-arkiv med tusenvis av XML-filer |
 | **Ingen webhooks** | Må polle for oppdateringer |
 | **Ingen sanntidssøk** | Må bygge egen søkeindeks |
-| **XML-parsing nødvendig** | Dokumenter er i XML-HTML-hybrid format |
+| **XML-parsing nødvendig** | HTML5-kompatibelt XML med spesifikke klassenavn |
 
 ## Anbefalte Løsninger
 
