@@ -6,6 +6,10 @@ Exposes Norwegian law lookup as tools for Claude.ai custom connectors.
 Endpoint: /mcp/
 Protocol: MCP 2025-06-18 over Streamable HTTP
 
+Authentication:
+    - Default: Authless (public Lovdata data under NLOD 2.0)
+    - Optional: Supabase OAuth 2.1 (set MCP_REQUIRE_AUTH=true)
+
 Usage in Claude.ai:
     Settings → Connectors → Add custom connector
     URL: https://your-domain.com/mcp/
@@ -14,9 +18,10 @@ See: https://modelcontextprotocol.io/
 """
 
 import json
+import os
 from collections.abc import Generator
 
-from flask import Blueprint, Response, jsonify, request
+from flask import Blueprint, Response, g, jsonify, request
 
 from mcp import MCPServer
 from services.lovdata_service import LovdataService
@@ -26,7 +31,22 @@ logger = get_logger(__name__)
 
 mcp_bp = Blueprint("mcp", __name__, url_prefix="/mcp")
 
-# Initialize services (singleton pattern)
+# =============================================================================
+# Configuration
+# =============================================================================
+
+# Set MCP_REQUIRE_AUTH=true to require OAuth authentication
+MCP_REQUIRE_AUTH = os.getenv("MCP_REQUIRE_AUTH", "false").lower() == "true"
+
+# Supabase configuration for OAuth validation
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
+
+
+# =============================================================================
+# Service Singletons
+# =============================================================================
+
 _lovdata_service: LovdataService | None = None
 _mcp_server: MCPServer | None = None
 
@@ -45,6 +65,110 @@ def get_mcp_server() -> MCPServer:
     if _mcp_server is None:
         _mcp_server = MCPServer(get_lovdata_service())
     return _mcp_server
+
+
+# =============================================================================
+# OAuth Authentication (optional)
+# =============================================================================
+
+
+def validate_oauth_token(token: str) -> dict | None:
+    """
+    Validate OAuth access token from Supabase.
+
+    Args:
+        token: Bearer token from Authorization header
+
+    Returns:
+        User dict if valid, None otherwise
+    """
+    if not SUPABASE_URL:
+        logger.warning("SUPABASE_URL not configured, cannot validate token")
+        return None
+
+    try:
+        # Use existing Supabase validator if available
+        from lib.auth.supabase_validator import validate_supabase_token
+        return validate_supabase_token(token)
+    except ImportError:
+        # Fallback: Basic JWT validation
+        try:
+            import jwt
+            # Supabase uses HS256 by default
+            payload = jwt.decode(
+                token,
+                SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                audience="authenticated"
+            )
+            return {"id": payload.get("sub"), "email": payload.get("email")}
+        except jwt.InvalidTokenError as e:
+            logger.warning(f"Invalid JWT token: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Token validation error: {e}")
+            return None
+
+
+@mcp_bp.before_request
+def check_mcp_auth():
+    """
+    Check authentication before MCP requests.
+
+    Behavior depends on MCP_REQUIRE_AUTH:
+    - false (default): Allow all requests (authless mode)
+    - true: Require valid OAuth token
+
+    Skips auth check for: OPTIONS, HEAD, /health, /info
+    """
+    # Skip auth for preflight and info endpoints
+    if request.method in ("OPTIONS", "HEAD"):
+        return None
+    if request.path.endswith(("/health", "/info")):
+        return None
+
+    # If auth not required, allow all requests
+    if not MCP_REQUIRE_AUTH:
+        g.mcp_user = None
+        return None
+
+    # Auth required - check Authorization header
+    auth_header = request.headers.get("Authorization", "")
+
+    if not auth_header:
+        logger.info("MCP request without Authorization header (auth required)")
+        return Response(
+            status=401,
+            headers={
+                "WWW-Authenticate": 'Bearer realm="mcp"',
+                "Content-Type": "application/json",
+            },
+            response=json.dumps({
+                "error": "unauthorized",
+                "message": "Authentication required. Use OAuth 2.1 with Supabase.",
+                "auth_url": f"{SUPABASE_URL}/auth/v1/.well-known/openid-configuration"
+            })
+        )
+
+    if not auth_header.startswith("Bearer "):
+        return jsonify({
+            "error": "invalid_request",
+            "message": "Authorization header must use Bearer scheme"
+        }), 400
+
+    token = auth_header[7:]  # Remove "Bearer " prefix
+    user = validate_oauth_token(token)
+
+    if not user:
+        return jsonify({
+            "error": "invalid_token",
+            "message": "Invalid or expired access token"
+        }), 401
+
+    # Store user in request context
+    g.mcp_user = user
+    logger.info(f"MCP authenticated user: {user.get('email', user.get('id'))}")
+    return None
 
 
 # =============================================================================
@@ -79,7 +203,7 @@ def mcp_options() -> Response:
         headers={
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET, POST, HEAD, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Mcp-Session-Id",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, Mcp-Session-Id",
             "Access-Control-Max-Age": "86400",
         }
     )
@@ -187,6 +311,14 @@ def mcp_info() -> Response:
     """
     server = get_mcp_server()
 
+    # Build auth info
+    auth_info = {
+        "required": MCP_REQUIRE_AUTH,
+        "type": "oauth2" if MCP_REQUIRE_AUTH else "none",
+    }
+    if MCP_REQUIRE_AUTH and SUPABASE_URL:
+        auth_info["discovery_url"] = f"{SUPABASE_URL}/auth/v1/.well-known/openid-configuration"
+
     return jsonify({
         "server": {
             "name": "lovdata-mcp",
@@ -197,6 +329,7 @@ def mcp_info() -> Response:
             "version": "2025-06-18",
             "transport": ["streamable-http", "sse"],
         },
+        "authentication": auth_info,
         "tools": server.tools,
         "usage": {
             "claude_ai": {
