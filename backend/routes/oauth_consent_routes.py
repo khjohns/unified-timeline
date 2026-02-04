@@ -110,8 +110,11 @@ def approve_authorization(authorization_id: str) -> Response:
                     "apikey": supabase_key,
                     "Content-Type": "application/json",
                 },
+                json={},  # Empty body required by Supabase
                 timeout=10.0,
             )
+
+            logger.info(f"Supabase OAuth approve response: {response.status_code} - {response.text}")
 
             if response.status_code != 200:
                 logger.warning(
@@ -156,8 +159,11 @@ def deny_authorization(authorization_id: str) -> Response:
                     "apikey": supabase_key,
                     "Content-Type": "application/json",
                 },
+                json={},  # Empty body required by Supabase
                 timeout=10.0,
             )
+
+            logger.info(f"Supabase OAuth deny response: {response.status_code} - {response.text}")
 
             if response.status_code != 200:
                 logger.warning(

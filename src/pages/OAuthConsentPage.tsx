@@ -137,9 +137,15 @@ export default function OAuthConsentPage() {
         return;
       }
 
+      console.log('Approve response:', data);
+
       // Redirect back to the client with the authorization code
-      if (data?.redirect_to) {
-        window.location.href = data.redirect_to;
+      // Supabase may return redirect_to or redirect_uri
+      const redirectUrl = data?.redirect_to || data?.redirect_uri;
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+      } else {
+        setError('Ingen redirect URL i svaret fra server');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kunne ikke godkjenne autorisasjonen');
