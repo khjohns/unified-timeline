@@ -364,9 +364,7 @@ export interface ForseringBHRespons {
   subsidiaer_triggers?: SubsidiaerTrigger[];
   subsidiaer_godkjent_belop?: number;
   subsidiaer_begrunnelse?: string;
-
-  // Metadata
-  dato_respons?: string;
+  // dato_respons fjernet - bruk event tidsstempel i stedet
 
   // Computed (fra backend)
   total_godkjent?: number;

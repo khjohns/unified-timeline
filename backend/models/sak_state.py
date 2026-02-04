@@ -113,6 +113,10 @@ class GrunnlagTilstand(BaseModel):
     trukket_begrunnelse: str | None = Field(
         default=None, description="Begrunnelse for tilbaketrekking av grunnlag"
     )
+    trukket_alle_krav: bool = Field(
+        default=False,
+        description="True hvis grunnlag ble trukket som følge av at alle krav (vederlag+frist) ble trukket",
+    )
 
     # Metadata
     siste_event_id: str | None = Field(default=None)
@@ -375,11 +379,7 @@ class ForseringBHRespons(BaseModel):
     subsidiaer_begrunnelse: str | None = Field(
         default=None, description="Begrunnelse for subsidiært standpunkt"
     )
-
-    # Metadata
-    dato_respons: str | None = Field(
-        default=None, description="Dato for BH respons (ISO format)"
-    )
+    # dato_respons fjernet - bruk event.tidsstempel i stedet
 
     # Computed: Total godkjent
     @computed_field

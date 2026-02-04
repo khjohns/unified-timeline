@@ -490,7 +490,13 @@ class TimelineService:
     def _handle_vederlag_trukket(
         self, state: SakState, event: VederlagEvent
     ) -> SakState:
-        """Håndterer VEDERLAG_KRAV_TRUKKET"""
+        """
+        Håndterer VEDERLAG_KRAV_TRUKKET.
+
+        OMVENDT KASKADE:
+        Hvis frist også er trukket/ikke_relevant/utkast, trekkes grunnlag automatisk.
+        Uten aktive krav har ansvarsgrunnlaget ingen praktisk effekt.
+        """
         state.vederlag.status = SporStatus.TRUKKET
         state.vederlag.siste_event_id = event.event_id
         state.vederlag.siste_oppdatert = event.tidsstempel
@@ -500,6 +506,9 @@ class TimelineService:
             begrunnelse = getattr(event.data, "begrunnelse", None)
             if begrunnelse:
                 state.vederlag.trukket_begrunnelse = begrunnelse
+
+        # OMVENDT KASKADE: Sjekk om alle krav nå er inaktive
+        state = self._check_alle_krav_trukket(state, event.tidsstempel)
 
         return state
 
@@ -550,7 +559,13 @@ class TimelineService:
         return state
 
     def _handle_frist_trukket(self, state: SakState, event: FristEvent) -> SakState:
-        """Håndterer FRIST_KRAV_TRUKKET"""
+        """
+        Håndterer FRIST_KRAV_TRUKKET.
+
+        OMVENDT KASKADE:
+        Hvis vederlag også er trukket/ikke_relevant/utkast, trekkes grunnlag automatisk.
+        Uten aktive krav har ansvarsgrunnlaget ingen praktisk effekt.
+        """
         state.frist.status = SporStatus.TRUKKET
         state.frist.siste_event_id = event.event_id
         state.frist.siste_oppdatert = event.tidsstempel
@@ -560,6 +575,9 @@ class TimelineService:
             begrunnelse = getattr(event.data, "begrunnelse", None)
             if begrunnelse:
                 state.frist.trukket_begrunnelse = begrunnelse
+
+        # OMVENDT KASKADE: Sjekk om alle krav nå er inaktive
+        state = self._check_alle_krav_trukket(state, event.tidsstempel)
 
         return state
 
@@ -853,8 +871,7 @@ class TimelineService:
             subsidiaer_triggers=event.data.subsidiaer_triggers,
             subsidiaer_godkjent_belop=event.data.subsidiaer_godkjent_belop,
             subsidiaer_begrunnelse=event.data.subsidiaer_begrunnelse,
-            # Metadata
-            dato_respons=event.data.dato_respons,
+            # dato_respons fjernet - bruk event.tidsstempel i stedet
         )
 
         return state
@@ -1001,8 +1018,7 @@ class TimelineService:
                 er_estimat=er_estimat,
                 frist_dager=data.frist_dager,
                 status=EOStatus.UTSTEDT,
-                dato_utstedt=data.dato_utstedt
-                or event.tidsstempel.strftime("%Y-%m-%d"),
+                dato_utstedt=event.tidsstempel.strftime("%Y-%m-%d"),
                 utstedt_av=event.aktor,
                 relaterte_koe_saker=relaterte,
             )
@@ -1029,9 +1045,7 @@ class TimelineService:
         # Oppdater TE-respons
         state.endringsordre_data.te_akseptert = data.akseptert
         state.endringsordre_data.te_kommentar = data.kommentar
-        state.endringsordre_data.dato_te_respons = (
-            data.dato_aksept or event.tidsstempel.strftime("%Y-%m-%d")
-        )
+        state.endringsordre_data.dato_te_respons = event.tidsstempel.strftime("%Y-%m-%d")
         state.endringsordre_data.status = EOStatus.AKSEPTERT
 
         logger.info(f"EO {state.endringsordre_data.eo_nummer} akseptert av TE")

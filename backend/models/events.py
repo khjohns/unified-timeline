@@ -1286,7 +1286,7 @@ class ForseringResponsData(BaseModel):
     begrunnelse: str = Field(
         ..., min_length=1, description="BH's begrunnelse for aksept/avslag"
     )
-    dato_respons: str = Field(..., description="Dato for BH's respons (YYYY-MM-DD)")
+    # dato_respons fjernet - bruk event.tidsstempel i stedet
 
     # === Port 3b: Særskilte krav vurdering (§34.1.3) ===
     rigg_varslet_i_tide: bool | None = Field(
@@ -1611,10 +1611,7 @@ class EOUtstedtData(BaseModel):
         description="Alias for relaterte_koe_saker (for bakoverkompatibilitet)",
     )
 
-    # Dato for utstedelse
-    dato_utstedt: str | None = Field(
-        default=None, description="Dato EO ble utstedt (YYYY-MM-DD)"
-    )
+    # dato_utstedt fjernet - bruk event.tidsstempel i stedet
 
     @computed_field
     @property
@@ -1684,9 +1681,7 @@ class EOAkseptertData(BaseModel):
 
     akseptert: bool = Field(default=True, description="Om TE aksepterer")
     kommentar: str | None = Field(default=None, description="TEs kommentar")
-    dato_aksept: str | None = Field(
-        default=None, description="Dato for aksept (YYYY-MM-DD)"
-    )
+    # dato_aksept fjernet - bruk event.tidsstempel i stedet
 
 
 class EOAkseptertEvent(SakEvent):

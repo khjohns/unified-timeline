@@ -2317,7 +2317,6 @@ class ForseringFlowTester(BaseTester):
                 "begrunnelse": FORSERING_TEST_DATA["bh_forsering_aksept"][
                     "begrunnelse"
                 ],
-                "dato_respons": datetime.now().strftime("%Y-%m-%d"),
             },
             aktor="Test Script BH",
             aktor_rolle="BH",
@@ -2680,7 +2679,6 @@ class EOFlowTester(BaseTester):
                 "vederlag": eo_config["vederlag"],
                 "frist_dager": eo_config["frist_dager"],
                 "relaterte_sak_ids": [k["sak_id"] for k in self.koe_saker],
-                "dato_utstedt": datetime.now().strftime("%Y-%m-%d"),
             },
             aktor="Test Script BH",
             aktor_rolle="BH",
@@ -2720,7 +2718,6 @@ class EOFlowTester(BaseTester):
             event_data={
                 "akseptert": EO_TEST_DATA["te_aksept"]["akseptert"],
                 "kommentar": EO_TEST_DATA["te_aksept"]["kommentar"],
-                "dato_akseptert": datetime.now().strftime("%Y-%m-%d"),
             },
             aktor="Test Script",
             aktor_rolle="TE",

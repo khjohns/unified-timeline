@@ -648,7 +648,6 @@ class ForseringService(BaseSakService):
                 aksepterer=aksepterer,
                 godkjent_kostnad=godkjent_kostnad,
                 begrunnelse=begrunnelse,
-                dato_respons=datetime.now(UTC).strftime("%Y-%m-%d"),
                 # Særskilte krav (§34.1.3)
                 rigg_varslet_i_tide=rigg_varslet_i_tide,
                 produktivitet_varslet_i_tide=produktivitet_varslet_i_tide,
