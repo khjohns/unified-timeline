@@ -147,3 +147,4 @@ Mer detaljerte guider finnes i `.claude/skills/`:
 - `accessibility/SKILL.md` - WCAG tilgjengelighet og kontrastsjekk
 - `ns8407/SKILL.md` - NS 8407:2011 kontraktsreferanse og kategorimapping
 - `docs-update/SKILL.md` - Dokumentasjonsvedlikehold og synkroniseringssjekk
+- `lovdata/SKILL.md` - Norsk lovoppslag via Lovdata cache

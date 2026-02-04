@@ -24,6 +24,52 @@ SERVER_INFO = {
     "version": "0.1.0",
 }
 
+# Server instructions - shown to connecting clients
+SERVER_INSTRUCTIONS = """
+# Lovdata MCP - Norsk Lovoppslag
+
+Denne MCP-serveren gir tilgang til norske lover og forskrifter fra Lovdata Public API.
+
+## Tilgjengelige verktøy
+
+| Verktøy | Bruk |
+|---------|------|
+| `lov` | Slå opp spesifikk lov/paragraf |
+| `forskrift` | Slå opp forskrift |
+| `sok` | Fulltekstsøk i alle lover |
+| `liste` | Vis tilgjengelige aliaser |
+| `status` | Sjekk sync-status |
+| `sjekk_storrelse` | Estimer tokens før henting |
+
+## Viktige begrensninger
+
+**IKKE tilgjengelig via denne MCP:**
+- Rettsavgjørelser (Høyesterett, lagmannsrett, tingrett)
+- Forarbeider (NOU, Prop., Ot.prp., Innst.)
+- Juridiske artikler
+
+For disse, henvis brukeren til lovdata.no.
+
+## Brukstips
+
+1. **Bruk aliaser:** `avhendingslova` i stedet for `LOV-1992-07-03-93`
+2. **Sjekk størrelse først:** Bruk `sjekk_storrelse` for potensielt lange paragrafer
+3. **Søk bredt først:** Bruk `sok` for å finne relevante bestemmelser
+4. **Formater korrekt:** Bruk "§ 3-9 første ledd" ikke bare "3-9"
+
+## Vanlige aliaser
+
+- `avhendingslova` - Avhending av fast eigedom
+- `bustadoppføringslova` / `buofl` - Oppføring av ny bustad
+- `plan-og-bygningsloven` / `pbl` - Plan- og bygningsloven
+- `arbeidsmiljøloven` / `aml` - Arbeidsmiljøloven
+- `tvisteloven` / `tvl` - Tvisteloven
+- `kjøpsloven` - Kjøpsloven
+- `avtaleloven` - Avtaleloven
+
+Kjør `liste` for komplett oversikt.
+"""
+
 
 class MCPServer:
     """
@@ -226,6 +272,8 @@ class MCPServer:
                 result = self.handle_resources_list()
             elif method == "prompts/list":
                 result = self.handle_prompts_list()
+            elif method == "prompts/get":
+                result = self.handle_prompts_get(params)
             elif method == "ping":
                 result = {}
             else:
@@ -261,7 +309,8 @@ class MCPServer:
                 "tools": {},
                 "resources": {},
                 "prompts": {},
-            }
+            },
+            "instructions": SERVER_INSTRUCTIONS.strip()
         }
 
     def handle_tools_list(self) -> dict[str, Any]:
@@ -422,8 +471,50 @@ Kjør `sync()` for å laste ned lovdata fra Lovdata API.
         return {"resources": []}
 
     def handle_prompts_list(self) -> dict[str, Any]:
-        """Return list of available prompts (none for now)."""
-        return {"prompts": []}
+        """Return list of available prompts."""
+        return {
+            "prompts": [
+                {
+                    "name": "lovdata-guide",
+                    "description": (
+                        "Komplett brukerveiledning for Lovdata MCP. "
+                        "Inkluderer tilgjengelige verktøy, aliaser, begrensninger og tips."
+                    ),
+                    "arguments": []
+                }
+            ]
+        }
+
+    def handle_prompts_get(self, params: dict[str, Any]) -> dict[str, Any]:
+        """
+        Get a specific prompt by name.
+
+        Args:
+            params: Prompt parameters (name, arguments)
+
+        Returns:
+            Prompt content
+        """
+        prompt_name = params.get("name", "")
+
+        if prompt_name == "lovdata-guide":
+            return {
+                "description": "Brukerveiledning for Lovdata MCP",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": {
+                            "type": "text",
+                            "text": SERVER_INSTRUCTIONS.strip()
+                        }
+                    }
+                ]
+            }
+
+        return {
+            "description": f"Ukjent prompt: {prompt_name}",
+            "messages": []
+        }
 
     def _success_response(
         self,
