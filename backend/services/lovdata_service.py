@@ -105,6 +105,10 @@ class LovdataService:
         "plan-og-bygningsloven": "LOV-2008-06-27-71",
         "pbl": "LOV-2008-06-27-71",
         "byggherreforskriften": "FOR-2009-08-03-1028",
+        "byggesaksforskriften": "FOR-2010-03-26-488",
+        "sak10": "FOR-2010-03-26-488",
+        "byggteknisk-forskrift": "FOR-2017-06-19-840",
+        "tek17": "FOR-2017-06-19-840",
 
         # Kontraktsrett
         "kjøpsloven": "LOV-1988-05-13-27",
@@ -137,7 +141,9 @@ class LovdataService:
 
         # Anskaffelser
         "anskaffelsesloven": "LOV-2016-06-17-73",
+        "loa": "LOV-2016-06-17-73",
         "anskaffelsesforskriften": "FOR-2016-08-12-974",
+        "foa": "FOR-2016-08-12-974",
 
         # Erstatning
         "skadeserstatningsloven": "LOV-1969-06-13-26",

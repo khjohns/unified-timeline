@@ -386,6 +386,41 @@ class LovdataSupabaseService:
                         sections.append(section)
                         seen_ids.add(section['section_id'])
 
+        # Strategy 4: Extract numberedLegalP as searchable sub-sections
+        # These are "nummer" (§ 4-2 nr 1, nr 2, etc.) which are between paragraf and ledd
+        import re
+        for numbered in soup.find_all('article', class_='numberedLegalP'):
+            parent_article = numbered.find_parent('article', class_='legalArticle')
+            if not parent_article:
+                continue
+
+            # Get parent section ID
+            parent_value = parent_article.find('span', class_='legalArticleValue')
+            if not parent_value:
+                continue
+
+            parent_id = parent_value.get_text(strip=True).replace('§', '').strip()
+            parent_id = ' '.join(parent_id.split())
+
+            # Get number ID from the numbered element header
+            num_header = numbered.find(['h2', 'h3', 'h4', 'h5', 'h6'])
+            if num_header:
+                num_text = num_header.get_text(strip=True)
+                # Extract "nr 1", "nr 2", etc.
+                nr_match = re.search(r'nr\.?\s*(\d+)', num_text, re.I)
+                if nr_match:
+                    sub_id = f"{parent_id} nr {nr_match.group(1)}"
+                    content = numbered.get_text(strip=True)
+                    if sub_id not in seen_ids and content:
+                        sections.append({
+                            'dok_id': dok_id,
+                            'section_id': sub_id,
+                            'title': num_text,
+                            'content': content,
+                            'address': numbered.get('data-absoluteaddress'),
+                        })
+                        seen_ids.add(sub_id)
+
         return sections
 
     def _parse_legal_article(self, article, dok_id: str) -> dict | None:
@@ -417,18 +452,28 @@ class LovdataSupabaseService:
         # Get content from legalP elements (direct children only to avoid duplicates)
         content_parts = []
 
-        # Find direct legalP children
+        # Legal paragraph classes to extract (per Lovdata XML documentation)
+        # Includes: legalP, numberedLegalP, listLegalP, marginIdLegalP
+        legal_p_classes = {'legalP', 'numberedLegalP', 'listLegalP', 'marginIdLegalP'}
+
+        # Find direct legal paragraph children
         for child in article.children:
             if hasattr(child, 'get') and child.get('class'):
                 classes = child.get('class', [])
-                if isinstance(classes, list):
-                    class_str = ' '.join(classes)
-                else:
-                    class_str = classes
+                if isinstance(classes, str):
+                    classes = [classes]
+                class_set = set(classes)
+                class_str = ' '.join(classes)
 
-                # Match legalP but not listLegalP, footnoteLegalP, etc.
-                if class_str == 'legalP' or (isinstance(classes, list) and 'legalP' in classes and len(classes) == 1):
+                # Match all legalP variants except footnote-related
+                if class_set & legal_p_classes and 'footnote' not in class_str.lower():
                     content_parts.append(child.get_text(strip=True))
+
+        # Also include leddfortsettelse (paragraph continuations after lists)
+        for cont in article.find_all('p', class_='leddfortsettelse'):
+            text = cont.get_text(strip=True)
+            if text and text not in content_parts:
+                content_parts.append(text)
 
         # Fallback: get all text from legalP descendants
         if not content_parts:
@@ -437,13 +482,19 @@ class LovdataSupabaseService:
                 if text and text not in content_parts:
                     content_parts.append(text)
 
-        # Last fallback: get all text from article
+        # Last fallback: get all text from article (without mutating the tree)
         if not content_parts:
-            # Get text but exclude the header
             header = article.find(['h2', 'h3', 'h4', 'h5', 'h6'])
+            all_text = article.get_text(strip=True)
             if header:
-                header.decompose()
-            text = article.get_text(strip=True)
+                header_text = header.get_text(strip=True)
+                # Remove header text from beginning if present
+                if all_text.startswith(header_text):
+                    text = all_text[len(header_text):].strip()
+                else:
+                    text = all_text
+            else:
+                text = all_text
             if text:
                 content_parts.append(text)
 
@@ -463,7 +514,9 @@ class LovdataSupabaseService:
         import re
 
         # Extract section number from address like /kapittel/1/paragraf/5/
-        match = re.search(r'/paragraf/(\d+)/', addr)
+        # Handle various formats: /paragraf/1/, /paragraf/3-9/, /paragraf/14-9/
+        # Note: Lovdata uses ordinal numbering, so we can't directly derive section ID
+        match = re.search(r'/paragraf/([\w-]+)/', addr)
         if not match:
             return None
 

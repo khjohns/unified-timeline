@@ -50,24 +50,43 @@ Denne MCP-serveren gir tilgang til norske lover og forskrifter fra Lovdata Publi
 
 For disse, henvis brukeren til lovdata.no.
 
-## Brukstips
+## Paragraf-format (VIKTIG)
 
-1. **Bruk aliaser:** `avhendingslova` i stedet for `LOV-1992-07-03-93`
-2. **Sjekk størrelse først:** Bruk `sjekk_storrelse` for potensielt lange paragrafer
-3. **Søk bredt først:** Bruk `sok` for å finne relevante bestemmelser
-4. **Formater korrekt:** Bruk "§ 3-9 første ledd" ikke bare "3-9"
+| Input | Resultat |
+|-------|----------|
+| `"3-9"` | ✅ Korrekt |
+| `"§ 3-9"` | ✅ Fungerer (§ strippes) |
+| `"14-9"` | ✅ Korrekt |
+| `"17"` | ✅ Enkle tall fungerer |
+| `" 3-9 "` | ✅ Whitespace håndteres |
 
-## Vanlige aliaser
+**Regel:** Paragraf-parameter trenger kun tallet, ikke §-tegn.
 
-- `avhendingslova` - Avhending av fast eigedom
-- `bustadoppføringslova` / `buofl` - Oppføring av ny bustad
-- `plan-og-bygningsloven` / `pbl` - Plan- og bygningsloven
-- `arbeidsmiljøloven` / `aml` - Arbeidsmiljøloven
-- `tvisteloven` / `tvl` - Tvisteloven
-- `kjøpsloven` - Kjøpsloven
-- `avtaleloven` - Avtaleloven
+## Søketips
 
-Kjør `liste` for komplett oversikt.
+- **Enkle søkeord fungerer best:** `"mangel"`, `"erstatning"`, `"frist"`
+- **Kombiner maks 2-3 ord:** `"mangel bolig"` OK, lange fraser gir færre treff
+- **Søk returnerer relevante seksjoner** med snippets
+
+## Aliaser
+
+Begge formater fungerer (case-insensitive):
+- `avhendingslova` eller `avhl`
+- `bustadoppføringslova` eller `buofl`
+- `plan-og-bygningsloven` eller `pbl`
+- `arbeidsmiljøloven` eller `aml`
+- `tvisteloven` eller `tvl`
+- `kjøpsloven`, `avtaleloven`, `forvaltningsloven`
+
+Kjør `liste` for komplett oversikt med kategorier.
+
+## Beste praksis
+
+1. **Start med `liste`** for å se tilgjengelige lover
+2. **Bruk korte aliaser** (`aml`, `pbl`, `buofl`) for raskere typing
+3. **Sjekk størrelse først** med `sjekk_storrelse` for potensielt lange paragrafer
+4. **Søk først** med `sok` hvis usikker på hvilken lov som er relevant
+5. **Henvis til lovdata.no** for rettsavgjørelser og forarbeider
 """
 
 
@@ -97,9 +116,9 @@ class MCPServer:
                 "name": "lov",
                 "description": (
                     "Slå opp norsk lov eller spesifikk paragraf fra Lovdata. "
-                    "Støtter kortnavn (avhendingslova, buofl, pbl) eller full ID. "
-                    "Bruk 'sjekk_storrelse' først for lange paragrafer (>5000 tokens). "
-                    "Eksempel: lov('avhendingslova', '3-9')"
+                    "Støtter kortnavn (avhendingslova, buofl, pbl, aml) eller full ID. "
+                    "Paragraf: bruk kun tall ('3-9'), ikke '§ 3-9'. "
+                    "Eksempel: lov('aml', '14-9') for arbeidsmiljøloven § 14-9"
                 ),
                 "inputSchema": {
                     "type": "object",
@@ -108,22 +127,23 @@ class MCPServer:
                             "type": "string",
                             "description": (
                                 "Lovens kortnavn eller ID. "
-                                "Eksempler: 'avhendingslova', 'buofl', 'plan-og-bygningsloven'"
+                                "Korte aliaser: aml, pbl, buofl, avhl, tvl. "
+                                "Lange: arbeidsmiljøloven, plan-og-bygningsloven, etc."
                             )
                         },
                         "paragraf": {
                             "type": "string",
                             "description": (
-                                "Paragrafnummer (valgfritt). "
-                                "Eksempler: '3-9', '21-4', '12'. "
+                                "Paragrafnummer uten §-tegn. "
+                                "Format: '3-9', '14-9', '17'. "
                                 "Utelat for dokumentoversikt."
                             )
                         },
                         "max_tokens": {
                             "type": "integer",
                             "description": (
-                                "Maks antall tokens i respons (valgfritt). "
-                                "Bruk for å begrense lange paragrafer. Standard: ingen grense."
+                                "Maks tokens i respons. "
+                                "Bruk sjekk_storrelse først for store paragrafer."
                             )
                         }
                     },
@@ -154,16 +174,19 @@ class MCPServer:
             {
                 "name": "sok",
                 "description": (
-                    "Søk i norske lover og forskrifter. "
-                    "Returnerer relevante lover basert på søkeord. "
-                    "Eksempel: sok('erstatning mangel bolig')"
+                    "Fulltekstsøk i norske lover og forskrifter. "
+                    "Tips: Enkle søkeord fungerer best ('mangel', 'erstatning'). "
+                    "Returnerer relevante paragrafer med snippets."
                 ),
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "query": {
                             "type": "string",
-                            "description": "Søkeord eller -frase"
+                            "description": (
+                                "Søkeord (1-3 ord fungerer best). "
+                                "Eksempler: 'mangel', 'erstatning bolig', 'frist'"
+                            )
                         },
                         "limit": {
                             "type": "integer",

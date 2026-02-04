@@ -29,20 +29,23 @@ Backend: `backend/services/lovdata_service.py`
 
 ## Lovaliaser
 
-Bruk kortnavn i stedet for fulle ID-er:
+Bruk kortnavn i stedet for fulle ID-er. Både lange og korte aliaser fungerer:
 
-| Alias | Lov |
-|-------|-----|
-| `avhendingslova` | Lov om avhending av fast eigedom |
-| `bustadoppføringslova` | Lov om oppføring av ny bustad |
-| `plan-og-bygningsloven` | Plan- og bygningsloven |
-| `arbeidsmiljøloven` | Arbeidsmiljøloven |
-| `tvisteloven` | Tvisteloven |
-| `forvaltningsloven` | Forvaltningsloven |
-| `anskaffelsesloven` | Lov om offentlige anskaffelser |
-| `kjøpsloven` | Kjøpsloven |
-| `avtaleloven` | Avtaleloven |
-| `skadeserstatningsloven` | Skadeserstatningsloven |
+| Alias | Kort | Lov |
+|-------|------|-----|
+| `avhendingslova` | `avhl` | Lov om avhending av fast eigedom |
+| `bustadoppføringslova` | `buofl` | Lov om oppføring av ny bustad |
+| `plan-og-bygningsloven` | `pbl` | Plan- og bygningsloven |
+| `byggesaksforskriften` | `sak10` | Forskrift om byggesak (SAK10) |
+| `byggteknisk-forskrift` | `tek17` | Forskrift om tekniske krav til byggverk |
+| `arbeidsmiljøloven` | `aml` | Arbeidsmiljøloven |
+| `tvisteloven` | `tvl` | Tvisteloven |
+| `forvaltningsloven` | `fvl` | Forvaltningsloven |
+| `anskaffelsesloven` | `loa` | Lov om offentlige anskaffelser |
+| `anskaffelsesforskriften` | `foa` | Forskrift om offentlige anskaffelser |
+| `kjøpsloven` | - | Kjøpsloven |
+| `avtaleloven` | `avtl` | Avtaleloven |
+| `skadeserstatningsloven` | `skl` | Skadeserstatningsloven |
 
 Full liste: Se `LOV_ALIASES` i `backend/services/lovdata_service.py`
 
@@ -129,23 +132,37 @@ service.sync(force=True)
 | Format | Resultat |
 |--------|----------|
 | `"3-9"` | ✅ Riktig |
-| `"§ 3-9"` | ⚠️ Gir dobbelt § i output |
+| `"§ 3-9"` | ✅ Fungerer (§ strippes automatisk) |
 | `"17"` | ✅ Fungerer for enkle numre |
-| `"14-9 a"` | ❌ Bokstav-ledd ikke støttet |
+| `" 14-9 "` | ✅ Whitespace håndteres |
 | `"kapittel 3"` | ❌ Kapitler støttes ikke |
 
-**Regel:** Ikke inkluder §-tegn i paragraf-parameter.
+**Regel:** Paragraf-parameter trenger kun tallet.
+
+### Korte aliaser
+
+Bruk korte aliaser for raskere oppslag:
+
+| Kort | Fullt navn |
+|------|------------|
+| `aml` | arbeidsmiljøloven |
+| `pbl` | plan-og-bygningsloven |
+| `buofl` | bustadoppføringslova |
+| `avhl` | avhendingslova |
+| `tvl` | tvisteloven |
+| `fvl` | forvaltningsloven |
 
 ### Søketips
 
-- **Enkle søkeord fungerer best**: `"mangel"` gir treff
-- **Komplekse søk kan feile**: `"erstatning mangel bolig"` gir ofte ingen treff
-- **Bruk ett eller to ord** for best resultat
+- **Enkle søkeord fungerer best**: `"mangel"`, `"erstatning"`, `"frist"`
+- **Kombiner maks 2-3 ord**: `"mangel bolig"` OK
+- **Søk returnerer snippets** med kontekst
 
 ### Forskrifter
 
-Forskrifter returnerer ofte kun lenke til lovdata.no, ikke fullt innhold.
-Lover har bedre dekning enn forskrifter i cachen.
+Forskrifter har god dekning i cachen. Test:
+- `byggherreforskriften § 5`
+- `anskaffelsesforskriften § 1-1`
 
 ### Responstid
 
