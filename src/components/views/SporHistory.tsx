@@ -287,10 +287,16 @@ function getEntryVariant(type: SporHistoryEntryType, resultat?: string | null): 
 function getEntryLabel(entry: SporHistoryEntry): string {
   const teVersionRef = entry.versjon > 1 ? ` · Rev. ${entry.versjon - 1}` : '';
 
+  // For te_trukket, use sammendrag which contains spor-specific text
+  // ("Grunnlag trukket" vs "Krav trukket")
+  if (entry.type === 'te_trukket') {
+    return `${entry.sammendrag || 'Trukket tilbake'} tilbake`;
+  }
+
   const labels: Record<SporHistoryEntryType, string> = {
     te_krav: 'Krav sendt',
     te_oppdatering: `Krav oppdatert${teVersionRef}`,
-    te_trukket: 'Krav trukket tilbake',
+    te_trukket: '', // Handled above
     bh_respons: `${entry.sammendrag || 'Svar mottatt'}${teVersionRef}`,
     bh_oppdatering: `Standpunkt oppdatert${teVersionRef}`,
   };
