@@ -103,14 +103,16 @@ def approve_authorization(authorization_id: str) -> Response:
 
     try:
         with httpx.Client() as client:
+            # Supabase OAuth Server uses POST /auth/v1/oauth/authorize/approve
+            # with authorizationId in the request body
             response = client.post(
-                f"{supabase_url}/auth/v1/oauth/authorizations/{authorization_id}/approve",
+                f"{supabase_url}/auth/v1/oauth/authorize/approve",
                 headers={
                     "Authorization": f"Bearer {user_token}",
                     "apikey": supabase_key,
                     "Content-Type": "application/json",
                 },
-                json={},  # Empty body required by Supabase
+                json={"authorizationId": authorization_id},
                 timeout=10.0,
             )
 
@@ -152,14 +154,16 @@ def deny_authorization(authorization_id: str) -> Response:
 
     try:
         with httpx.Client() as client:
+            # Supabase OAuth Server uses POST /auth/v1/oauth/authorize/deny
+            # with authorizationId in the request body
             response = client.post(
-                f"{supabase_url}/auth/v1/oauth/authorizations/{authorization_id}/deny",
+                f"{supabase_url}/auth/v1/oauth/authorize/deny",
                 headers={
                     "Authorization": f"Bearer {user_token}",
                     "apikey": supabase_key,
                     "Content-Type": "application/json",
                 },
-                json={},  # Empty body required by Supabase
+                json={"authorizationId": authorization_id},
                 timeout=10.0,
             )
 
