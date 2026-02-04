@@ -13,6 +13,7 @@ import {
   CheckIcon,
   FileTextIcon,
   EnvelopeClosedIcon,
+  CrossCircledIcon,
 } from '@radix-ui/react-icons';
 import { SporType, SakState, TimelineEvent, extractEventType } from '../../types/timeline';
 import { isLetterSupportedEvent } from '../../types/letter';
@@ -24,7 +25,7 @@ import { LetterPreviewModal } from './LetterPreviewModal';
 
 // ============ TYPES ============
 
-export type SporHistoryEntryType = 'te_krav' | 'te_oppdatering' | 'bh_respons' | 'bh_oppdatering';
+export type SporHistoryEntryType = 'te_krav' | 'te_oppdatering' | 'te_trukket' | 'bh_respons' | 'bh_oppdatering';
 
 export interface SporHistoryEntry {
   id: string;
@@ -72,7 +73,7 @@ const ENTRY_TYPE_MAP: Record<string, Record<'TE' | 'BH', SporHistoryEntryType>> 
   sendt: { TE: 'te_krav', BH: 'bh_respons' },
   opprettet: { TE: 'te_krav', BH: 'bh_respons' },
   oppdatert: { TE: 'te_oppdatering', BH: 'bh_oppdatering' },
-  trukket: { TE: 'te_oppdatering', BH: 'bh_oppdatering' },
+  trukket: { TE: 'te_trukket', BH: 'bh_oppdatering' },
   respons: { TE: 'te_oppdatering', BH: 'bh_respons' },
   respons_oppdatert: { TE: 'te_oppdatering', BH: 'bh_oppdatering' },
 };
@@ -255,6 +256,7 @@ export function transformGrunnlagEvents(events: TimelineEvent[]): SporHistoryEnt
 const ENTRY_ICONS: Record<SporHistoryEntryType, React.ReactNode> = {
   te_krav: <ArrowRightIcon className="h-4 w-4" />,
   te_oppdatering: <ReloadIcon className="h-4 w-4" />,
+  te_trukket: <CrossCircledIcon className="h-4 w-4" />,
   bh_respons: <ChatBubbleIcon className="h-4 w-4" />,
   bh_oppdatering: <CheckIcon className="h-4 w-4" />,
 };
@@ -271,9 +273,12 @@ function getEntryIcon(type: SporHistoryEntryType): React.ReactNode {
 }
 
 function getEntryVariant(type: SporHistoryEntryType, resultat?: string | null): ActivityHistoryVariant {
-  // TE actions: always info variant
+  // TE actions: info variant (except withdrawal which is warning)
   if (type === 'te_krav' || type === 'te_oppdatering') {
     return 'info';
+  }
+  if (type === 'te_trukket') {
+    return 'warning';
   }
   // BH actions: variant based on resultat
   return BH_RESULTAT_VARIANTS[resultat ?? ''] ?? 'warning';
@@ -285,6 +290,7 @@ function getEntryLabel(entry: SporHistoryEntry): string {
   const labels: Record<SporHistoryEntryType, string> = {
     te_krav: 'Krav sendt',
     te_oppdatering: `Krav oppdatert${teVersionRef}`,
+    te_trukket: 'Krav trukket tilbake',
     bh_respons: `${entry.sammendrag || 'Svar mottatt'}${teVersionRef}`,
     bh_oppdatering: `Standpunkt oppdatert${teVersionRef}`,
   };
