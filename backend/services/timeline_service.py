@@ -10,6 +10,7 @@ Design-prinsipper:
 3. Parallelisme: Hvert spor kan behandles uavhengig
 """
 
+from datetime import datetime
 from typing import Any
 
 from models.events import (
@@ -415,6 +416,40 @@ class TimelineService:
             state.frist.status = SporStatus.TRUKKET
             state.frist.trukket_via_grunnlag = True
             state.frist.siste_oppdatert = event.tidsstempel
+
+        return state
+
+    def _check_alle_krav_trukket(
+        self, state: SakState, tidsstempel: datetime
+    ) -> SakState:
+        """
+        Sjekk om alle krav (vederlag+frist) er inaktive, og trekk grunnlag hvis så.
+
+        OMVENDT KASKADE-LOGIKK:
+        Hvis TE har trukket alle konkrete krav, har ansvarsgrunnlaget ingen
+        praktisk effekt. Grunnlaget trekkes da automatisk.
+
+        Inaktive statuser: IKKE_RELEVANT, UTKAST, TRUKKET
+        """
+        inactive_statuses = {
+            SporStatus.IKKE_RELEVANT,
+            SporStatus.UTKAST,
+            SporStatus.TRUKKET,
+        }
+
+        vederlag_inaktiv = state.vederlag.status in inactive_statuses
+        frist_inaktiv = state.frist.status in inactive_statuses
+        grunnlag_aktivt = state.grunnlag.status not in inactive_statuses
+
+        # Kun kaskader hvis grunnlag er aktivt og begge krav er inaktive
+        if grunnlag_aktivt and vederlag_inaktiv and frist_inaktiv:
+            state.grunnlag.status = SporStatus.TRUKKET
+            state.grunnlag.trukket_alle_krav = True
+            state.grunnlag.siste_oppdatert = tidsstempel
+            logger.info(
+                f"Omvendt kaskade: Grunnlag trukket fordi alle krav er inaktive "
+                f"(vederlag={state.vederlag.status}, frist={state.frist.status})"
+            )
 
         return state
 

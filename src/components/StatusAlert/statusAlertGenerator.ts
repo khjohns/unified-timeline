@@ -214,7 +214,19 @@ const entreprenorRules: StatusAlertRule[] = [
     }),
   },
 
-  // 8. Grunnlag trukket
+  // 8. Grunnlag trukket (automatisk pga alle krav trukket)
+  {
+    id: 'te-grunnlag-trukket-alle-krav',
+    condition: (state) => erTrukket(state.grunnlag.status) && state.grunnlag.trukket_alle_krav === true,
+    getMessage: () => ({
+      type: 'info',
+      title: 'Saken avsluttet',
+      description: 'Alle krav er trukket tilbake. Ansvarsgrunnlaget ble automatisk trukket siden det ikke lenger finnes aktive krav.',
+      relatedSpor: null,
+    }),
+  },
+
+  // 8b. Grunnlag trukket (manuelt)
   {
     id: 'te-grunnlag-trukket',
     condition: (state) => erTrukket(state.grunnlag.status),

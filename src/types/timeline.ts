@@ -169,6 +169,8 @@ export interface GrunnlagTilstand {
   // Tilbaketrekking
   /** Begrunnelse for tilbaketrekking av grunnlag */
   trukket_begrunnelse?: string;
+  /** True hvis grunnlag ble trukket som følge av at alle krav (vederlag+frist) ble trukket */
+  trukket_alle_krav?: boolean;
 
   /** CloudEvents ID of the last event that modified this track */
   siste_event_id?: string;

@@ -149,23 +149,34 @@ export function WithdrawModal({
     }
   }, [open, reset]);
 
-  // Determine if cascade warning should be shown
+  // Helper to check if a track is inactive (not actively claiming)
+  const isInactive = (status: string | undefined) =>
+    status === 'ikke_relevant' || status === 'utkast' || status === 'trukket';
+
+  // Determine if cascade warning should be shown (grunnlag → vederlag/frist)
   const showCascadeWarning =
     track === 'grunnlag' &&
     sakState &&
-    (sakState.vederlag.status !== 'ikke_relevant' && sakState.vederlag.status !== 'utkast' && sakState.vederlag.status !== 'trukket' ||
-     sakState.frist.status !== 'ikke_relevant' && sakState.frist.status !== 'utkast' && sakState.frist.status !== 'trukket');
+    (!isInactive(sakState.vederlag.status) || !isInactive(sakState.frist.status));
 
-  // Build list of tracks that will be cascaded
+  // Build list of tracks that will be cascaded (grunnlag → vederlag/frist)
   const cascadedTracks: string[] = [];
   if (showCascadeWarning && sakState) {
-    if (sakState.vederlag.status !== 'ikke_relevant' && sakState.vederlag.status !== 'utkast' && sakState.vederlag.status !== 'trukket') {
+    if (!isInactive(sakState.vederlag.status)) {
       cascadedTracks.push('vederlagskravet');
     }
-    if (sakState.frist.status !== 'ikke_relevant' && sakState.frist.status !== 'utkast' && sakState.frist.status !== 'trukket') {
+    if (!isInactive(sakState.frist.status)) {
       cascadedTracks.push('fristkravet');
     }
   }
+
+  // REVERSE CASCADE: Check if withdrawing this claim will also withdraw grunnlag
+  // This happens when withdrawing vederlag/frist and the OTHER claim is already inactive
+  const showReverseCascadeWarning =
+    sakState &&
+    !isInactive(sakState.grunnlag.status) && // grunnlag must be active
+    ((track === 'vederlag' && isInactive(sakState.frist.status)) ||
+     (track === 'frist' && isInactive(sakState.vederlag.status)));
 
   // Submit handler
   const onSubmit = (data: WithdrawFormData) => {
@@ -193,14 +204,26 @@ export function WithdrawModal({
       <div className="space-y-4">
         {/* Warning about what will happen */}
         <Alert
-          variant={showCascadeWarning ? 'danger' : 'warning'}
-          title={showCascadeWarning ? 'Dette vil trekke hele saken' : 'Er du sikker?'}
+          variant={showCascadeWarning || showReverseCascadeWarning ? 'danger' : 'warning'}
+          title={
+            showCascadeWarning
+              ? 'Dette vil trekke hele saken'
+              : showReverseCascadeWarning
+              ? 'Dette vil også trekke ansvarsgrunnlaget'
+              : 'Er du sikker?'
+          }
         >
           {showCascadeWarning ? (
             <>
               Ved å trekke tilbake ansvarsgrunnlaget vil også{' '}
               <strong>{cascadedTracks.join(' og ')}</strong> bli trukket tilbake automatisk.
               Denne handlingen kan ikke angres.
+            </>
+          ) : showReverseCascadeWarning ? (
+            <>
+              Dette er det siste aktive kravet. Ved å trekke {config.labelNorwegian} vil også{' '}
+              <strong>ansvarsgrunnlaget</strong> bli trukket tilbake automatisk, siden det ikke
+              lenger finnes aktive krav. Denne handlingen kan ikke angres.
             </>
           ) : (
             <>
