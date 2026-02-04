@@ -9,6 +9,7 @@ import { ComponentShowcase } from '@/pages/ComponentShowcase';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ToastProvider } from '@/components/primitives/Toast';
 import { UserRoleProvider } from '@/context/UserRoleContext';
+import { ConnectionStatusProvider } from '@/hooks/useConnectionStatus';
 
 // Mock react-pdf to avoid DOMMatrix not defined error in jsdom
 vi.mock('react-pdf', () => ({
@@ -90,11 +91,13 @@ const createWrapper = () => {
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
       <UserRoleProvider>
-        <ThemeProvider>
-          <ToastProvider>
-            <BrowserRouter>{children}</BrowserRouter>
-          </ToastProvider>
-        </ThemeProvider>
+        <ConnectionStatusProvider>
+          <ThemeProvider>
+            <ToastProvider>
+              <BrowserRouter>{children}</BrowserRouter>
+            </ToastProvider>
+          </ThemeProvider>
+        </ConnectionStatusProvider>
       </UserRoleProvider>
     </QueryClientProvider>
   );
