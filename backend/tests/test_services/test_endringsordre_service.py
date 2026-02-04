@@ -126,10 +126,18 @@ class TestEndringsordreService:
         # Toveis-relasjoner: 1x EO→KOE + 2x KOE→EO = 3 kall
         assert mock_catenda_client.create_topic_relations.call_count == 3
 
+    @patch("services.sak_creation_service.get_sak_creation_service")
     def test_opprett_endringsordresak_without_client(
-        self, mock_event_repository, mock_timeline_service
+        self, mock_get_creation_service, mock_event_repository, mock_timeline_service
     ):
         """Test EO creation returns mock data without client."""
+        # Mock SakCreationService to avoid hitting real database
+        mock_creation_service = Mock()
+        mock_creation_service.create_sak_with_metadata.return_value = Mock(
+            success=True, error=None
+        )
+        mock_get_creation_service.return_value = mock_creation_service
+
         service = EndringsordreService(
             event_repository=mock_event_repository,
             timeline_service=mock_timeline_service,
@@ -156,10 +164,17 @@ class TestEndringsordreService:
                 eo_nummer="EO-001", beskrivelse="", koe_sak_ids=["KOE-001"]
             )
 
+    @patch("services.sak_creation_service.get_sak_creation_service")
     def test_opprett_endringsordresak_with_konsekvenser(
-        self, service, mock_catenda_client
+        self, mock_get_creation_service, service, mock_catenda_client
     ):
         """Test EO creation with konsekvenser."""
+        mock_creation_service = Mock()
+        mock_creation_service.create_sak_with_metadata.return_value = Mock(
+            success=True, error=None
+        )
+        mock_get_creation_service.return_value = mock_creation_service
+
         result = service.opprett_endringsordresak(
             eo_nummer="EO-001",
             beskrivelse="Test",
@@ -171,10 +186,17 @@ class TestEndringsordreService:
         assert eo_data["konsekvenser"]["pris"] is True
         assert eo_data["konsekvenser"]["fremdrift"] is True
 
+    @patch("services.sak_creation_service.get_sak_creation_service")
     def test_opprett_endringsordresak_netto_calculation(
-        self, service, mock_catenda_client
+        self, mock_get_creation_service, service, mock_catenda_client
     ):
         """Test that netto beløp is calculated correctly."""
+        mock_creation_service = Mock()
+        mock_creation_service.create_sak_with_metadata.return_value = Mock(
+            success=True, error=None
+        )
+        mock_get_creation_service.return_value = mock_creation_service
+
         result = service.opprett_endringsordresak(
             eo_nummer="EO-001",
             beskrivelse="Test",
