@@ -22,6 +22,7 @@ import { formatDateShort } from '../utils/formatters';
 import type { OverordnetStatus } from '../types/timeline';
 import { LoadingState, VerifyingState } from '../components/PageStateHelpers';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { downloadAllCasesExcel } from '../utils/excelExport';
 
 type SakstypeFilter = 'all' | 'standard' | 'forsering' | 'endringsordre';
 
@@ -98,6 +99,9 @@ function SaksoversiktContent({
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to="/analyse">Analysedashboard</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => downloadAllCasesExcel(cases)}>
+              Eksporter til Excel
             </DropdownMenuItem>
           </>
         }

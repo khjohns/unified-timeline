@@ -119,6 +119,13 @@ class SupabaseSakMetadataRepository:
             )
             if row.get("last_event_at") and isinstance(row["last_event_at"], str)
             else row.get("last_event_at"),
+            # Cached fields for reporting
+            cached_sum_krevd=row.get("cached_sum_krevd"),
+            cached_sum_godkjent=row.get("cached_sum_godkjent"),
+            cached_dager_krevd=row.get("cached_dager_krevd"),
+            cached_dager_godkjent=row.get("cached_dager_godkjent"),
+            cached_hovedkategori=row.get("cached_hovedkategori"),
+            cached_underkategori=row.get("cached_underkategori"),
         )
 
     def _metadata_to_row(self, metadata: SakMetadata) -> dict:
@@ -137,6 +144,13 @@ class SupabaseSakMetadataRepository:
             "last_event_at": metadata.last_event_at.isoformat()
             if metadata.last_event_at
             else None,
+            # Cached fields for reporting
+            "cached_sum_krevd": metadata.cached_sum_krevd,
+            "cached_sum_godkjent": metadata.cached_sum_godkjent,
+            "cached_dager_krevd": metadata.cached_dager_krevd,
+            "cached_dager_godkjent": metadata.cached_dager_godkjent,
+            "cached_hovedkategori": metadata.cached_hovedkategori,
+            "cached_underkategori": metadata.cached_underkategori,
         }
 
     @with_retry()
@@ -167,6 +181,13 @@ class SupabaseSakMetadataRepository:
         cached_title: str | None = None,
         cached_status: str | None = None,
         last_event_at: datetime | None = None,
+        # Reporting fields
+        cached_sum_krevd: float | None = None,
+        cached_sum_godkjent: float | None = None,
+        cached_dager_krevd: int | None = None,
+        cached_dager_godkjent: int | None = None,
+        cached_hovedkategori: str | None = None,
+        cached_underkategori: str | None = None,
     ) -> None:
         """
         Update cached fields for a case.
@@ -181,6 +202,19 @@ class SupabaseSakMetadataRepository:
             updates["cached_status"] = cached_status
         if last_event_at is not None:
             updates["last_event_at"] = last_event_at.isoformat()
+        # Reporting fields
+        if cached_sum_krevd is not None:
+            updates["cached_sum_krevd"] = cached_sum_krevd
+        if cached_sum_godkjent is not None:
+            updates["cached_sum_godkjent"] = cached_sum_godkjent
+        if cached_dager_krevd is not None:
+            updates["cached_dager_krevd"] = cached_dager_krevd
+        if cached_dager_godkjent is not None:
+            updates["cached_dager_godkjent"] = cached_dager_godkjent
+        if cached_hovedkategori is not None:
+            updates["cached_hovedkategori"] = cached_hovedkategori
+        if cached_underkategori is not None:
+            updates["cached_underkategori"] = cached_underkategori
 
         if updates:
             self.client.table(self.TABLE_NAME).update(updates).eq(

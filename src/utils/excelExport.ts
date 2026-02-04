@@ -649,3 +649,110 @@ export async function downloadFravikExcel(state: FravikState): Promise<void> {
   // Write file and trigger download
   await downloadWorkbook(workbook, filename);
 }
+
+// ========== BULK EXPORT (ALL CASES) ==========
+
+import type { CaseListItem } from '../types/api';
+import { getOverordnetStatusLabel as getStatusLabel } from '../constants/statusLabels';
+import { formatDateShort } from './formatters';
+
+/**
+ * Download all cases as Excel file
+ *
+ * Creates a single Excel workbook with an overview sheet containing
+ * all cases with key metrics for portfolio reporting.
+ */
+export async function downloadAllCasesExcel(
+  cases: CaseListItem[]
+): Promise<void> {
+  if (cases.length === 0) {
+    alert('Ingen saker å eksportere.');
+    return;
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  const ws = workbook.addWorksheet('Saksoversikt');
+
+  // Headers
+  const headers = [
+    'Sak-ID',
+    'Type',
+    'Tittel',
+    'Status',
+    'Hovedkategori',
+    'Underkategori',
+    'Krevd beløp',
+    'Godkjent beløp',
+    'Differanse',
+    'Krevd dager',
+    'Godkjent dager',
+    'Opprettet',
+    'Sist oppdatert',
+  ];
+
+  ws.addRow(headers);
+
+  // Style header row
+  ws.getRow(1).font = { bold: true };
+  ws.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE0E0E0' },
+  };
+
+  // Data rows
+  for (const c of cases) {
+    const krevd = c.cached_sum_krevd ?? 0;
+    const godkjent = c.cached_sum_godkjent ?? 0;
+    const differanse = krevd - godkjent;
+
+    ws.addRow([
+      c.sak_id,
+      formatSakstype(c.sakstype),
+      c.cached_title || 'Uten tittel',
+      c.cached_status ? getStatusLabel(c.cached_status as OverordnetStatus) : '-',
+      c.cached_hovedkategori ? getHovedkategoriLabel(c.cached_hovedkategori) : '-',
+      c.cached_underkategori ? getUnderkategoriLabel(c.cached_underkategori) : '-',
+      c.cached_sum_krevd ?? '-',
+      c.cached_sum_godkjent ?? '-',
+      c.cached_sum_krevd != null ? differanse : '-',
+      c.cached_dager_krevd != null ? `${c.cached_dager_krevd} dager` : '-',
+      c.cached_dager_godkjent != null ? `${c.cached_dager_godkjent} dager` : '-',
+      c.created_at ? formatDateShort(c.created_at) : '-',
+      c.last_event_at ? formatDateShort(c.last_event_at) : '-',
+    ]);
+  }
+
+  // Format currency columns (7, 8, 9)
+  ws.getColumn(7).numFmt = '#,##0 "kr"';
+  ws.getColumn(8).numFmt = '#,##0 "kr"';
+  ws.getColumn(9).numFmt = '#,##0 "kr"';
+
+  // Set column widths
+  setColumnWidths(ws, [18, 16, 40, 20, 22, 28, 14, 14, 14, 14, 14, 12, 12]);
+
+  // Add summary row at bottom
+  ws.addRow([]);
+  const summaryRow = ws.addRow([
+    'TOTALT',
+    `${cases.length} saker`,
+    '',
+    '',
+    '',
+    '',
+    cases.reduce((sum, c) => sum + (c.cached_sum_krevd ?? 0), 0),
+    cases.reduce((sum, c) => sum + (c.cached_sum_godkjent ?? 0), 0),
+    cases.reduce((sum, c) => sum + (c.cached_sum_krevd ?? 0) - (c.cached_sum_godkjent ?? 0), 0),
+    '',
+    '',
+    '',
+    '',
+  ]);
+  summaryRow.font = { bold: true };
+
+  // Generate filename with date
+  const dateStr = new Date().toISOString().split('T')[0];
+  const filename = `saksoversikt-${dateStr}.xlsx`;
+
+  await downloadWorkbook(workbook, filename);
+}

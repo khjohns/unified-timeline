@@ -483,11 +483,23 @@ if AZURE_FUNCTIONS_AVAILABLE:
                 new_state = ctx.timeline_service.compute_state(all_events)
 
                 # 7. Update metadata cache
+                # Handle legacy array format for underkategori
+                underkategori = new_state.grunnlag.underkategori
+                if isinstance(underkategori, list):
+                    underkategori = underkategori[0] if underkategori else None
+
                 ctx.metadata_repository.update_cache(
                     sak_id=sak_id,
                     cached_title=new_state.sakstittel,
                     cached_status=new_state.overordnet_status,
                     last_event_at=datetime.now(UTC),
+                    # Reporting fields
+                    cached_sum_krevd=new_state.vederlag.krevd_belop,
+                    cached_sum_godkjent=new_state.vederlag.godkjent_belop,
+                    cached_dager_krevd=new_state.frist.krevd_dager,
+                    cached_dager_godkjent=new_state.frist.godkjent_dager,
+                    cached_hovedkategori=new_state.grunnlag.hovedkategori,
+                    cached_underkategori=underkategori,
                 )
 
                 return create_response(
@@ -645,11 +657,23 @@ if AZURE_FUNCTIONS_AVAILABLE:
                 final_state = ctx.timeline_service.compute_state(all_events)
 
                 # 7. Update metadata cache
+                # Handle legacy array format for underkategori
+                underkategori = final_state.grunnlag.underkategori
+                if isinstance(underkategori, list):
+                    underkategori = underkategori[0] if underkategori else None
+
                 ctx.metadata_repository.update_cache(
                     sak_id=sak_id,
                     cached_title=final_state.sakstittel,
                     cached_status=final_state.overordnet_status,
                     last_event_at=datetime.now(UTC),
+                    # Reporting fields
+                    cached_sum_krevd=final_state.vederlag.krevd_belop,
+                    cached_sum_godkjent=final_state.vederlag.godkjent_belop,
+                    cached_dager_krevd=final_state.frist.krevd_dager,
+                    cached_dager_godkjent=final_state.frist.godkjent_dager,
+                    cached_hovedkategori=final_state.grunnlag.hovedkategori,
+                    cached_underkategori=underkategori,
                 )
 
                 return create_response(

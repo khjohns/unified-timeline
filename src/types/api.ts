@@ -158,6 +158,13 @@ export interface CaseListItem {
   created_at: string | null;
   created_by: string;
   last_event_at: string | null;
+  // Reporting fields
+  cached_sum_krevd: number | null;
+  cached_sum_godkjent: number | null;
+  cached_dager_krevd: number | null;
+  cached_dager_godkjent: number | null;
+  cached_hovedkategori: string | null;
+  cached_underkategori: string | null;
 }
 
 export interface CaseListResponse {

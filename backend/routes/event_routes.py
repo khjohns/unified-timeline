@@ -493,11 +493,23 @@ def submit_event():
         new_state = _get_timeline_service().compute_state(all_events)
 
         # 8. Update cached metadata
+        # Handle legacy array format for underkategori
+        underkategori = new_state.grunnlag.underkategori
+        if isinstance(underkategori, list):
+            underkategori = underkategori[0] if underkategori else None
+
         _get_metadata_repo().update_cache(
             sak_id=sak_id,
             cached_title=new_state.sakstittel,
             cached_status=new_state.overordnet_status,
             last_event_at=datetime.now(UTC),
+            # Reporting fields
+            cached_sum_krevd=new_state.vederlag.krevd_belop,
+            cached_sum_godkjent=new_state.vederlag.godkjent_belop,
+            cached_dager_krevd=new_state.frist.krevd_dager,
+            cached_dager_godkjent=new_state.frist.godkjent_dager,
+            cached_hovedkategori=new_state.grunnlag.hovedkategori,
+            cached_underkategori=underkategori,
         )
 
         logger.debug(f"Event persisted, version: {new_version}")
@@ -699,11 +711,23 @@ def submit_batch():
         final_state = _get_timeline_service().compute_state(all_events)
 
         # 7. Update metadata cache (both new and existing cases)
+        # Handle legacy array format for underkategori
+        underkategori = final_state.grunnlag.underkategori
+        if isinstance(underkategori, list):
+            underkategori = underkategori[0] if underkategori else None
+
         _get_metadata_repo().update_cache(
             sak_id=sak_id,
             cached_title=final_state.sakstittel,
             cached_status=final_state.overordnet_status,
             last_event_at=datetime.now(UTC),
+            # Reporting fields
+            cached_sum_krevd=final_state.vederlag.krevd_belop,
+            cached_sum_godkjent=final_state.vederlag.godkjent_belop,
+            cached_dager_krevd=final_state.frist.krevd_dager,
+            cached_dager_godkjent=final_state.frist.godkjent_dager,
+            cached_hovedkategori=final_state.grunnlag.hovedkategori,
+            cached_underkategori=underkategori,
         )
 
         return jsonify(
@@ -769,6 +793,13 @@ def list_cases():
                         "last_event_at": c.last_event_at.isoformat()
                         if c.last_event_at
                         else None,
+                        # Reporting fields
+                        "cached_sum_krevd": c.cached_sum_krevd,
+                        "cached_sum_godkjent": c.cached_sum_godkjent,
+                        "cached_dager_krevd": c.cached_dager_krevd,
+                        "cached_dager_godkjent": c.cached_dager_godkjent,
+                        "cached_hovedkategori": c.cached_hovedkategori,
+                        "cached_underkategori": c.cached_underkategori,
                     }
                     for c in cases
                 ]

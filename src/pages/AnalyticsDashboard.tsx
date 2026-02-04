@@ -30,6 +30,7 @@ import {
   useResponseTimesAnalytics,
   useActorAnalytics,
 } from '../hooks/useAnalytics';
+import { useCaseList } from '../hooks/useCaseList';
 
 // Analysis method components
 import {
@@ -76,13 +77,16 @@ export function AnalyticsDashboard() {
   const { data: responseTimes, isLoading: responseTimesLoading } = useResponseTimesAnalytics({ enabled: !isVerifying });
   const { data: actors, isLoading: actorsLoading } = useActorAnalytics({ enabled: !isVerifying });
 
-  const isLoading = summaryLoading || categoriesLoading || timelineLoading || vederlagLoading || fristLoading || responseTimesLoading || actorsLoading || isVerifying;
+  // Fetch case list for cached reporting data
+  const { data: caseList, isLoading: caseListLoading } = useCaseList({ enabled: !isVerifying });
+
+  const isLoading = summaryLoading || categoriesLoading || timelineLoading || vederlagLoading || fristLoading || responseTimesLoading || actorsLoading || caseListLoading || isVerifying;
 
   // Render active analysis method
   const renderAnalysisContent = () => {
     switch (activeTab) {
       case 'portefolje':
-        return <PortefoljeAnalyse summary={summary} />;
+        return <PortefoljeAnalyse summary={summary} cases={caseList?.cases} />;
       case 'kategori':
         return <KategoriAnalyse categories={categories} />;
       case 'trend':

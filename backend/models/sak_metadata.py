@@ -42,3 +42,23 @@ class SakMetadata(BaseModel):
     last_event_at: datetime | None = Field(
         default=None, description="Timestamp of last event"
     )
+
+    # Cached fields for reporting (portefølje/prosjekt-rapportering)
+    cached_sum_krevd: float | None = Field(
+        default=None, description="Cached vederlag.krevd_belop"
+    )
+    cached_sum_godkjent: float | None = Field(
+        default=None, description="Cached vederlag.godkjent_belop"
+    )
+    cached_dager_krevd: int | None = Field(
+        default=None, description="Cached frist.krevd_dager"
+    )
+    cached_dager_godkjent: int | None = Field(
+        default=None, description="Cached frist.godkjent_dager"
+    )
+    cached_hovedkategori: str | None = Field(
+        default=None, description="Cached grunnlag.hovedkategori"
+    )
+    cached_underkategori: str | None = Field(
+        default=None, description="Cached grunnlag.underkategori"
+    )
