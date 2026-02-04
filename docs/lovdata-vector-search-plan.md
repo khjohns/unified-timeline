@@ -75,10 +75,11 @@ LLM svarer:      "Etter avhendingslova § 4-14 kan du kreve erstatning..."
 ┌──────────────────────────────────────────────────────────────────────┐
 │                      Hybrid Search Layer                             │
 │  ┌────────────────────────┐    ┌────────────────────────┐           │
-│  │   Vektorsøk (70%)      │    │   FTS (30%)            │           │
+│  │   Vektorsøk (50%*)     │    │   FTS (50%*)           │           │
 │  │   Semantisk likhet     │    │   Eksakt match         │           │
 │  │   cosine similarity    │    │   ts_rank              │           │
 │  └────────────────────────┘    └────────────────────────┘           │
+│  * Konfigurerbar vekting (fts_weight parameter)                     │
 │                    └──────────┬───────────┘                         │
 │                               ▼                                      │
 │                    Kombinert ranking                                 │
@@ -122,7 +123,7 @@ LLM svarer:      "Etter avhendingslova § 4-14 kan du kreve erstatning..."
    │
    ▼
 4. Kombiner og ranker resultater
-   │  score = 0.7 * semantic + 0.3 * fts
+   │  score = (1-fts_weight) * semantic + fts_weight * fts
    │
    ▼
 5. Returner topp-K relevante paragrafer
@@ -192,6 +193,13 @@ def create_embedding_text(doc: dict, section: dict) -> str:
 - Fleksible dimensjoner (768/1536/3072)
 - Enkel API, god dokumentasjon
 
+> **Alternativ vurdering:** For spesialisert norsk/nordisk innhold kan det være verdt å evaluere:
+> - **NorBERT3** - Spesialtrent for norsk (NB-BERT)
+> - **multilingual-e5-large** - Sterk på skandinaviske språk
+> - **ScandEval benchmark** - Se [kennethenevoldsen.com/scandinavian-embedding-benchmark](https://kennethenevoldsen.com/scandinavian-embedding-benchmark/)
+>
+> Juridisk terminologi er et spesialtilfelle - test med reelle spørringer før endelig valg.
+
 ### Dimensjonalitet
 
 **Beslutning:** 1536 dimensjoner (balanse)
@@ -209,17 +217,24 @@ For 92 000 seksjoner:
 
 ### Hybrid vs ren vektorsøk
 
-**Beslutning:** Hybrid search (70% vektor, 30% FTS)
+**Beslutning:** Hybrid search med konfigurerbar vekting
+
+**Anbefalt startpunkt:** 50% vektor, 50% FTS (juster basert på evaluering)
 
 **Begrunnelse:**
 - Vektorsøk: Fanger semantisk likhet, synonymer, naturlig språk
 - FTS: Fanger eksakte termer, paragrafnumre, juridiske begreper
 - Kombinert: Best of both worlds
+- Konfigurerbar: Kan justeres per use case
 
 ```sql
--- Hybrid scoring
-combined_score = 0.7 * (1 - cosine_distance) + 0.3 * ts_rank
+-- Hybrid scoring (default fts_weight = 0.5)
+combined_score = (1 - fts_weight) * semantic_score + fts_weight * fts_rank
 ```
+
+> **Tips:** Start med 50/50 vekting og juster basert på evalueringsresultater.
+> Juridiske termer har ofte eksakte formuleringer, så FTS kan være viktigere
+> enn i generelle tekstsøk.
 
 ### Inkrementell vs full re-embedding
 
@@ -274,18 +289,20 @@ ADD COLUMN IF NOT EXISTS embedding vector(1536);
 ALTER TABLE lovdata_sections
 ADD COLUMN IF NOT EXISTS content_hash TEXT;
 
--- 4. Opprett IVFFlat indeks for rask søking
--- (kjøres ETTER embeddings er generert)
--- CREATE INDEX ON lovdata_sections
--- USING ivfflat (embedding vector_cosine_ops)
--- WITH (lists = 100);
+-- 4. Opprett HNSW indeks for rask søking
+-- HNSW gir bedre recall enn IVFFlat uten behov for tuning
+-- (kjøres ETTER embeddings er generert for bedre ytelse)
+CREATE INDEX IF NOT EXISTS lovdata_sections_embedding_idx
+ON lovdata_sections
+USING hnsw (embedding vector_cosine_ops)
+WITH (m = 16, ef_construction = 64);
 
 -- 5. Hybrid søkefunksjon
 CREATE OR REPLACE FUNCTION search_lovdata_hybrid(
     query_text TEXT,
     query_embedding vector(1536),
     match_count INT DEFAULT 10,
-    fts_weight FLOAT DEFAULT 0.3
+    fts_weight FLOAT DEFAULT 0.5  -- Start med 50/50 vekting
 )
 RETURNS TABLE (
     id UUID,
@@ -505,14 +522,15 @@ def main():
             embeddings = generate_embeddings_batch(batch_texts)
 
             # Forbered oppdateringer
+            # VIKTIG: Hash må inkludere context enrichment for å detektere endringer
             updates = []
-            for j, (section_id, embedding, section) in enumerate(
-                zip(batch_ids, embeddings, batch_sections)
+            for j, (section_id, embedding, section, text) in enumerate(
+                zip(batch_ids, embeddings, batch_sections, batch_texts)
             ):
                 updates.append({
                     'id': section_id,
                     'embedding': embedding,
-                    'content_hash': content_hash(section['content'])
+                    'content_hash': content_hash(text)  # Hash hele embedding-teksten
                 })
 
             update_section_embeddings(supabase, updates)
@@ -540,15 +558,20 @@ Vektorsøk for Lovdata med hybrid FTS+embedding search.
 """
 
 import os
+import logging
 from dataclasses import dataclass
+from functools import lru_cache
 
 import google.generativeai as genai
 
 from lib.supabase import get_supabase_client, with_retry
 
 
+logger = logging.getLogger(__name__)
+
 EMBEDDING_MODEL = "models/gemini-embedding-001"
 EMBEDDING_DIM = 1536
+DEFAULT_FTS_WEIGHT = 0.5  # Konfigurerbar startverdi
 
 
 @dataclass
@@ -589,21 +612,63 @@ class LovdataVectorSearch:
             raise ValueError("GEMINI_API_KEY må settes for vektorsøk")
         genai.configure(api_key=api_key)
 
-    def _generate_query_embedding(self, query: str) -> list[float]:
-        """Generer embedding for søkespørring."""
+    @lru_cache(maxsize=1000)
+    def _generate_query_embedding(self, query: str) -> tuple[float, ...]:
+        """
+        Generer embedding for søkespørring.
+
+        Caches resultater for å unngå gjentatte API-kall for samme spørring.
+        Returnerer tuple (immutable) for caching-kompatibilitet.
+        """
         result = genai.embed_content(
             model=EMBEDDING_MODEL,
             content=query,
             output_dimensionality=EMBEDDING_DIM
         )
-        return result['embedding']
+        return tuple(result['embedding'])
+
+    def _fallback_fts_search(
+        self,
+        query: str,
+        limit: int
+    ) -> list[VectorSearchResult]:
+        """Fallback til ren FTS ved embedding API-feil."""
+        logger.warning(f"Fallback til FTS for query: {query[:50]}...")
+        result = self.supabase.table('lovdata_sections').select(
+            'id, dok_id, section_id, title, content'
+        ).text_search('search_vector', query).limit(limit).execute()
+
+        if not result.data:
+            return []
+
+        # Hent dokumentmetadata
+        dok_ids = list({row['dok_id'] for row in result.data})
+        docs_result = self.supabase.table('lovdata_documents').select(
+            'dok_id, short_title, doc_type'
+        ).in_('dok_id', dok_ids).execute()
+        docs = {d['dok_id']: d for d in docs_result.data}
+
+        return [
+            VectorSearchResult(
+                dok_id=row['dok_id'],
+                section_id=row['section_id'],
+                title=row.get('title'),
+                content=row['content'],
+                short_title=docs.get(row['dok_id'], {}).get('short_title', ''),
+                doc_type=docs.get(row['dok_id'], {}).get('doc_type', ''),
+                similarity=0.0,
+                fts_rank=1.0,  # FTS-only, så maks rank
+                combined_score=1.0
+            )
+            for row in result.data
+        ]
 
     @with_retry()
     def search(
         self,
         query: str,
         limit: int = 10,
-        fts_weight: float = 0.3
+        fts_weight: float = DEFAULT_FTS_WEIGHT
     ) -> list[VectorSearchResult]:
         """
         Utfør hybrid søk.
@@ -611,13 +676,17 @@ class LovdataVectorSearch:
         Args:
             query: Søkespørring (naturlig språk)
             limit: Maks antall resultater
-            fts_weight: Vekting av FTS vs vektor (0-1)
+            fts_weight: Vekting av FTS vs vektor (0-1, default 0.5)
 
         Returns:
             Liste med VectorSearchResult sortert etter relevans
         """
-        # Generer query embedding
-        query_embedding = self._generate_query_embedding(query)
+        # Generer query embedding med fallback til FTS ved feil
+        try:
+            query_embedding = list(self._generate_query_embedding(query))
+        except Exception as e:
+            logger.error(f"Embedding API feil: {e}")
+            return self._fallback_fts_search(query, limit)
 
         # Kall hybrid søkefunksjon
         result = self.supabase.rpc('search_lovdata_hybrid', {
@@ -678,7 +747,9 @@ Bruk:
 from backend.services.lovdata_vector_search import LovdataVectorSearch
 
 # Test-spørsmål med forventede paragrafer
+# 25+ diverse queries fordelt på kategorier for robust evaluering
 TEST_QUERIES = [
+    # === Naturlig språk (ikke-jurister) ===
     {
         "query": "Kan jeg kreve penger tilbake for skjulte feil i boligen?",
         "expected": ["avhendingslova § 4-14", "avhendingslova § 3-9"],
@@ -695,14 +766,125 @@ TEST_QUERIES = [
         "category": "naturlig_språk"
     },
     {
+        "query": "Hvor lenge kan arbeidsgiver ansette midlertidig?",
+        "expected": ["arbeidsmiljøloven § 14-9"],
+        "category": "naturlig_språk"
+    },
+    {
+        "query": "Hva skjer hvis entreprenøren leverer for sent?",
+        "expected": ["bustadoppføringslova § 17", "bustadoppføringslova § 18"],
+        "category": "naturlig_språk"
+    },
+    {
+        "query": "Kan jeg si opp leiekontrakt ved støyproblemer?",
+        "expected": ["husleieloven § 2-12", "husleieloven § 9-9"],
+        "category": "naturlig_språk"
+    },
+    {
+        "query": "Når må arbeidsgiver varsle om oppsigelse?",
+        "expected": ["arbeidsmiljøloven § 15-3", "arbeidsmiljøloven § 15-4"],
+        "category": "naturlig_språk"
+    },
+    {
+        "query": "Må jeg betale for feil som var der da jeg kjøpte boligen?",
+        "expected": ["avhendingslova § 3-9", "avhendingslova § 3-7"],
+        "category": "naturlig_språk"
+    },
+    {
+        "query": "Hvor mye kan jeg kreve i erstatning for byggeprosjektfeil?",
+        "expected": ["bustadoppføringslova § 35", "bustadoppføringslova § 36"],
+        "category": "naturlig_språk"
+    },
+
+    # === Juridiske termer ===
+    {
         "query": "mangel fast eiendom",
         "expected": ["avhendingslova § 3-9"],
         "category": "juridisk_term"
     },
     {
+        "query": "reklamasjonsfrist boligkjøp",
+        "expected": ["avhendingslova § 4-19"],
+        "category": "juridisk_term"
+    },
+    {
+        "query": "opplysningsplikt selger",
+        "expected": ["avhendingslova § 3-7", "avhendingslova § 3-8"],
+        "category": "juridisk_term"
+    },
+    {
+        "query": "force majeure entreprise",
+        "expected": ["bustadoppføringslova § 11"],
+        "category": "juridisk_term"
+    },
+    {
+        "query": "utbedring mangel",
+        "expected": ["avhendingslova § 4-10", "bustadoppføringslova § 32"],
+        "category": "juridisk_term"
+    },
+    {
+        "query": "prisavslag bolig",
+        "expected": ["avhendingslova § 4-12"],
+        "category": "juridisk_term"
+    },
+    {
+        "query": "heving kjøp bolig",
+        "expected": ["avhendingslova § 4-13"],
+        "category": "juridisk_term"
+    },
+    {
+        "query": "kontraktsbrudd entreprenør",
+        "expected": ["bustadoppføringslova § 17", "bustadoppføringslova § 28"],
+        "category": "juridisk_term"
+    },
+
+    # === Eksakte referanser ===
+    {
         "query": "erstatning § 4-14",
         "expected": ["avhendingslova § 4-14"],
         "category": "eksakt_referanse"
+    },
+    {
+        "query": "arbeidsmiljøloven § 14-9",
+        "expected": ["arbeidsmiljøloven § 14-9"],
+        "category": "eksakt_referanse"
+    },
+    {
+        "query": "avhendingslova § 3-9 mangel",
+        "expected": ["avhendingslova § 3-9"],
+        "category": "eksakt_referanse"
+    },
+    {
+        "query": "pbl § 21-4 søknadsplikt",
+        "expected": ["plan-og-bygningsloven § 21-4"],
+        "category": "eksakt_referanse"
+    },
+    {
+        "query": "forvaltningsloven § 11 veiledningsplikt",
+        "expected": ["forvaltningsloven § 11"],
+        "category": "eksakt_referanse"
+    },
+
+    # === Bygge- og entrepriserett (primært bruksområde) ===
+    {
+        "query": "krav om endring byggeprosjekt",
+        "expected": ["bustadoppføringslova § 9"],
+        "category": "entreprise"
+    },
+    {
+        "query": "overtakelse nybygg",
+        "expected": ["bustadoppføringslova § 14", "bustadoppføringslova § 15"],
+        "category": "entreprise"
+    },
+    {
+        "query": "sluttoppgjør entreprise",
+        "expected": ["bustadoppføringslova § 48"],
+        "category": "entreprise"
+    },
+    {
+        "query": "garantistillelse entreprenør",
+        "expected": ["bustadoppføringslova § 12"],
+        "category": "entreprise"
     },
 ]
 
@@ -779,7 +961,7 @@ Fase 2: Embedding-generering (30-60 min)
 ├── Sett GEMINI_API_KEY
 ├── Kjør scripts/embed_lovdata.py --dry-run
 ├── Kjør scripts/embed_lovdata.py
-└── Opprett IVFFlat indeks etter embedding
+└── Verifiser at HNSW-indeks er opprettet
 
 Fase 3: Søke-API (15 min)
 ├── Implementer LovdataVectorSearch
@@ -817,9 +999,9 @@ SUPABASE_SECRET_KEY=<service-role-key>
 
 | Risiko | Sannsynlighet | Konsekvens | Mitigering |
 |--------|---------------|------------|------------|
-| Gemini API utilgjengelig | Lav | Søk feiler | Fallback til FTS |
-| Dårlig norsk embedding-kvalitet | Medium | Irrelevante treff | Test og juster, vurder BGE-M3 |
-| Høy latens | Lav | Treg UX | Cache query embeddings |
+| Gemini API utilgjengelig | Lav | Søk feiler | ✅ Fallback til FTS implementert |
+| Dårlig norsk embedding-kvalitet | Medium | Irrelevante treff | Test og juster, vurder BGE-M3/NorBERT |
+| Høy latens | Lav | Treg UX | ✅ Query embedding cache implementert |
 | Kostnad overskrider estimat | Lav | Budsjett | Monitor bruk, sett alerts |
 
 ---
