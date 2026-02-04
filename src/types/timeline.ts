@@ -205,7 +205,6 @@ export interface VederlagTilstand {
   /** Ble BH varslet før regningsarbeidet startet? (§34.4) */
   varslet_for_oppstart?: boolean;
   produktivitetstap_varsel?: VarselInfo;
-  krav_fremmet_dato?: string;
 
   // BH respons - Port 1 (Varsling)
   varsel_justert_ep_ok?: boolean;
@@ -672,7 +671,6 @@ export interface VederlagEventData {
   /** Ble BH varslet før regningsarbeidet startet? (§34.4) */
   varslet_for_oppstart?: boolean;
   produktivitetstap_varsel?: VarselInfo;
-  krav_fremmet_dato?: string;
 }
 
 export interface FristEventData {

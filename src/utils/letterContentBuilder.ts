@@ -48,7 +48,9 @@ function getKravDato(spor: SporType, state: SakState): string | undefined {
     case 'grunnlag':
       return state.grunnlag.grunnlag_varsel?.dato_sendt;
     case 'vederlag':
-      return state.vederlag.krav_fremmet_dato;
+      // Vederlag krav dato comes from first vederlag event timestamp
+      // For letter content, use siste_oppdatert as fallback
+      return state.vederlag.siste_oppdatert;
     case 'frist':
       return state.frist.spesifisert_varsel?.dato_sendt ||
              state.frist.frist_varsel?.dato_sendt;

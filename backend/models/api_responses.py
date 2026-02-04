@@ -197,7 +197,6 @@ class VederlagHistorikkEntry(BaseModel):
     inkluderer_produktivitet: bool | None = None
     rigg_drift_belop: float | None = None  # Særskilt krav §34.1.3
     produktivitet_belop: float | None = None  # Særskilt krav §34.1.3
-    krav_fremmet_dato: str | None = None  # Preklusjonsrelevant
 
     # BH-respons felter (for respons/respons_oppdatert)
     bh_resultat: str | None = None

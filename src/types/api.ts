@@ -96,7 +96,6 @@ export interface VederlagHistorikkEntry {
   inkluderer_produktivitet?: boolean | null;
   rigg_drift_belop?: number | null; // Særskilt krav §34.1.3
   produktivitet_belop?: number | null; // Særskilt krav §34.1.3
-  krav_fremmet_dato?: string | null; // Preklusjonsrelevant
 
   // BH-respons felter (for respons/respons_oppdatert)
   bh_resultat?: string | null;

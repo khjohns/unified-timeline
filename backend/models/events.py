@@ -578,12 +578,6 @@ class VederlagData(VederlagKompensasjon):
         default=None, description="Varselinfo for produktivitetstap (§34.1.3, 2. ledd)"
     )
 
-    # Generelt krav fremmet
-    krav_fremmet_dato: str | None = Field(
-        default=None,
-        description="Dato spesifisert vederlagskrav ble formelt fremmet (YYYY-MM-DD)",
-    )
-
 
 class VederlagEvent(SakEvent):
     """

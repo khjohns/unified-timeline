@@ -549,7 +549,8 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               krever_justert_ep: state.vederlag.krever_justert_ep,
               saerskilt_krav: state.vederlag.saerskilt_krav,
               dato_oppdaget: state.grunnlag.dato_oppdaget,
-              dato_krav_mottatt: state.vederlag.krav_fremmet_dato,
+              // Use first vederlag event timestamp as krav mottatt dato
+              dato_krav_mottatt: vederlagHistorikk.find(e => e.endring_type === 'sendt')?.tidsstempel,
             }}
             onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
             approvalEnabled={approvalWorkflow.approvalEnabled}
@@ -699,7 +700,8 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               krever_justert_ep: state.vederlag.krever_justert_ep,
               saerskilt_krav: state.vederlag.saerskilt_krav,
               dato_oppdaget: state.grunnlag.dato_oppdaget,
-              dato_krav_mottatt: state.vederlag.krav_fremmet_dato,
+              // Use first vederlag event timestamp as krav mottatt dato
+              dato_krav_mottatt: vederlagHistorikk.find(e => e.endring_type === 'sendt')?.tidsstempel,
             }}
             lastResponseEvent={{
               event_id: `vederlag-response-${sakId}`,

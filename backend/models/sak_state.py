@@ -163,7 +163,6 @@ class VederlagTilstand(BaseModel):
         default=None, description="Ble BH varslet før regningsarbeidet startet? (§34.4)"
     )
     produktivitetstap_varsel: dict | None = Field(default=None)
-    krav_fremmet_dato: str | None = Field(default=None)
 
     # BH respons - Port 1 (Varsling)
     varsel_justert_ep_ok: bool | None = Field(default=None)

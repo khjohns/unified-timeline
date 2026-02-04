@@ -504,11 +504,9 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
           <View style={styles.mainSubSection}>
             <Text style={styles.mainSubSectionTitle}>Entreprenørens krav</Text>
             <View style={styles.table}>
-              <TableRow4Col
-                label1="Oppgjørsmetode"
-                value1={formatVederlagsmetode(vederlag.metode)}
-                label2="Krav fremmet"
-                value2={formatDate(vederlag.krav_fremmet_dato)}
+              <TableRow
+                label="Oppgjørsmetode"
+                value={formatVederlagsmetode(vederlag.metode)}
               />
 
               {/* Hovedkrav */}

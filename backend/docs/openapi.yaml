@@ -1657,13 +1657,6 @@ components:
           - type: 'null'
           default: null
           description: Varselinfo for produktivitetstap (§34.1.3, 2. ledd)
-        krav_fremmet_dato:
-          anyOf:
-          - type: string
-          - type: 'null'
-          default: null
-          description: Dato spesifisert vederlagskrav ble formelt fremmet (YYYY-MM-DD)
-          title: Krav Fremmet Dato
         netto_belop:
           description: 'Beregner netto beløp basert på metode.
 

@@ -272,7 +272,7 @@ erDiagram
 │ METADATA:           │    │ justert_ep_varsel       │    │ BH RESPONS PORT 2 (Vilkår): │
 │ siste_event_id      │    │ regningsarbeid_varsel   │    │ vilkar_oppfylt              │
 │ siste_oppdatert     │    │ produktivitetstap_varsel│    │ begrunnelse_vilkar          │
-│ antall_versjoner    │    │ krav_fremmet_dato       │    │─────────────────────────────│
+│ antall_versjoner    │    │                         │    │─────────────────────────────│
 └─────────────────────┘    │─────────────────────────│    │ BH RESPONS PORT 3 (Beregn.):│
                            │ BH RESPONS PORT 1:      │    │ bh_resultat                 │
                            │ saerskilt_varsel_ok     │    │ bh_begrunnelse              │

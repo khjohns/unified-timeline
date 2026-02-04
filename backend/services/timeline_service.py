@@ -465,7 +465,6 @@ class TimelineService:
                 if hasattr(event.data.produktivitetstap_varsel, "model_dump")
                 else event.data.produktivitetstap_varsel
             )
-        vederlag.krav_fremmet_dato = event.data.krav_fremmet_dato
 
         # Oppdater status
         if event.event_type == EventType.VEDERLAG_KRAV_SENDT:
@@ -1528,7 +1527,6 @@ class TimelineService:
                     ),
                     rigg_drift_belop=rigg_drift_belop,
                     produktivitet_belop=produktivitet_belop,
-                    krav_fremmet_dato=getattr(event.data, "krav_fremmet_dato", None),
                 )
                 historikk.append(entry.model_dump(mode="json"))
 
@@ -1567,7 +1565,6 @@ class TimelineService:
                     ),
                     rigg_drift_belop=rigg_drift_belop,
                     produktivitet_belop=produktivitet_belop,
-                    krav_fremmet_dato=getattr(event.data, "krav_fremmet_dato", None),
                 )
                 historikk.append(entry.model_dump(mode="json"))
 
