@@ -20,6 +20,7 @@ const IntegrasjonerPage = lazy(() => import('./pages/IntegrasjonerPage'));
 const MappingDetailPage = lazy(() => import('./pages/MappingDetailPage'));
 const PersonvernPage = lazy(() => import('./pages/PersonvernPage'));
 const CookiesPage = lazy(() => import('./pages/CookiesPage'));
+const OAuthConsentPage = lazy(() => import('./pages/OAuthConsentPage'));
 
 /**
  * Main App for Event Sourcing Architecture
@@ -50,6 +51,7 @@ const App: React.FC = () => {
           <Route path="/showcase" element={<ComponentShowcase />} />
           <Route path="/personvern" element={<PersonvernPage />} />
           <Route path="/cookies" element={<CookiesPage />} />
+          <Route path="/oauth/consent" element={<OAuthConsentPage />} />
 
           {/* Protected routes - require Supabase Auth */}
           <Route

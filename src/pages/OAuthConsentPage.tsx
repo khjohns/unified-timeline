@@ -1,0 +1,257 @@
+/**
+ * OAuth Consent Page
+ *
+ * Displays authorization request details and allows users to approve or deny
+ * third-party applications (like Claude.ai) access to their account.
+ *
+ * This page is part of the Supabase OAuth 2.1 Server flow.
+ * When a client requests authorization, Supabase redirects here with an
+ * authorization_id parameter.
+ */
+
+import { useEffect, useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { useSupabaseAuth } from '../context/SupabaseAuthContext';
+import { LoadingState, ErrorState } from '../components/PageStateHelpers';
+
+interface AuthorizationDetails {
+  client: {
+    name: string;
+    client_id: string;
+  };
+  scopes: string[];
+  redirect_uri: string;
+}
+
+export default function OAuthConsentPage() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useSupabaseAuth();
+
+  const [authDetails, setAuthDetails] = useState<AuthorizationDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
+
+  const authorizationId = searchParams.get('authorization_id');
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      const returnUrl = `/oauth/consent?authorization_id=${authorizationId}`;
+      navigate(`/?redirect=${encodeURIComponent(returnUrl)}`);
+    }
+  }, [authLoading, user, authorizationId, navigate]);
+
+  // Fetch authorization details
+  useEffect(() => {
+    async function fetchAuthDetails() {
+      if (!authorizationId || !user) return;
+
+      try {
+        // @ts-expect-error - OAuth methods may not be in type definitions yet
+        const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(
+          authorizationId
+        );
+
+        if (error) {
+          setError(error.message);
+          return;
+        }
+
+        setAuthDetails(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Kunne ikke hente autorisasjonsdetaljer');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (user) {
+      fetchAuthDetails();
+    }
+  }, [authorizationId, user]);
+
+  const handleApprove = async () => {
+    if (!authorizationId) return;
+
+    setProcessing(true);
+    try {
+      // @ts-expect-error - OAuth methods may not be in type definitions yet
+      const { data, error } = await supabase.auth.oauth.approveAuthorization(authorizationId);
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      // Redirect back to the client with the authorization code
+      if (data?.redirect_to) {
+        window.location.href = data.redirect_to;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Kunne ikke godkjenne autorisasjonen');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleDeny = async () => {
+    if (!authorizationId) return;
+
+    setProcessing(true);
+    try {
+      // @ts-expect-error - OAuth methods may not be in type definitions yet
+      const { data, error } = await supabase.auth.oauth.denyAuthorization(authorizationId);
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      // Redirect back to the client with error
+      if (data?.redirect_to) {
+        window.location.href = data.redirect_to;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Kunne ikke avslå autorisasjonen');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Show loading while checking auth
+  if (authLoading || (loading && user)) {
+    return <LoadingState />;
+  }
+
+  // Missing authorization_id
+  if (!authorizationId) {
+    return (
+      <ErrorState
+        title="Mangler autorisasjons-ID"
+        message="Ingen authorization_id parameter i URL-en."
+      />
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <ErrorState
+        title="Autorisasjonsfeil"
+        message={error}
+      />
+    );
+  }
+
+  // Not authenticated (should redirect, but show fallback)
+  if (!user) {
+    return <LoadingState />;
+  }
+
+  // No auth details yet
+  if (!authDetails) {
+    return <LoadingState />;
+  }
+
+  const scopeDescriptions: Record<string, string> = {
+    openid: 'Grunnleggende identitet',
+    profile: 'Profilinformasjon (navn)',
+    email: 'E-postadresse',
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-pkt-bg-subtle p-4">
+      <div className="bg-pkt-bg-default rounded-lg shadow-lg max-w-md w-full p-6 space-y-6">
+        {/* Header */}
+        <div className="text-center">
+          <div className="w-16 h-16 bg-pkt-bg-subtle rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg
+              className="w-8 h-8 text-pkt-text-body-subtle"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+              />
+            </svg>
+          </div>
+          <h1 className="text-xl font-semibold text-pkt-text-body-default">
+            Gi tilgang til {authDetails.client.name}?
+          </h1>
+          <p className="text-sm text-pkt-text-body-subtle mt-2">
+            {authDetails.client.name} ber om tilgang til kontoen din.
+          </p>
+        </div>
+
+        {/* User info */}
+        <div className="bg-pkt-bg-subtle rounded-md p-3">
+          <p className="text-sm text-pkt-text-body-subtle">Logget inn som</p>
+          <p className="text-sm font-medium text-pkt-text-body-default">{user.email}</p>
+        </div>
+
+        {/* Requested permissions */}
+        {authDetails.scopes && authDetails.scopes.length > 0 && (
+          <div>
+            <h2 className="text-sm font-medium text-pkt-text-body-default mb-2">
+              Tillatelser som forespørres:
+            </h2>
+            <ul className="space-y-2">
+              {authDetails.scopes.map((scope) => (
+                <li
+                  key={scope}
+                  className="flex items-center gap-2 text-sm text-pkt-text-body-subtle"
+                >
+                  <svg
+                    className="w-4 h-4 text-green-600 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  {scopeDescriptions[scope] || scope}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={handleDeny}
+            disabled={processing}
+            className="flex-1 px-4 py-2.5 rounded-md border border-pkt-border-default bg-pkt-bg-default text-pkt-text-body-default hover:bg-pkt-bg-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Avslå
+          </button>
+          <button
+            onClick={handleApprove}
+            disabled={processing}
+            className="flex-1 px-4 py-2.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {processing ? 'Behandler...' : 'Godkjenn'}
+          </button>
+        </div>
+
+        {/* Footer */}
+        <p className="text-xs text-pkt-text-body-subtle text-center">
+          Ved å godkjenne gir du {authDetails.client.name} tilgang til informasjonen nevnt
+          ovenfor. Du kan når som helst trekke tilbake tilgangen.
+        </p>
+      </div>
+    </div>
+  );
+}
