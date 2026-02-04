@@ -121,3 +121,41 @@ service.sync(force=True)
 2. **Bruk aliaser** - de er enklere å huske enn fulle ID-er
 3. **Henvis til lovdata.no** for rettsavgjørelser og forarbeider
 4. **Estimer tokens** med `get_section_size()` før du henter lange paragrafer
+
+## MCP-spesifikke tips (via Claude.ai connector)
+
+### Paragraf-format
+
+| Format | Resultat |
+|--------|----------|
+| `"3-9"` | ✅ Riktig |
+| `"§ 3-9"` | ⚠️ Gir dobbelt § i output |
+| `"17"` | ✅ Fungerer for enkle numre |
+| `"14-9 a"` | ❌ Bokstav-ledd ikke støttet |
+| `"kapittel 3"` | ❌ Kapitler støttes ikke |
+
+**Regel:** Ikke inkluder §-tegn i paragraf-parameter.
+
+### Søketips
+
+- **Enkle søkeord fungerer best**: `"mangel"` gir treff
+- **Komplekse søk kan feile**: `"erstatning mangel bolig"` gir ofte ingen treff
+- **Bruk ett eller to ord** for best resultat
+
+### Forskrifter
+
+Forskrifter returnerer ofte kun lenke til lovdata.no, ikke fullt innhold.
+Lover har bedre dekning enn forskrifter i cachen.
+
+### Responstid
+
+- ~400-450ms per API-kall (fra Claude.ai)
+- Varm cache i Supabase: ~6ms internt
+
+### Feilhåndtering
+
+Manglende innhold gir en lenke til lovdata.no, ikke tom respons:
+```
+Lovteksten er ikke tilgjengelig i lokal cache.
+Se fullstendig tekst på Lovdata: [lenke]
+```
