@@ -15,6 +15,8 @@ import { supabase } from '../lib/supabase';
 import { useSupabaseAuth } from '../context/SupabaseAuthContext';
 import { LoadingState, ErrorState } from '../components/PageStateHelpers';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
 interface AuthorizationDetails {
   client: {
     name: string;
@@ -44,7 +46,7 @@ export default function OAuthConsentPage() {
     }
   }, [authLoading, user, authorizationId, navigate]);
 
-  // Fetch authorization details
+  // Fetch authorization details via backend API (server-side proxy to Supabase)
   useEffect(() => {
     async function fetchAuthDetails() {
       if (!authorizationId) {
@@ -54,24 +56,34 @@ export default function OAuthConsentPage() {
       if (!user) return;
 
       try {
-        // Check if OAuth methods exist
-        // @ts-expect-error - OAuth methods may not be in type definitions yet
-        if (!supabase.auth.oauth?.getAuthorizationDetails) {
-          setError('OAuth-metoder ikke tilgjengelig i denne versjonen av supabase-js. Sjekk at OAuth Server er aktivert i Supabase.');
+        // Get the user's session token
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData?.session?.access_token;
+
+        if (!accessToken) {
+          setError('Ingen gyldig sesjon. Vennligst logg inn på nytt.');
           setLoading(false);
           return;
         }
 
-        console.log('Fetching authorization details for:', authorizationId);
-        // @ts-expect-error - OAuth methods may not be in type definitions yet
-        const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(
-          authorizationId
+        console.log('Fetching authorization details via backend for:', authorizationId);
+
+        // Call our backend API which proxies to Supabase
+        const response = await fetch(
+          `${API_BASE_URL}/api/oauth/authorization/${authorizationId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          }
         );
 
-        console.log('Authorization details response:', { data, error });
+        const data = await response.json();
+        console.log('Authorization details response:', { status: response.status, data });
 
-        if (error) {
-          setError(`${error.message} (${error.code || 'unknown'})`);
+        if (!response.ok) {
+          setError(`${data.message || data.error || 'Ukjent feil'} (${response.status})`);
           return;
         }
 
@@ -99,11 +111,29 @@ export default function OAuthConsentPage() {
 
     setProcessing(true);
     try {
-      // @ts-expect-error - OAuth methods may not be in type definitions yet
-      const { data, error } = await supabase.auth.oauth.approveAuthorization(authorizationId);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
 
-      if (error) {
-        setError(error.message);
+      if (!accessToken) {
+        setError('Ingen gyldig sesjon. Vennligst logg inn på nytt.');
+        return;
+      }
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/oauth/authorization/${authorizationId}/approve`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || data.error || 'Kunne ikke godkjenne autorisasjonen');
         return;
       }
 
@@ -123,11 +153,29 @@ export default function OAuthConsentPage() {
 
     setProcessing(true);
     try {
-      // @ts-expect-error - OAuth methods may not be in type definitions yet
-      const { data, error } = await supabase.auth.oauth.denyAuthorization(authorizationId);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
 
-      if (error) {
-        setError(error.message);
+      if (!accessToken) {
+        setError('Ingen gyldig sesjon. Vennligst logg inn på nytt.');
+        return;
+      }
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/oauth/authorization/${authorizationId}/deny`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || data.error || 'Kunne ikke avslå autorisasjonen');
         return;
       }
 
