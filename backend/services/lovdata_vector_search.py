@@ -11,14 +11,15 @@ import logging
 from dataclasses import dataclass
 from functools import lru_cache
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from lib.supabase import get_shared_client, with_retry
 
 
 logger = logging.getLogger(__name__)
 
-EMBEDDING_MODEL = "models/gemini-embedding-001"
+EMBEDDING_MODEL = "gemini-embedding-001"
 EMBEDDING_DIM = 1536
 DEFAULT_FTS_WEIGHT = 0.5  # Configurable starting point
 TASK_TYPE_QUERY = "RETRIEVAL_QUERY"  # Optimized for search queries
@@ -68,18 +69,18 @@ class LovdataVectorSearch:
 
     def __init__(self):
         self.supabase = get_shared_client()
-        self._gemini_configured = False
+        self._genai_client = None
 
-    def _ensure_gemini(self):
-        """Configure Gemini API lazily."""
-        if self._gemini_configured:
-            return
+    def _get_genai_client(self) -> genai.Client:
+        """Get or create Gemini API client lazily."""
+        if self._genai_client is not None:
+            return self._genai_client
 
         api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("GEMINI_API_KEY must be set for vector search")
-        genai.configure(api_key=api_key)
-        self._gemini_configured = True
+        self._genai_client = genai.Client(api_key=api_key)
+        return self._genai_client
 
     @staticmethod
     def _normalize(embedding: list[float]) -> list[float]:
@@ -96,16 +97,18 @@ class LovdataVectorSearch:
         Returns tuple (immutable) for caching compatibility.
         Uses RETRIEVAL_QUERY task type for optimized search quality.
         """
-        self._ensure_gemini()
+        client = self._get_genai_client()
 
-        result = genai.embed_content(
+        result = client.models.embed_content(
             model=EMBEDDING_MODEL,
-            content=query,
-            task_type=TASK_TYPE_QUERY,
-            output_dimensionality=EMBEDDING_DIM
+            contents=query,
+            config=types.EmbedContentConfig(
+                task_type=TASK_TYPE_QUERY,
+                output_dimensionality=EMBEDDING_DIM
+            )
         )
         # Normalize for correct cosine similarity (required for 1536 dim)
-        normalized = self._normalize(result['embedding'])
+        normalized = self._normalize(list(result.embeddings[0].values))
         return tuple(normalized)
 
     def _fallback_fts_search(

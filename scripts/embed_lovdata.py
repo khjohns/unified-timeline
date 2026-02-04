@@ -19,32 +19,43 @@ from typing import Generator
 # Add backend to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from supabase import create_client
 
 # Configuration
-EMBEDDING_MODEL = "models/gemini-embedding-001"
+EMBEDDING_MODEL = "gemini-embedding-001"
 EMBEDDING_DIM = 1536
 BATCH_SIZE = 100  # Google API batch limit
 TASK_TYPE_DOCUMENT = "RETRIEVAL_DOCUMENT"  # Optimized for document retrieval
 RPM_LIMIT = 100  # Free tier rate limit
 
+# Global client
+_genai_client = None
+
 
 def get_supabase_client():
     """Create Supabase client."""
     url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    key = (os.environ.get("SUPABASE_SECRET_KEY")
+           or os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+           or os.environ.get("SUPABASE_KEY"))
     if not url or not key:
-        raise ValueError("SUPABASE_URL and SUPABASE_SECRET_KEY must be set")
+        raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
     return create_client(url, key)
 
 
-def get_gemini_client():
-    """Configure Gemini API."""
+def get_gemini_client() -> genai.Client:
+    """Get or create Gemini API client."""
+    global _genai_client
+    if _genai_client is not None:
+        return _genai_client
+
     api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY must be set")
-    genai.configure(api_key=api_key)
+    _genai_client = genai.Client(api_key=api_key)
+    return _genai_client
 
 
 def content_hash(text: str) -> str:
@@ -122,14 +133,17 @@ def generate_embeddings_batch(
         texts: List of texts to embed
         task_type: RETRIEVAL_DOCUMENT for law texts, RETRIEVAL_QUERY for search
     """
-    result = genai.embed_content(
+    client = get_gemini_client()
+    result = client.models.embed_content(
         model=EMBEDDING_MODEL,
-        content=texts,
-        task_type=task_type,
-        output_dimensionality=EMBEDDING_DIM
+        contents=texts,
+        config=types.EmbedContentConfig(
+            task_type=task_type,
+            output_dimensionality=EMBEDDING_DIM
+        )
     )
     # Normalize embeddings (required for 768/1536 dim)
-    return [normalize_embedding(emb) for emb in result['embedding']]
+    return [normalize_embedding(list(emb.values)) for emb in result.embeddings]
 
 
 def update_section_embeddings(supabase, updates: list[dict]) -> None:
