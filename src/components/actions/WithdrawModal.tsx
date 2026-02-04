@@ -214,7 +214,8 @@ export function WithdrawModal({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Optional begrunnelse */}
           <FormField
-            label="Begrunnelse (valgfritt)"
+            label="Begrunnelse"
+            optional
             helpText="Oppgi hvorfor du ønsker å trekke tilbake kravet"
           >
             <Textarea

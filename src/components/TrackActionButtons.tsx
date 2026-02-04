@@ -70,7 +70,7 @@ export function GrunnlagActionButtons({
         </Button>
       )}
       {userRole === 'TE' && actions.canWithdrawGrunnlag && (
-        <Button variant="ghost" size="sm" onClick={onWithdrawGrunnlag}>
+        <Button variant="ghost" size="sm" onClick={onWithdrawGrunnlag} className="ml-auto">
           <CrossCircledIcon className="w-4 h-4 mr-2" />
           Trekk tilbake
         </Button>
@@ -141,7 +141,7 @@ export function VederlagActionButtons({
       )}
       {/* TE "Oppdater" now handled by inlineVederlagRevision prop */}
       {userRole === 'TE' && actions.canWithdrawVederlag && (
-        <Button variant="ghost" size="sm" onClick={onWithdrawVederlag}>
+        <Button variant="ghost" size="sm" onClick={onWithdrawVederlag} className="ml-auto">
           <CrossCircledIcon className="w-4 h-4 mr-2" />
           Trekk tilbake
         </Button>
@@ -209,7 +209,7 @@ export function FristActionButtons({
         </Button>
       )}
       {userRole === 'TE' && actions.canWithdrawFrist && (
-        <Button variant="ghost" size="sm" onClick={onWithdrawFrist}>
+        <Button variant="ghost" size="sm" onClick={onWithdrawFrist} className="ml-auto">
           <CrossCircledIcon className="w-4 h-4 mr-2" />
           Trekk tilbake
         </Button>
