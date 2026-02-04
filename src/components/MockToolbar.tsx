@@ -22,7 +22,7 @@ export function MockToolbar({
   onApprovalEnabledChange,
 }: MockToolbarProps) {
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-8 pt-2">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-3">
       <div className="bg-alert-warning-bg border border-alert-warning-border px-3 py-1.5 rounded-sm">
         <div className="flex items-center gap-3">
           {/* Label */}

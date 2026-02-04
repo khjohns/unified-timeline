@@ -246,7 +246,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
       )}
 
       {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-3 pt-2 pb-4 sm:px-4 sm:pt-3 sm:pb-6 bg-pkt-bg-subtle min-h-[calc(100vh-88px)] space-y-4">
+      <main className="max-w-3xl mx-auto px-3 pt-1 pb-4 sm:px-4 sm:pb-6 bg-pkt-bg-subtle min-h-[calc(100vh-88px)] space-y-4">
         {/* Forsering relation banner (if this case is part of a forsering) */}
         {forseringData?.forseringer && forseringData.forseringer.length > 0 && (
           <section>
