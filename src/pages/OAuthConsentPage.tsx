@@ -47,7 +47,11 @@ export default function OAuthConsentPage() {
   // Fetch authorization details
   useEffect(() => {
     async function fetchAuthDetails() {
-      if (!authorizationId || !user) return;
+      if (!authorizationId) {
+        setLoading(false);
+        return;
+      }
+      if (!user) return;
 
       try {
         // Check if OAuth methods exist
