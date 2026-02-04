@@ -29,7 +29,6 @@ function createMockState(overrides: Partial<{
     sakstittel: 'Test Case',
     grunnlag: {
       status: grunnlagStatus,
-      kontraktsreferanser: [],
       laast: grunnlagLaast,
       antall_versjoner: 1,
     },

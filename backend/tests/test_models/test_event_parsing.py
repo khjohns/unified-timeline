@@ -279,7 +279,6 @@ class TestParseEventFromRequest:
                 "underkategori": "Test",
                 "beskrivelse": "Test",
                 "dato_oppdaget": "2025-01-01",
-                "kontraktsreferanser": ["NS8407 §25.2"],  # Optional field
             },
         }
 
@@ -287,7 +286,6 @@ class TestParseEventFromRequest:
 
         assert isinstance(event, GrunnlagEvent)
         assert event.kommentar == "Optional comment"
-        assert event.data.kontraktsreferanser == ["NS8407 §25.2"]
 
 
 class TestEventParsingSecurity:

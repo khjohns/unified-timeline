@@ -447,10 +447,6 @@ const GrunnlagSection: React.FC<{ state: SakState }> = ({ state }) => {
                 value2={formatDate(grunnlag.siste_oppdatert)}
               />
             )}
-            {/* Kontraktsreferanser - full bredde */}
-            {grunnlag.kontraktsreferanser && grunnlag.kontraktsreferanser.length > 0 && (
-              <TableRow label="Kontraktsreferanser" value={grunnlag.kontraktsreferanser.join(', ')} striped />
-            )}
           </View>
 
           {/* Beskrivelse - Viktig for juridisk dokumentasjon */}

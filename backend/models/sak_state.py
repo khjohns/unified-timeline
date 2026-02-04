@@ -92,7 +92,6 @@ class GrunnlagTilstand(BaseModel):
     grunnlag_varsel: VarselInfo | None = Field(
         default=None, description="Info om når og hvordan BH ble varslet om forholdet"
     )
-    kontraktsreferanser: list[str] = Field(default_factory=list)
 
     # BH respons
     bh_resultat: GrunnlagResponsResultat | None = Field(
@@ -155,15 +154,14 @@ class VederlagTilstand(BaseModel):
     # Varselinfo fra TE (VarselInfo structure)
     rigg_drift_varsel: dict | None = Field(default=None)
     justert_ep_varsel: dict | None = Field(default=None)
-    regningsarbeid_varsel: dict | None = Field(default=None)
+    varslet_for_oppstart: bool | None = Field(
+        default=None, description="Ble BH varslet før regningsarbeidet startet? (§34.4)"
+    )
     produktivitetstap_varsel: dict | None = Field(default=None)
     krav_fremmet_dato: str | None = Field(default=None)
 
     # BH respons - Port 1 (Varsling)
-    saerskilt_varsel_rigg_drift_ok: bool | None = Field(default=None)
     varsel_justert_ep_ok: bool | None = Field(default=None)
-    varsel_start_regning_ok: bool | None = Field(default=None)
-    krav_fremmet_i_tide: bool | None = Field(default=None)
     begrunnelse_varsel: str | None = Field(default=None)
 
     # BH respons - Port 2 (Beregning)

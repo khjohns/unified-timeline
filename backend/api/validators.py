@@ -66,8 +66,8 @@ def _validate_varsel_requirement(
 
     Args:
         data: The event data dict
-        flag_key: The key that triggers varsel requirement (e.g., 'krever_regningsarbeid')
-        varsel_key: The key for the varsel object (e.g., 'regningsarbeid_varsel')
+        flag_key: The key that triggers varsel requirement (e.g., 'krever_justert_ep')
+        varsel_key: The key for the varsel object (e.g., 'justert_ep_varsel')
         error_message: Error message if varsel is missing (should include hjemmel reference)
 
     Raises:
@@ -406,12 +406,7 @@ def validate_vederlag_event(data: dict[str, Any]) -> None:
         raise ValidationError("begrunnelse er påkrevd")
 
     # Validate NS 8407 specific warning requirements using shared helper
-    _validate_varsel_requirement(
-        data,
-        "krever_regningsarbeid",
-        "regningsarbeid_varsel",
-        "Regningsarbeid krever varsel før oppstart (§30.1)",
-    )
+    # Note: varslet_for_oppstart is a simple boolean - no VarselInfo validation needed
     _validate_varsel_requirement(
         data,
         "inkluderer_rigg_drift",

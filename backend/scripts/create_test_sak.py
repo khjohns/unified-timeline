@@ -167,7 +167,6 @@ Referanse: E-post fra BH datert 2025-11-15.""",
             dato_sendt=varslet_dato,
             metode=["epost"],
         ),
-        kontraktsreferanser=["NS8407 §25.2", "Kontraktskap. 3.2"],
         vedlegg_ids=[],
     )
 
@@ -202,10 +201,7 @@ def create_vederlag_event(
 Totalt kostnadsoverslag: {belop:,.0f} kr""",
         vedlegg_ids=[],
         krever_justert_ep=False,
-        regningsarbeid_varsel=VarselInfo(
-            dato_sendt=varslet_dato,
-            metode=["epost"],
-        ),
+        varslet_for_oppstart=True,
     )
 
     return VederlagEvent(

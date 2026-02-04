@@ -22,7 +22,6 @@ const mockSakState1: SakState = {
     hovedkategori: 'ENDRING',
     underkategori: 'PROSJEKTERING',
     beskrivelse: 'Endring i grunnforhold oppdaget under prosjektering',
-    kontraktsreferanser: ['§25.2'],
     laast: false,
     antall_versjoner: 1,
   },

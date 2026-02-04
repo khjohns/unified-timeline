@@ -198,9 +198,6 @@ function GrunnlagSection({ data }: { data: GrunnlagEventData }) {
           <DataListItem label="Oppdaget">{formatDateMedium(data.dato_oppdaget)}</DataListItem>
         )}
         <VarselInfoDisplay label="Varslet" varsel={data.grunnlag_varsel} />
-        {data.kontraktsreferanser && data.kontraktsreferanser.length > 0 && (
-          <DataListItem label="Kontraktsreferanser">{data.kontraktsreferanser.join(', ')}</DataListItem>
-        )}
         <VedleggDisplay vedleggIds={data.vedlegg_ids} />
       </DataList>
 
@@ -249,9 +246,6 @@ function GrunnlagOppdatertSection({ data }: { data: GrunnlagOppdatertEventData }
           <DataListItem label="Oppdaget">{formatDateMedium(fullData.dato_oppdaget)}</DataListItem>
         )}
         <VarselInfoDisplay label="Varslet" varsel={fullData.grunnlag_varsel} />
-        {fullData.kontraktsreferanser && fullData.kontraktsreferanser.length > 0 && (
-          <DataListItem label="Kontraktsreferanser">{fullData.kontraktsreferanser.join(', ')}</DataListItem>
-        )}
         <VedleggDisplay vedleggIds={fullData.vedlegg_ids} />
       </DataList>
 
@@ -299,9 +293,14 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
       <FullWidthTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
 
       {/* Varsler og vedlegg */}
-      {(data.regningsarbeid_varsel?.dato_sendt || data.vedlegg_ids?.length) && (
+      {(data.varslet_for_oppstart !== undefined || data.vedlegg_ids?.length) && (
         <DataList>
-          <VarselInfoDisplay label="Forhåndsvarsel regningsarbeid" varsel={data.regningsarbeid_varsel} />
+          {data.varslet_for_oppstart !== undefined && (
+            <DataListItem
+              label="Forhåndsvarsel regningsarbeid (§34.4)"
+              value={data.varslet_for_oppstart ? 'Ja - BH ble varslet før oppstart' : 'Nei - BH ble ikke varslet'}
+            />
+          )}
           <VedleggDisplay vedleggIds={data.vedlegg_ids} />
         </DataList>
       )}
@@ -358,9 +357,14 @@ function VederlagOppdatertSection({ data }: { data: VederlagOppdatertEventData }
       <FullWidthTextField label="Begrunnelse" value={fullData.begrunnelse} defaultOpen={true} />
 
       {/* Varsler og vedlegg */}
-      {(fullData.regningsarbeid_varsel?.dato_sendt || fullData.vedlegg_ids?.length) && (
+      {(fullData.varslet_for_oppstart !== undefined || fullData.vedlegg_ids?.length) && (
         <DataList>
-          <VarselInfoDisplay label="Forhåndsvarsel regningsarbeid" varsel={fullData.regningsarbeid_varsel} />
+          {fullData.varslet_for_oppstart !== undefined && (
+            <DataListItem
+              label="Forhåndsvarsel regningsarbeid (§34.4)"
+              value={fullData.varslet_for_oppstart ? 'Ja - BH ble varslet før oppstart' : 'Nei - BH ble ikke varslet'}
+            />
+          )}
           <VedleggDisplay vedleggIds={fullData.vedlegg_ids} />
         </DataList>
       )}

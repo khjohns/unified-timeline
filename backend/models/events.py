@@ -474,11 +474,7 @@ class GrunnlagData(BaseModel):
         default=None, description="Info om når og hvordan BH ble varslet om forholdet"
     )
 
-    # Juridisk dokumentasjon
-    kontraktsreferanser: list[str] = Field(
-        default_factory=list,
-        description="Relevante kontraktsbestemmelser (f.eks. ['NS8407 §25.2', 'Kap. 3.2'])",
-    )
+    # Vedlegg
     vedlegg_ids: list[str] = Field(
         default_factory=list,
         description="Referanser til vedlagte dokumenter (bilder, rapporter, etc.)",
@@ -572,10 +568,10 @@ class VederlagData(VederlagKompensasjon):
         default=None, description="Varselinfo for justerte enhetspriser (§34.3.3)"
     )
 
-    # Regningsarbeid (§30.1)
-    regningsarbeid_varsel: VarselInfo | None = Field(
-        default=None,
-        description="Varselinfo før start av regningsarbeid (§30.1) - BH må varsles FØR oppstart",
+    # Regningsarbeid (§34.4)
+    varslet_for_oppstart: bool = Field(
+        default=True,
+        description="Ble BH varslet før regningsarbeidet startet? (§34.4)",
     )
 
     # Produktivitetstap varsel (§34.1.3, andre ledd)
@@ -857,23 +853,9 @@ class VederlagResponsData(BaseModel):
     produktivitet_varslet_i_tide: bool | None = Field(
         default=None, description="Er produktivitetskravet varslet i tide? (§34.1.3)"
     )
-    begrunnelse_preklusjon: str | None = Field(
-        default=None, description="Begrunnelse for preklusjonsvurdering"
-    )
-
-    # Legacy felter (for bakoverkompatibilitet)
-    saerskilt_varsel_rigg_drift_ok: bool | None = Field(
-        default=None, description="DEPRECATED: Bruk rigg_varslet_i_tide"
-    )
     varsel_justert_ep_ok: bool | None = Field(
         default=None,
         description="Er det varslet om justerte enhetspriser uten ugrunnet opphold? (§34.3.3)",
-    )
-    varsel_start_regning_ok: bool | None = Field(
-        default=None, description="Ble BH varslet før regningsarbeid startet? (§30.1)"
-    )
-    krav_fremmet_i_tide: bool | None = Field(
-        default=True, description="Er vederlagskravet fremmet uten ugrunnet opphold?"
     )
     begrunnelse_varsel: str | None = Field(
         default=None, description="Begrunnelse for vurdering av varsler/frister"
@@ -893,9 +875,6 @@ class VederlagResponsData(BaseModel):
     hold_tilbake: bool | None = Field(
         default=None, description="Holder BH tilbake betaling? (§30.2)"
     )
-    begrunnelse_metode: str | None = Field(
-        default=None, description="Begrunnelse for metodevalg"
-    )
     vederlagsmetode: VederlagsMetode | None = Field(
         default=None, description="Hvilken metode BH legger til grunn (legacy)"
     )
@@ -907,10 +886,6 @@ class VederlagResponsData(BaseModel):
     hovedkrav_godkjent_belop: float | None = Field(
         default=None, description="Godkjent beløp for hovedkravet i NOK"
     )
-    hovedkrav_begrunnelse: str | None = Field(
-        default=None, description="Begrunnelse for hovedkravvurdering"
-    )
-
     # ============ PORT 3: BELØPSVURDERING - SÆRSKILTE KRAV (§34.1.3) ============
     rigg_vurdering: BelopVurdering | None = Field(
         default=None, description="BHs vurdering av rigg/drift-kravet"

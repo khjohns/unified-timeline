@@ -244,7 +244,6 @@ function buildGrunnlagSheet(
     'Underkategori',
     'Beskrivelse',
     'Dato oppdaget',
-    'Kontraktsreferanser',
     'BH resultat',
     'BH begrunnelse',
   ];
@@ -260,7 +259,6 @@ function buildGrunnlagSheet(
     formatUnderkategorier(e.underkategori),
     e.beskrivelse || '-',
     e.dato_oppdaget ? formatDateMedium(e.dato_oppdaget) : '-',
-    e.kontraktsreferanser?.join(', ') || '-',
     e.bh_resultat ? getResultatLabel(e.bh_resultat) : '-',
     e.bh_begrunnelse || '-',
   ]);
@@ -271,7 +269,7 @@ function buildGrunnlagSheet(
   // Bold header row
   ws.getRow(1).font = { bold: true };
 
-  setColumnWidths(ws, [8, 16, 20, 16, 18, 30, 28, 30, 40, 14, 25, 18, 40]);
+  setColumnWidths(ws, [8, 16, 20, 16, 18, 30, 28, 30, 40, 14, 18, 40]);
 }
 
 function buildVederlagSheet(

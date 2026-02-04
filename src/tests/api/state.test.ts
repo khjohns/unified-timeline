@@ -31,7 +31,6 @@ const createMockSakState = (overrides: Partial<SakState> = {}): SakState => ({
     hovedkategori: 'ENDRING',
     underkategori: 'PROSJEKTERING',
     beskrivelse: 'Test beskrivelse',
-    kontraktsreferanser: [],
     laast: false,
     antall_versjoner: 1,
   },

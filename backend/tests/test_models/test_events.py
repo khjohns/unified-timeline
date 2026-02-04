@@ -120,7 +120,6 @@ def test_grunnlag_event_creation():
             grunnlag_varsel=VarselInfo(
                 dato_sendt="2025-01-11", metode=["epost", "byggemote"]
             ),
-            kontraktsreferanser=["NS8407 §25.2"],
             vedlegg_ids=["DOK-001"],
         ),
     )
@@ -188,16 +187,16 @@ def test_vederlag_data_rigg_drift_varsel():
     assert len(data.rigg_drift_varsel.metode) == 2
 
 
-def test_vederlag_data_regningsarbeid_varsel():
-    """Test VederlagData with regningsarbeid varsel"""
+def test_vederlag_data_varslet_for_oppstart():
+    """Test VederlagData with varslet_for_oppstart (§34.4)"""
     data = VederlagData(
         kostnads_overslag=75000,
         metode=VederlagsMetode.REGNINGSARBEID,
         begrunnelse="Regningsarbeid",
-        regningsarbeid_varsel=VarselInfo(dato_sendt="2025-01-11", metode=["byggemote"]),
+        varslet_for_oppstart=True,
     )
     assert data.metode == VederlagsMetode.REGNINGSARBEID
-    assert data.regningsarbeid_varsel.dato_sendt == "2025-01-11"
+    assert data.varslet_for_oppstart is True
 
 
 def test_vederlag_data_produktivitetstap_varsel():
@@ -241,9 +240,7 @@ def test_vederlag_event_creation():
             kostnads_overslag=50000,
             metode=VederlagsMetode.REGNINGSARBEID,
             begrunnelse="Test",
-            regningsarbeid_varsel=VarselInfo(
-                dato_sendt="2025-01-11", metode=["byggemote"]
-            ),
+            varslet_for_oppstart=True,
         ),
         versjon=1,
     )
@@ -367,13 +364,10 @@ def test_grunnlag_respons_with_avslatt():
 def test_vederlag_respons_data():
     """Test VederlagResponsData with Port model"""
     data = VederlagResponsData(
-        krav_fremmet_i_tide=True,
-        varsel_start_regning_ok=True,
         beregnings_resultat=VederlagBeregningResultat.GODKJENT,
         total_godkjent_belop=50000,
         begrunnelse="Enig om beløp",
     )
-    assert data.krav_fremmet_i_tide is True
     assert data.beregnings_resultat == VederlagBeregningResultat.GODKJENT
     assert data.total_godkjent_belop == 50000
 
@@ -381,7 +375,6 @@ def test_vederlag_respons_data():
 def test_vederlag_respons_delvis_godkjent():
     """Test VederlagResponsData with partial approval"""
     data = VederlagResponsData(
-        krav_fremmet_i_tide=True,
         beregnings_resultat=VederlagBeregningResultat.DELVIS_GODKJENT,
         total_godkjent_belop=30000,  # Less than claimed
         begrunnelse="Godkjenner timer, men ikke påslag",
@@ -446,7 +439,6 @@ def test_respons_event_creation():
         spor=SporType.VEDERLAG,
         refererer_til_event_id="original-vederlag-event-id",
         data=VederlagResponsData(
-            krav_fremmet_i_tide=True,
             beregnings_resultat=VederlagBeregningResultat.GODKJENT,
             total_godkjent_belop=50000,
             begrunnelse="OK",

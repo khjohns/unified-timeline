@@ -472,7 +472,6 @@ class TestCloudEventRoundtrip:
                 underkategori="prosjektering",
                 beskrivelse="Detaljert beskrivelse",
                 dato_oppdaget="2025-12-15",
-                kontraktsreferanser=["NS8407 §25.2"],
             ),
         )
 

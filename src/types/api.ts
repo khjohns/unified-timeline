@@ -72,7 +72,6 @@ export interface GrunnlagHistorikkEntry {
   hovedkategori?: string | null;
   underkategori?: string | string[] | null;
   beskrivelse?: string | null;
-  kontraktsreferanser?: string[] | null;
   dato_oppdaget?: string | null; // Kritisk for preklusjonsvurdering (§33.4)
 
   // BH-respons felter (for respons/respons_oppdatert)

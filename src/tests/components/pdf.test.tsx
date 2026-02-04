@@ -50,7 +50,6 @@ const createMockSakState = (overrides: Partial<SakState> = {}): SakState => ({
   sakstittel: 'Test Case',
   grunnlag: {
     status: 'sendt',
-    kontraktsreferanser: [],
     laast: false,
     antall_versjoner: 1,
   },

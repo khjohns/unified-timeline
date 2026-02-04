@@ -82,58 +82,58 @@ class TestValidateVarselRequirement:
         data = {"other_field": "value"}
         # Should not raise
         _validate_varsel_requirement(
-            data, "krever_regningsarbeid", "regningsarbeid_varsel", "Error message"
+            data, "krever_justert_ep", "justert_ep_varsel", "Error message"
         )
 
     def test_flag_false_passes(self):
         """When flag is explicitly False, validation passes."""
-        data = {"krever_regningsarbeid": False}
+        data = {"krever_justert_ep": False}
         _validate_varsel_requirement(
-            data, "krever_regningsarbeid", "regningsarbeid_varsel", "Error message"
+            data, "krever_justert_ep", "justert_ep_varsel", "Error message"
         )
 
     def test_flag_set_without_varsel_raises(self):
         """When flag is set but varsel missing, raises ValidationError."""
-        data = {"krever_regningsarbeid": True}
+        data = {"krever_justert_ep": True}
         with pytest.raises(ValidationError) as exc_info:
             _validate_varsel_requirement(
                 data,
-                "krever_regningsarbeid",
-                "regningsarbeid_varsel",
-                "Regningsarbeid krever varsel (§30.1)",
+                "krever_justert_ep",
+                "justert_ep_varsel",
+                "Justerte enhetspriser krever varsel (§34.3.3)",
             )
-        assert "Regningsarbeid krever varsel" in str(exc_info.value)
+        assert "Justerte enhetspriser krever varsel" in str(exc_info.value)
 
     def test_flag_set_with_empty_varsel_raises(self):
         """When flag is set but varsel is empty dict, raises ValidationError."""
-        data = {"krever_regningsarbeid": True, "regningsarbeid_varsel": {}}
+        data = {"krever_justert_ep": True, "justert_ep_varsel": {}}
         with pytest.raises(ValidationError) as exc_info:
             _validate_varsel_requirement(
-                data, "krever_regningsarbeid", "regningsarbeid_varsel", "Error message"
+                data, "krever_justert_ep", "justert_ep_varsel", "Error message"
             )
         assert "dato_sendt" in str(exc_info.value)
 
     def test_flag_set_varsel_missing_dato_sendt_raises(self):
         """When varsel lacks dato_sendt, raises ValidationError."""
         data = {
-            "krever_regningsarbeid": True,
-            "regningsarbeid_varsel": {"other_field": "value"},
+            "krever_justert_ep": True,
+            "justert_ep_varsel": {"other_field": "value"},
         }
         with pytest.raises(ValidationError) as exc_info:
             _validate_varsel_requirement(
-                data, "krever_regningsarbeid", "regningsarbeid_varsel", "Error message"
+                data, "krever_justert_ep", "justert_ep_varsel", "Error message"
             )
-        assert "regningsarbeid_varsel må ha dato_sendt" in str(exc_info.value)
+        assert "justert_ep_varsel må ha dato_sendt" in str(exc_info.value)
 
     def test_flag_set_with_valid_varsel_passes(self):
         """When flag is set and varsel has dato_sendt, passes."""
         data = {
-            "krever_regningsarbeid": True,
-            "regningsarbeid_varsel": {"dato_sendt": "2025-01-15"},
+            "krever_justert_ep": True,
+            "justert_ep_varsel": {"dato_sendt": "2025-01-15"},
         }
         # Should not raise
         _validate_varsel_requirement(
-            data, "krever_regningsarbeid", "regningsarbeid_varsel", "Error message"
+            data, "krever_justert_ep", "justert_ep_varsel", "Error message"
         )
 
     def test_works_with_different_field_names(self):
@@ -563,18 +563,6 @@ class TestValidateVederlagEvent:
         with pytest.raises(ValidationError) as exc_info:
             validate_vederlag_event({"metode": "ENHETSPRISER", "belop_direkte": 100000})
         assert "begrunnelse er påkrevd" in str(exc_info.value)
-
-    def test_regningsarbeid_requires_varsel(self):
-        """Raises ValidationError when regningsarbeid lacks required varsel."""
-        with pytest.raises(ValidationError) as exc_info:
-            validate_vederlag_event(
-                {
-                    "metode": "REGNINGSARBEID",
-                    "begrunnelse": "Test",
-                    "krever_regningsarbeid": True,
-                }
-            )
-        assert "Regningsarbeid krever varsel" in str(exc_info.value)
 
     def test_rigg_drift_requires_varsel(self):
         """Raises ValidationError when rigg/drift lacks required varsel."""

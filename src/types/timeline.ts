@@ -158,7 +158,6 @@ export interface GrunnlagTilstand {
     metode?: string[];
   };
 
-  kontraktsreferanser: string[];
   bh_resultat?: GrunnlagResponsResultat;
   bh_begrunnelse?: string;
   /** §32.2: Har BH påberopt at grunnlagsvarselet kom for sent? (kun ENDRING) */
@@ -198,15 +197,13 @@ export interface VederlagTilstand {
   // TE's varselinfo (Port 1) - Using VarselInfo structure
   rigg_drift_varsel?: VarselInfo;
   justert_ep_varsel?: VarselInfo;
-  regningsarbeid_varsel?: VarselInfo;
+  /** Ble BH varslet før regningsarbeidet startet? (§34.4) */
+  varslet_for_oppstart?: boolean;
   produktivitetstap_varsel?: VarselInfo;
   krav_fremmet_dato?: string;
 
   // BH respons - Port 1 (Varsling)
-  saerskilt_varsel_rigg_drift_ok?: boolean;
   varsel_justert_ep_ok?: boolean;
-  varsel_start_regning_ok?: boolean;
-  krav_fremmet_i_tide?: boolean;
   begrunnelse_varsel?: string;
 
   // BH respons - Port 2 (Beregning)
@@ -631,7 +628,6 @@ export interface GrunnlagEventData {
   beskrivelse: string;
   dato_oppdaget: string;
   grunnlag_varsel?: VarselInfo;      // Structured varsel info
-  kontraktsreferanser?: string[];
   vedlegg_ids?: string[];
 }
 
@@ -656,7 +652,8 @@ export interface VederlagEventData {
   // Varsler (VarselInfo structure)
   rigg_drift_varsel?: VarselInfo;
   justert_ep_varsel?: VarselInfo;
-  regningsarbeid_varsel?: VarselInfo;
+  /** Ble BH varslet før regningsarbeidet startet? (§34.4) */
+  varslet_for_oppstart?: boolean;
   produktivitetstap_varsel?: VarselInfo;
   krav_fremmet_dato?: string;
 }
@@ -694,13 +691,9 @@ export interface ResponsVederlagEventData {
   // Port 1: Preklusjon av særskilte krav (§34.1.3)
   rigg_varslet_i_tide?: boolean;
   produktivitet_varslet_i_tide?: boolean;
-  begrunnelse_preklusjon?: string;
 
-  // Port 1: Andre varsler (legacy felter for kompatibilitet)
-  saerskilt_varsel_rigg_drift_ok?: boolean;  // Deprecated: bruk rigg_varslet_i_tide
+  // Port 1: Andre varsler
   varsel_justert_ep_ok?: boolean;
-  varsel_start_regning_ok?: boolean;
-  krav_fremmet_i_tide?: boolean;
   begrunnelse_varsel?: string;
 
   // Port 2: Metode
@@ -708,13 +701,11 @@ export interface ResponsVederlagEventData {
   oensket_metode?: VederlagsMetode;
   ep_justering_akseptert?: boolean;
   hold_tilbake?: boolean;
-  begrunnelse_metode?: string;
   vederlagsmetode?: VederlagsMetode;  // BH's valgte metode (legacy)
 
   // Port 3: Beløpsvurdering - Hovedkrav
   hovedkrav_vurdering?: BelopVurdering;
   hovedkrav_godkjent_belop?: number;
-  hovedkrav_begrunnelse?: string;
 
   // Port 3: Beløpsvurdering - Særskilte krav (§34.1.3)
   rigg_vurdering?: BelopVurdering;

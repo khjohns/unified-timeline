@@ -121,7 +121,6 @@ class GrunnlagHistorikkEntry(BaseModel):
     hovedkategori: str | None = None
     underkategori: str | list[str] | None = None
     beskrivelse: str | None = None
-    kontraktsreferanser: list[str] | None = None
     dato_oppdaget: str | None = None  # Kritisk for preklusjonsvurdering (§33.4)
 
     # BH-respons felter (for respons/respons_oppdatert)
@@ -148,7 +147,6 @@ class GrunnlagResponse(BaseModel):
     underkategori: str
     beskrivelse: str
     dato_oppdaget: str
-    kontraktsreferanser: list[str]
     vedlegg: list[dict]  # {id, navn, url}
 
     # BH respons (hvis finnes)

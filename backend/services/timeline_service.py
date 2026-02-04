@@ -75,8 +75,8 @@ def _copy_fields_if_present(
 
     Example:
         _copy_fields_if_present(event.data, vederlag, [
-            'saerskilt_varsel_rigg_drift_ok',
             'varsel_justert_ep_ok',
+            'begrunnelse_varsel',
         ])
     """
     for field in fields:
@@ -351,7 +351,6 @@ class TimelineService:
         grunnlag.beskrivelse = event.data.beskrivelse
         grunnlag.dato_oppdaget = event.data.dato_oppdaget
         grunnlag.grunnlag_varsel = event.data.grunnlag_varsel
-        grunnlag.kontraktsreferanser = event.data.kontraktsreferanser
 
         # Oppdater sakstittel fra grunnlag.tittel hvis den ikke er satt
         if not state.sakstittel and grunnlag.tittel:
@@ -427,12 +426,8 @@ class TimelineService:
                 if hasattr(event.data.justert_ep_varsel, "model_dump")
                 else event.data.justert_ep_varsel
             )
-        if event.data.regningsarbeid_varsel:
-            vederlag.regningsarbeid_varsel = (
-                event.data.regningsarbeid_varsel.model_dump()
-                if hasattr(event.data.regningsarbeid_varsel, "model_dump")
-                else event.data.regningsarbeid_varsel
-            )
+        if event.data.varslet_for_oppstart is not None:
+            vederlag.varslet_for_oppstart = event.data.varslet_for_oppstart
         if event.data.produktivitetstap_varsel:
             vederlag.produktivitetstap_varsel = (
                 event.data.produktivitetstap_varsel.model_dump()
@@ -582,10 +577,7 @@ class TimelineService:
             event.data,
             vederlag,
             [
-                "saerskilt_varsel_rigg_drift_ok",
                 "varsel_justert_ep_ok",
-                "varsel_start_regning_ok",
-                "krav_fremmet_i_tide",
                 "begrunnelse_varsel",
             ],
         )
@@ -1832,7 +1824,6 @@ class TimelineService:
                     hovedkategori=event.data.hovedkategori,
                     underkategori=event.data.underkategori,
                     beskrivelse=event.data.beskrivelse,
-                    kontraktsreferanser=event.data.kontraktsreferanser or [],
                     dato_oppdaget=getattr(event.data, "dato_oppdaget", None),
                 )
                 historikk.append(entry.model_dump(mode="json"))
@@ -1849,7 +1840,6 @@ class TimelineService:
                     hovedkategori=event.data.hovedkategori,
                     underkategori=event.data.underkategori,
                     beskrivelse=event.data.beskrivelse,
-                    kontraktsreferanser=event.data.kontraktsreferanser or [],
                     dato_oppdaget=getattr(event.data, "dato_oppdaget", None),
                 )
                 historikk.append(entry.model_dump(mode="json"))

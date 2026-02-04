@@ -63,7 +63,6 @@ TEST_DATA = {
         "hovedkategori": "ENDRING",
         "underkategori": ["IRREG"],  # Array, ikke string
         "beskrivelse": "Automatisk testcase - grunnlag for endringskrav (irregulær endring)",
-        "kontraktsreferanser": ["32.1"],  # Array med flertallsnavn
     },
     "vederlag": {
         "metode": "ENHETSPRISER",
@@ -114,7 +113,6 @@ FORSERING_TEST_DATA = {
                 "hovedkategori": "ENDRING",
                 "underkategori": ["EO"],  # Array
                 "beskrivelse": "KOE-1 for forseringstest - formell endringsordre",
-                "kontraktsreferanser": ["31.3"],  # Array med flertallsnavn
             },
             "frist": {
                 "varsel_type": "spesifisert",
@@ -128,8 +126,7 @@ FORSERING_TEST_DATA = {
                 "hovedkategori": "ENDRING",
                 "underkategori": ["IRREG"],  # Array
                 "beskrivelse": "KOE-2 for forseringstest - irregulær endring",
-                "kontraktsreferanser": ["32.1"],  # Array med flertallsnavn
-            },
+                    },
             "frist": {
                 "varsel_type": "spesifisert",
                 "antall_dager": 10,
@@ -168,7 +165,6 @@ EO_TEST_DATA = {
                 "hovedkategori": "ENDRING",
                 "underkategori": ["EO"],  # Array
                 "beskrivelse": "KOE-1 for EO-test - formell endringsordre",
-                "kontraktsreferanser": ["31.3"],  # Array med flertallsnavn
             },
             "vederlag": {
                 "metode": "ENHETSPRISER",
@@ -182,8 +178,7 @@ EO_TEST_DATA = {
                 "hovedkategori": "ENDRING",
                 "underkategori": ["IRREG"],  # Array
                 "beskrivelse": "KOE-2 for EO-test",
-                "kontraktsreferanser": ["32.1"],  # Array med flertallsnavn
-            },
+                    },
             "vederlag": {
                 "metode": "ENHETSPRISER",
                 "belop_direkte": 75000.0,
@@ -1342,7 +1337,6 @@ class KOEFlowTester(BaseTester):
                     "hovedkategori": TEST_DATA["grunnlag"]["hovedkategori"],
                     "underkategori": TEST_DATA["grunnlag"]["underkategori"],
                     "beskrivelse": TEST_DATA["grunnlag"]["beskrivelse"],
-                    "kontraktsreferanser": TEST_DATA["grunnlag"]["kontraktsreferanser"],
                     "dato_oppdaget": datetime.now().strftime("%Y-%m-%d"),
                     "grunnlag_varsel": {
                         "dato_sendt": datetime.now().strftime("%Y-%m-%d"),
