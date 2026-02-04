@@ -483,10 +483,11 @@ function ResponsGrunnlagOppdatertSection({ data }: { data: ResponsGrunnlagOppdat
 function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
   // Subsidiært hvis det finnes subsidiær-data (trigger av preklusjon eller grunnlagsavslag)
   const erSubsidiaer = data.subsidiaer_resultat !== undefined;
-  const godkjentLabel = erSubsidiaer ? 'Subsidiært godkjent' : 'Godkjent';
-  const godkjentBelop = erSubsidiaer
-    ? data.subsidiaer_godkjent_belop
-    : data.total_godkjent_belop;
+
+  // Sjekk om vi har oppdelt godkjent-data
+  const harOppdeling = data.hovedkrav_godkjent_belop !== undefined ||
+    data.rigg_godkjent_belop !== undefined ||
+    data.produktivitet_godkjent_belop !== undefined;
 
   return (
     <div className="space-y-4">
@@ -497,16 +498,52 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
         {data.total_krevd_belop !== undefined && (
           <DataListItem label="Krevd" mono>{formatCurrency(data.total_krevd_belop)}</DataListItem>
         )}
-        {godkjentBelop !== undefined && (
-          <DataListItem label={godkjentLabel} mono>{formatCurrency(godkjentBelop)}</DataListItem>
-        )}
         {data.beregnings_resultat && (
           <DataListItem label="Resultat">{getBhVederlagssvarLabel(data.beregnings_resultat)}</DataListItem>
         )}
-        {data.frist_for_spesifikasjon && (
-          <DataListItem label="Spesifiseringsfrist">{formatDateMedium(data.frist_for_spesifikasjon)}</DataListItem>
-        )}
       </DataList>
+
+      {/* Oppdelt godkjent beløp */}
+      {harOppdeling && (
+        <SectionContainer title="Godkjent beløp" variant="subtle" spacing="compact">
+          <DataList>
+            {data.hovedkrav_godkjent_belop !== undefined && (
+              <DataListItem label="Hovedkrav" mono>{formatCurrency(data.hovedkrav_godkjent_belop)}</DataListItem>
+            )}
+            {data.rigg_godkjent_belop !== undefined && (
+              <DataListItem label="Rigg/drift" mono>{formatCurrency(data.rigg_godkjent_belop)}</DataListItem>
+            )}
+            {data.produktivitet_godkjent_belop !== undefined && (
+              <DataListItem label="Produktivitet" mono>{formatCurrency(data.produktivitet_godkjent_belop)}</DataListItem>
+            )}
+            {data.total_godkjent_belop !== undefined && (
+              <DataListItem label="Total" mono className="font-semibold">{formatCurrency(data.total_godkjent_belop)}</DataListItem>
+            )}
+          </DataList>
+        </SectionContainer>
+      )}
+
+      {/* Fallback hvis ikke oppdelt */}
+      {!harOppdeling && data.total_godkjent_belop !== undefined && (
+        <DataList>
+          <DataListItem label="Godkjent" mono>{formatCurrency(data.total_godkjent_belop)}</DataListItem>
+        </DataList>
+      )}
+
+      {/* Subsidiært standpunkt */}
+      {erSubsidiaer && data.subsidiaer_godkjent_belop !== undefined && (
+        <SectionContainer title="Subsidiært standpunkt" variant="subtle" spacing="compact">
+          <DataList>
+            <DataListItem label="Subsidiært godkjent" mono>{formatCurrency(data.subsidiaer_godkjent_belop)}</DataListItem>
+          </DataList>
+        </SectionContainer>
+      )}
+
+      {data.frist_for_spesifikasjon && (
+        <DataList>
+          <DataListItem label="Spesifiseringsfrist">{formatDateMedium(data.frist_for_spesifikasjon)}</DataListItem>
+        </DataList>
+      )}
 
       <FullWidthTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
     </div>
@@ -516,10 +553,11 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
 function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdatertEventData }) {
   // Subsidiært hvis det finnes subsidiær-data
   const erSubsidiaer = data.subsidiaer_resultat !== undefined;
-  const godkjentLabel = erSubsidiaer ? 'Nytt subsidiært godkjent' : 'Nytt godkjent';
-  const godkjentBelop = erSubsidiaer
-    ? data.subsidiaer_godkjent_belop
-    : data.total_godkjent_belop;
+
+  // Sjekk om vi har oppdelt godkjent-data
+  const harOppdeling = data.hovedkrav_godkjent_belop !== undefined ||
+    data.rigg_godkjent_belop !== undefined ||
+    data.produktivitet_godkjent_belop !== undefined;
 
   return (
     <div className="space-y-4">
@@ -527,13 +565,46 @@ function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdat
         {data.beregnings_resultat && (
           <DataListItem label="Nytt resultat">{getBhVederlagssvarLabel(data.beregnings_resultat)}</DataListItem>
         )}
-        {godkjentBelop !== undefined && (
-          <DataListItem label={godkjentLabel} mono>{formatCurrency(godkjentBelop)}</DataListItem>
-        )}
         {data.dato_endret && (
           <DataListItem label="Endret dato">{formatDateMedium(data.dato_endret)}</DataListItem>
         )}
       </DataList>
+
+      {/* Oppdelt godkjent beløp */}
+      {harOppdeling && (
+        <SectionContainer title="Godkjent beløp" variant="subtle" spacing="compact">
+          <DataList>
+            {data.hovedkrav_godkjent_belop !== undefined && (
+              <DataListItem label="Hovedkrav" mono>{formatCurrency(data.hovedkrav_godkjent_belop)}</DataListItem>
+            )}
+            {data.rigg_godkjent_belop !== undefined && (
+              <DataListItem label="Rigg/drift" mono>{formatCurrency(data.rigg_godkjent_belop)}</DataListItem>
+            )}
+            {data.produktivitet_godkjent_belop !== undefined && (
+              <DataListItem label="Produktivitet" mono>{formatCurrency(data.produktivitet_godkjent_belop)}</DataListItem>
+            )}
+            {data.total_godkjent_belop !== undefined && (
+              <DataListItem label="Total" mono className="font-semibold">{formatCurrency(data.total_godkjent_belop)}</DataListItem>
+            )}
+          </DataList>
+        </SectionContainer>
+      )}
+
+      {/* Fallback hvis ikke oppdelt */}
+      {!harOppdeling && data.total_godkjent_belop !== undefined && (
+        <DataList>
+          <DataListItem label="Nytt godkjent" mono>{formatCurrency(data.total_godkjent_belop)}</DataListItem>
+        </DataList>
+      )}
+
+      {/* Subsidiært standpunkt */}
+      {erSubsidiaer && data.subsidiaer_godkjent_belop !== undefined && (
+        <SectionContainer title="Subsidiært standpunkt" variant="subtle" spacing="compact">
+          <DataList>
+            <DataListItem label="Subsidiært godkjent" mono>{formatCurrency(data.subsidiaer_godkjent_belop)}</DataListItem>
+          </DataList>
+        </SectionContainer>
+      )}
 
       <FullWidthTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
     </div>
