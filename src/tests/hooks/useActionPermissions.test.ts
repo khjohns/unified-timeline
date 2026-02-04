@@ -562,6 +562,22 @@ describe('useActionPermissions', () => {
       const actions = useActionPermissions(state, 'BH');
       expect(actions.canSendForsering).toBe(false);
     });
+
+    it('should not allow sending forsering when frist has been withdrawn', () => {
+      const state = createMockState({ fristStatus: 'trukket' });
+      state.frist.bh_resultat = 'avslatt'; // Was rejected before withdrawal
+
+      const actions = useActionPermissions(state, role);
+      expect(actions.canSendForsering).toBe(false);
+    });
+
+    it('should not allow sending forsering when grunnlag has been withdrawn', () => {
+      const state = createMockState({ grunnlagStatus: 'trukket', fristStatus: 'avslatt' });
+      state.frist.bh_resultat = 'avslatt';
+
+      const actions = useActionPermissions(state, role);
+      expect(actions.canSendForsering).toBe(false);
+    });
   });
 
   describe('Force Majeure (§33.3)', () => {

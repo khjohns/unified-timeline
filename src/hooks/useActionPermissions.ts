@@ -183,8 +183,11 @@ export function useActionPermissions(
 
     // TE Actions: Forsering (§33.8)
     // Available when BH has rejected frist (wholly or partially) OR rejected grunnlag
+    // NOT available if frist or grunnlag has been withdrawn (no basis for forsering)
     canSendForsering:
       isTE &&
+      state.frist.status !== 'trukket' &&
+      state.grunnlag.status !== 'trukket' &&
       state.frist.bh_resultat != null &&
       (
         // Direct frist rejection (avslatt or delvis_godkjent)
