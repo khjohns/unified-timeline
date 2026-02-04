@@ -50,18 +50,35 @@ export default function OAuthConsentPage() {
       if (!authorizationId || !user) return;
 
       try {
+        // Check if OAuth methods exist
+        // @ts-expect-error - OAuth methods may not be in type definitions yet
+        if (!supabase.auth.oauth?.getAuthorizationDetails) {
+          setError('OAuth-metoder ikke tilgjengelig i denne versjonen av supabase-js. Sjekk at OAuth Server er aktivert i Supabase.');
+          setLoading(false);
+          return;
+        }
+
+        console.log('Fetching authorization details for:', authorizationId);
         // @ts-expect-error - OAuth methods may not be in type definitions yet
         const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(
           authorizationId
         );
 
+        console.log('Authorization details response:', { data, error });
+
         if (error) {
-          setError(error.message);
+          setError(`${error.message} (${error.code || 'unknown'})`);
+          return;
+        }
+
+        if (!data) {
+          setError('Ingen autorisasjonsdetaljer returnert. authorization_id kan være utløpt.');
           return;
         }
 
         setAuthDetails(data);
       } catch (err) {
+        console.error('Error fetching auth details:', err);
         setError(err instanceof Error ? err.message : 'Kunne ikke hente autorisasjonsdetaljer');
       } finally {
         setLoading(false);
@@ -139,10 +156,26 @@ export default function OAuthConsentPage() {
   // Error state
   if (error) {
     return (
-      <ErrorState
-        title="Autorisasjonsfeil"
-        message={error}
-      />
+      <div className="min-h-screen flex items-center justify-center bg-pkt-bg-subtle p-4">
+        <div className="bg-pkt-bg-default rounded-lg shadow-lg max-w-md w-full p-6 space-y-4">
+          <h1 className="text-xl font-semibold text-red-600">Autorisasjonsfeil</h1>
+          <p className="text-pkt-text-body-default">{error}</p>
+          <div className="text-xs text-pkt-text-body-subtle space-y-1 bg-pkt-bg-subtle p-3 rounded font-mono">
+            <p><strong>authorization_id:</strong> {authorizationId || 'mangler'}</p>
+            <p><strong>Innlogget bruker:</strong> {user?.email || 'ikke innlogget'}</p>
+            <p><strong>supabase.auth.oauth:</strong> {
+              // @ts-expect-error - checking if oauth exists
+              supabase.auth.oauth ? 'tilgjengelig' : 'ikke tilgjengelig'
+            }</p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+          >
+            Prøv igjen
+          </button>
+        </div>
+      </div>
     );
   }
 
