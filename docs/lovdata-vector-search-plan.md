@@ -396,14 +396,32 @@ $$;
 
 **Fil:** `scripts/embed_lovdata.py`
 
+**Viktig: Kjør alltid `--dry-run` først for å verifisere kostnad:**
+
+```bash
+$ python scripts/embed_lovdata.py --dry-run
+
+Initialiserer klienter...
+Henter dokument-metadata...
+  Fant 4436 dokumenter
+Starter embedding-generering...
+  [DRY RUN] Ville prosessert 92000 seksjoner
+
+Ferdig!
+  Totalt prosessert: 92000 seksjoner
+  Estimert tokens: 13,800,000
+  Estimert kostnad: $2.07
+  Estimert tid: ~10 min (100 RPM)
+```
+
 ```python
 #!/usr/bin/env python3
 """
 Generer embeddings for alle Lovdata-seksjoner.
 
 Bruk:
-    python scripts/embed_lovdata.py
-    python scripts/embed_lovdata.py --dry-run
+    python scripts/embed_lovdata.py --dry-run   # Verifiser kostnad først!
+    python scripts/embed_lovdata.py             # Kjør embedding
     python scripts/embed_lovdata.py --batch-size 50
 """
 
@@ -591,10 +609,15 @@ def main():
 
             print(f"  Prosessert {total_processed} seksjoner...")
 
+    # Beregn estimater
+    num_requests = (total_processed + args.batch_size - 1) // args.batch_size
+    est_minutes = num_requests / 100  # 100 RPM limit
+
     print(f"\nFerdig!")
     print(f"  Totalt prosessert: {total_processed} seksjoner")
     print(f"  Estimert tokens: {total_tokens:,}")
     print(f"  Estimert kostnad: ${total_tokens * 0.15 / 1_000_000:.2f}")
+    print(f"  Estimert tid: ~{est_minutes:.0f} min (100 RPM)")
 
 
 if __name__ == "__main__":
