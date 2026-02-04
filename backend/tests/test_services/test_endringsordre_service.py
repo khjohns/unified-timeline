@@ -58,14 +58,27 @@ class TestEndringsordreService:
         return service
 
     @pytest.fixture
+    def mock_relation_repository(self):
+        """Create mock relation repository for index-based lookups."""
+        repo = Mock()
+        repo.get_containers_for_sak = Mock(return_value=[])
+        repo.add_relations_batch = Mock(return_value=None)
+        return repo
+
+    @pytest.fixture
     def service(
-        self, mock_catenda_client, mock_event_repository, mock_timeline_service
+        self,
+        mock_catenda_client,
+        mock_event_repository,
+        mock_timeline_service,
+        mock_relation_repository,
     ):
         """Create EndringsordreService with mocked dependencies."""
         return EndringsordreService(
             catenda_client=mock_catenda_client,
             event_repository=mock_event_repository,
             timeline_service=mock_timeline_service,
+            relation_repository=mock_relation_repository,
         )
 
     # ========================================================================
@@ -404,14 +417,23 @@ class TestEndringsordreService:
     # Test: finn_eoer_for_koe
     # ========================================================================
 
+    @patch("services.endringsordre_service.parse_event")
     def test_finn_eoer_for_koe_found(
-        self, service, mock_catenda_client, mock_event_repository, mock_timeline_service
+        self,
+        mock_parse_event,
+        service,
+        mock_catenda_client,
+        mock_event_repository,
+        mock_timeline_service,
+        mock_relation_repository,
     ):
-        """Test finding EOer that reference a KOE case."""
-        mock_catenda_client.list_topics.return_value = [{"guid": "EO-001"}]
+        """Test finding EOer that reference a KOE case via index."""
+        # Configure relation repository to return EO-001 as container
+        mock_relation_repository.get_containers_for_sak.return_value = ["EO-001"]
 
-        mock_events = [Mock()]
+        mock_events = [{"event_type": "eo_opprettet"}]
         mock_event_repository.get_events.return_value = (mock_events, 1)
+        mock_parse_event.side_effect = lambda e: Mock(event_type=e.get("event_type"))
 
         mock_state = SakState(
             sak_id="EO-001",
@@ -430,6 +452,9 @@ class TestEndringsordreService:
 
         assert len(result) == 1
         assert result[0]["eo_sak_id"] == "EO-001"
+        mock_relation_repository.get_containers_for_sak.assert_called_once_with(
+            target_sak_id="KOE-001", relation_type="endringsordre"
+        )
 
     def test_finn_eoer_for_koe_not_found(
         self, service, mock_catenda_client, mock_event_repository, mock_timeline_service

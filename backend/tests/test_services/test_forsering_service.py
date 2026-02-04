@@ -49,14 +49,27 @@ class TestForseringService:
         return service
 
     @pytest.fixture
+    def mock_relation_repository(self):
+        """Create mock relation repository for index-based lookups."""
+        repo = Mock()
+        repo.get_containers_for_sak = Mock(return_value=[])
+        repo.add_relations_batch = Mock(return_value=None)
+        return repo
+
+    @pytest.fixture
     def service(
-        self, mock_catenda_client, mock_event_repository, mock_timeline_service
+        self,
+        mock_catenda_client,
+        mock_event_repository,
+        mock_timeline_service,
+        mock_relation_repository,
     ):
         """Create ForseringService with mocked dependencies."""
         return ForseringService(
             catenda_client=mock_catenda_client,
             event_repository=mock_event_repository,
             timeline_service=mock_timeline_service,
+            relation_repository=mock_relation_repository,
         )
 
     # ========================================================================
@@ -287,10 +300,11 @@ class TestForseringService:
         mock_catenda_client,
         mock_event_repository,
         mock_timeline_service,
+        mock_relation_repository,
     ):
-        """Test finding forseringer that reference a KOE case."""
-        # Arrange
-        mock_catenda_client.list_topics.return_value = [{"guid": "forsering-001"}]
+        """Test finding forseringer that reference a KOE case via index."""
+        # Arrange - configure relation repository to return forsering-001
+        mock_relation_repository.get_containers_for_sak.return_value = ["forsering-001"]
 
         mock_events = [{"event_type": "forsering_varsel"}]
         mock_event_repository.get_events.return_value = (mock_events, 1)
@@ -315,6 +329,9 @@ class TestForseringService:
         # Assert
         assert len(result) == 1
         assert result[0]["forsering_sak_id"] == "forsering-001"
+        mock_relation_repository.get_containers_for_sak.assert_called_once_with(
+            target_sak_id="SAK-001", relation_type="forsering"
+        )
 
     def test_finn_forseringer_for_sak_not_found(
         self, service, mock_catenda_client, mock_event_repository, mock_timeline_service
