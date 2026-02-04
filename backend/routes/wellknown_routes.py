@@ -57,15 +57,17 @@ def oauth_authorization_server(resource: str = "") -> Response:
             content_type="application/json"
         )
 
-    # Supabase OAuth 2.1 endpoints
+    # Supabase OAuth 2.1 Server endpoints (note: /oauth/ in path)
+    # These are different from Supabase's own auth endpoints
     auth_base = f"{supabase_url}/auth/v1"
+    oauth_base = f"{auth_base}/oauth"
 
     metadata = {
         "issuer": auth_base,
-        "authorization_endpoint": f"{auth_base}/authorize",
-        "token_endpoint": f"{auth_base}/token",
+        "authorization_endpoint": f"{oauth_base}/authorize",
+        "token_endpoint": f"{oauth_base}/token",
         "userinfo_endpoint": f"{auth_base}/userinfo",
-        "jwks_uri": f"{supabase_url}/auth/v1/.well-known/jwks.json",
+        "jwks_uri": f"{auth_base}/.well-known/jwks.json",
         "registration_endpoint": None,  # Dynamic registration not supported
         "scopes_supported": ["openid", "profile", "email"],
         "response_types_supported": ["code"],
@@ -73,7 +75,7 @@ def oauth_authorization_server(resource: str = "") -> Response:
         "grant_types_supported": ["authorization_code", "refresh_token"],
         "code_challenge_methods_supported": ["S256"],  # PKCE required
         "token_endpoint_auth_methods_supported": ["client_secret_post", "client_secret_basic"],
-        "service_documentation": "https://supabase.com/docs/guides/auth",
+        "service_documentation": "https://supabase.com/docs/guides/auth/oauth-server",
     }
 
     logger.info(f"Returning OAuth metadata pointing to {auth_base}")
@@ -114,9 +116,11 @@ def oauth_protected_resource(resource: str = "") -> Response:
     # Get the base URL of this MCP server
     mcp_base_url = request.url_root.rstrip("/")
 
+    # Point to the OAuth authorization server metadata endpoint on this server
+    # Claude will fetch /.well-known/oauth-authorization-server to get Supabase endpoints
     metadata = {
         "resource": f"{mcp_base_url}/mcp/",
-        "authorization_servers": [f"{supabase_url}/auth/v1"],
+        "authorization_servers": [mcp_base_url],  # Points to this server's .well-known
         "scopes_supported": ["openid", "profile", "email"],
         "bearer_methods_supported": ["header"],
     }
@@ -155,16 +159,17 @@ def openid_configuration() -> Response:
             content_type="application/json"
         )
 
-    # Supabase OIDC configuration endpoint
+    # Supabase OAuth 2.1 Server OIDC configuration
     auth_base = f"{supabase_url}/auth/v1"
+    oauth_base = f"{auth_base}/oauth"
 
-    # Return OIDC-compatible metadata
+    # Return OIDC-compatible metadata pointing to OAuth Server endpoints
     metadata = {
         "issuer": auth_base,
-        "authorization_endpoint": f"{auth_base}/authorize",
-        "token_endpoint": f"{auth_base}/token",
+        "authorization_endpoint": f"{oauth_base}/authorize",
+        "token_endpoint": f"{oauth_base}/token",
         "userinfo_endpoint": f"{auth_base}/userinfo",
-        "jwks_uri": f"{supabase_url}/auth/v1/.well-known/jwks.json",
+        "jwks_uri": f"{auth_base}/.well-known/jwks.json",
         "scopes_supported": ["openid", "profile", "email"],
         "response_types_supported": ["code"],
         "grant_types_supported": ["authorization_code", "refresh_token"],
