@@ -834,7 +834,8 @@ export function RespondFristModal({
         vilkar_oppfylt: data.vilkar_oppfylt,
 
         // Port 3: Beregning
-        godkjent_dager: godkjentDager,
+        // Only include godkjent_dager when principal result is not avslått
+        godkjent_dager: prinsipaltResultat !== 'avslatt' ? godkjentDager : 0,
         ny_sluttdato: data.ny_sluttdato,
 
         // Port 4: Oppsummering
@@ -846,9 +847,10 @@ export function RespondFristModal({
         krevd_dager: effektivKrevdDager,
 
         // Subsidiært standpunkt (nye felt)
+        // Only include subsidiaer_godkjent_dager when subsidiary result is not avslått
         subsidiaer_triggers: triggers.length > 0 ? triggers : undefined,
         subsidiaer_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
-        subsidiaer_godkjent_dager: visSubsidiaertResultat ? godkjentDager : undefined,
+        subsidiaer_godkjent_dager: visSubsidiaertResultat && subsidiaertResultat !== 'avslatt' ? godkjentDager : undefined,
         subsidiaer_begrunnelse: visSubsidiaertResultat ? begrunnelseTekst : undefined,
       },
     });
