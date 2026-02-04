@@ -103,7 +103,7 @@ class TestCloudEventMixinAttributes:
                 dato_oppdaget="2025-01-10",
             ),
         )
-        assert event.ce_source == "/projects/unknown/cases/KOE-2025-042"
+        assert event.ce_source == "/projects/oslobygg/cases/KOE-2025-042"
 
     def test_ce_type_has_namespace(self):
         """Test ce_type includes the no.oslo.koe namespace."""

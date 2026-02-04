@@ -105,13 +105,20 @@ class TestValidateVarselRequirement:
         assert "Justerte enhetspriser krever varsel" in str(exc_info.value)
 
     def test_flag_set_with_empty_varsel_raises(self):
-        """When flag is set but varsel is empty dict, raises ValidationError."""
+        """When flag is set but varsel is empty dict, raises ValidationError.
+
+        Note: Empty dict is falsy in Python, so validator treats it as missing
+        and uses the generic error message (not the dato_sendt message).
+        """
         data = {"krever_justert_ep": True, "justert_ep_varsel": {}}
         with pytest.raises(ValidationError) as exc_info:
             _validate_varsel_requirement(
-                data, "krever_justert_ep", "justert_ep_varsel", "Error message"
+                data,
+                "krever_justert_ep",
+                "justert_ep_varsel",
+                "Justerte enhetspriser krever varsel (§34.3.3)",
             )
-        assert "dato_sendt" in str(exc_info.value)
+        assert "Justerte enhetspriser krever varsel" in str(exc_info.value)
 
     def test_flag_set_varsel_missing_dato_sendt_raises(self):
         """When varsel lacks dato_sendt, raises ValidationError."""

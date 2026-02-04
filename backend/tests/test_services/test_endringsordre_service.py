@@ -92,8 +92,13 @@ class TestEndringsordreService:
     # Test: opprett_endringsordresak
     # ========================================================================
 
-    def test_opprett_endringsordresak_success(self, service, mock_catenda_client):
+    @patch("core.config.settings")
+    def test_opprett_endringsordresak_success(
+        self, mock_settings, service, mock_catenda_client
+    ):
         """Test successful EO case creation with bidirectional relations."""
+        mock_settings.is_catenda_enabled = True
+
         result = service.opprett_endringsordresak(
             eo_nummer="EO-001",
             beskrivelse="Test endringsordre",

@@ -59,9 +59,11 @@ class TestCatendaConfig:
         assert settings.is_catenda_enabled is False
 
     def test_catenda_auto_enabled_with_credentials(self):
-        """is_catenda_enabled should be True when credentials are set."""
+        """is_catenda_enabled should be True when credentials are set and catenda_enabled is not explicit."""
         settings = Settings(
-            catenda_client_id="my-client-id", catenda_client_secret="my-secret"
+            catenda_client_id="my-client-id",
+            catenda_client_secret="my-secret",
+            catenda_enabled="",  # Empty = auto-detect based on credentials
         )
         assert settings.is_catenda_enabled is True
 
