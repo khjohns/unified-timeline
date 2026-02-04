@@ -180,7 +180,15 @@ export function CaseDashboard({
         <div data-onboarding="grunnlag-card">
           <DashboardCard
             title="Ansvarsgrunnlag"
-            headerBadge={getStatusBadge(state.grunnlag.status)}
+            headerBadge={
+              <div className="flex items-center gap-2 flex-wrap">
+                {getStatusBadge(state.grunnlag.status)}
+                {/* §32.2 Preklusjon badge - kun hvis ikke trukket */}
+                {state.grunnlag.grunnlag_varslet_i_tide === false && state.grunnlag.status !== 'trukket' && (
+                  <Badge variant="warning" size="sm">§32.2</Badge>
+                )}
+              </div>
+            }
             action={grunnlagActions}
             variant="default"
             className="animate-fade-in-up"
@@ -196,24 +204,6 @@ export function CaseDashboard({
                 hovedkategori={state.grunnlag.hovedkategori}
                 underkategori={state.grunnlag.underkategori}
               />
-            </div>
-          )}
-          {/* §32.2 Preklusjon: BH mener varselet kom for sent */}
-          {state.grunnlag.grunnlag_varslet_i_tide === false && (
-            <div className="mb-2 px-2.5 py-1.5 rounded-md bg-alert-warning-bg border border-alert-warning-border">
-              <p className="text-xs font-medium text-alert-warning-text">
-                BH påberoper §32.2-preklusjon (varslet for sent)
-                {state.grunnlag.bh_resultat && (
-                  <span className="font-normal">
-                    {' '}– subsidiært{' '}
-                    {state.grunnlag.bh_resultat === 'godkjent'
-                      ? 'godkjent'
-                      : state.grunnlag.bh_resultat === 'avslatt'
-                      ? 'avslått'
-                      : 'delvis godkjent'}
-                  </span>
-                )}
-              </p>
             </div>
           )}
           <InlineDataList stackOnMobile>
