@@ -100,13 +100,18 @@ export interface VederlagHistorikkEntry {
   // BH-respons felter (for respons/respons_oppdatert)
   bh_resultat?: string | null;
   bh_resultat_label?: string | null;
-  godkjent_belop?: number | null;
+  godkjent_belop?: number | null; // Total (sum av alle komponenter)
   bh_begrunnelse?: string | null;
   hold_tilbake?: boolean | null; // §30.2 tilbakeholdelse
 
-  // Subsidiært standpunkt
+  // BH-respons: Oppdelt godkjent beløp
+  hovedkrav_godkjent_belop?: number | null; // Hovedkrav godkjent
+  rigg_godkjent_belop?: number | null; // Rigg/drift godkjent (§34.1.3)
+  produktivitet_godkjent_belop?: number | null; // Produktivitet godkjent (§34.1.3)
+
+  // Subsidiært standpunkt (inkluderer prekluderte krav)
   subsidiaer_resultat?: string | null;
-  subsidiaer_godkjent_belop?: number | null;
+  subsidiaer_godkjent_belop?: number | null; // Total subsidiært (inkl. prekluderte)
 }
 
 export interface FristHistorikkEntry {

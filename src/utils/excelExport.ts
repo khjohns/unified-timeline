@@ -286,14 +286,17 @@ function buildVederlagSheet(
     'Type endring',
     'Krevd beløp',
     'Metode',
-    'Rigg/drift beløp',
-    'Produktivitet beløp',
+    'Rigg/drift krevd',
+    'Produktivitet krevd',
     'Begrunnelse',
     'BH resultat',
-    'Godkjent beløp',
+    'Hovedkrav godkjent',
+    'Rigg/drift godkjent',
+    'Produktivitet godkjent',
+    'Total godkjent',
     'Hold tilbake',
     'Subs. resultat',
-    'Subs. beløp',
+    'Subs. total',
     'BH begrunnelse',
   ];
 
@@ -309,6 +312,9 @@ function buildVederlagSheet(
     formatCurrency(e.produktivitet_belop),
     e.begrunnelse || '-',
     e.bh_resultat ? getResultatLabel(e.bh_resultat) : '-',
+    formatCurrency(e.hovedkrav_godkjent_belop),
+    formatCurrency(e.rigg_godkjent_belop),
+    formatCurrency(e.produktivitet_godkjent_belop),
     formatCurrency(e.godkjent_belop),
     e.hold_tilbake != null ? formatBoolean(e.hold_tilbake) : '-',
     e.subsidiaer_resultat ? getResultatLabel(e.subsidiaer_resultat) : '-',
@@ -321,7 +327,7 @@ function buildVederlagSheet(
 
   ws.getRow(1).font = { bold: true };
 
-  setColumnWidths(ws, [8, 16, 20, 16, 18, 14, 28, 14, 14, 14, 35, 18, 14, 12, 18, 14, 35]);
+  setColumnWidths(ws, [8, 16, 20, 16, 18, 14, 28, 14, 16, 35, 14, 16, 16, 18, 14, 12, 14, 14, 35]);
 }
 
 function buildFristSheet(

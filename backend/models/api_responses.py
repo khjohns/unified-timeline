@@ -201,13 +201,19 @@ class VederlagHistorikkEntry(BaseModel):
     # BH-respons felter (for respons/respons_oppdatert)
     bh_resultat: str | None = None
     bh_resultat_label: str | None = None
-    godkjent_belop: float | None = None
+    godkjent_belop: float | None = None  # Total (sum av alle komponenter)
     bh_begrunnelse: str | None = None
     hold_tilbake: bool | None = None  # §30.2 tilbakeholdelse
 
+    # BH-respons: Oppdelt godkjent beløp
+    hovedkrav_godkjent_belop: float | None = None  # Hovedkrav godkjent
+    rigg_godkjent_belop: float | None = None  # Rigg/drift godkjent (§34.1.3)
+    produktivitet_godkjent_belop: float | None = None  # Produktivitet godkjent (§34.1.3)
+
     # Subsidiært standpunkt (når BH avviser men angir hva resultatet ville vært)
+    # Inkluderer prekluderte krav som ville blitt godkjent subsidiært
     subsidiaer_resultat: str | None = None
-    subsidiaer_godkjent_belop: float | None = None
+    subsidiaer_godkjent_belop: float | None = None  # Total subsidiært (inkl. prekluderte)
 
 
 class VederlagResponse(BaseModel):

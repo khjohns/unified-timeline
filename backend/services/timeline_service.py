@@ -1643,6 +1643,17 @@ class TimelineService:
                     godkjent_belop=event.data.total_godkjent_belop,
                     bh_begrunnelse=getattr(event.data, "begrunnelse", None),
                     hold_tilbake=getattr(event.data, "hold_tilbake", None),
+                    # Oppdelt godkjent beløp
+                    hovedkrav_godkjent_belop=getattr(
+                        event.data, "hovedkrav_godkjent_belop", None
+                    ),
+                    rigg_godkjent_belop=getattr(
+                        event.data, "rigg_godkjent_belop", None
+                    ),
+                    produktivitet_godkjent_belop=getattr(
+                        event.data, "produktivitet_godkjent_belop", None
+                    ),
+                    # Subsidiært standpunkt
                     subsidiaer_resultat=event.data.subsidiaer_resultat.value
                     if getattr(event.data, "subsidiaer_resultat", None)
                     else None,
@@ -1668,6 +1679,17 @@ class TimelineService:
                     godkjent_belop=event.data.total_godkjent_belop,
                     bh_begrunnelse=getattr(event.data, "begrunnelse", None),
                     hold_tilbake=getattr(event.data, "hold_tilbake", None),
+                    # Oppdelt godkjent beløp
+                    hovedkrav_godkjent_belop=getattr(
+                        event.data, "hovedkrav_godkjent_belop", None
+                    ),
+                    rigg_godkjent_belop=getattr(
+                        event.data, "rigg_godkjent_belop", None
+                    ),
+                    produktivitet_godkjent_belop=getattr(
+                        event.data, "produktivitet_godkjent_belop", None
+                    ),
+                    # Subsidiært standpunkt
                     subsidiaer_resultat=event.data.subsidiaer_resultat.value
                     if getattr(event.data, "subsidiaer_resultat", None)
                     else None,
