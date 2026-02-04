@@ -287,10 +287,19 @@ function getEntryVariant(type: SporHistoryEntryType, resultat?: string | null): 
 function getEntryLabel(entry: SporHistoryEntry): string {
   const teVersionRef = entry.versjon > 1 ? ` · Rev. ${entry.versjon - 1}` : '';
 
-  // For te_trukket, use sammendrag which contains spor-specific text
-  // ("Grunnlag trukket" vs "Krav trukket")
+  // For TE actions, use sammendrag which contains spor-specific text
+  // Grunnlag: "Grunnlag opprettet/oppdatert/trukket"
+  // Vederlag/Frist: "Krevd X kr" / "Oppdatert til X kr" / "Krav trukket"
   if (entry.type === 'te_trukket') {
-    return `${entry.sammendrag || 'Trukket tilbake'} tilbake`;
+    return `${entry.sammendrag || 'Trukket'} tilbake`;
+  }
+
+  if (entry.type === 'te_krav' || entry.type === 'te_oppdatering') {
+    // Use sammendrag for grunnlag (contains "Grunnlag opprettet/oppdatert")
+    // For vederlag/frist, sammendrag has amount info which is better than generic labels
+    if (entry.sammendrag) {
+      return `${entry.sammendrag}${teVersionRef}`;
+    }
   }
 
   const labels: Record<SporHistoryEntryType, string> = {
