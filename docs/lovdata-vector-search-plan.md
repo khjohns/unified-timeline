@@ -204,16 +204,31 @@ def create_embedding_text(doc: dict, section: dict) -> str:
 
 **Beslutning:** 1536 dimensjoner (balanse)
 
-| Dimensjon | Lagring | Søkehastighet | Kvalitet |
-|-----------|---------|---------------|----------|
-| 768 | 3 KB/rad | Raskest | God |
-| **1536** | 6 KB/rad | Rask | **Meget god** |
-| 3072 | 12 KB/rad | Moderat | Best |
+| Dimensjon | Lagring | Søkehastighet | Kvalitet | Normalisert |
+|-----------|---------|---------------|----------|-------------|
+| 768 | 3 KB/rad | Raskest | God | ❌ Må normaliseres |
+| **1536** | 6 KB/rad | Rask | **Meget god** | ❌ Må normaliseres |
+| 3072 | 12 KB/rad | Moderat | Best | ✅ Pre-normalisert |
 
 For 92 000 seksjoner:
 - 768 dim: ~270 MB
 - 1536 dim: ~540 MB
 - 3072 dim: ~1.1 GB
+
+> **Viktig:** Kun 3072-dim embeddings er pre-normalisert fra Gemini API.
+> For 768/1536 må vi normalisere manuelt for korrekt cosine similarity.
+
+### Task Types
+
+Gemini embedding API støtter spesialiserte task types for bedre kvalitet:
+
+| Task Type | Bruksområde |
+|-----------|-------------|
+| `RETRIEVAL_DOCUMENT` | Dokumenter som skal søkes i (lovtekster) |
+| `RETRIEVAL_QUERY` | Brukerens søkespørring |
+| `SEMANTIC_SIMILARITY` | Generell likhetsvurdering |
+
+**Beslutning:** Bruk `RETRIEVAL_DOCUMENT` for lovtekster, `RETRIEVAL_QUERY` for søk.
 
 ### Hybrid vs ren vektorsøk
 
@@ -260,6 +275,18 @@ if section.content_hash != stored_hash:
 | gemini-embedding-001 | $0.15 / 1M tokens | **~$2.10** |
 | Innenfor gratis kvote? | Sannsynligvis | **$0** |
 
+> **Alternativ: Batch API**
+> For initial embedding av alle 92k seksjoner kan Gemini Batch API brukes:
+> ```python
+> # Asynkron batch-jobb for høy throughput
+> batch_job = client.batches.create_embeddings(
+>     model="gemini-embedding-001",
+>     src={'file_name': 'lovdata_sections.jsonl'},
+>     config={'display_name': "Lovdata initial embedding"}
+> )
+> ```
+> Fordeler: Høyere throughput, ingen rate limiting, asynkron prosessering.
+
 ### Løpende kostnader
 
 | Post | Estimat | Kostnad/mnd |
@@ -302,7 +329,8 @@ CREATE OR REPLACE FUNCTION search_lovdata_hybrid(
     query_text TEXT,
     query_embedding vector(1536),
     match_count INT DEFAULT 10,
-    fts_weight FLOAT DEFAULT 0.5  -- Start med 50/50 vekting
+    fts_weight FLOAT DEFAULT 0.5,  -- Start med 50/50 vekting
+    ef_search INT DEFAULT 100      -- HNSW recall parameter (høyere = bedre recall, tregere)
 )
 RETURNS TABLE (
     id UUID,
@@ -319,6 +347,9 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 AS $$
 BEGIN
+    -- Sett HNSW søkeparameter for denne queryen
+    PERFORM set_config('hnsw.ef_search', ef_search::TEXT, true);
+
     RETURN QUERY
     WITH vector_search AS (
         SELECT
@@ -388,6 +419,8 @@ from supabase import create_client
 EMBEDDING_MODEL = "models/gemini-embedding-001"
 EMBEDDING_DIM = 1536
 BATCH_SIZE = 100  # Google API batch limit
+TASK_TYPE_DOCUMENT = "RETRIEVAL_DOCUMENT"  # For lovtekster
+TASK_TYPE_QUERY = "RETRIEVAL_QUERY"        # For søk
 
 
 def get_supabase_client():
@@ -453,14 +486,34 @@ def fetch_document_metadata(supabase) -> dict[str, dict]:
     return {doc['dok_id']: doc for doc in result.data}
 
 
-def generate_embeddings_batch(texts: list[str]) -> list[list[float]]:
-    """Generer embeddings for en batch med tekster."""
+def normalize_embedding(embedding: list[float]) -> list[float]:
+    """Normaliser embedding til enhetslengde for korrekt cosine similarity."""
+    import math
+    norm = math.sqrt(sum(x * x for x in embedding))
+    if norm == 0:
+        return embedding
+    return [x / norm for x in embedding]
+
+
+def generate_embeddings_batch(
+    texts: list[str],
+    task_type: str = TASK_TYPE_DOCUMENT
+) -> list[list[float]]:
+    """
+    Generer embeddings for en batch med tekster.
+
+    Args:
+        texts: Liste med tekster å embede
+        task_type: RETRIEVAL_DOCUMENT for lovtekster, RETRIEVAL_QUERY for søk
+    """
     result = genai.embed_content(
         model=EMBEDDING_MODEL,
         content=texts,
+        task_type=task_type,  # Spesialisert for retrieval
         output_dimensionality=EMBEDDING_DIM
     )
-    return result['embedding']
+    # Normaliser embeddings (påkrevd for 768/1536 dim)
+    return [normalize_embedding(emb) for emb in result['embedding']]
 
 
 def update_section_embeddings(
@@ -612,6 +665,13 @@ class LovdataVectorSearch:
             raise ValueError("GEMINI_API_KEY må settes for vektorsøk")
         genai.configure(api_key=api_key)
 
+    @staticmethod
+    def _normalize(embedding: list[float]) -> list[float]:
+        """Normaliser embedding til enhetslengde."""
+        import math
+        norm = math.sqrt(sum(x * x for x in embedding))
+        return [x / norm for x in embedding] if norm > 0 else embedding
+
     @lru_cache(maxsize=1000)
     def _generate_query_embedding(self, query: str) -> tuple[float, ...]:
         """
@@ -619,13 +679,17 @@ class LovdataVectorSearch:
 
         Caches resultater for å unngå gjentatte API-kall for samme spørring.
         Returnerer tuple (immutable) for caching-kompatibilitet.
+        Bruker RETRIEVAL_QUERY task type for optimalisert søkekvalitet.
         """
         result = genai.embed_content(
             model=EMBEDDING_MODEL,
             content=query,
+            task_type="RETRIEVAL_QUERY",  # Optimalisert for søk
             output_dimensionality=EMBEDDING_DIM
         )
-        return tuple(result['embedding'])
+        # Normaliser for korrekt cosine similarity (påkrevd for 1536 dim)
+        normalized = self._normalize(result['embedding'])
+        return tuple(normalized)
 
     def _fallback_fts_search(
         self,
@@ -668,7 +732,8 @@ class LovdataVectorSearch:
         self,
         query: str,
         limit: int = 10,
-        fts_weight: float = DEFAULT_FTS_WEIGHT
+        fts_weight: float = DEFAULT_FTS_WEIGHT,
+        ef_search: int = 100  # HNSW recall parameter
     ) -> list[VectorSearchResult]:
         """
         Utfør hybrid søk.
@@ -677,6 +742,7 @@ class LovdataVectorSearch:
             query: Søkespørring (naturlig språk)
             limit: Maks antall resultater
             fts_weight: Vekting av FTS vs vektor (0-1, default 0.5)
+            ef_search: HNSW recall (høyere = bedre recall, tregere, default 100)
 
         Returns:
             Liste med VectorSearchResult sortert etter relevans
@@ -693,7 +759,8 @@ class LovdataVectorSearch:
             'query_text': query,
             'query_embedding': query_embedding,
             'match_count': limit,
-            'fts_weight': fts_weight
+            'fts_weight': fts_weight,
+            'ef_search': ef_search  # Justerbar HNSW recall
         }).execute()
 
         if not result.data:
