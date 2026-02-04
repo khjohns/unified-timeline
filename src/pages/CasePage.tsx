@@ -371,7 +371,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
                     kostnads_overslag: state.vederlag.kostnads_overslag,
                     begrunnelse: state.vederlag.begrunnelse,
                     krever_justert_ep: state.vederlag.krever_justert_ep,
-                    varslet_for_oppstart: state.vederlag.regningsarbeid_varsel !== undefined,
+                    varslet_for_oppstart: state.vederlag.varslet_for_oppstart,
                     saerskilt_krav: state.vederlag.saerskilt_krav,
                     // BH's foreslåtte metode - forhåndsvalgt hvis TE reviderer inline
                     bh_metode: state.vederlag.bh_metode,
@@ -612,7 +612,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               kostnads_overslag: state.vederlag.kostnads_overslag,
               begrunnelse: state.vederlag.begrunnelse,
               krever_justert_ep: state.vederlag.krever_justert_ep,
-              varslet_for_oppstart: state.vederlag.regningsarbeid_varsel !== undefined,
+              varslet_for_oppstart: state.vederlag.varslet_for_oppstart,
               saerskilt_krav: state.vederlag.saerskilt_krav,
             }}
             currentVersion={Math.max(0, (state.vederlag.antall_versjoner ?? 1) - 1)}
@@ -725,6 +725,15 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
             sakId={sakId}
             grunnlagStatus={grunnlagStatus}
             grunnlagVarsletForSent={grunnlagVarsletForSent}
+            varselType={state.frist.varsel_type}
+            fristEvent={{
+              antall_dager: state.frist.krevd_dager,
+              begrunnelse: state.frist.begrunnelse,
+              dato_krav_mottatt: state.frist.spesifisert_varsel?.dato_sendt,
+              dato_oppdaget: state.grunnlag.dato_oppdaget,
+              frist_varsel: state.frist.frist_varsel,
+              spesifisert_varsel: state.frist.spesifisert_varsel,
+            }}
             lastResponseEvent={{
               event_id: `frist-response-${sakId}`,
               resultat: state.frist.bh_resultat || 'godkjent',

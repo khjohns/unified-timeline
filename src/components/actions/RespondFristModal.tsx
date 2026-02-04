@@ -445,15 +445,17 @@ export function RespondFristModal({
     return harTidligereFristVarsel && erFristVarselVurdertOk;
   }, [harTidligereFristVarsel, erFristVarselVurdertOk]);
 
-  // Må BH vurdere §33.4 for første gang? (finnes foreløpig varsel, men ikke vurdert ennå)
+  // Må BH vurdere §33.4? (finnes foreløpig varsel, og enten ikke vurdert ennå ELLER update mode)
   const maaVurdereFristVarsel = useMemo(() => {
     if (!harTidligereFristVarsel) return false;
+    // I update mode: alltid vis så BH kan revurdere
+    if (isUpdateMode) return true;
     // Ikke vurdert tidligere
     if (fristTilstand?.frist_varsel_ok === undefined || fristTilstand?.frist_varsel_ok === null) {
       return true;
     }
     return false;
-  }, [harTidligereFristVarsel, fristTilstand?.frist_varsel_ok]);
+  }, [harTidligereFristVarsel, fristTilstand?.frist_varsel_ok, isUpdateMode]);
 
   // §33.6.2 fjerde ledd: Hvis kravet er svar på forespørsel, kan byggherren
   // IKKE påberope at fristen i §33.6.1 er oversittet
