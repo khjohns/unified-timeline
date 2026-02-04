@@ -57,15 +57,20 @@ def register_oauth_client(
         sys.exit(1)
 
     supabase_url = os.getenv("SUPABASE_URL")
-    service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    # Try multiple env var names for the service role key
+    service_role_key = (
+        os.getenv("SUPABASE_SERVICE_ROLE_KEY") or
+        os.getenv("SUPABASE_SECRET_KEY") or
+        os.getenv("SUPABASE_KEY")
+    )
 
     if not supabase_url:
         print("Error: SUPABASE_URL not set in .env")
         sys.exit(1)
 
     if not service_role_key:
-        print("Error: SUPABASE_SERVICE_ROLE_KEY not set in .env")
-        print("Note: This requires the service_role key, not the anon key.")
+        print("Error: No Supabase service key found in .env")
+        print("Set one of: SUPABASE_SERVICE_ROLE_KEY, SUPABASE_SECRET_KEY, or SUPABASE_KEY")
         sys.exit(1)
 
     # Default redirect URIs for Claude.ai
@@ -145,10 +150,14 @@ def list_oauth_clients() -> None:
         return
 
     supabase_url = os.getenv("SUPABASE_URL")
-    service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    service_role_key = (
+        os.getenv("SUPABASE_SERVICE_ROLE_KEY") or
+        os.getenv("SUPABASE_SECRET_KEY") or
+        os.getenv("SUPABASE_KEY")
+    )
 
     if not supabase_url or not service_role_key:
-        print("Error: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY")
+        print("Error: Missing SUPABASE_URL or Supabase service key")
         return
 
     try:
