@@ -165,6 +165,11 @@ export interface GrunnlagTilstand {
   laast: boolean;
   /** Which version of the claim BH last responded to (0-indexed: 0 = original, 1 = rev 1, etc.) */
   bh_respondert_versjon?: number;
+
+  // Tilbaketrekking
+  /** Begrunnelse for tilbaketrekking av grunnlag */
+  trukket_begrunnelse?: string;
+
   /** CloudEvents ID of the last event that modified this track */
   siste_event_id?: string;
   siste_oppdatert?: string;
@@ -226,6 +231,12 @@ export interface VederlagTilstand {
   har_subsidiaert_standpunkt?: boolean;
   visningsstatus?: string;
 
+  // Tilbaketrekking
+  /** Begrunnelse for tilbaketrekking av vederlagskrav */
+  trukket_begrunnelse?: string;
+  /** True hvis vederlag ble trukket som følge av at grunnlag ble trukket */
+  trukket_via_grunnlag?: boolean;
+
   // Metadata
   /** CloudEvents ID of the last event that modified this track */
   siste_event_id?: string;
@@ -279,6 +290,12 @@ export interface FristTilstand {
 
   /** Which version of the claim BH last responded to (0-indexed: 0 = original, 1 = rev 1, etc.) */
   bh_respondert_versjon?: number;
+
+  // Tilbaketrekking
+  /** Begrunnelse for tilbaketrekking av fristkrav */
+  trukket_begrunnelse?: string;
+  /** True hvis frist ble trukket som følge av at grunnlag ble trukket */
+  trukket_via_grunnlag?: boolean;
 
   // Metadata
   /** CloudEvents ID of the last event that modified this track */

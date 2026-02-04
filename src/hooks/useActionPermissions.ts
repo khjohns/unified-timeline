@@ -112,17 +112,17 @@ export function useActionPermissions(
         state.frist.status === 'delvis_godkjent'),
 
     // TE Actions: Withdraw claims
+    // TE kan ALLTID trekke tilbake, unntatt når fullt godkjent, ikke sendt, allerede trukket, eller låst
     canWithdrawGrunnlag:
       isTE &&
-      (state.grunnlag.status === 'sendt' ||
-        state.grunnlag.status === 'under_behandling') &&
+      !['ikke_relevant', 'utkast', 'godkjent', 'trukket', 'laast'].includes(state.grunnlag.status) &&
       !state.grunnlag.laast,
     canWithdrawVederlag:
       isTE &&
-      (state.vederlag.status === 'sendt' || state.vederlag.status === 'under_behandling'),
+      !['ikke_relevant', 'utkast', 'godkjent', 'trukket'].includes(state.vederlag.status),
     canWithdrawFrist:
       isTE &&
-      (state.frist.status === 'sendt' || state.frist.status === 'under_behandling'),
+      !['ikke_relevant', 'utkast', 'godkjent', 'trukket'].includes(state.frist.status),
 
     // BH Actions: Respond to claims
     // Show "Svar" when: status is sendt/under_behandling AND BH has NOT responded to current version

@@ -177,8 +177,14 @@ describe('useActionPermissions', () => {
         expect(actions.canWithdrawGrunnlag).toBe(false);
       });
 
-      it('should not allow withdrawing grunnlag when avvist', () => {
+      it('should allow withdrawing grunnlag when avslatt (TE kan alltid trekke unntatt godkjent)', () => {
         const state = createMockState({ grunnlagStatus: 'avslatt', grunnlagLaast: false });
+        const actions = useActionPermissions(state, role);
+        expect(actions.canWithdrawGrunnlag).toBe(true);
+      });
+
+      it('should not allow withdrawing grunnlag when godkjent', () => {
+        const state = createMockState({ grunnlagStatus: 'godkjent', grunnlagLaast: false });
         const actions = useActionPermissions(state, role);
         expect(actions.canWithdrawGrunnlag).toBe(false);
       });
@@ -195,8 +201,14 @@ describe('useActionPermissions', () => {
         expect(actions.canWithdrawVederlag).toBe(true);
       });
 
-      it('should not allow withdrawing vederlag when avvist', () => {
+      it('should allow withdrawing vederlag when avslatt (TE kan alltid trekke unntatt godkjent)', () => {
         const state = createMockState({ vederlagStatus: 'avslatt' });
+        const actions = useActionPermissions(state, role);
+        expect(actions.canWithdrawVederlag).toBe(true);
+      });
+
+      it('should not allow withdrawing vederlag when godkjent', () => {
+        const state = createMockState({ vederlagStatus: 'godkjent' });
         const actions = useActionPermissions(state, role);
         expect(actions.canWithdrawVederlag).toBe(false);
       });

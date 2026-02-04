@@ -505,7 +505,6 @@ class GrunnlagEvent(SakEvent):
         valid_types = [
             EventType.GRUNNLAG_OPPRETTET,
             EventType.GRUNNLAG_OPPDATERT,
-            EventType.GRUNNLAG_TRUKKET,
         ]
         if v not in valid_types:
             raise ValueError(f"Ugyldig event_type for GrunnlagEvent: {v}")
@@ -609,7 +608,6 @@ class VederlagEvent(SakEvent):
         valid_types = [
             EventType.VEDERLAG_KRAV_SENDT,
             EventType.VEDERLAG_KRAV_OPPDATERT,
-            EventType.VEDERLAG_KRAV_TRUKKET,
         ]
         if v not in valid_types:
             raise ValueError(f"Ugyldig event_type for VederlagEvent: {v}")
@@ -718,10 +716,52 @@ class FristEvent(SakEvent):
             EventType.FRIST_KRAV_SENDT,
             EventType.FRIST_KRAV_OPPDATERT,
             EventType.FRIST_KRAV_SPESIFISERT,
-            EventType.FRIST_KRAV_TRUKKET,
         ]
         if v not in valid_types:
             raise ValueError(f"Ugyldig event_type for FristEvent: {v}")
+        return v
+
+
+# ============ WITHDRAWAL EVENTS (TE) ============
+
+
+class WithdrawalData(BaseModel):
+    """
+    Enkel data-modell for tilbaketrekking av krav.
+
+    Tilbaketrekking er en enkel handling - tidligere kravdata
+    er kun av historisk interesse og trenger ikke gjentas.
+    """
+
+    begrunnelse: str | None = Field(
+        default=None,
+        description="Valgfri begrunnelse for tilbaketrekking",
+    )
+
+
+class WithdrawalEvent(SakEvent):
+    """
+    Event for tilbaketrekking av krav (grunnlag, vederlag, eller frist).
+
+    En enkel event som markerer at TE trekker tilbake et tidligere sendt krav.
+    Spor-typen (grunnlag/vederlag/frist) bestemmes av event_type.
+    """
+
+    event_type: EventType = Field(
+        ..., description="Type tilbaketrekking (grunnlag_trukket, vederlag_krav_trukket, frist_krav_trukket)"
+    )
+    data: WithdrawalData = Field(default_factory=WithdrawalData, description="Tilbaketrekkingsdata")
+
+    @field_validator("event_type")
+    @classmethod
+    def validate_event_type(cls, v):
+        valid_types = [
+            EventType.GRUNNLAG_TRUKKET,
+            EventType.VEDERLAG_KRAV_TRUKKET,
+            EventType.FRIST_KRAV_TRUKKET,
+        ]
+        if v not in valid_types:
+            raise ValueError(f"Ugyldig event_type for WithdrawalEvent: {v}")
         return v
 
 
@@ -1767,14 +1807,14 @@ def parse_event(data: dict) -> AnyEvent:
         EventType.SAK_OPPRETTET.value: SakOpprettetEvent,
         EventType.GRUNNLAG_OPPRETTET.value: GrunnlagEvent,
         EventType.GRUNNLAG_OPPDATERT.value: GrunnlagEvent,
-        EventType.GRUNNLAG_TRUKKET.value: GrunnlagEvent,
+        EventType.GRUNNLAG_TRUKKET.value: WithdrawalEvent,
         EventType.VEDERLAG_KRAV_SENDT.value: VederlagEvent,
         EventType.VEDERLAG_KRAV_OPPDATERT.value: VederlagEvent,
-        EventType.VEDERLAG_KRAV_TRUKKET.value: VederlagEvent,
+        EventType.VEDERLAG_KRAV_TRUKKET.value: WithdrawalEvent,
         EventType.FRIST_KRAV_SENDT.value: FristEvent,
         EventType.FRIST_KRAV_OPPDATERT.value: FristEvent,
         EventType.FRIST_KRAV_SPESIFISERT.value: FristEvent,
-        EventType.FRIST_KRAV_TRUKKET.value: FristEvent,
+        EventType.FRIST_KRAV_TRUKKET.value: WithdrawalEvent,
         EventType.RESPONS_GRUNNLAG.value: ResponsEvent,
         EventType.RESPONS_GRUNNLAG_OPPDATERT.value: ResponsEvent,
         EventType.RESPONS_VEDERLAG.value: ResponsEvent,

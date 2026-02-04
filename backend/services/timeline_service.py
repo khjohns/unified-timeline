@@ -381,10 +381,41 @@ class TimelineService:
     def _handle_grunnlag_trukket(
         self, state: SakState, event: GrunnlagEvent
     ) -> SakState:
-        """Håndterer GRUNNLAG_TRUKKET"""
+        """
+        Håndterer GRUNNLAG_TRUKKET.
+
+        KASKADE-LOGIKK:
+        Når grunnlag trekkes tilbake, trekkes også vederlag og frist automatisk.
+        Dette fordi ansvarsgrunnlaget er fundamentet for hele saken.
+        """
+        # Trekk grunnlag
         state.grunnlag.status = SporStatus.TRUKKET
         state.grunnlag.siste_event_id = event.event_id
         state.grunnlag.siste_oppdatert = event.tidsstempel
+
+        # Extract begrunnelse if available in event data
+        if hasattr(event, "data") and event.data:
+            begrunnelse = getattr(event.data, "begrunnelse", None)
+            if begrunnelse:
+                state.grunnlag.trukket_begrunnelse = begrunnelse
+
+        # KASKADE: Trekk vederlag hvis aktivt (ikke IKKE_RELEVANT, UTKAST, eller allerede TRUKKET)
+        inactive_statuses = {
+            SporStatus.IKKE_RELEVANT,
+            SporStatus.UTKAST,
+            SporStatus.TRUKKET,
+        }
+        if state.vederlag.status not in inactive_statuses:
+            state.vederlag.status = SporStatus.TRUKKET
+            state.vederlag.trukket_via_grunnlag = True
+            state.vederlag.siste_oppdatert = event.tidsstempel
+
+        # KASKADE: Trekk frist hvis aktivt
+        if state.frist.status not in inactive_statuses:
+            state.frist.status = SporStatus.TRUKKET
+            state.frist.trukket_via_grunnlag = True
+            state.frist.siste_oppdatert = event.tidsstempel
+
         return state
 
     # ============ VEDERLAG HANDLERS ============
@@ -464,6 +495,13 @@ class TimelineService:
         state.vederlag.status = SporStatus.TRUKKET
         state.vederlag.siste_event_id = event.event_id
         state.vederlag.siste_oppdatert = event.tidsstempel
+
+        # Extract begrunnelse if available in event data
+        if hasattr(event, "data") and event.data:
+            begrunnelse = getattr(event.data, "begrunnelse", None)
+            if begrunnelse:
+                state.vederlag.trukket_begrunnelse = begrunnelse
+
         return state
 
     # ============ FRIST HANDLERS ============
@@ -517,6 +555,13 @@ class TimelineService:
         state.frist.status = SporStatus.TRUKKET
         state.frist.siste_event_id = event.event_id
         state.frist.siste_oppdatert = event.tidsstempel
+
+        # Extract begrunnelse if available in event data
+        if hasattr(event, "data") and event.data:
+            begrunnelse = getattr(event.data, "begrunnelse", None)
+            if begrunnelse:
+                state.frist.trukket_begrunnelse = begrunnelse
+
         return state
 
     # ============ RESPONS HANDLERS (BH) ============

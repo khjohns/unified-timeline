@@ -36,6 +36,11 @@ interface CasePageModals {
   // Special Actions - TE
   sendForsering: ModalState;
 
+  // TE Withdrawals
+  withdrawGrunnlag: ModalState;
+  withdrawVederlag: ModalState;
+  withdrawFrist: ModalState;
+
   // Special Actions - BH
   utstEO: ModalState;
 
@@ -98,6 +103,11 @@ export function useCasePageModals(): CasePageModals {
   // Special Actions - TE
   const sendForsering = useModalState();
 
+  // TE Withdrawals
+  const withdrawGrunnlag = useModalState();
+  const withdrawVederlag = useModalState();
+  const withdrawFrist = useModalState();
+
   // Special Actions - BH
   const utstEO = useModalState();
 
@@ -135,6 +145,11 @@ export function useCasePageModals(): CasePageModals {
       // Special Actions - TE
       sendForsering,
 
+      // TE Withdrawals
+      withdrawGrunnlag,
+      withdrawVederlag,
+      withdrawFrist,
+
       // Special Actions - BH
       utstEO,
 
@@ -161,6 +176,9 @@ export function useCasePageModals(): CasePageModals {
       updateVederlagResponse,
       updateFristResponse,
       sendForsering,
+      withdrawGrunnlag,
+      withdrawVederlag,
+      withdrawFrist,
       utstEO,
       sendResponsPakke,
       approvePakke,

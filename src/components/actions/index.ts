@@ -31,3 +31,6 @@ export { InlineReviseFrist } from './InlineReviseFrist';
 
 // Special action modals (TE)
 export { SendForseringModal } from './SendForseringModal';
+
+// Withdrawal modals (TE)
+export { WithdrawModal } from './WithdrawModal';

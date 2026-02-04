@@ -15,6 +15,7 @@ from models.events import (
     SakOpprettetEvent,
     SporType,
     VederlagEvent,
+    WithdrawalEvent,
     parse_event,
     parse_event_from_request,
 )
@@ -151,11 +152,10 @@ class TestParseEvent:
             parse_event(data)
 
     def test_parse_all_grunnlag_event_types(self):
-        """Test parsing all grunnlag-related event types."""
+        """Test parsing all grunnlag-related event types (excluding withdrawal)."""
         for event_type in [
             "grunnlag_opprettet",
             "grunnlag_oppdatert",
-            "grunnlag_trukket",
         ]:
             data = {
                 "event_id": f"test-{event_type}",
@@ -176,6 +176,30 @@ class TestParseEvent:
             event = parse_event(data)
             assert isinstance(event, GrunnlagEvent)
             assert event.event_type.value == event_type
+
+    def test_parse_withdrawal_events(self):
+        """Test parsing withdrawal events - simple events with only begrunnelse."""
+        for event_type in [
+            "grunnlag_trukket",
+            "vederlag_krav_trukket",
+            "frist_krav_trukket",
+        ]:
+            data = {
+                "event_id": f"test-{event_type}",
+                "sak_id": "TEST-008",
+                "event_type": event_type,
+                "tidsstempel": "2025-01-01T12:00:00",
+                "aktor": "Test User",
+                "aktor_rolle": "TE",
+                "data": {
+                    "begrunnelse": "Trekker tilbake kravet",
+                },
+            }
+
+            event = parse_event(data)
+            assert isinstance(event, WithdrawalEvent)
+            assert event.event_type.value == event_type
+            assert event.data.begrunnelse == "Trekker tilbake kravet"
 
 
 class TestParseEventFromRequest:

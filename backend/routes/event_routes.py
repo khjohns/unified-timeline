@@ -179,6 +179,10 @@ EVENT_VALIDATORS = {
     EventType.RESPONS_GRUNNLAG.value: lambda d: validate_respons_event(d, "grunnlag"),
     EventType.RESPONS_VEDERLAG.value: lambda d: validate_respons_event(d, "vederlag"),
     EventType.RESPONS_FRIST.value: lambda d: validate_respons_event(d, "frist"),
+    # Withdrawal events - no data validation needed (begrunnelse is optional)
+    EventType.GRUNNLAG_TRUKKET.value: lambda d: None,
+    EventType.VEDERLAG_KRAV_TRUKKET.value: lambda d: None,
+    EventType.FRIST_KRAV_TRUKKET.value: lambda d: None,
 }
 
 

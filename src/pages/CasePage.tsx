@@ -57,6 +57,8 @@ import {
   // Note: UpdateResponseFristModal is now handled by RespondFristModal with lastResponseEvent prop
   // Special action modals (TE)
   SendForseringModal,
+  // Withdrawal modals (TE)
+  WithdrawModal,
 } from '../components/actions';
 import { findForseringerForSak, type FindForseringerResponse } from '../api/forsering';
 import { findEOerForSak, type FindEOerResponse } from '../api/endringsordre';
@@ -344,6 +346,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               grunnlagState={state.grunnlag}
               onSendGrunnlag={() => modals.sendGrunnlag.setOpen(true)}
               onUpdateGrunnlag={() => modals.updateGrunnlag.setOpen(true)}
+              onWithdrawGrunnlag={() => modals.withdrawGrunnlag.setOpen(true)}
               onRespondGrunnlag={() => modals.respondGrunnlag.setOpen(true)}
               onUpdateGrunnlagResponse={() => modals.updateGrunnlagResponse.setOpen(true)}
               onUtstEO={() => modals.utstEO.setOpen(true)}
@@ -355,6 +358,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               actions={actions}
               isForceMajeure={state.grunnlag.hovedkategori === 'FORCE_MAJEURE'}
               onSendVederlag={() => modals.sendVederlag.setOpen(true)}
+              onWithdrawVederlag={() => modals.withdrawVederlag.setOpen(true)}
               onRespondVederlag={() => modals.respondVederlag.setOpen(true)}
               onUpdateVederlagResponse={() => modals.updateVederlagResponse.setOpen(true)}
             />
@@ -395,6 +399,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               fristState={state.frist}
               onSendFrist={() => modals.sendFrist.setOpen(true)}
               onReviseFrist={() => modals.reviseFrist.setOpen(true)}
+              onWithdrawFrist={() => modals.withdrawFrist.setOpen(true)}
               onSendForsering={() => modals.sendForsering.setOpen(true)}
               onRespondFrist={() => modals.respondFrist.setOpen(true)}
               onUpdateFristResponse={() => modals.updateFristResponse.setOpen(true)}
@@ -769,6 +774,32 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
             }}
             dagmulktsats={50000}  // TODO: Get from contract config
             subsidiaerTriggers={state.frist.subsidiaer_triggers}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
+          />
+
+          {/* Withdrawal Modals (TE) */}
+          <WithdrawModal
+            open={modals.withdrawGrunnlag.open}
+            onOpenChange={modals.withdrawGrunnlag.setOpen}
+            sakId={sakId}
+            track="grunnlag"
+            sakState={state}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
+          />
+          <WithdrawModal
+            open={modals.withdrawVederlag.open}
+            onOpenChange={modals.withdrawVederlag.setOpen}
+            sakId={sakId}
+            track="vederlag"
+            sakState={state}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
+          />
+          <WithdrawModal
+            open={modals.withdrawFrist.open}
+            onOpenChange={modals.withdrawFrist.setOpen}
+            sakId={sakId}
+            track="frist"
+            sakState={state}
             onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
           />
 

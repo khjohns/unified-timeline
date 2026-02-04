@@ -109,6 +109,11 @@ class GrunnlagTilstand(BaseModel):
         description="Hvilken versjon av kravet BH sist responderte på (0-indeksert)",
     )
 
+    # Tilbaketrekking
+    trukket_begrunnelse: str | None = Field(
+        default=None, description="Begrunnelse for tilbaketrekking av grunnlag"
+    )
+
     # Metadata
     siste_event_id: str | None = Field(default=None)
     siste_oppdatert: datetime | None = Field(default=None)
@@ -256,6 +261,15 @@ class VederlagTilstand(BaseModel):
     bh_respondert_versjon: int | None = Field(
         default=None,
         description="Hvilken versjon av kravet BH sist responderte på (0-indeksert)",
+    )
+
+    # Tilbaketrekking
+    trukket_begrunnelse: str | None = Field(
+        default=None, description="Begrunnelse for tilbaketrekking av vederlagskrav"
+    )
+    trukket_via_grunnlag: bool = Field(
+        default=False,
+        description="True hvis vederlag ble trukket som følge av at grunnlag ble trukket",
     )
 
     # Metadata
@@ -746,6 +760,15 @@ class FristTilstand(BaseModel):
     bh_respondert_versjon: int | None = Field(
         default=None,
         description="Hvilken versjon av kravet BH sist responderte på (0-indeksert)",
+    )
+
+    # Tilbaketrekking
+    trukket_begrunnelse: str | None = Field(
+        default=None, description="Begrunnelse for tilbaketrekking av fristkrav"
+    )
+    trukket_via_grunnlag: bool = Field(
+        default=False,
+        description="True hvis frist ble trukket som følge av at grunnlag ble trukket",
     )
 
     # Metadata

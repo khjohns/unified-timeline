@@ -92,6 +92,16 @@ class BusinessRuleValidator:
             EventType.GRUNNLAG_OPPDATERT: [
                 ("NOT_LOCKED", self._rule_grunnlag_not_locked),
             ],
+            # TE Withdrawals - track must be active and not locked
+            EventType.GRUNNLAG_TRUKKET: [
+                ("TRACK_ACTIVE", self._rule_grunnlag_can_be_withdrawn),
+            ],
+            EventType.VEDERLAG_KRAV_TRUKKET: [
+                ("TRACK_ACTIVE", self._rule_vederlag_can_be_withdrawn),
+            ],
+            EventType.FRIST_KRAV_TRUKKET: [
+                ("TRACK_ACTIVE", self._rule_frist_can_be_withdrawn),
+            ],
             # ========== ENDRINGSORDRE RULES ==========
             # EO opprettelse - ingen spesifikke regler utover rolle-sjekk
             EventType.EO_OPPRETTET: [],
@@ -388,6 +398,70 @@ class BusinessRuleValidator:
             return ValidationResult(
                 is_valid=False,
                 message="Endringsordren må være utstedt før den kan aksepteres/bestrides",
+            )
+
+        return ValidationResult(is_valid=True)
+
+    # ========== WITHDRAWAL RULES ==========
+
+    def _rule_grunnlag_can_be_withdrawn(
+        self, event: AnyEvent, state: SakState
+    ) -> ValidationResult:
+        """R: Grunnlag kan trekkes tilbake i alle tilfeller unntatt godkjent, låst, eller ikke sendt."""
+        if state.grunnlag.laast or state.grunnlag.status == SporStatus.LAAST:
+            return ValidationResult(
+                is_valid=False, message="Grunnlag er låst og kan ikke trekkes tilbake"
+            )
+
+        # TE kan ALLTID trekke tilbake, unntatt når fullt godkjent, ikke sendt, eller allerede trukket
+        blocked_statuses = {
+            SporStatus.IKKE_RELEVANT,
+            SporStatus.UTKAST,
+            SporStatus.GODKJENT,
+            SporStatus.TRUKKET,
+        }
+        if state.grunnlag.status in blocked_statuses:
+            return ValidationResult(
+                is_valid=False,
+                message="Grunnlag kan ikke trekkes tilbake når status er godkjent, ikke sendt, eller allerede trukket",
+            )
+
+        return ValidationResult(is_valid=True)
+
+    def _rule_vederlag_can_be_withdrawn(
+        self, event: AnyEvent, state: SakState
+    ) -> ValidationResult:
+        """R: Vederlag kan trekkes tilbake i alle tilfeller unntatt godkjent eller ikke sendt."""
+        # TE kan ALLTID trekke tilbake, unntatt når fullt godkjent, ikke sendt, eller allerede trukket
+        blocked_statuses = {
+            SporStatus.IKKE_RELEVANT,
+            SporStatus.UTKAST,
+            SporStatus.GODKJENT,
+            SporStatus.TRUKKET,
+        }
+        if state.vederlag.status in blocked_statuses:
+            return ValidationResult(
+                is_valid=False,
+                message="Vederlagskrav kan ikke trekkes tilbake når status er godkjent, ikke sendt, eller allerede trukket",
+            )
+
+        return ValidationResult(is_valid=True)
+
+    def _rule_frist_can_be_withdrawn(
+        self, event: AnyEvent, state: SakState
+    ) -> ValidationResult:
+        """R: Frist kan trekkes tilbake i alle tilfeller unntatt godkjent eller ikke sendt."""
+        # TE kan ALLTID trekke tilbake, unntatt når fullt godkjent, ikke sendt, eller allerede trukket
+        blocked_statuses = {
+            SporStatus.IKKE_RELEVANT,
+            SporStatus.UTKAST,
+            SporStatus.GODKJENT,
+            SporStatus.TRUKKET,
+        }
+        if state.frist.status in blocked_statuses:
+            return ValidationResult(
+                is_valid=False,
+                message="Fristkrav kan ikke trekkes tilbake når status er godkjent, ikke sendt, eller allerede trukket",
             )
 
         return ValidationResult(is_valid=True)
