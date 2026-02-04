@@ -4,13 +4,18 @@ Analytics API for prosjekt- og porteføljeoversikt.
 Demonstrerer hvordan event-sourced data kan aggregeres for analyse,
 lignende Power BI mot Dataverse.
 
+Optimalisert for ytelse ved å bruke cached metadata hvor mulig,
+i stedet for full event replay.
+
 Endpoints:
-- GET /api/analytics/summary         - Overordnet sammendrag
-- GET /api/analytics/by-category     - Saker fordelt på grunnlagskategori
-- GET /api/analytics/by-status       - Saker fordelt på status
-- GET /api/analytics/timeline        - Aktivitet over tid
-- GET /api/analytics/vederlag        - Vederlagsanalyse (beløp, metoder)
-- GET /api/analytics/response-times  - Behandlingstider
+- GET /api/analytics/summary         - Overordnet sammendrag (cached)
+- GET /api/analytics/by-category     - Saker fordelt på grunnlagskategori (cached)
+- GET /api/analytics/by-status       - Saker fordelt på status (cached)
+- GET /api/analytics/timeline        - Aktivitet over tid (events)
+- GET /api/analytics/vederlag        - Vederlagsanalyse (cached + events for metode)
+- GET /api/analytics/frist           - Fristforlengelse og dagmulkt (cached)
+- GET /api/analytics/response-times  - Behandlingstider (events)
+- GET /api/analytics/actors          - Aktøranalyse (events)
 """
 
 from collections import defaultdict
@@ -21,9 +26,13 @@ from flask import Blueprint, jsonify, request
 
 from lib.auth.magic_link import require_magic_link
 from models.events import parse_event
+from models.sak_metadata import SakMetadata
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+# Standard dagmulktsats (kr/dag) - brukt i fristberegninger
+DAGMULKTSATS = 150000
 
 analytics_bp = Blueprint("analytics", __name__)
 
@@ -60,16 +69,79 @@ def _get_timeline_service():
 # ============================================================
 
 
-def _get_all_events_with_metadata() -> list[dict[str, Any]]:
+def _get_cached_metadata() -> list[SakMetadata]:
     """
-    Hent alle events fra alle saker med metadata.
+    Hent cached metadata for alle saker.
 
-    I produksjon ville dette bruke database views/aggregeringer,
-    men for prototypen laster vi og prosesserer i Python.
+    Brukes for raske aggregeringer uten event replay.
+    Returnerer liste med SakMetadata objekter med cached felter.
+    """
+    try:
+        return _get_metadata_repo().list_all()
+    except Exception as e:
+        logger.warning(f"Could not list metadata: {e}")
+        return []
+
+
+def _get_all_events_batch() -> list[dict[str, Any]]:
+    """
+    Hent alle events fra alle tabeller i batch (4 spørringer i stedet for N+1).
+
+    Optimalisert versjon som unngår N+1 database-problemet ved å
+    hente alle events fra hver tabell i én spørring.
+    """
+    from lib.supabase import with_retry
+
+    all_events = []
+    container = _get_container()
+
+    # Sjekk om vi har Supabase-klient tilgjengelig
+    event_repo = container.event_repository
+    if not hasattr(event_repo, "client"):
+        # Fallback til N+1 hvis ikke Supabase
+        logger.warning("Batch fetch not available, falling back to N+1")
+        return _get_all_events_n_plus_one()
+
+    client = event_repo.client
+
+    # Hent fra alle event-tabeller i batch (4 spørringer totalt)
+    tables = ["koe_events", "forsering_events", "endringsordre_events", "fravik_events"]
+
+    @with_retry()
+    def fetch_table(table_name: str) -> list[dict]:
+        result = client.table(table_name).select("*").execute()
+        return result.data or []
+
+    for table in tables:
+        try:
+            rows = fetch_table(table)
+            for row in rows:
+                # Konverter til event-format
+                evt = {
+                    "_sak_id": row.get("sak_id"),
+                    "event_type": row.get("event_type"),
+                    "tidsstempel": row.get("tidsstempel"),
+                    "aktor": row.get("aktor"),
+                    "aktor_rolle": row.get("aktor_rolle"),
+                    "data": row.get("data", {}),
+                }
+                # Legg til CloudEvents time hvis tilgjengelig
+                if row.get("time"):
+                    evt["time"] = row.get("time")
+                all_events.append(evt)
+        except Exception as e:
+            logger.warning(f"Could not fetch from {table}: {e}")
+
+    logger.info(f"Batch fetched {len(all_events)} events from {len(tables)} tables")
+    return all_events
+
+
+def _get_all_events_n_plus_one() -> list[dict[str, Any]]:
+    """
+    Fallback: Hent events med N+1 kall (for non-Supabase backends).
     """
     all_events = []
 
-    # Hent alle sak_ids fra metadata
     try:
         cases = _get_metadata_repo().list_all()
         sak_ids = [c.sak_id for c in cases]
@@ -92,6 +164,10 @@ def _get_all_events_with_metadata() -> list[dict[str, Any]]:
 def _compute_all_states() -> dict[str, Any]:
     """
     Beregn current state for alle saker.
+
+    MERK: Denne funksjonen er kostbar (full event replay).
+    Bruk kun når du trenger detaljer som ikke er i cached metadata.
+    For de fleste aggregeringer, bruk _get_cached_metadata() i stedet.
 
     Returnerer dict med sak_id -> state
     """
@@ -127,6 +203,8 @@ def get_summary():
     """
     Overordnet sammendrag av alle saker.
 
+    Optimalisert: Bruker cached metadata i stedet for full event replay.
+
     Response:
     {
         "total_cases": 45,
@@ -141,75 +219,53 @@ def get_summary():
             "avslatt": 8,
             ...
         },
-        "total_events": 312,
         "total_vederlag_krevd": 4500000,
         "total_vederlag_godkjent": 3200000,
-        "avg_events_per_case": 6.9,
         "last_activity": "2025-01-15T10:30:00Z"
     }
     """
     try:
-        states = _compute_all_states()
-        all_events = _get_all_events_with_metadata()
+        # Bruk cached metadata - mye raskere enn full state computation
+        cases = _get_cached_metadata()
 
-        # Aggreger
+        # Aggreger fra cached felter
         by_sakstype = defaultdict(int)
         by_status = defaultdict(int)
         total_vederlag_krevd = 0
         total_vederlag_godkjent = 0
         last_activity = None
 
-        for state in states.values():
-            # Sakstype - bruk enum value for riktig JSON-serialisering
-            sakstype_enum = getattr(state, "sakstype", None)
-            sakstype = sakstype_enum.value if sakstype_enum else "standard"
+        for case in cases:
+            # Sakstype
+            sakstype = case.sakstype or "standard"
             by_sakstype[sakstype] += 1
 
-            # Status
-            status = (
-                str(state.overordnet_status) if state.overordnet_status else "ukjent"
-            )
+            # Status fra cached felt
+            status = case.cached_status or "ukjent"
             by_status[status] += 1
 
-            # Vederlag - bruk flate felter fra VederlagTilstand
-            if state.vederlag:
-                krevd = state.vederlag.krevd_belop
-                if krevd:
-                    total_vederlag_krevd += krevd
+            # Vederlag fra cached felter
+            if case.cached_sum_krevd:
+                total_vederlag_krevd += case.cached_sum_krevd
+            if case.cached_sum_godkjent:
+                total_vederlag_godkjent += case.cached_sum_godkjent
 
-                godkjent = state.vederlag.godkjent_belop
-                if godkjent:
-                    total_vederlag_godkjent += godkjent
-
-        # Finn siste aktivitet
-        for evt in all_events:
-            ts = evt.get("tidsstempel") or evt.get("time")
-            if ts:
-                if isinstance(ts, str):
-                    try:
-                        ts = datetime.fromisoformat(
-                            ts.replace("Z", "+00:00").replace(" ", "T")
-                        )
-                    except ValueError:
-                        continue
-                if last_activity is None or ts > last_activity:
-                    last_activity = ts
+            # Siste aktivitet
+            if case.last_event_at:
+                if last_activity is None or case.last_event_at > last_activity:
+                    last_activity = case.last_event_at
 
         return jsonify(
             {
-                "total_cases": len(states),
+                "total_cases": len(cases),
                 "by_sakstype": dict(by_sakstype),
                 "by_status": dict(by_status),
-                "total_events": len(all_events),
                 "total_vederlag_krevd": total_vederlag_krevd,
                 "total_vederlag_godkjent": total_vederlag_godkjent,
                 "godkjenningsgrad_vederlag": round(
                     total_vederlag_godkjent / total_vederlag_krevd * 100, 1
                 )
                 if total_vederlag_krevd > 0
-                else 0,
-                "avg_events_per_case": round(len(all_events) / len(states), 1)
-                if states
                 else 0,
                 "last_activity": last_activity.isoformat() if last_activity else None,
             }
@@ -225,6 +281,8 @@ def get_summary():
 def get_by_category():
     """
     Fordeling av saker etter grunnlagskategori.
+
+    Optimalisert: Bruker cached metadata i stedet for full event replay.
 
     Response:
     {
@@ -242,7 +300,8 @@ def get_by_category():
     }
     """
     try:
-        states = _compute_all_states()
+        # Bruk cached metadata
+        cases = _get_cached_metadata()
 
         # Aggreger per kategori
         by_category = defaultdict(
@@ -255,26 +314,20 @@ def get_by_category():
             }
         )
 
-        for state in states.values():
-            if state.grunnlag and state.grunnlag.hovedkategori:
-                kategori = state.grunnlag.hovedkategori or "UKJENT"
-                by_category[kategori]["antall"] += 1
+        for case in cases:
+            kategori = case.cached_hovedkategori or "UKJENT"
+            by_category[kategori]["antall"] += 1
 
-                # Status for grunnlag - bruk status enum direkte
-                grunnlag_status = (
-                    str(state.grunnlag.status.value) if state.grunnlag.status else ""
-                )
-                if (
-                    "godkjent" in grunnlag_status.lower()
-                    and "delvis" not in grunnlag_status.lower()
-                ):
-                    by_category[kategori]["godkjent"] += 1
-                elif "delvis" in grunnlag_status.lower():
-                    by_category[kategori]["delvis_godkjent"] += 1
-                elif "avslatt" in grunnlag_status.lower():
-                    by_category[kategori]["avslatt"] += 1
-                else:
-                    by_category[kategori]["under_behandling"] += 1
+            # Status fra cached felt
+            status = (case.cached_status or "").lower()
+            if "godkjent" in status and "delvis" not in status:
+                by_category[kategori]["godkjent"] += 1
+            elif "delvis" in status:
+                by_category[kategori]["delvis_godkjent"] += 1
+            elif "avslatt" in status or "avslått" in status:
+                by_category[kategori]["avslatt"] += 1
+            else:
+                by_category[kategori]["under_behandling"] += 1
 
         # Beregn godkjenningsrate
         result = []
@@ -336,7 +389,7 @@ def get_activity_timeline():
         period = request.args.get("period", "week")
         days_back = int(request.args.get("days", 90))
 
-        all_events = _get_all_events_with_metadata()
+        all_events = _get_all_events_batch()
         cutoff = datetime.now(UTC) - timedelta(days=days_back)
 
         # Aggreger per periode
@@ -354,6 +407,11 @@ def get_activity_timeline():
                     )
                 except ValueError:
                     continue
+
+            # Håndter timezone-naive vs aware sammenligning
+            if ts.tzinfo is None:
+                # Anta UTC for naive timestamps
+                ts = ts.replace(tzinfo=UTC)
 
             if ts < cutoff:
                 continue
@@ -394,6 +452,9 @@ def get_vederlag_analytics():
     """
     Vederlagsanalyse - beløp, metoder, godkjenningsgrad.
 
+    Optimalisert: Bruker cached metadata for totaler.
+    Metode-breakdown krever fortsatt event-data (ikke cached).
+
     Response:
     {
         "summary": {
@@ -403,61 +464,31 @@ def get_vederlag_analytics():
             "avg_krav": 112500,
             "avg_godkjent": 106667
         },
-        "by_metode": [
-            {
-                "metode": "ENHETSPRISER",
-                "antall": 20,
-                "total_krevd": 2000000,
-                "total_godkjent": 1600000,
-                "godkjenningsgrad": 80.0
-            },
-            ...
-        ],
-        "krav_distribution": [
-            {"range": "0-50k", "count": 12},
-            {"range": "50k-100k", "count": 8},
-            {"range": "100k-500k", "count": 15},
-            {"range": "500k+", "count": 5}
-        ]
+        "by_metode": [...],
+        "krav_distribution": [...]
     }
     """
     try:
-        states = _compute_all_states()
+        # Bruk cached metadata for totaler
+        cases = _get_cached_metadata()
 
-        # Aggreger
         total_krevd = 0
         total_godkjent = 0
         krav_count = 0
         godkjent_count = 0
-
-        by_metode = defaultdict(
-            lambda: {"antall": 0, "total_krevd": 0, "total_godkjent": 0}
-        )
-
         krav_amounts = []
 
-        for state in states.values():
-            if not state.vederlag:
-                continue
-
-            # Bruk flate felter fra VederlagTilstand
-            metode = state.vederlag.metode or "UKJENT"
-            belop = state.vederlag.krevd_belop or 0
-
-            if belop > 0:
+        for case in cases:
+            if case.cached_sum_krevd and case.cached_sum_krevd > 0:
                 krav_count += 1
-                total_krevd += belop
-                by_metode[metode]["antall"] += 1
-                by_metode[metode]["total_krevd"] += belop
-                krav_amounts.append(belop)
+                total_krevd += case.cached_sum_krevd
+                krav_amounts.append(case.cached_sum_krevd)
 
-            godkjent = state.vederlag.godkjent_belop or 0
-            if godkjent > 0:
+            if case.cached_sum_godkjent and case.cached_sum_godkjent > 0:
                 godkjent_count += 1
-                total_godkjent += godkjent
-                by_metode[metode]["total_godkjent"] += godkjent
+                total_godkjent += case.cached_sum_godkjent
 
-        # Krav-distribusjon
+        # Krav-distribusjon (fra cached beløp)
         distribution = [
             {"range": "0-50k", "count": 0},
             {"range": "50k-100k", "count": 0},
@@ -477,6 +508,42 @@ def get_vederlag_analytics():
                 distribution[3]["count"] += 1
             else:
                 distribution[4]["count"] += 1
+
+        # For metode-breakdown trenger vi events (ikke cachet ennå)
+        # TODO: Legg til cached_metode i metadata for full optimalisering
+        by_metode = defaultdict(
+            lambda: {"antall": 0, "total_krevd": 0, "total_godkjent": 0}
+        )
+
+        # Kun hent events for saker med vederlag (lazy loading)
+        sak_ids_with_vederlag = [
+            c.sak_id for c in cases if c.cached_sum_krevd and c.cached_sum_krevd > 0
+        ]
+
+        for sak_id in sak_ids_with_vederlag:
+            try:
+                events_data, _ = _get_event_repo().get_events(sak_id)
+                metode = "UKJENT"
+                krevd = 0
+                godkjent = 0
+
+                for evt in events_data:
+                    event_type = evt.get("event_type", "")
+                    data = evt.get("data", {})
+
+                    if event_type == "vederlag_krav_sendt":
+                        metode = data.get("metode") or "UKJENT"
+                        krevd = data.get("belop") or 0
+                    elif event_type == "respons_vederlag":
+                        godkjent = data.get("godkjent_belop") or 0
+
+                if krevd > 0:
+                    by_metode[metode]["antall"] += 1
+                    by_metode[metode]["total_krevd"] += krevd
+                    by_metode[metode]["total_godkjent"] += godkjent
+
+            except Exception:
+                pass  # Skip problematiske saker
 
         # Formater metode-data
         metode_result = []
@@ -508,9 +575,7 @@ def get_vederlag_analytics():
                     if total_krevd > 0
                     else 0,
                     "antall_krav": krav_count,
-                    "avg_krav": round(total_krevd / krav_count)
-                    if krav_count > 0
-                    else 0,
+                    "avg_krav": round(total_krevd / krav_count) if krav_count > 0 else 0,
                     "avg_godkjent": round(total_godkjent / godkjent_count)
                     if godkjent_count > 0
                     else 0,
@@ -525,11 +590,79 @@ def get_vederlag_analytics():
         return jsonify({"error": str(e)}), 500
 
 
+@analytics_bp.route("/api/analytics/frist", methods=["GET"])
+@require_magic_link
+def get_frist_analytics():
+    """
+    Fristforlengelse og dagmulkt-analyse.
+
+    Optimalisert: Bruker cached metadata for dager krevd/godkjent.
+
+    Response:
+    {
+        "summary": {
+            "total_dager_krevd": 120,
+            "total_dager_godkjent": 85,
+            "godkjenningsgrad": 70.8,
+            "antall_krav": 15
+        },
+        "dagmulktsats": 150000,
+        "eksponering_krevd": 18000000,
+        "eksponering_godkjent": 12750000
+    }
+    """
+    try:
+        # Bruk cached metadata
+        cases = _get_cached_metadata()
+
+        total_dager_krevd = 0
+        total_dager_godkjent = 0
+        antall_krav = 0
+
+        for case in cases:
+            if case.cached_dager_krevd and case.cached_dager_krevd > 0:
+                antall_krav += 1
+                total_dager_krevd += case.cached_dager_krevd
+
+            if case.cached_dager_godkjent and case.cached_dager_godkjent > 0:
+                total_dager_godkjent += case.cached_dager_godkjent
+
+        # Beregn økonomisk eksponering
+        eksponering_krevd = total_dager_krevd * DAGMULKTSATS
+        eksponering_godkjent = total_dager_godkjent * DAGMULKTSATS
+
+        godkjenningsgrad = 0
+        if total_dager_krevd > 0:
+            godkjenningsgrad = round(
+                total_dager_godkjent / total_dager_krevd * 100, 1
+            )
+
+        return jsonify(
+            {
+                "summary": {
+                    "total_dager_krevd": total_dager_krevd,
+                    "total_dager_godkjent": total_dager_godkjent,
+                    "godkjenningsgrad": godkjenningsgrad,
+                    "antall_krav": antall_krav,
+                },
+                "dagmulktsats": DAGMULKTSATS,
+                "eksponering_krevd": eksponering_krevd,
+                "eksponering_godkjent": eksponering_godkjent,
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Analytics frist failed: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
 @analytics_bp.route("/api/analytics/response-times", methods=["GET"])
 @require_magic_link
 def get_response_times():
     """
     Behandlingstider - hvor lang tid tar det fra krav til respons?
+
+    Optimalisert: Bruker batch-henting (4 spørringer i stedet for N+1).
 
     Response:
     {
@@ -550,26 +683,21 @@ def get_response_times():
     }
     """
     try:
-        # Hent alle events gruppert per sak
-        all_cases_events = {}
+        # Batch-hent alle events (4 spørringer totalt)
+        all_events = _get_all_events_batch()
 
-        try:
-            cases = _get_metadata_repo().list_all()
-            sak_ids = [c.sak_id for c in cases]
-        except Exception:
-            sak_ids = _get_event_repo().get_all_sak_ids()
-
-        for sak_id in sak_ids:
-            try:
-                events_data, _ = _get_event_repo().get_events(sak_id)
-                all_cases_events[sak_id] = events_data
-            except Exception:
-                pass
+        # Grupper events per sak
+        all_cases_events: dict[str, list] = {}
+        for evt in all_events:
+            sak_id = evt.get("_sak_id")
+            if sak_id:
+                if sak_id not in all_cases_events:
+                    all_cases_events[sak_id] = []
+                all_cases_events[sak_id].append(evt)
 
         # Logg statistikk for debugging
-        total_events = sum(len(events) for events in all_cases_events.values())
         logger.info(
-            f"Response times calculation: {len(sak_ids)} cases, {len(all_cases_events)} with events, {total_events} total events"
+            f"Response times calculation: {len(all_cases_events)} cases, {len(all_events)} total events"
         )
 
         # Beregn behandlingstider per spor
@@ -681,7 +809,7 @@ def get_actor_analytics():
     }
     """
     try:
-        all_events = _get_all_events_with_metadata()
+        all_events = _get_all_events_batch()
 
         by_role = defaultdict(lambda: {"events": 0, "actors": set()})
         by_actor = defaultdict(lambda: {"events": 0, "role": None})

@@ -446,7 +446,7 @@ class TimelineService:
             state.grunnlag.status = SporStatus.TRUKKET
             state.grunnlag.trukket_alle_krav = True
             state.grunnlag.siste_oppdatert = tidsstempel
-            logger.info(
+            logger.debug(
                 f"Omvendt kaskade: Grunnlag trukket fordi alle krav er inaktive "
                 f"(vederlag={state.vederlag.status}, frist={state.frist.status})"
             )
@@ -970,7 +970,7 @@ class TimelineService:
         # Unngå duplikater
         if koe_sak_id not in state.forsering_data.avslatte_fristkrav:
             state.forsering_data.avslatte_fristkrav.append(koe_sak_id)
-            logger.info(f"KOE {koe_sak_id} lagt til forseringssak")
+            logger.debug(f"KOE {koe_sak_id} lagt til forseringssak")
         else:
             logger.warning(f"KOE {koe_sak_id} er allerede i forseringssak")
 
@@ -991,7 +991,7 @@ class TimelineService:
 
         if koe_sak_id in state.forsering_data.avslatte_fristkrav:
             state.forsering_data.avslatte_fristkrav.remove(koe_sak_id)
-            logger.info(f"KOE {koe_sak_id} fjernet fra forseringssak")
+            logger.debug(f"KOE {koe_sak_id} fjernet fra forseringssak")
         else:
             logger.warning(f"KOE {koe_sak_id} var ikke i forseringssak")
 
@@ -1019,7 +1019,7 @@ class TimelineService:
             status=EOStatus.UTKAST,
         )
 
-        logger.info(f"EO-sak {data.eo_nummer} opprettet")
+        logger.debug(f"EO-sak {data.eo_nummer} opprettet")
         return state
 
     def _handle_eo_utstedt(self, state: SakState, event: EOUtstedtEvent) -> SakState:
@@ -1057,7 +1057,7 @@ class TimelineService:
                 utstedt_av=event.aktor,
                 relaterte_koe_saker=relaterte,
             )
-            logger.info(f"EO {data.eo_nummer} utstedt med status UTSTEDT")
+            logger.debug(f"EO {data.eo_nummer} utstedt med status UTSTEDT")
         else:
             # For STANDARD sakstype (reaktiv EO fra KOE): Lukk alle spor
             _close_spor_for_reactive_eo(state, data, event)
@@ -1083,7 +1083,7 @@ class TimelineService:
         state.endringsordre_data.dato_te_respons = event.tidsstempel.strftime("%Y-%m-%d")
         state.endringsordre_data.status = EOStatus.AKSEPTERT
 
-        logger.info(f"EO {state.endringsordre_data.eo_nummer} akseptert av TE")
+        logger.debug(f"EO {state.endringsordre_data.eo_nummer} akseptert av TE")
 
         return state
 
@@ -1103,7 +1103,7 @@ class TimelineService:
         # Unngå duplikater
         if koe_sak_id not in state.endringsordre_data.relaterte_koe_saker:
             state.endringsordre_data.relaterte_koe_saker.append(koe_sak_id)
-            logger.info(
+            logger.debug(
                 f"KOE {koe_sak_id} lagt til EO {state.endringsordre_data.eo_nummer}"
             )
         else:
@@ -1128,7 +1128,7 @@ class TimelineService:
 
         if koe_sak_id in state.endringsordre_data.relaterte_koe_saker:
             state.endringsordre_data.relaterte_koe_saker.remove(koe_sak_id)
-            logger.info(
+            logger.debug(
                 f"KOE {koe_sak_id} fjernet fra EO {state.endringsordre_data.eo_nummer}"
             )
         else:
@@ -1157,7 +1157,7 @@ class TimelineService:
             "%Y-%m-%d"
         )
 
-        logger.info(f"EO {state.endringsordre_data.eo_nummer} bestridt av TE")
+        logger.debug(f"EO {state.endringsordre_data.eo_nummer} bestridt av TE")
 
         return state
 
@@ -1197,7 +1197,7 @@ class TimelineService:
             if oppdatert.ny_sluttdato:
                 state.endringsordre_data.ny_sluttdato = oppdatert.ny_sluttdato
 
-        logger.info(
+        logger.debug(
             f"EO {state.endringsordre_data.eo_nummer} revidert til rev. {data.ny_revisjon_nummer}"
         )
 

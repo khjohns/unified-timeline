@@ -57,27 +57,47 @@ export function TrendAnalyse({ timeline, period, onPeriodChange }: TrendAnalyseP
       </div>
 
       {/* Timeline chart */}
-      <Card variant="outlined" padding="md">
+      <Card variant="outlined" padding="md" className="overflow-hidden">
         <h3 className="text-body-lg font-semibold mb-4">Aktivitet over tid</h3>
-        <div className="h-64 flex items-end gap-1">
-          {timeline?.data.map((point, i) => {
-            const height = (point.events / maxEvents) * 100;
-            const isPeak = point === peakPeriod;
-            return (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <div className="text-xs text-pkt-grays-gray-600">{point.events}</div>
-                <div
-                  className={`w-full rounded-t transition-colors ${isPeak ? 'bg-badge-warning-bg' : 'bg-oslo-blue'}`}
-                  style={{ height: `${height}%`, minHeight: point.events > 0 ? '4px' : '0' }}
-                  title={`${new Date(point.date).toLocaleDateString('nb-NO')}: ${point.events} hendelser`}
-                />
-                <div className="text-xs text-pkt-grays-gray-500 transform -rotate-45 origin-top-left whitespace-nowrap">
-                  {new Date(point.date).toLocaleDateString('nb-NO', { month: 'short', day: 'numeric' })}
-                </div>
+        {(() => {
+          const dataPoints = timeline?.data.length ?? 0;
+          const showEveryNth = dataPoints > 30 ? Math.ceil(dataPoints / 12) : 1;
+          const hideLabels = dataPoints > 50;
+
+          return (
+            <>
+              <div className="flex items-end gap-px overflow-hidden" style={{ height: '200px' }}>
+                {timeline?.data.map((point, i) => {
+                  const heightPx = Math.max((point.events / maxEvents) * 180, point.events > 0 ? 4 : 0);
+                  const isPeak = point === peakPeriod;
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center justify-end h-full min-w-0">
+                      {!hideLabels && (
+                        <div className="text-xs text-pkt-grays-gray-600 mb-1">{point.events}</div>
+                      )}
+                      <div
+                        className={`w-full rounded-t transition-colors ${isPeak ? 'bg-badge-warning-bg' : 'bg-oslo-blue'}`}
+                        style={{ height: `${heightPx}px` }}
+                        title={`${new Date(point.date).toLocaleDateString('nb-NO')}: ${point.events} hendelser`}
+                      />
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+              <div className="flex gap-px mt-2 overflow-hidden">
+                {timeline?.data.map((point, i) => (
+                  <div key={i} className="flex-1 text-center min-w-0">
+                    {i % showEveryNth === 0 && (
+                      <div className="text-xs text-pkt-grays-gray-500 truncate">
+                        {new Date(point.date).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          );
+        })()}
         <div className="mt-4 text-sm text-pkt-grays-gray-600 text-center">
           Viser data for siste {timeline?.days_back ?? 90} dager
         </div>
