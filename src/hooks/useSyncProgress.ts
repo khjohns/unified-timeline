@@ -77,6 +77,7 @@ export function useSyncProgress(
   useEffect(() => {
     // Don't connect if disabled or no mapping ID
     if (!enabled || !mappingId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Cleanup for disabled state
       disconnect();
       return;
     }

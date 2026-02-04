@@ -171,6 +171,7 @@ export function RichTextEditor({
   }, []);
 
   // Convert markdown to HTML for initial content
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const initialContent = useMemo(() => {
     if (!value) return '';
     return marked.parse(value, { async: false }) as string;

@@ -44,11 +44,13 @@ export function PdfPreview({
   useEffect(() => {
     if (blob) {
       const url = URL.createObjectURL(blob);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync URL with blob prop
       setPdfUrl(url);
       return () => {
         URL.revokeObjectURL(url);
       };
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Clear URL when blob is null
     setPdfUrl(null);
     return undefined;
   }, [blob]);

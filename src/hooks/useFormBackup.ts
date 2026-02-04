@@ -59,19 +59,21 @@ export function useFormBackup<T extends Record<string, unknown>>(
   isDirty: boolean
 ): UseFormBackupResult<T> {
   const storageKey = `${STORAGE_PREFIX}${sakId}_${eventType}`;
-  const [hasBackup, setHasBackup] = useState(false);
+  // Initialize with actual localStorage state to avoid effect-based setState
+  const [hasBackup, setHasBackup] = useState(() => {
+    try {
+      return !!localStorage.getItem(storageKey);
+    } catch {
+      return false;
+    }
+  });
 
-  // Check for existing backup on mount
-  useEffect(() => {
-    const saved = localStorage.getItem(storageKey);
-    setHasBackup(!!saved);
-  }, [storageKey]);
-
-  // Save form data when dirty
+  // Save form data when dirty - setState after localStorage write is intentional
   useEffect(() => {
     if (isDirty && formData && Object.keys(formData).length > 0) {
       try {
         localStorage.setItem(storageKey, JSON.stringify(formData));
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Syncing with external storage
         setHasBackup(true);
       } catch (error) {
         console.warn('Failed to backup form data:', error);

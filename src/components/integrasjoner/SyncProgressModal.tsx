@@ -158,7 +158,7 @@ export function SyncProgressModal({ mappingId, onClose }: SyncProgressModalProps
         {status === 'idle' && (
           <Alert variant="info">
             Ingen synkronisering pågår for denne mappingen.
-            Klikk "Synkroniser" på kortet for å starte en ny synkronisering.
+            Klikk &ldquo;Synkroniser&rdquo; på kortet for å starte en ny synkronisering.
           </Alert>
         )}
 

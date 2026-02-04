@@ -172,7 +172,15 @@ function SaksoversiktContent({
                   <div
                     key={item.sak_id}
                     className="px-4 py-3 hover:bg-pkt-surface-subtle transition-colors cursor-pointer"
+                    role="link"
+                    tabIndex={0}
                     onClick={() => navigate(getCaseRoute(item))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(getCaseRoute(item));
+                      }
+                    }}
                   >
                     <div className="md:grid md:grid-cols-12 md:gap-4 md:items-center">
                       {/* Sak-ID */}

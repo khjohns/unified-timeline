@@ -95,6 +95,7 @@ export function ConnectionStatusProvider({ children }: { children: ReactNode }) 
 
   // Initial check and polling - runs only once for the entire app
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial fetch, then poll
     checkAll();
 
     const interval = setInterval(checkAll, POLL_INTERVAL);

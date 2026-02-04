@@ -9,7 +9,7 @@
  * - Touch-friendly (24x24px minimum target)
  */
 
-import { ReactNode } from 'react';
+import { ReactNode, useId } from 'react';
 import { Tooltip } from './Tooltip';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import clsx from 'clsx';
@@ -53,7 +53,8 @@ export function InfoLabel({
   htmlFor,
   className,
 }: InfoLabelProps) {
-  const labelId = id || `label-${Math.random().toString(36).slice(2, 9)}`;
+  const generatedId = useId();
+  const labelId = id || `label-${generatedId}`;
 
   return (
     <label

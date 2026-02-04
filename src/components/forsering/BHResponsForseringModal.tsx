@@ -591,7 +591,7 @@ export function BHResponsForseringModal({
   // Port navigation (Oversikt fjernet - port 1 er nå Forseringsrett)
   const canProceed = useMemo(() => {
     switch (currentPort) {
-      case 1:
+      case 1: {
         // Forseringsrett - All saker must be evaluated
         if (!avslatteSaker || avslatteSaker.length === 0) {
           // Fallback: if no avslatteSaker data, allow proceeding (will use forseringData.avslatte_dager)
@@ -604,6 +604,7 @@ export function BHResponsForseringModal({
           )
         );
         return alleVurdert;
+      }
       case 2:
         // 30%-regel er kun informativ - beregnes automatisk
         return true;
@@ -648,6 +649,7 @@ export function BHResponsForseringModal({
         title="Byggherrens standpunkt til forsering"
         size="lg"
       >
+        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
         <form
           onSubmit={handleSubmit(onSubmit)}
           onKeyDown={(e) => {

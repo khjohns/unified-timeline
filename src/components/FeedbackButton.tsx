@@ -110,9 +110,9 @@ export function FeedbackButton() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Feedback Type Selection */}
           <div>
-            <label className="block text-sm font-medium text-pkt-text-body-dark mb-2">
+            <span className="block text-sm font-medium text-pkt-text-body-dark mb-2">
               Type tilbakemelding
-            </label>
+            </span>
             <div className="flex gap-2 flex-wrap">
               {(Object.keys(feedbackTypeLabels) as FeedbackType[]).map((type) => (
                 <button

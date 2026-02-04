@@ -60,7 +60,9 @@ export function MappingOverviewTab({ mapping, onEdit, onTriggerSync, onFiltersUp
   // Sync filter state when mapping changes
   useEffect(() => {
     const newExcluded = new Set(mapping.task_filters?.exclude_types ?? []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync local state with prop changes
     setExcludedTypes(newExcluded);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync local state with prop changes
     setHasFilterChanges(false);
   }, [mapping.task_filters]);
 

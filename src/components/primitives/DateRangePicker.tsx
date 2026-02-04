@@ -239,6 +239,7 @@ export function DateRangePicker({
   // Reset selection state when popover opens
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset state on popover open
       setSelectionStarted(false);
     }
   }, [open]);

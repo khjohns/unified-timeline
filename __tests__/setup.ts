@@ -10,7 +10,7 @@ import '@testing-library/jest-dom/vitest';
 import { toHaveNoViolations } from 'jest-axe';
 
 // Extend vitest's expect with jest-axe matchers for accessibility testing
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 expect.extend({ toHaveNoViolations } as any);
 
 // Declare the custom matcher types for TypeScript

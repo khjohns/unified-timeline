@@ -38,7 +38,7 @@ except ImportError:
     SUPABASE_AVAILABLE = False
     Client = None
 
-from lib.supabase import safe_execute, with_retry
+from lib.supabase import safe_execute, with_retry  # noqa: E402, I001
 
 
 # =============================================================================

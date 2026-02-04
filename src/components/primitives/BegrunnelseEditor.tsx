@@ -167,6 +167,7 @@ export function BegrunnelseEditor({
 }: BegrunnelseEditorProps) {
   // Convert initial value (with tokens) to HTML
   // Only compute once on mount - useEffect handles subsequent updates
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const initialContent = useMemo(() => {
     if (!value) return '';
     // Convert tokens to HTML and wrap in paragraphs

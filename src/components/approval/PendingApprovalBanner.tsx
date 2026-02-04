@@ -80,7 +80,7 @@ export function PendingApprovalBanner({
             {rejectedStep && ` av ${rejectedStep.roleName}`}.
             {rejectedStep?.comment && (
               <span className="block mt-1 text-sm italic">
-                "{rejectedStep.comment}"
+                &ldquo;{rejectedStep.comment}&rdquo;
               </span>
             )}
           </div>

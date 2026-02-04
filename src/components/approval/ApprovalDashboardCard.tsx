@@ -121,7 +121,7 @@ export function ApprovalDashboardCard({
             Avvist av {rejectedStep.roleName}
           </div>
           <div className="mt-1 text-sm italic text-pkt-text-body-default">
-            "{rejectedStep.comment}"
+            &ldquo;{rejectedStep.comment}&rdquo;
           </div>
         </div>
       )}

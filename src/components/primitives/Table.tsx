@@ -182,20 +182,13 @@ function FilterPopover({ column, value, onChange }: FilterPopoverProps) {
                 {column.filterOptions.map((option) => {
                   const isChecked = value.split(',').filter(Boolean).includes(option.value);
                   return (
-                    <div
+                    // eslint-disable-next-line jsx-a11y/label-has-associated-control -- Checkbox is nested
+                    <label
                       key={option.value}
                       className={clsx(
-                        'px-1 py-1 rounded cursor-pointer',
+                        'px-1 py-1 rounded cursor-pointer block',
                         'hover:bg-pkt-surface-subtle transition-colors'
                       )}
-                      onClick={() => {
-                        const currentValues = value.split(',').filter(Boolean);
-                        if (isChecked) {
-                          onChange(currentValues.filter((v) => v !== option.value).join(','));
-                        } else {
-                          onChange([...currentValues, option.value].join(','));
-                        }
-                      }}
                     >
                       <Checkbox
                         checked={isChecked}
@@ -210,7 +203,7 @@ function FilterPopover({ column, value, onChange }: FilterPopoverProps) {
                         label={option.label}
                         className="h-5 w-5"
                       />
-                    </div>
+                    </label>
                   );
                 })}
               </div>

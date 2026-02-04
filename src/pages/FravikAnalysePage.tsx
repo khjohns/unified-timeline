@@ -523,7 +523,7 @@ function HistorikkAnalyse({ data, onNavigate }: { data: FravikAnalyticsData; onN
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
         <div>
-          <label className="text-sm text-pkt-text-body-subtle block mb-1">Status</label>
+          <span className="text-sm text-pkt-text-body-subtle block mb-1">Status</span>
           <div className="flex gap-2">
             {(['all', 'godkjent', 'avslatt'] as const).map(f => (
               <Button
@@ -538,7 +538,7 @@ function HistorikkAnalyse({ data, onNavigate }: { data: FravikAnalyticsData; onN
           </div>
         </div>
         <div>
-          <label className="text-sm text-pkt-text-body-subtle block mb-1">Søknadstype</label>
+          <span className="text-sm text-pkt-text-body-subtle block mb-1">Søknadstype</span>
           <div className="flex gap-2">
             {(['all', 'machine', 'infrastructure'] as const).map(f => (
               <Button

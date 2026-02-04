@@ -453,6 +453,7 @@ export function UtstEndringsordreModal({
           onStepClick={(step) => setCurrentStep(step)}
         />
 
+        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
         <form
           onSubmit={handleSubmit(onSubmit)}
           onKeyDown={(e) => {
@@ -548,13 +549,23 @@ export function UtstEndringsordreModal({
                         return (
                           <div
                             key={koe.sak_id}
+                            role="option"
+                            aria-selected={isSelected}
+                            tabIndex={0}
                             onClick={() => toggleKoeSelection(koe.sak_id)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                toggleKoeSelection(koe.sak_id);
+                              }
+                            }}
                             className={`flex items-start gap-2 p-3 cursor-pointer transition-colors ${
                               isSelected
                                 ? 'bg-pkt-surface-light-beige'
                                 : 'hover:bg-pkt-surface-subtle'
                             }`}
                           >
+                            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
                             <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
                               <Checkbox
                                 checked={isSelected}

@@ -126,10 +126,12 @@ export function LeggTilKOEModal({
           </div>
         ) : (
           <div className="border border-pkt-border-default rounded-none max-h-80 overflow-y-auto">
-            <ul className="divide-y divide-pkt-border-subtle">
+            {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role */}
+            <ul className="divide-y divide-pkt-border-subtle" role="listbox">
               {filtrerteKandidater.map((sak) => {
                 const erValgt = valgtSak === sak.sak_id;
 
+                /* eslint-disable jsx-a11y/no-noninteractive-element-to-interactive-role */
                 return (
                   <li
                     key={sak.sak_id}
@@ -138,7 +140,16 @@ export function LeggTilKOEModal({
                         ? 'bg-pkt-surface-subtle'
                         : 'hover:bg-pkt-surface-subtle/50'
                     }`}
+                    role="option"
+                    aria-selected={erValgt}
+                    tabIndex={0}
                     onClick={() => handleSelect(sak.sak_id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleSelect(sak.sak_id);
+                      }
+                    }}
                   >
                     <div className="flex items-start gap-3">
                       <Checkbox
@@ -171,6 +182,7 @@ export function LeggTilKOEModal({
                     </div>
                   </li>
                 );
+                /* eslint-enable jsx-a11y/no-noninteractive-element-to-interactive-role */
               })}
             </ul>
           </div>

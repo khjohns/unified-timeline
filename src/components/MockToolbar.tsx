@@ -36,14 +36,14 @@ export function MockToolbar({
 
           {/* Controls */}
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-xs text-alert-warning-text cursor-pointer">
+            <span className="flex items-center gap-2 text-xs text-alert-warning-text cursor-pointer">
               <span>Godkjenningsflyt</span>
               <Switch
                 checked={approvalEnabled}
                 onCheckedChange={(checked) => onApprovalEnabledChange(checked === true)}
                 aria-label="Aktiver godkjenningsflyt"
               />
-            </label>
+            </span>
 
             {approvalEnabled && (
               <ApprovalRoleSelector visible={true} />

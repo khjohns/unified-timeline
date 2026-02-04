@@ -87,6 +87,7 @@ export function CurrencyInput({
 
     // Sync external value changes
     useEffect(() => {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync controlled value from props
       setDisplayValue(formatCurrency(value ?? null));
     }, [value]);
 

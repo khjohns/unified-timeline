@@ -136,13 +136,14 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
             newText = `*${selectedText || 'tekst'}*`;
             cursorOffset = selectedText ? newText.length : 1;
             break;
-          case 'heading':
+          case 'heading': {
             // If at line start or selection starts at line start
             const lineStart = value.lastIndexOf('\n', start - 1) + 1;
             const prefix = start === lineStart ? '' : '\n';
             newText = `${prefix}## ${selectedText || 'Overskrift'}`;
             cursorOffset = selectedText ? newText.length : 3;
             break;
+          }
           case 'list':
             newText = `\n- ${selectedText || 'Listeelement'}`;
             cursorOffset = selectedText ? newText.length : 3;

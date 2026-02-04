@@ -52,6 +52,7 @@ export function useOnboarding(totalSteps: number): UseOnboardingReturn {
     const completed = localStorage.getItem(STORAGE_KEY);
     const dismissed = localStorage.getItem(DISMISSED_KEY);
     // Treat both completed and dismissed as "don't auto-start"
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync with localStorage
     setHasCompletedBefore(completed === 'true' || dismissed === 'true');
   }, []);
 

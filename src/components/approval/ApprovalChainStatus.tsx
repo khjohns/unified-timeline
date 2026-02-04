@@ -168,7 +168,7 @@ export function ApprovalChainStatus({
               </div>
               {step.comment && (
                 <div className="mt-1 text-pkt-text-body-default italic">
-                  "{step.comment}"
+                  &ldquo;{step.comment}&rdquo;
                 </div>
               )}
             </div>

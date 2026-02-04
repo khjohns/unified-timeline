@@ -80,6 +80,7 @@ export function OnboardingStep({
   // Animate content transition on step change (mobile only)
   useEffect(() => {
     if (isMobile && displayedStep !== stepNumber && isActive) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Animation state management
       setIsTransitioning(true);
       const timer = setTimeout(() => {
         setDisplayedStep(stepNumber);
@@ -87,6 +88,7 @@ export function OnboardingStep({
       }, 150);
       return () => clearTimeout(timer);
     } else if (!isMobile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync step on desktop
       setDisplayedStep(stepNumber);
     }
   }, [stepNumber, displayedStep, isMobile, isActive]);
@@ -156,6 +158,7 @@ export function OnboardingStep({
   // Calculate position when active
   useEffect(() => {
     if (!isActive) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Clear position when inactive
       setPopoverPosition(null);
       return;
     }
@@ -259,6 +262,7 @@ export function OnboardingStep({
     const isBeingDragged = dragOffsetY > 0 || swipeOffset !== 0;
 
     return (
+      /* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */
       <div
         ref={containerRef}
         role="dialog"
@@ -372,6 +376,7 @@ export function OnboardingStep({
   }
 
   // Desktop: Floating popover
+  /* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */
   return (
     <div
       role="dialog"

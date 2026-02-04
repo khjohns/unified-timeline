@@ -53,7 +53,7 @@ export function StepIndicator({
         )}
 
         {/* Steps with justify-between for edge-to-edge layout */}
-        <ol role="list" className="relative flex justify-between list-none m-0 p-0">
+        <ol className="relative flex justify-between list-none m-0 p-0">
           {steps.map((step, index) => {
             const stepNumber = index + 1;
             const isActive = stepNumber === currentStep;

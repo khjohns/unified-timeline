@@ -90,6 +90,7 @@ export function OnboardingGuide({
     ) as HTMLElement;
 
     if (element) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Trigger scroll animation
       setIsScrolling(true);
 
       // Calculate where to scroll so element is visible with room for popover
@@ -132,6 +133,7 @@ export function OnboardingGuide({
   // Keep spotlight updated on scroll/resize (but not during step transitions)
   useEffect(() => {
     if (!isActive) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Clear spotlight when inactive
       setSpotlight(null);
       return;
     }

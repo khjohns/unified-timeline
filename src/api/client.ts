@@ -118,6 +118,7 @@ export function isRetryableError(error: unknown): boolean {
  */
 export async function apiFetch<T>(
   endpoint: string,
+  // eslint-disable-next-line no-undef
   options?: RequestInit
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;

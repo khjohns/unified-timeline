@@ -200,6 +200,7 @@ export function OpprettSakPage() {
       {/* Main Content */}
       <main className="max-w-3xl mx-auto px-2 pt-2 pb-4 sm:px-4 sm:pt-3 sm:pb-6">
         <Card variant="outlined" padding="none">
+          {/* eslint-disable-next-line react-hooks/refs -- onSubmit only accesses ref at submit time, not render */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-0">
             {/* Seksjon 1: Identifikasjon (unique to this page) */}
             <SectionContainer

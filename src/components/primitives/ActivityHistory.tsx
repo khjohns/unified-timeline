@@ -98,6 +98,7 @@ function ActivityHistoryItem({ entry, isLast }: ActivityHistoryItemProps) {
   const isClickable = !!entry.onClick;
 
   return (
+    /* eslint-disable jsx-a11y/no-static-element-interactions, jsx-a11y/no-noninteractive-tabindex */
     <div
       className={clsx(
         'flex gap-3 pb-3 -mx-2 px-2 rounded',
@@ -137,7 +138,7 @@ function ActivityHistoryItem({ entry, isLast }: ActivityHistoryItemProps) {
         )}
         {entry.description && (
           <div className="mt-1 text-sm text-pkt-text-body-default italic truncate">
-            "{stripMarkdown(entry.description)}"
+            &ldquo;{stripMarkdown(entry.description)}&rdquo;
           </div>
         )}
       </div>

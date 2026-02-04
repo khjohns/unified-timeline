@@ -37,6 +37,7 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
 
   useEffect(() => {
     if (!isConfigured) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Early return for unconfigured state
       setLoading(false);
       return;
     }

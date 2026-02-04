@@ -41,7 +41,9 @@ export function PdfPreviewModal({
   // Generate PDF when modal opens
   useEffect(() => {
     if (open && !pdfBlob && !isGenerating) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Trigger async PDF generation
       setIsGenerating(true);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError(null);
 
       // Merge drafts if provided
@@ -59,7 +61,9 @@ export function PdfPreviewModal({
   // Reset state when modal closes
   useEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset on modal close
       setPdfBlob(null);
+       
       setError(null);
     }
   }, [open]);

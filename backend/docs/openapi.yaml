@@ -1538,13 +1538,6 @@ components:
           - type: 'null'
           default: null
           description: Info om når og hvordan BH ble varslet om forholdet
-        kontraktsreferanser:
-          description: Relevante kontraktsbestemmelser (f.eks. ['NS8407 §25.2', 'Kap.
-            3.2'])
-          items:
-            type: string
-          title: Kontraktsreferanser
-          type: array
         vedlegg_ids:
           description: Referanser til vedlagte dokumenter (bilder, rapporter, etc.)
           items:

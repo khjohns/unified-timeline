@@ -189,7 +189,7 @@ export const downloadApprovedPdf = async (
   const mergedState = mergeDraftsIntoState(state, drafts);
 
   // Create PDF document with signatures
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const doc = React.createElement(ContractorClaimPdf, {
     state: mergedState,
     saksbehandler: signatures.saksbehandler,

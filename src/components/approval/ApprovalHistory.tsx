@@ -98,7 +98,7 @@ export function ApprovalHistory({
             </div>
             {submitterComment && (
               <div className="mt-1 text-sm text-pkt-text-body-default italic">
-                "{submitterComment}"
+                &ldquo;{submitterComment}&rdquo;
               </div>
             )}
           </div>
@@ -132,7 +132,7 @@ export function ApprovalHistory({
               </div>
               {step.comment && (
                 <div className="mt-1 text-sm text-pkt-text-body-default italic">
-                  "{step.comment}"
+                  &ldquo;{step.comment}&rdquo;
                 </div>
               )}
             </div>
