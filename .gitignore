@@ -60,3 +60,6 @@ backend/test_output_*.pdf
 
 # Supabase
 supabase/.temp/
+
+# Third-party API specs
+tredjepart-api/
