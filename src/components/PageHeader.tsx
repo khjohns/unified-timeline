@@ -65,13 +65,17 @@ export function PageHeader({
 
   return (
     <header className="bg-pkt-bg-card border-b border-pkt-grays-gray-200">
-      <div className={`${maxWidthClass} mx-auto px-4 py-4 sm:px-6 sm:py-6`}>
-        <div className="flex flex-col gap-1 sm:gap-4">
-          {/* Row 1: Title + Status + Menu */}
+      <div className={`${maxWidthClass} mx-auto px-4 py-3 sm:px-6 sm:py-3`}>
+        <div className="flex flex-col gap-0.5 sm:gap-0">
+          {/* Row 1: Title (+ Subtitle on desktop) + Status + Menu */}
           <div className="flex items-center justify-between gap-2">
-            <h1 className="text-lg sm:text-xl font-semibold text-pkt-text-body-dark min-w-0 truncate">
-              {title}
-            </h1>
+            <div className="flex items-baseline gap-2 min-w-0">
+              <h1 className="text-lg sm:text-xl font-semibold text-pkt-text-body-dark truncate">
+                {title}
+              </h1>
+              <span className="hidden sm:inline text-pkt-grays-gray-400">·</span>
+              <p className="hidden sm:block text-sm text-pkt-grays-gray-500 truncate">{subtitle}</p>
+            </div>
             <div className="flex items-center gap-2 shrink-0">
               {/* Mobile: Status only */}
               <div className="sm:hidden">
@@ -164,10 +168,10 @@ export function PageHeader({
             </div>
           </div>
 
-          {/* Row 2: Subtitle + Toggles (mobile) */}
-          <div className="flex items-center justify-between gap-2">
+          {/* Row 2: Subtitle + Toggles (mobile only) */}
+          <div className="flex sm:hidden items-center justify-between gap-2">
             <p className="text-sm text-pkt-grays-gray-500">{subtitle}</p>
-            <div className="sm:hidden flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5">
               <ThemeToggle />
               {userRole && onToggleRole && (
                 <ModeToggle userRole={userRole} onToggle={onToggleRole} />
