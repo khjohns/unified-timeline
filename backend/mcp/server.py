@@ -60,7 +60,7 @@ Søket bruker AND-logikk: alle ord MÅ finnes i samme paragraf.
 **Tommelfingerregler:**
 - Bruk 1-2 **substantiver fra lovteksten** (ikke dokumentnavn)
 - Ved usikkerhet → bruk `OR` mellom alternativer
-- Tall må skrives ut: `tretti` ikke `30`
+- Lange spørsmål → `erstatning OR mangel eiendom`, ikke hele setninger
 
 ## Anbefalt arbeidsflyt
 
