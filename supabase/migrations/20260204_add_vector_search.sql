@@ -140,6 +140,37 @@ END;
 $$;
 
 -- =============================================================================
+-- 6. Batch update function for embeddings (fast bulk updates)
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION batch_update_embeddings(
+    updates JSONB
+)
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    updated_count INTEGER := 0;
+    item JSONB;
+BEGIN
+    FOR item IN SELECT * FROM jsonb_array_elements(updates)
+    LOOP
+        UPDATE lovdata_sections
+        SET
+            embedding = (item->>'embedding')::vector(1536),
+            content_hash = item->>'content_hash'
+        WHERE id = (item->>'id')::UUID;
+
+        IF FOUND THEN
+            updated_count := updated_count + 1;
+        END IF;
+    END LOOP;
+
+    RETURN updated_count;
+END;
+$$;
+
+-- =============================================================================
 -- Comments
 -- =============================================================================
 
