@@ -44,10 +44,15 @@ Tilgang til norske lover og forskrifter fra Lovdata Public API (92 000+ paragraf
 
 ## Anbefalt arbeidsflyt
 
-1. **Usikker på lov?** → `sok("søkeord")` finner relevante paragrafer
-2. **Vet hvilken lov?** → `lov("avhendingslova")` gir innholdsfortegnelse med tokens
-3. **Trenger flere §§?** → `hent_flere("lov", ["§1", "§2", "§3"])` er raskest
-4. **Presis sitering?** → `lov("avhendingslova", "3-9")` for full tekst
+1. **Ukjent rettsområde?** → `sok("brede nøkkelord")` - kartlegg først!
+2. **Vet hvilken lov?** → `lov("navn")` gir innholdsfortegnelse med tokens
+3. **Trenger flere §§?** → `hent_flere()` er ~80% raskere
+4. **Store paragrafer?** → `sjekk_storrelse()` før henting
+5. **Presis sitering?** → `lov("navn", "paragraf")`
+
+**Viktig:** Ikke anta du kjenner hele rettsbildet!
+- Søk bredt ved tverrfaglige spørsmål
+- Søk tilgrensende områder (personvern → også "arkiv", "taushetsplikt")
 
 ## GDPR / Personvern
 
