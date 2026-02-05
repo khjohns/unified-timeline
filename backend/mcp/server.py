@@ -758,7 +758,7 @@ class MCPServer:
                 }
             },
             {
-                "name": "sok",
+                "name": "søk",
                 "description": (
                     "Fulltekstsøk i norske lover og forskrifter. "
                     "Tips: Enkle søkeord fungerer best ('mangel', 'erstatning'). "
@@ -781,12 +781,6 @@ class MCPServer:
                         }
                     },
                     "required": ["query"]
-                },
-                # MCP Apps UI metadata - tells client to render UI for this tool
-                "_meta": {
-                    "ui": {
-                        "resourceUri": "ui://lovdata/search"
-                    }
                 }
             },
             {
@@ -860,7 +854,7 @@ class MCPServer:
                 }
             },
             {
-                "name": "sjekk_storrelse",
+                "name": "sjekk_størrelse",
                 "description": (
                     "Sjekk størrelsen på en paragraf før henting. "
                     "Returnerer estimert antall tokens. "
@@ -989,34 +983,10 @@ class MCPServer:
                     arguments.get("paragraf"),
                     max_tokens=arguments.get("max_tokens")
                 )
-            elif tool_name == "sok":
+            elif tool_name == "søk":
                 query = arguments.get("query", "")
                 limit = arguments.get("limit", 20)
                 content = self.lovdata.search(query, limit)
-
-                # Parse results for MCP Apps UI
-                structured_results = self._parse_search_results(content)
-
-                # Return with MCP Apps UI metadata
-                return {
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": content
-                        }
-                    ],
-                    "structuredContent": {
-                        "results": structured_results,
-                        "query": query,
-                        "count": len(structured_results)
-                    },
-                    "_meta": {
-                        "ui": {
-                            "resourceUri": "ui://lovdata/search"
-                        }
-                    }
-                }
-
             elif tool_name == "hent_flere":
                 lov_id = arguments.get("lov_id", "")
                 paragrafer = arguments.get("paragrafer", [])
@@ -1033,7 +1003,7 @@ class MCPServer:
             elif tool_name == "status":
                 status = self.lovdata.get_sync_status()
                 content = self._format_status(status)
-            elif tool_name == "sjekk_storrelse":
+            elif tool_name == "sjekk_størrelse":
                 size_info = self.lovdata.get_section_size(
                     arguments.get("lov_id", ""),
                     arguments.get("paragraf", "")
