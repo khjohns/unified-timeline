@@ -202,8 +202,8 @@ SEARCH_UI_TEMPLATE = """
   <div class="results" id="results"></div>
 
   <script>
-    // MCP Apps data injection point
-    const data = window.__MCP_DATA__ || { results: [], query: '', count: 0 };
+    // MCP Apps data hydration via postMessage
+    let data = { results: [], query: '', count: 0 };
 
     function renderResults(filter = 'all') {
       const container = document.getElementById('results');
@@ -232,12 +232,18 @@ SEARCH_UI_TEMPLATE = """
       // Click handler for drilling down
       container.querySelectorAll('.result-card').forEach(card => {
         card.onclick = () => {
-          if (window.mcpBridge?.callTool) {
-            window.mcpBridge.callTool('lov', {
-              lov_id: card.dataset.lawId,
-              paragraf: card.dataset.section
-            });
-          }
+          // Send message to host to call tool
+          window.parent.postMessage({
+            jsonrpc: '2.0',
+            method: 'ui/tool-call',
+            params: {
+              name: 'lov',
+              arguments: {
+                lov_id: card.dataset.lawId,
+                paragraf: card.dataset.section
+              }
+            }
+          }, '*');
         };
       });
     }
@@ -251,8 +257,38 @@ SEARCH_UI_TEMPLATE = """
       };
     });
 
-    // Initial render
-    renderResults();
+    // Listen for data from MCP host via postMessage
+    window.addEventListener('message', (event) => {
+      // Only accept messages from parent (host)
+      if (event.source !== window.parent) return;
+
+      const message = event.data;
+      if (!message || message.jsonrpc !== '2.0') return;
+
+      // Handle tool result with structuredContent
+      if (message.method === 'ui/notifications/tool-result') {
+        const toolResult = message.params;
+        if (toolResult?.structuredContent) {
+          data = toolResult.structuredContent;
+          renderResults();
+        }
+      }
+
+      // Also handle direct data injection (some hosts use this)
+      if (message.method === 'ui/hydrate' && message.params) {
+        data = message.params;
+        renderResults();
+      }
+    });
+
+    // Signal to host that we're ready to receive data
+    window.parent.postMessage({
+      jsonrpc: '2.0',
+      method: 'ui/ready'
+    }, '*');
+
+    // Initial render with loading state
+    document.getElementById('result-count').textContent = 'Venter på data...';
   </script>
 </body>
 </html>
@@ -369,8 +405,9 @@ LAW_UI_TEMPLATE = """
   <div id="content"></div>
 
   <script>
-    const data = window.__MCP_DATA__ || {
-      lawName: 'Ukjent lov',
+    // MCP Apps data hydration via postMessage
+    let data = {
+      lawName: 'Laster...',
       shortName: '',
       lastModified: '',
       chapters: []
@@ -379,31 +416,37 @@ LAW_UI_TEMPLATE = """
     function render() {
       document.getElementById('law-title').textContent = data.lawName;
       document.getElementById('law-meta').textContent =
-        `${data.shortName} • Sist endret: ${data.lastModified}`;
+        data.shortName ? `${data.shortName} • Sist endret: ${data.lastModified}` : '';
 
       // Table of contents
       const tocItems = document.getElementById('toc-items');
-      tocItems.innerHTML = data.chapters.map((ch, i) =>
-        `<div class="toc-item" onclick="scrollTo('chapter-${i}')">${ch.title}</div>`
-      ).join('');
+      if (data.chapters && data.chapters.length > 0) {
+        tocItems.innerHTML = data.chapters.map((ch, i) =>
+          `<div class="toc-item" onclick="scrollTo('chapter-${i}')">${ch.title}</div>`
+        ).join('');
+      } else {
+        tocItems.innerHTML = '<div style="color: #6b7280;">Venter på data...</div>';
+      }
 
       // Content
       const content = document.getElementById('content');
-      content.innerHTML = data.chapters.map((ch, i) => `
-        <div class="chapter" id="chapter-${i}">
-          <div class="chapter-title" onclick="toggleChapter(this)">
-            ${ch.title}
+      if (data.chapters && data.chapters.length > 0) {
+        content.innerHTML = data.chapters.map((ch, i) => `
+          <div class="chapter" id="chapter-${i}">
+            <div class="chapter-title" onclick="toggleChapter(this)">
+              ${ch.title}
+            </div>
+            <div class="chapter-content">
+              ${ch.paragraphs.map(p => `
+                <div class="paragraph">
+                  <span class="paragraph-num">§ ${p.number}</span>
+                  <div class="paragraph-text">${p.text}</div>
+                </div>
+              `).join('')}
+            </div>
           </div>
-          <div class="chapter-content">
-            ${ch.paragraphs.map(p => `
-              <div class="paragraph">
-                <span class="paragraph-num">§ ${p.number}</span>
-                <div class="paragraph-text">${p.text}</div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `).join('');
+        `).join('');
+      }
     }
 
     function scrollTo(id) {
@@ -415,6 +458,31 @@ LAW_UI_TEMPLATE = """
       el.nextElementSibling.classList.toggle('hidden');
     }
 
+    // Listen for data from MCP host via postMessage
+    window.addEventListener('message', (event) => {
+      if (event.source !== window.parent) return;
+
+      const message = event.data;
+      if (!message || message.jsonrpc !== '2.0') return;
+
+      if (message.method === 'ui/notifications/tool-result') {
+        const toolResult = message.params;
+        if (toolResult?.structuredContent) {
+          data = toolResult.structuredContent;
+          render();
+        }
+      }
+
+      if (message.method === 'ui/hydrate' && message.params) {
+        data = message.params;
+        render();
+      }
+    });
+
+    // Signal ready
+    window.parent.postMessage({ jsonrpc: '2.0', method: 'ui/ready' }, '*');
+
+    // Initial render
     render();
   </script>
 </body>
@@ -527,6 +595,12 @@ class MCPServer:
                         }
                     },
                     "required": ["query"]
+                },
+                # MCP Apps UI metadata - tells client to render UI for this tool
+                "_meta": {
+                    "ui": {
+                        "resourceUri": "ui://lovdata/search"
+                    }
                 }
             },
             {
