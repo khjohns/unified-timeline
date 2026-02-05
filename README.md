@@ -622,7 +622,7 @@ E2E-testene dekker komplette brukerflyter med Playwright:
 
 ## Bidrag
 
-Prosjektet er utviklet av Oslobygg KF. For spørsmål eller bidrag, kontakt prosjektteamet.
+Prosjektet er utviklet av K.H Johns. For spørsmål eller bidrag, opprett en issue i repositoriet.
 
 ---
 

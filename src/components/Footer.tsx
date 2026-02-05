@@ -33,7 +33,7 @@ export function Footer() {
 
         {/* Copyright and links */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-pkt-text-body-muted pt-2 border-t border-pkt-border-subtle">
-          <p>&copy; {currentYear} Oslobygg KF. Alle rettigheter reservert.</p>
+          <p>&copy; {currentYear} K.H Johns</p>
           <nav className="flex items-center gap-4">
             <Link
               to="/personvern"
