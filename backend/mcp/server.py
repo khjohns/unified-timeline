@@ -696,6 +696,7 @@ class MCPServer:
         return [
             {
                 "name": "lov",
+                "title": "Lovoppslag",
                 "description": (
                     "Slå opp norsk lov eller spesifikk paragraf fra Lovdata. "
                     "Støtter kortnavn (avhendingslova, buofl, pbl, aml) eller full ID. "
@@ -734,6 +735,7 @@ class MCPServer:
             },
             {
                 "name": "forskrift",
+                "title": "Forskriftsoppslag",
                 "description": (
                     "Slå opp norsk forskrift fra Lovdata. "
                     "Eksempel: forskrift('byggherreforskriften', '5')"
@@ -759,6 +761,7 @@ class MCPServer:
             },
             {
                 "name": "søk",
+                "title": "Søk i Lovdata",
                 "description": (
                     "Fulltekstsøk i norske lover og forskrifter. "
                     "Tips: Enkle søkeord fungerer best ('mangel', 'erstatning'). "
@@ -785,6 +788,7 @@ class MCPServer:
             },
             {
                 "name": "hent_flere",
+                "title": "Hent flere paragrafer",
                 "description": (
                     "Hent flere paragrafer fra samme lov i ett kall. "
                     "Mer effektivt enn flere separate lov()-kall. "
@@ -812,6 +816,7 @@ class MCPServer:
             },
             {
                 "name": "liste",
+                "title": "Liste over lover",
                 "description": (
                     "List alle tilgjengelige lover og forskrifter med deres kortnavn. "
                     "Nyttig for å se hvilke lover som kan slås opp."
@@ -824,6 +829,7 @@ class MCPServer:
             },
             {
                 "name": "sync",
+                "title": "Synkroniser",
                 "description": (
                     "Synkroniser lovdata fra Lovdata API. "
                     "Laster ned gjeldende lover og forskrifter til lokal cache. "
@@ -843,6 +849,7 @@ class MCPServer:
             },
             {
                 "name": "status",
+                "title": "Synkroniseringsstatus",
                 "description": (
                     "Vis status for synkronisert lovdata. "
                     "Viser når data sist ble synkronisert og antall dokumenter."
@@ -855,6 +862,7 @@ class MCPServer:
             },
             {
                 "name": "sjekk_størrelse",
+                "title": "Sjekk paragrafstørrelse",
                 "description": (
                     "Sjekk størrelsen på en paragraf før henting. "
                     "Returnerer estimert antall tokens. "
