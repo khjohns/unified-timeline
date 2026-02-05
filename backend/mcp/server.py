@@ -180,6 +180,37 @@ SEARCH_UI_TEMPLATE = """
       padding: 40px;
       color: #6b7280;
     }
+    /* Dark theme support */
+    body.dark-theme {
+      background: #1a1a1a;
+      color: #e5e7eb;
+    }
+    .dark-theme .header { border-bottom-color: #3b82f6; }
+    .dark-theme .header h2 { color: #60a5fa; }
+    .dark-theme .header .count { color: #9ca3af; }
+    .dark-theme .filter-btn {
+      background: #374151;
+      border-color: #4b5563;
+      color: #e5e7eb;
+    }
+    .dark-theme .filter-btn:hover { background: #4b5563; }
+    .dark-theme .filter-btn.active {
+      background: #1e3a5f;
+      border-color: #3b82f6;
+      color: #93c5fd;
+    }
+    .dark-theme .result-card {
+      background: #1f2937;
+      border-color: #374151;
+    }
+    .dark-theme .result-card:hover { border-color: #3b82f6; }
+    .dark-theme .result-card .law-name { color: #60a5fa; }
+    .dark-theme .result-card .section { color: #9ca3af; }
+    .dark-theme .result-card .snippet { color: #d1d5db; }
+    .dark-theme .result-card .snippet mark {
+      background: #854d0e;
+      color: #fef08a;
+    }
   </style>
 </head>
 <body>
@@ -297,7 +328,34 @@ SEARCH_UI_TEMPLATE = """
           renderResults();
         }
       }
+
+      // Handle host context changes (theme, locale, etc.)
+      if (message.method === 'ui/notifications/host-context-changed') {
+        Object.assign(hostContext, message.params);
+        if (message.params.theme) applyTheme(message.params.theme);
+      }
     });
+
+    // Apply theme from hostContext
+    function applyTheme(theme) {
+      document.body.classList.toggle('dark-theme', theme === 'dark');
+    }
+
+    // Send size notification to host (debounced)
+    let sizeTimeout;
+    function notifySize() {
+      clearTimeout(sizeTimeout);
+      sizeTimeout = setTimeout(() => {
+        window.parent.postMessage({
+          jsonrpc: '2.0',
+          method: 'ui/notifications/size-changed',
+          params: {
+            width: document.body.scrollWidth,
+            height: document.body.scrollHeight
+          }
+        }, '*');
+      }, 100);
+    }
 
     // MCP Apps handshake: initialize → notifications/initialized
     async function initializeMcpApp() {
@@ -308,10 +366,16 @@ SEARCH_UI_TEMPLATE = """
       });
       hostContext = result?.hostContext || {};
 
+      // Apply initial theme
+      if (hostContext.theme) applyTheme(hostContext.theme);
+
       window.parent.postMessage({
         jsonrpc: '2.0',
         method: 'notifications/initialized'
       }, '*');
+
+      // Start observing size changes
+      new ResizeObserver(notifySize).observe(document.body);
     }
 
     // Start initialization
@@ -419,6 +483,29 @@ LAW_UI_TEMPLATE = """
       margin-top: 4px;
     }
     .highlight { background: #fef08a; }
+    /* Dark theme support */
+    body.dark-theme {
+      background: #1a1a1a;
+      color: #e5e7eb;
+    }
+    .dark-theme .law-header { border-bottom-color: #3b82f6; }
+    .dark-theme .law-title { color: #93c5fd; }
+    .dark-theme .law-meta { color: #9ca3af; }
+    .dark-theme .toc {
+      background: #1f2937;
+      border-color: #374151;
+    }
+    .dark-theme .toc-title { color: #9ca3af; }
+    .dark-theme .toc-item { color: #60a5fa; }
+    .dark-theme .chapter-title { color: #93c5fd; }
+    .dark-theme .paragraph:hover {
+      background: #1f2937;
+    }
+    .dark-theme .paragraph-num { color: #60a5fa; }
+    .dark-theme .highlight {
+      background: #854d0e;
+      color: #fef08a;
+    }
   </style>
 </head>
 <body>
@@ -526,7 +613,34 @@ LAW_UI_TEMPLATE = """
           render();
         }
       }
+
+      // Handle host context changes (theme, locale, etc.)
+      if (message.method === 'ui/notifications/host-context-changed') {
+        Object.assign(hostContext, message.params);
+        if (message.params.theme) applyTheme(message.params.theme);
+      }
     });
+
+    // Apply theme from hostContext
+    function applyTheme(theme) {
+      document.body.classList.toggle('dark-theme', theme === 'dark');
+    }
+
+    // Send size notification to host (debounced)
+    let sizeTimeout;
+    function notifySize() {
+      clearTimeout(sizeTimeout);
+      sizeTimeout = setTimeout(() => {
+        window.parent.postMessage({
+          jsonrpc: '2.0',
+          method: 'ui/notifications/size-changed',
+          params: {
+            width: document.body.scrollWidth,
+            height: document.body.scrollHeight
+          }
+        }, '*');
+      }, 100);
+    }
 
     // MCP Apps handshake: initialize → notifications/initialized
     async function initializeMcpApp() {
@@ -537,10 +651,16 @@ LAW_UI_TEMPLATE = """
       });
       hostContext = result?.hostContext || {};
 
+      // Apply initial theme
+      if (hostContext.theme) applyTheme(hostContext.theme);
+
       window.parent.postMessage({
         jsonrpc: '2.0',
         method: 'notifications/initialized'
       }, '*');
+
+      // Start observing size changes
+      new ResizeObserver(notifySize).observe(document.body);
     }
 
     // Start initialization and render
