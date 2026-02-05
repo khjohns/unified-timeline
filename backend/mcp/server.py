@@ -41,6 +41,27 @@ Tilgang til norske lover og forskrifter fra Lovdata Public API (92 000+ paragraf
 | `liste` | Vis aliaser (IKKE komplett liste - alle 770+ lover kan slås opp) |
 | `sjekk_storrelse` | Estimer tokens før henting |
 
+## Søketips (VIKTIG!)
+
+Søket bruker AND-logikk: alle ord MÅ finnes i samme paragraf.
+
+| Søk | Resultat | Hvorfor |
+|-----|----------|---------|
+| `klima` | ✅ | Enkeltord fungerer |
+| `vesentlig mislighold` | ✅ | Begge ord i teksten |
+| `anskaffelsesforskriften miljø` | ❌ | "anskaffelsesforskriften" er tittel, ikke innhold |
+| `miljøkriterier` | ❌ | Prøv `miljø` eller `klima` i stedet |
+
+**Søkesyntaks:**
+- `miljø OR klima` → minst ett ord må matche
+- `"vesentlig mislighold"` → eksakt frase
+- `mangel -bil` → mangel, men ikke bil
+
+**Tommelfingerregler:**
+- Bruk 1-2 **substantiver fra lovteksten** (ikke dokumentnavn)
+- Ved usikkerhet → bruk `OR` mellom alternativer
+- Tall må skrives ut: `tretti` ikke `30`
+
 ## Anbefalt arbeidsflyt
 
 1. **Ukjent rettsområde?** → `sok("brede nøkkelord")` - kartlegg først!
@@ -184,9 +205,9 @@ class MCPServer:
                 "name": "sok",
                 "title": "Søk i Lovdata",
                 "description": (
-                    "Fulltekstsok i norske lover og forskrifter. "
-                    "Tips: Enkle sokeord fungerer best ('mangel', 'erstatning'). "
-                    "Returnerer relevante paragrafer med snippets."
+                    "Fulltekstsøk i norske lover. Støtter: OR, \"frase\", -ekskluder. "
+                    "Eks: 'mangel', 'miljø OR klima', '\"vesentlig mislighold\"'. "
+                    "Bruk substantiver fra lovteksten, ikke dokumentnavn."
                 ),
                 "inputSchema": {
                     "type": "object",
@@ -194,8 +215,9 @@ class MCPServer:
                         "query": {
                             "type": "string",
                             "description": (
-                                "Søkeord (1-3 ord fungerer best). "
-                                "Eksempler: 'mangel', 'erstatning bolig', 'frist'"
+                                "Søkeord. Støtter: OR, \"frase\", -ekskluder. "
+                                "Eks: 'klima', 'miljø OR tildelingskriterier', "
+                                "'\"vesentlig mislighold\"'"
                             )
                         },
                         "limit": {
