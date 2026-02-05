@@ -826,6 +826,55 @@ class LovdataSupabaseService:
         """Get document metadata by ID."""
         return self._find_document(dok_id)
 
+    def list_sections(self, dok_id: str) -> list[dict]:
+        """
+        List all sections for a document with metadata.
+
+        Returns list of dicts with: section_id, title, char_count, estimated_tokens
+        Sorted by section_id (natural sort for numbers like 1, 2, 10, 11).
+        """
+        doc = self._find_document(dok_id)
+        if not doc:
+            return []
+
+        @with_retry()
+        def _execute() -> list[dict]:
+            result = self.client.table('lovdata_sections').select(
+                'section_id, title, char_count'
+            ).eq('dok_id', doc['dok_id']).execute()
+            return result.data if result.data else []
+
+        sections = safe_execute(_execute, f"Failed to list sections for {dok_id}", default=[]) or []
+
+        # Add token estimates and sort naturally
+        for sec in sections:
+            char_count = sec.get('char_count') or 0
+            sec['estimated_tokens'] = int(char_count / 4)  # ~4 chars per token
+
+        # Natural sort: 1, 1a, 2, 3-1, 3-2, 10, 11 (not 1, 10, 11, 2, 3-1...)
+        # Also handles suffixes like "1-1a", "3-9 a"
+        import re
+        def sort_key(s):
+            section_id = s['section_id']
+            # Split on '-' but preserve for subparts like "3-9"
+            parts = section_id.replace('-', '.').split('.')
+            result = []
+            for p in parts:
+                # Try to extract number and optional letter suffix
+                # Examples: "1" -> (1, ""), "1a" -> (1, "a"), "6 a" -> (6, "a"), "abc" -> (inf, "abc")
+                match = re.match(r'^(\d+)\s*([a-z]?)$', p.strip(), re.I)
+                if match:
+                    num = int(match.group(1))
+                    suffix = match.group(2).lower()
+                    result.append((num, suffix))
+                else:
+                    # Non-numeric parts sort at the end
+                    result.append((float('inf'), p.lower()))
+            return result
+
+        sections.sort(key=sort_key)
+        return sections
+
     def get_sync_status(self) -> dict:
         """Get sync status for all datasets."""
 

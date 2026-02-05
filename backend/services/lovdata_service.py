@@ -303,10 +303,13 @@ class LovdataService:
 
                     return content
             else:
-                # Get document overview
+                # Get document overview with table of contents
                 doc = backend.get_document(lov_id)
                 if doc:
-                    return "*Dokument lastet fra cache. Bruk paragraf-parameter for spesifikke bestemmelser.*"
+                    sections = backend.list_sections(lov_id)
+                    if sections:
+                        return self._format_table_of_contents(doc, sections)
+                    return "*Dokument funnet, men ingen paragrafer i cache.*"
 
         except Exception as e:
             logger.warning(f"Failed to fetch law content for {lov_id}: {e}")
@@ -379,6 +382,69 @@ class LovdataService:
     def get_backend_type(self) -> str:
         """Return which backend is in use."""
         return "supabase" if USE_SUPABASE else "sqlite"
+
+    def _format_table_of_contents(self, doc: dict, sections: list[dict]) -> str:
+        """
+        Format table of contents for a law/regulation.
+
+        Shows all available paragraphs with their titles and token estimates,
+        so Claude can decide which sections to fetch.
+
+        Args:
+            doc: Document metadata from backend
+            sections: List of sections with section_id, title, char_count, estimated_tokens
+
+        Returns:
+            Formatted table of contents with usage guidance
+        """
+        title = doc.get('title') or doc.get('short_title') or doc.get('dok_id')
+        total_tokens = sum(s.get('estimated_tokens', 0) for s in sections)
+
+        lines = [
+            f"### Innholdsfortegnelse: {title}",
+            "",
+            f"**Totalt:** {len(sections)} paragrafer (~{total_tokens:,} tokens)",
+            "",
+            "| Paragraf | Tittel | Tokens |",
+            "|----------|--------|-------:|",
+        ]
+
+        # Group sections for better display (show all, but limit very long lists)
+        MAX_DISPLAY = 100
+        displayed_sections = sections[:MAX_DISPLAY]
+
+        for sec in displayed_sections:
+            section_id = sec.get('section_id', '?')
+            section_title = sec.get('title', '') or ''
+            tokens = sec.get('estimated_tokens', 0)
+
+            # Truncate long titles
+            if len(section_title) > 50:
+                section_title = section_title[:47] + "..."
+
+            # Escape pipe characters in title
+            section_title = section_title.replace('|', '\\|')
+
+            lines.append(f"| § {section_id} | {section_title} | {tokens:,} |")
+
+        if len(sections) > MAX_DISPLAY:
+            remaining = len(sections) - MAX_DISPLAY
+            remaining_tokens = sum(s.get('estimated_tokens', 0) for s in sections[MAX_DISPLAY:])
+            lines.append(f"| ... | *{remaining} flere paragrafer* | {remaining_tokens:,} |")
+
+        # Add usage guidance
+        lines.extend([
+            "",
+            "---",
+            "",
+            "**Bruk:**",
+            f"- Hent én paragraf: `lov('{doc.get('dok_id')}', '1')` eller `forskrift(...)`",
+            f"- Begrens respons: `lov(..., max_tokens=2000)`",
+            "",
+            "*Tips: Hent spesifikke paragrafer for å spare tokens.*",
+        ])
+
+        return "\n".join(lines)
 
     def _format_response(
         self,
