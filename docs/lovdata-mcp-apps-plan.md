@@ -2,16 +2,20 @@
 
 > Dato: Februar 2026
 > Status: Planlegging
+> Oppdatert: Endret fra FastMCP-migrering til minimal HTTP-wrapper
 
 ## Sammendrag
 
 Denne planen beskriver oppgradering av Lovdata MCP fra lokal stdio-server til remote HTTP-server med interaktiv UI via MCP Apps.
 
+**Viktig beslutning**: Vi beholder eksisterende `MCPServer`-klasse og legger kun til en minimal HTTP-wrapper (~50 linjer). Dette er mer effektivt enn full FastMCP-migrering.
+
 ## Nåværende Status
 
 | Aspekt | Status |
 |--------|--------|
-| Server | Lokal, stdio-basert |
+| Server | Lokal, stdio-basert (`MCPServer` klasse) |
+| Kodebase | ~570 linjer, fullstendig JSON-RPC |
 | Hosting | Kun Claude Desktop |
 | UI | Kun tekst (markdown) |
 | Backend | Render (eksisterende) |
@@ -25,60 +29,117 @@ Denne planen beskriver oppgradering av Lovdata MCP fra lokal stdio-server til re
 
 ---
 
+## Arkitekturbeslutning: Minimal Wrapper vs FastMCP
+
+### Vurdering
+
+| Aspekt | Minimal HTTP-wrapper | FastMCP-migrering |
+|--------|---------------------|-------------------|
+| **Ny kode** | ~50 linjer | ~200+ linjer (omskriving) |
+| **Eksisterende kode** | Beholdes uendret | Må omskrives |
+| **Avhengigheter** | Flask (har allerede) | fastmcp, mcp SDK |
+| **MCP Apps støtte** | Legges til manuelt | Innebygd |
+| **Vedlikehold** | Full kontroll | Avhengig av FastMCP |
+| **Risiko** | Lav | Medium (omskriving) |
+
+### Beslutning
+
+**Bruk minimal HTTP-wrapper** fordi:
+1. Eksisterende `MCPServer` har allerede 95% av funksjonaliteten
+2. Ingen omskriving av fungerende kode
+3. Full kontroll over implementasjonen
+4. MCP Apps kan legges til like enkelt
+
+---
+
 ## Del 1: Remote MCP Server (Fase 1-2)
 
-### 1.1 Migrere til FastMCP + Streamable HTTP
+### 1.1 Legg til HTTP-wrapper (Streamable HTTP)
 
-**Nåværende arkitektur** (`backend/mcp/server.py`):
+**Eksisterende arkitektur** (`backend/mcp/server.py`) - BEHOLDES:
 ```python
-# Raw JSON-RPC over stdio
 class MCPServer:
     def handle_request(self, body: dict) -> dict:
-        # Manuell routing
+        # Komplett JSON-RPC håndtering (allerede implementert)
 ```
 
-**Ny arkitektur** (`backend/mcp/server_v2.py`):
+**Ny fil** (`backend/mcp/http_transport.py`) - ~50 linjer:
 ```python
-from mcp.server.fastmcp import FastMCP, Context
-from mcp.types import CallToolResult
+"""
+HTTP transport layer for MCP Server.
+Implements Streamable HTTP per MCP spec 2025-06-18.
+"""
+from flask import Flask, request, jsonify, Response
+import json
+import os
 
-mcp = FastMCP(
-    name="lovdata-mcp",
-    version="0.2.0",
-    instructions=SERVER_INSTRUCTIONS
-)
+from .server import MCPServer
 
-@mcp.tool()
-async def sok(query: str, limit: int = 10) -> str:
-    """Fulltekstsøk i norske lover og forskrifter."""
-    return lovdata_service.search(query, limit)
+app = Flask(__name__)
+mcp = MCPServer()
 
-@mcp.tool()
-async def lov(lov_id: str, paragraf: str | None = None) -> str:
-    """Slå opp norsk lov eller spesifikk paragraf."""
-    return lovdata_service.lookup_law(lov_id, paragraf)
+@app.route("/mcp", methods=["POST"])
+def mcp_endpoint():
+    """
+    Streamable HTTP endpoint for MCP.
 
-# ... flere tools ...
+    Supports both JSON and SSE responses based on Accept header.
+    """
+    # Valider protocol version
+    protocol_version = request.headers.get("MCP-Protocol-Version", "2025-03-26")
+    session_id = request.headers.get("Mcp-Session-Id")
+
+    body = request.get_json()
+    result = mcp.handle_request(body)
+
+    # SSE eller vanlig JSON basert på Accept header
+    accept = request.headers.get("Accept", "application/json")
+
+    if accept == "text/event-stream":
+        def generate():
+            yield f"data: {json.dumps(result)}\n\n"
+        response = Response(generate(), mimetype="text/event-stream")
+    else:
+        response = jsonify(result)
+
+    # Legg til session ID hvis satt
+    if session_id:
+        response.headers["Mcp-Session-Id"] = session_id
+
+    return response
+
+@app.route("/mcp", methods=["GET"])
+def mcp_sse_stream():
+    """
+    SSE endpoint for server-initiated messages.
+    Used for notifications and progress updates.
+    """
+    def stream():
+        # Placeholder for fremtidige server-push meldinger
+        yield ": keepalive\n\n"
+    return Response(stream(), mimetype="text/event-stream")
+
+@app.route("/health")
+def health():
+    """Health check endpoint for Render."""
+    return {"status": "ok", "version": "0.1.0"}
 
 if __name__ == "__main__":
-    mcp.run(
-        transport="streamable-http",
-        host="0.0.0.0",
-        port=8000
-    )
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port)
 ```
 
 ### 1.2 Avhengigheter
 
 ```txt
-# requirements.txt (tillegg)
-mcp>=1.8.0
-fastmcp>=2.14.0
+# requirements.txt (minimale tillegg)
+flask>=3.0.0
+gunicorn>=21.0.0  # For produksjon
 ```
 
-### 1.3 Deploy på Render
+**Merk**: Ingen nye MCP-relaterte avhengigheter trengs - vi bruker eksisterende kode.
 
-Render støtter allerede Python. Legg til:
+### 1.3 Deploy på Render
 
 **render.yaml** (oppdater):
 ```yaml
@@ -87,7 +148,7 @@ services:
     name: lovdata-mcp
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python -m backend.mcp.server_v2
+    startCommand: gunicorn backend.mcp.http_transport:app --bind 0.0.0.0:$PORT
     envVars:
       - key: PORT
         value: 8000
@@ -101,68 +162,126 @@ services:
 1. Gå til **claude.ai > Settings > Connectors**
 2. Klikk **Add custom connector**
 3. Skriv inn URL: `https://lovdata-mcp.onrender.com/mcp`
-4. Bekreft tilkobling
+4. Bekreft tilkobling (ingen OAuth - authless)
 
 ---
 
 ## Del 2: MCP Apps - Interaktiv UI (Fase 3-4)
 
-### 2.1 Installer MCP-UI
+### 2.1 Installer MCP-UI (valgfritt)
 
 ```bash
-pip install mcp-ui
+pip install mcp-ui  # Kun hvis du vil bruke helper-funksjoner
 ```
 
-### 2.2 Søkeresultater med UI
+**Merk**: MCP Apps krever kun spesifikke felter i JSON-responsen. Du kan bygge dette manuelt uten ekstra biblioteker.
+
+### 2.2 Utvide MCPServer med MCP Apps-støtte
+
+Oppdater `handle_tools_call()` i eksisterende `server.py`:
 
 ```python
-from mcp.server.fastmcp import FastMCP, Context
-from mcp.types import CallToolResult
-from mcp_ui_server import create_ui_resource
+def handle_tools_call(self, params: dict[str, Any]) -> dict[str, Any]:
+    """Execute a tool call with optional MCP Apps UI."""
+    tool_name = params.get("name", "")
+    arguments = params.get("arguments", {})
 
-@mcp.tool()
-async def sok(query: str, limit: int = 10, ctx: Context) -> CallToolResult:
-    """Fulltekstsøk i norske lover med interaktiv UI."""
+    try:
+        if tool_name == "sok":
+            # Hent resultater
+            query = arguments.get("query", "")
+            limit = arguments.get("limit", 10)
+            results = self.lovdata.search(query, limit)
 
-    results = lovdata_service.search(query, limit)
+            # Parse resultater til strukturert format
+            structured_results = self._parse_search_results(results)
 
-    # Generer HTML for resultater
-    html = generate_search_ui(results, query)
-
-    return CallToolResult(
-        # Tekst for modellen (kontekst)
-        content=[{
-            "type": "text",
-            "text": format_as_markdown(results)
-        }],
-        # Data for UI (ikke synlig for modell)
-        structuredContent={
-            "results": results,
-            "query": query,
-            "count": len(results)
-        },
-        # UI-metadata
-        meta={
-            "ui": {
-                "resourceUri": f"ui://lovdata/search"
+            return {
+                # Tekst for modellen (kontekst)
+                "content": [{
+                    "type": "text",
+                    "text": results  # Markdown-formatert
+                }],
+                # Data for UI (ikke synlig for modell)
+                "structuredContent": {
+                    "results": structured_results,
+                    "query": query,
+                    "count": len(structured_results)
+                },
+                # UI-metadata
+                "_meta": {
+                    "ui": {
+                        "resourceUri": "ui://lovdata/search"
+                    }
+                }
             }
-        }
-    )
 
-@mcp.resource("ui://lovdata/search")
-async def search_ui_resource() -> str:
-    """Serve søkeresultat-UI."""
-    return create_ui_resource({
-        "uri": "ui://lovdata/search",
-        "content": {
-            "type": "rawHtml",
-            "htmlString": SEARCH_UI_TEMPLATE
-        },
-        "encoding": "text"
-    })
+        # ... andre tools (uten UI foreløpig) ...
+
+    except Exception as e:
+        # ... error handling ...
 ```
 
-### 2.3 UI-komponenter
+### 2.3 Legge til UI Resources
+
+Utvid `handle_resources_list()` og legg til ny metode:
+
+```python
+def handle_resources_list(self) -> dict[str, Any]:
+    """Return list of available resources including UI."""
+    return {
+        "resources": [
+            {
+                "uri": "ui://lovdata/search",
+                "name": "Søkeresultater UI",
+                "mimeType": "text/html",
+                "description": "Interaktiv visning av søkeresultater"
+            },
+            {
+                "uri": "ui://lovdata/law",
+                "name": "Lovtekst UI",
+                "mimeType": "text/html",
+                "description": "Interaktiv visning av lovtekst"
+            }
+        ]
+    }
+
+def handle_resources_read(self, params: dict[str, Any]) -> dict[str, Any]:
+    """Read a resource by URI."""
+    uri = params.get("uri", "")
+
+    if uri == "ui://lovdata/search":
+        return {
+            "contents": [{
+                "uri": uri,
+                "mimeType": "text/html",
+                "text": self._get_search_ui_template()
+            }]
+        }
+    elif uri == "ui://lovdata/law":
+        return {
+            "contents": [{
+                "uri": uri,
+                "mimeType": "text/html",
+                "text": self._get_law_ui_template()
+            }]
+        }
+
+    return {"contents": []}
+
+def _get_search_ui_template(self) -> str:
+    """Return HTML template for search results."""
+    return SEARCH_UI_TEMPLATE  # Se seksjon 2.4
+```
+
+Og oppdater `handle_request()` for å route resources/read:
+
+```python
+elif method == "resources/read":
+    result = self.handle_resources_read(params)
+```
+
+### 2.4 UI-komponenter (HTML Templates)
 
 #### Søkeresultater
 
@@ -415,59 +534,89 @@ lovdata-mcp.mcpb/
 
 ### 4.1 Rate Limiting
 
+Legg til i `http_transport.py`:
+
 ```python
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["100 per hour"],
+    storage_uri="memory://"
+)
 
-@mcp.tool()
+@app.route("/mcp", methods=["POST"])
 @limiter.limit("30/minute")
-async def sok(query: str, limit: int = 10) -> str:
-    ...
+def mcp_endpoint():
+    # ... eksisterende kode ...
 ```
 
 ### 4.2 Caching
 
+Legg til i `server.py`:
+
 ```python
 from functools import lru_cache
-from datetime import timedelta
 
-@lru_cache(maxsize=1000)
-def cached_search(query: str, limit: int) -> list:
-    return lovdata_service.search(query, limit)
+class MCPServer:
+    @lru_cache(maxsize=1000)
+    def _cached_search(self, query: str, limit: int) -> str:
+        return self.lovdata.search(query, limit)
 ```
 
 ### 4.3 Health Check
 
+Allerede inkludert i `http_transport.py`:
+
 ```python
-@mcp.resource("/health")
-async def health_check():
-    return {"status": "ok", "version": "0.2.0"}
+@app.route("/health")
+def health():
+    return {"status": "ok", "version": "0.1.0"}
 ```
 
 ---
 
 ## Implementeringsplan
 
-| Fase | Oppgave | Estimat | Avhengigheter |
-|------|---------|---------|---------------|
-| **1** | Migrere til FastMCP | 2-3 timer | - |
-| **2** | Deploy med Streamable HTTP på Render | 1 time | Fase 1 |
-| **3** | Teste fra claude.ai web | 30 min | Fase 2 |
-| **4a** | MCP Apps: Søkeresultat-UI | 3-4 timer | Fase 3 |
-| **4b** | MCP Apps: Lovtekst-UI | 3-4 timer | Fase 3 |
-| **4c** | MCP Apps: Sync Progress-UI | 2-3 timer | Fase 3 |
-| **5** | Pakke som .mcpb | 1 time | Fase 4 |
-| **6** | Rate limiting + caching | 1-2 timer | Fase 2 |
+| Fase | Oppgave | Estimat | Ny kode |
+|------|---------|---------|---------|
+| **1** | Legg til HTTP-wrapper | 30 min | ~50 linjer |
+| **2** | Deploy på Render | 30 min | Config only |
+| **3** | Test fra claude.ai web | 15 min | 0 |
+| **4a** | MCP Apps: Søkeresultat-UI | 2 timer | ~100 linjer |
+| **4b** | MCP Apps: Lovtekst-UI | 2 timer | ~100 linjer |
+| **4c** | MCP Apps: Sync Progress-UI | 1 time | ~50 linjer |
+| **5** | Pakke som .mcpb | 30 min | Config only |
+| **6** | Rate limiting + caching | 30 min | ~20 linjer |
+
+**Total ny kode**: ~320 linjer (vs ~500+ med FastMCP-migrering)
 
 ### Prioritert rekkefølge
 
-1. **Fase 1-3**: Remote server (høyest prioritet - muliggjør claude.ai web)
-2. **Fase 4a**: Søkeresultat-UI (mest synlig forbedring)
-3. **Fase 6**: Sikkerhet (viktig for produksjon)
-4. **Fase 4b-c**: Flere UI-komponenter
-5. **Fase 5**: Desktop Extension (nice-to-have)
+```
+┌─────────────────────────────────────────────────────┐
+│ Fase 1-3: HTTP-wrapper + Deploy (høyest prioritet) │
+│ → Muliggjør claude.ai web, mobil, desktop          │
+└─────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────┐
+│ Fase 6: Rate limiting (viktig for åpen server)     │
+└─────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────┐
+│ Fase 4a: Søkeresultat-UI (mest synlig forbedring)  │
+└─────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────┐
+│ Fase 4b-c: Flere UI-komponenter (nice-to-have)     │
+└─────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────┐
+│ Fase 5: .mcpb Desktop Extension (bonus)            │
+└─────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -479,17 +628,18 @@ async def health_check():
 | Pris | $7/mnd (starter) | Gratis tier |
 | Latency | Variabel | Edge (lav) |
 | Kompleksitet | Lav | Medium |
-| MCP-støtte | Via FastMCP | Native template |
+| MCP-støtte | Minimal wrapper | Native template |
 
-**Anbefaling**: Fortsett med Render for Python-native støtte. Vurder Cloudflare senere for edge-ytelse.
+**Anbefaling**: Fortsett med Render - du har allerede backend der og Python-koden fungerer direkte.
 
 ---
 
 ## Referanser
 
 - [MCP Apps Blog Post](http://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/)
-- [FastMCP Documentation](https://gofastmcp.com/)
+- [MCP Specification 2025-06-18 - Transports](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)
 - [mcp-ui-server](https://mcpui.dev/guide/server/python/overview)
 - [Building Custom Connectors - Claude Help](https://support.claude.com/en/articles/11503834-building-custom-connectors-via-remote-mcp-servers)
 - [Cloudflare MCP Authless Template](https://glama.ai/mcp/servers/@lgrassin/remote-mcp-server-authless)
 - [MCPB Specification](https://github.com/modelcontextprotocol/mcpb)
+- [Invariant Labs - MCP Streamable HTTP Example](https://github.com/invariantlabs-ai/mcp-streamable-http)
