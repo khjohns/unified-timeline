@@ -2,7 +2,7 @@
 
 **Status:** Akseptert
 **Dato:** 2026-02-03
-**Oppdatert:** 2026-02-04 (ytelsesvalidering)
+**Oppdatert:** 2026-02-05 (lengre snippets, innholdsfortegnelse)
 **Beslutningstagere:** Utviklingsteam
 **Kontekst:** Implementasjon av MCP-integrasjon for norsk lovdata
 
@@ -187,7 +187,7 @@ Datasettet inneholder:
 ```sql
 CREATE OR REPLACE FUNCTION search_lovdata_fast(
     query_text TEXT,
-    max_results INTEGER DEFAULT 10
+    max_results INTEGER DEFAULT 20
 )
 RETURNS TABLE (
     dok_id TEXT,
@@ -219,7 +219,7 @@ AS $$
         d.title,
         d.short_title,
         d.doc_type,
-        LEFT(s.content, 200) as snippet,
+        LEFT(s.content, 500) as snippet,  -- 500 chars gir bedre kontekst
         r.rank
     FROM ranked r
     JOIN lovdata_documents d ON d.dok_id = r.dok_id
@@ -259,6 +259,7 @@ Ved første kjøring etter deploy/restart kan responstiden være høyere (~600ms
 | Positiv | Rask responstid (~6ms warm cache) |
 | Positiv | Norsk stemming (finner "straff" i "straffes") |
 | Positiv | CTE-pattern unngår å lese store kolonner unødvendig |
+| Positiv | 500-tegn snippets gir god kontekst for relevansvurdering |
 | Negativ | Ingen highlighting i snippet |
 | Negativ | Snippet er alltid starten av teksten, ikke kontekst rundt treffet |
 
@@ -284,12 +285,34 @@ Claude trenger verktøy for å:
 | Verktøy | Backend-metode | MCP |
 |---------|----------------|-----|
 | `lov(lov_id, paragraf, max_tokens)` | `LovdataService.lookup_law()` | ✅ |
-| `forskrift(forskrift_id, paragraf)` | `LovdataService.lookup_regulation()` | ✅ |
+| `forskrift(forskrift_id, paragraf, max_tokens)` | `LovdataService.lookup_regulation()` | ✅ |
 | `sok(query, limit)` | `LovdataService.search()` | ✅ |
 | `liste()` | `LovdataService.list_available_laws()` | ✅ |
 | `status()` | `LovdataService.get_sync_status()` | ✅ |
 | `sync(force)` | `LovdataService.sync()` | ✅ |
 | `sjekk_storrelse(lov_id, paragraf)` | `LovdataService.get_section_size()` | ✅ |
+
+### Innholdsfortegnelse
+
+Når `lov()` eller `forskrift()` kalles **uten paragraf-parameter**, returneres en innholdsfortegnelse:
+
+```
+### Innholdsfortegnelse: Personopplysningsloven
+
+**Totalt:** 134 paragrafer (~45,000 tokens)
+
+| Paragraf | Tittel | Tokens |
+|----------|--------|-------:|
+| § 1 | Gjennomføring av personvernforordningen | 124 |
+| § 2 | Saklig virkeområde | 321 |
+| § Artikkel 5 | Prinsipper for behandling | 467 |
+...
+```
+
+Dette lar Claude:
+- Vurdere omfang før henting
+- Navigere til relevante paragrafer
+- Estimere token-kostnad
 
 ### MCP-instruksjoner
 

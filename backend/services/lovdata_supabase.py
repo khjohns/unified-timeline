@@ -778,8 +778,8 @@ class LovdataSupabaseService:
     def search(
         self,
         query: str,
-        limit: int = 10,
-        max_tokens_per_result: int = 100
+        limit: int = 20,
+        max_tokens_per_result: int = 150
     ) -> list[SearchResult]:
         """
         Full-text search with token-aware snippets.

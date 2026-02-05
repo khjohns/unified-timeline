@@ -144,3 +144,11 @@ ON magic_links(sak_id);
 CREATE INDEX IF NOT EXISTS idx_user_groups_manager_id
 ON user_groups(manager_id)
 WHERE manager_id IS NOT NULL;
+
+-- ============================================================================
+-- 9. CLEANUP: Remove unused indexes on feedback table
+-- ============================================================================
+
+DROP INDEX IF EXISTS idx_feedback_status;
+DROP INDEX IF EXISTS idx_feedback_type;
+DROP INDEX IF EXISTS idx_feedback_created_at;
