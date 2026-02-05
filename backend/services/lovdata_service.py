@@ -773,7 +773,10 @@ Fant {len(results)} treff (fulltekstsøk):
             "Anskaffelser": ["anskaffelsesloven", "anskaffelsesforskriften"],
         }
 
-        lines = ["## Tilgjengelige lover og forskrifter\n"]
+        lines = ["## Aliaser (snarveier)\n"]
+        lines.append("**NB:** Dette er bare snarveier for vanlige lover. ")
+        lines.append("Alle 770+ lover i Lovdata kan slås opp med `lov('lovnavn')`.\n")
+        lines.append("**Tips:** Bruk `sok('emne')` for å finne lover du ikke kjenner navnet på.\n")
 
         for category, laws in categories.items():
             lines.append(f"### {category}\n")
@@ -785,6 +788,6 @@ Fant {len(results)} treff (fulltekstsøk):
             lines.append("")
 
         lines.append("---")
-        lines.append("*Bruk alias eller full ID i oppslag, f.eks. `lov('avhendingslova', '3-9')`*")
+        lines.append("*Eksempel: `lov('husleieloven', '9-2')` fungerer selv om husleieloven ikke er i listen.*")
 
         return "\n".join(lines)

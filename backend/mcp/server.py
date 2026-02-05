@@ -38,7 +38,7 @@ Tilgang til norske lover og forskrifter fra Lovdata Public API (92 000+ paragraf
 | `forskrift(id, paragraf?)` | Slå opp forskrift. Uten paragraf → innholdsfortegnelse |
 | `sok(query, limit=20)` | Fulltekstsok (returnerer 500-tegn snippets) |
 | `hent_flere(lov_id, [paragrafer])` | Batch-henting (~80% raskere enn separate kall) |
-| `liste` | Vis tilgjengelige aliaser |
+| `liste` | Vis aliaser (IKKE komplett liste - alle 770+ lover kan slås opp) |
 | `sjekk_storrelse` | Estimer tokens før henting |
 
 ## Anbefalt arbeidsflyt
@@ -229,10 +229,11 @@ class MCPServer:
             },
             {
                 "name": "liste",
-                "title": "Liste over lover",
+                "title": "Aliaser",
                 "description": (
-                    "List alle tilgjengelige lover og forskrifter med deres kortnavn. "
-                    "Nyttig for å se hvilke lover som kan slås opp."
+                    "Vis forhåndsdefinerte aliaser (snarveier) for vanlige lover. "
+                    "MERK: Dette er IKKE en komplett liste - alle 770+ lover i Lovdata "
+                    "kan slås opp med lov('lovnavn'). Bruk sok() for å finne lover."
                 ),
                 "inputSchema": {
                     "type": "object",
