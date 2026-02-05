@@ -29,65 +29,54 @@ SERVER_INFO = {
 SERVER_INSTRUCTIONS = """
 # Lovdata MCP - Norsk Lovoppslag
 
-Denne MCP-serveren gir tilgang til norske lover og forskrifter fra Lovdata Public API.
+Tilgang til norske lover og forskrifter fra Lovdata Public API (92 000+ paragrafer).
 
-## Tilgjengelige verktøy
+## Verktøy
 
 | Verktøy | Bruk |
 |---------|------|
-| `lov` | Slå opp spesifikk lov/paragraf |
-| `forskrift` | Slå opp forskrift |
-| `sok` | Fulltekstsøk i alle lover |
+| `lov(lov_id, paragraf?)` | Slå opp lov. Uten paragraf → innholdsfortegnelse |
+| `forskrift(id, paragraf?)` | Slå opp forskrift. Uten paragraf → innholdsfortegnelse |
+| `sok(query, limit=20)` | Fulltekstsøk (returnerer 500-tegn snippets) |
+| `hent_flere(lov_id, [paragrafer])` | Batch-henting (~80% raskere enn separate kall) |
 | `liste` | Vis tilgjengelige aliaser |
-| `status` | Sjekk sync-status |
 | `sjekk_storrelse` | Estimer tokens før henting |
 
-## Viktige begrensninger
+## Anbefalt arbeidsflyt
 
-**IKKE tilgjengelig via denne MCP:**
-- Rettsavgjørelser (Høyesterett, lagmannsrett, tingrett)
-- Forarbeider (NOU, Prop., Ot.prp., Innst.)
+1. **Usikker på lov?** → `sok("søkeord")` finner relevante paragrafer
+2. **Vet hvilken lov?** → `lov("avhendingslova")` gir innholdsfortegnelse med tokens
+3. **Trenger flere §§?** → `hent_flere("lov", ["§1", "§2", "§3"])` er raskest
+4. **Presis sitering?** → `lov("avhendingslova", "3-9")` for full tekst
+
+## GDPR / Personvern
+
+GDPR (personvernforordningen) er tilgjengelig via personopplysningsloven:
+- `lov("personopplysningsloven", "Artikkel 5")` → GDPR Art. 5 (prinsipper)
+- `lov("personopplysningsloven", "Artikkel 6")` → GDPR Art. 6 (behandlingsgrunnlag)
+- `sok("personvernkonsekvenser")` → finner DPIA-krav (Art. 35)
+
+## Begrensninger
+
+**IKKE tilgjengelig:**
+- Rettsavgjørelser (Høyesterett, lagmannsrett)
+- Forarbeider (NOU, Prop., Ot.prp.)
 - Juridiske artikler
 
-For disse, henvis brukeren til lovdata.no.
-
-## Paragraf-format (VIKTIG)
-
-| Input | Resultat |
-|-------|----------|
-| `"3-9"` | ✅ Korrekt |
-| `"§ 3-9"` | ✅ Fungerer (§ strippes) |
-| `"14-9"` | ✅ Korrekt |
-| `"17"` | ✅ Enkle tall fungerer |
-| `" 3-9 "` | ✅ Whitespace håndteres |
-
-**Regel:** Paragraf-parameter trenger kun tallet, ikke §-tegn.
-
-## Søketips
-
-- **Enkle søkeord fungerer best:** `"mangel"`, `"erstatning"`, `"frist"`
-- **Kombiner maks 2-3 ord:** `"mangel bolig"` OK, lange fraser gir færre treff
-- **Søk returnerer relevante seksjoner** med snippets
+→ Henvis til lovdata.no for disse.
 
 ## Aliaser
 
-Begge formater fungerer (case-insensitive):
-- `avhendingslova` eller `avhl`
-- `bustadoppføringslova` eller `buofl`
-- `plan-og-bygningsloven` eller `pbl`
-- `arbeidsmiljøloven` eller `aml`
-- `tvisteloven` eller `tvl`
-- `kjøpsloven`, `avtaleloven`, `forvaltningsloven`
+| Kort | Full |
+|------|------|
+| `avhl` | avhendingslova |
+| `buofl` | bustadoppføringslova |
+| `pbl` | plan-og-bygningsloven |
+| `aml` | arbeidsmiljøloven |
+| `foa` | anskaffelsesforskriften |
+| `tek17` | byggteknisk forskrift |
 
-Kjør `liste` for komplett oversikt med kategorier.
-
-## Beste praksis
-
-1. **Start med `liste`** for å se tilgjengelige lover
-2. **Bruk korte aliaser** (`aml`, `pbl`, `buofl`) for raskere typing
-3. **Sjekk størrelse først** med `sjekk_storrelse` for potensielt lange paragrafer
-4. **Søk først** med `sok` hvis usikker på hvilken lov som er relevant
-5. **Henvis til lovdata.no** for rettsavgjørelser og forarbeider
+Kjør `liste` for komplett oversikt.
 """
 
 
