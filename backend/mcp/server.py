@@ -37,17 +37,17 @@ Tilgang til norske lover og forskrifter fra Lovdata Public API (92 000+ paragraf
 |---------|------|
 | `lov(lov_id, paragraf?)` | Slå opp lov. Uten paragraf → innholdsfortegnelse |
 | `forskrift(id, paragraf?)` | Slå opp forskrift. Uten paragraf → innholdsfortegnelse |
-| `sok(query, limit=20)` | Fulltekstsøk (returnerer 500-tegn snippets) |
+| `søk(query, limit=20)` | Fulltekstsøk (returnerer 500-tegn snippets) |
 | `hent_flere(lov_id, [paragrafer])` | Batch-henting (~80% raskere enn separate kall) |
 | `liste` | Vis tilgjengelige aliaser |
-| `sjekk_storrelse` | Estimer tokens før henting |
+| `sjekk_størrelse` | Estimer tokens før henting |
 
 ## Anbefalt arbeidsflyt
 
-1. **Ukjent rettsområde?** → `sok("brede nøkkelord")` - kartlegg først!
+1. **Ukjent rettsområde?** → `søk("brede nøkkelord")` - kartlegg først!
 2. **Vet hvilken lov?** → `lov("navn")` gir innholdsfortegnelse med tokens
 3. **Trenger flere §§?** → `hent_flere()` er ~80% raskere
-4. **Store paragrafer?** → `sjekk_storrelse()` først, spør bruker ved >5000 tokens
+4. **Store paragrafer?** → `sjekk_størrelse()` først, spør bruker ved >5000 tokens
 5. **Presis sitering?** → `lov("navn", "paragraf")`
 
 **Viktig:** Ikke anta du kjenner hele rettsbildet!
@@ -60,7 +60,7 @@ Tilgang til norske lover og forskrifter fra Lovdata Public API (92 000+ paragraf
 GDPR (personvernforordningen) er tilgjengelig via personopplysningsloven:
 - `lov("personopplysningsloven", "Artikkel 5")` → GDPR Art. 5 (prinsipper)
 - `lov("personopplysningsloven", "Artikkel 6")` → GDPR Art. 6 (behandlingsgrunnlag)
-- `sok("personvernkonsekvenser")` → finner DPIA-krav (Art. 35)
+- `søk("personvernkonsekvenser")` → finner DPIA-krav (Art. 35)
 
 ## Begrensninger
 
@@ -726,7 +726,7 @@ class MCPServer:
                             "type": "integer",
                             "description": (
                                 "Maks tokens i respons. "
-                                "Bruk sjekk_storrelse først for store paragrafer."
+                                "Bruk sjekk_størrelse først for store paragrafer."
                             )
                         }
                     },
@@ -833,7 +833,7 @@ class MCPServer:
                 "description": (
                     "Synkroniser lovdata fra Lovdata API. "
                     "Laster ned gjeldende lover og forskrifter til lokal cache. "
-                    "Må kjøres minst én gang for at lov() og sok() skal returnere innhold."
+                    "Må kjøres minst én gang for at lov() og søk() skal returnere innhold."
                 ),
                 "inputSchema": {
                     "type": "object",
