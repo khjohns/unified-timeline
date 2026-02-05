@@ -2,7 +2,7 @@
 
 **Status:** Akseptert
 **Dato:** 2026-02-03
-**Oppdatert:** 2026-02-05 (lengre snippets, innholdsfortegnelse)
+**Oppdatert:** 2026-02-05 (lengre snippets, innholdsfortegnelse, websearch-syntaks)
 **Beslutningstagere:** Utviklingsteam
 **Kontekst:** Implementasjon av MCP-integrasjon for norsk lovdata
 
@@ -189,43 +189,41 @@ CREATE OR REPLACE FUNCTION search_lovdata_fast(
     query_text TEXT,
     max_results INTEGER DEFAULT 20
 )
-RETURNS TABLE (
-    dok_id TEXT,
-    section_id TEXT,
-    title TEXT,
-    short_title TEXT,
-    doc_type TEXT,
-    snippet TEXT,
-    rank REAL
-)
-LANGUAGE sql
-STABLE
+LANGUAGE sql STABLE
 AS $$
-    -- CTE: Finn først bare IDs og rank (uten å lese content)
     WITH ranked AS (
-        SELECT
-            s.dok_id,
-            s.section_id,
-            ts_rank(s.search_vector, plainto_tsquery('norwegian', query_text)) as rank
+        SELECT s.dok_id, s.section_id,
+            ts_rank(s.search_vector, websearch_to_tsquery('norwegian', query_text)) as rank
         FROM lovdata_sections s
-        WHERE s.search_vector @@ plainto_tsquery('norwegian', query_text)
+        WHERE s.search_vector @@ websearch_to_tsquery('norwegian', query_text)
         ORDER BY rank DESC
         LIMIT max_results
     )
-    -- Deretter: hent content og document-info kun for topp-treff
-    SELECT
-        r.dok_id,
-        r.section_id,
-        d.title,
-        d.short_title,
-        d.doc_type,
-        LEFT(s.content, 500) as snippet,  -- 500 chars gir bedre kontekst
-        r.rank
+    SELECT r.dok_id, r.section_id, d.title, d.short_title, d.doc_type,
+           LEFT(s.content, 500) as snippet, r.rank
     FROM ranked r
     JOIN lovdata_documents d ON d.dok_id = r.dok_id
     JOIN lovdata_sections s ON s.dok_id = r.dok_id AND s.section_id = r.section_id;
 $$;
 ```
+
+### Websearch-syntaks (2026-02-05)
+
+**Problem:** `plainto_tsquery` bruker implisitt AND - alle ord må matche. Dette feilet for søk som `anskaffelsesforskriften miljø` fordi "anskaffelsesforskriften" er dokumenttittel, ikke innhold.
+
+**Løsning:** Byttet til `websearch_to_tsquery` som gir LLM kontroll over søkelogikken:
+
+| Syntaks | Eksempel | Betydning |
+|---------|----------|-----------|
+| Standard | `mangel bolig` | Begge ord må matche (AND) |
+| OR | `miljø OR klima` | Minst ett ord må matche |
+| Frase | `"vesentlig mislighold"` | Eksakt frase |
+| Ekskludering | `mangel -bil` | "mangel" men ikke "bil" |
+
+**Testet og bekreftet:**
+- `miljø OR tildelingskriterier` → Fant anskaffelsesforskriften § 8-11 ✅
+- `"vesentlig mislighold"` → Kun eksakte treff ✅
+- `mangel -bil` → Ekskluderte bilrelaterte treff ✅
 
 ### Ytelsesoptimalisering
 
