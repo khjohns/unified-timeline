@@ -3,9 +3,15 @@
 Generate embeddings for all Lovdata sections using Gemini API.
 
 Usage:
-    python scripts/embed_lovdata.py --dry-run   # Verify cost first!
-    python scripts/embed_lovdata.py             # Run embedding
+    python scripts/embed_lovdata.py --dry-run      # Verify cost first!
+    python scripts/embed_lovdata.py                # Run embedding
+    python scripts/embed_lovdata.py --workers 2    # Parallel processing
+    python scripts/embed_lovdata.py --delay 1      # Throttle to avoid IO exhaustion
+    python scripts/embed_lovdata.py --max-time 25  # Stop after 25 minutes
     python scripts/embed_lovdata.py --batch-size 50 --limit 1000
+
+Recommended for Supabase free/micro tier (30 min burst/day):
+    python scripts/embed_lovdata.py --workers 1 --max-time 25
 """
 
 import os
@@ -14,7 +20,16 @@ import math
 import hashlib
 import argparse
 import time
+import threading
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Generator
+
+
+def log(msg: str):
+    """Print message with timestamp."""
+    ts = datetime.now().strftime("%H:%M:%S")
+    print(f"[{ts}] {msg}")
 
 # Add backend to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
@@ -30,32 +45,48 @@ BATCH_SIZE = 100  # Google API batch limit
 TASK_TYPE_DOCUMENT = "RETRIEVAL_DOCUMENT"  # Optimized for document retrieval
 RPM_LIMIT = 100  # Free tier rate limit
 
-# Global client
+# Global client (thread-safe for reads)
 _genai_client = None
+_genai_lock = threading.Lock()
+
+# Thread-local storage for Supabase clients
+_thread_local = threading.local()
 
 
 def get_supabase_client():
-    """Create Supabase client."""
+    """Create Supabase client (one per thread for thread safety)."""
+    # Check thread-local storage first
+    if hasattr(_thread_local, 'supabase_client'):
+        return _thread_local.supabase_client
+
     url = os.environ.get("SUPABASE_URL")
     key = (os.environ.get("SUPABASE_SECRET_KEY")
            or os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
            or os.environ.get("SUPABASE_KEY"))
     if not url or not key:
         raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
-    return create_client(url, key)
+
+    # Create and store in thread-local
+    _thread_local.supabase_client = create_client(url, key)
+    return _thread_local.supabase_client
 
 
 def get_gemini_client() -> genai.Client:
-    """Get or create Gemini API client."""
+    """Get or create Gemini API client (thread-safe singleton)."""
     global _genai_client
     if _genai_client is not None:
         return _genai_client
 
-    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY must be set")
-    _genai_client = genai.Client(api_key=api_key)
-    return _genai_client
+    with _genai_lock:
+        # Double-check after acquiring lock
+        if _genai_client is not None:
+            return _genai_client
+
+        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY must be set")
+        _genai_client = genai.Client(api_key=api_key)
+        return _genai_client
 
 
 def content_hash(text: str) -> str:
@@ -146,13 +177,51 @@ def generate_embeddings_batch(
     return [normalize_embedding(list(emb.values)) for emb in result.embeddings]
 
 
-def update_section_embeddings(supabase, updates: list[dict]) -> None:
-    """Update embeddings in database."""
+def update_section_embeddings(supabase, updates: list[dict], max_retries: int = 3) -> int:
+    """Update embeddings one by one with retry logic."""
+    success = 0
     for update in updates:
-        supabase.table('lovdata_sections').update({
-            'embedding': update['embedding'],
-            'content_hash': update['content_hash']
-        }).eq('id', update['id']).execute()
+        for attempt in range(max_retries):
+            try:
+                supabase.table('lovdata_sections').update({
+                    'embedding': update['embedding'],
+                    'content_hash': update['content_hash']
+                }).eq('id', update['id']).execute()
+                success += 1
+                break
+            except Exception:
+                if attempt < max_retries - 1:
+                    time.sleep(1 * (attempt + 1))  # Increasing backoff
+                # Skip after all retries exhausted
+    return success
+
+
+def process_batch(batch_texts: list[str], batch_ids: list[str]) -> int:
+    """
+    Process a single batch: generate embeddings and update database.
+    This function is designed to be called from multiple threads.
+    """
+    # Get thread-local Supabase client
+    supabase = get_supabase_client()
+
+    # Generate embeddings (Gemini client is thread-safe for reads)
+    try:
+        embeddings = generate_embeddings_batch(batch_texts)
+    except Exception as e:
+        print(f"    [ERROR] Embedding generation failed: {e}")
+        return 0
+
+    # Prepare updates
+    updates = []
+    for section_id, embedding, text in zip(batch_ids, embeddings, batch_texts):
+        updates.append({
+            'id': section_id,
+            'embedding': embedding,
+            'content_hash': content_hash(text)
+        })
+
+    # Update database
+    return update_section_embeddings(supabase, updates)
 
 
 def main():
@@ -169,6 +238,9 @@ Examples:
 
     # Test with limited sections
     python scripts/embed_lovdata.py --limit 100
+
+    # Adjust parallelism
+    python scripts/embed_lovdata.py --workers 4
         """
     )
     parser.add_argument('--dry-run', action='store_true',
@@ -177,93 +249,132 @@ Examples:
                         help=f'Batch size for API calls (default: {BATCH_SIZE})')
     parser.add_argument('--limit', type=int,
                         help='Max number of sections to process')
+    parser.add_argument('--workers', type=int, default=1,
+                        help='Number of parallel workers (default: 1)')
+    parser.add_argument('--delay', type=float, default=0,
+                        help='Delay in seconds between batches (default: 0)')
+    parser.add_argument('--max-time', type=int, default=0,
+                        help='Stop after N minutes (default: 0 = unlimited)')
     args = parser.parse_args()
 
-    print("Initializing clients...")
+    log("Initializing clients...")
     supabase = get_supabase_client()
 
     if not args.dry_run:
         get_gemini_client()
 
-    print("Fetching document metadata...")
+    log("Fetching document metadata...")
     docs = fetch_document_metadata(supabase)
-    print(f"  Found {len(docs)} documents")
+    log(f"Found {len(docs)} documents")
 
     total_processed = 0
     total_tokens = 0
-    request_count = 0
     start_time = time.time()
 
-    print("Starting embedding generation...")
+    log(f"Starting embedding generation with {args.workers} worker(s)...")
+
+    # Collect all batches to process
+    all_batches = []
+
     for section_batch in fetch_sections_needing_embedding(supabase):
-        if args.limit and total_processed >= args.limit:
+        if args.limit and total_processed + len(all_batches) * args.batch_size >= args.limit:
             break
 
         # Prepare texts for embedding
-        texts = []
-        section_ids = []
-        sections_to_process = []
-
         for section in section_batch:
-            if args.limit and total_processed + len(texts) >= args.limit:
+            if args.limit and total_processed + len(all_batches) * args.batch_size >= args.limit:
                 break
 
             doc = docs.get(section['dok_id'], {})
             text = create_embedding_text(doc, section)
-            texts.append(text)
-            section_ids.append(section['id'])
-            sections_to_process.append(section)
-            total_tokens += len(text) // 4  # Rough token estimate
+            all_batches.append({
+                'id': section['id'],
+                'text': text
+            })
+            total_tokens += len(text) // 4
 
-        if args.dry_run:
-            print(f"  [DRY RUN] Would process {len(texts)} sections")
-            total_processed += len(texts)
-            continue
+    stopped_early = False
 
-        # Generate embeddings in sub-batches (API limit)
-        for i in range(0, len(texts), args.batch_size):
-            batch_texts = texts[i:i + args.batch_size]
-            batch_ids = section_ids[i:i + args.batch_size]
-            batch_sections = sections_to_process[i:i + args.batch_size]
+    if args.dry_run:
+        log(f"[DRY RUN] Would process {len(all_batches):,} sections")
+        total_processed = len(all_batches)
+    else:
+        # Split into sub-batches of batch_size
+        sub_batches = []
+        for i in range(0, len(all_batches), args.batch_size):
+            batch_slice = all_batches[i:i + args.batch_size]
+            batch_texts = [b['text'] for b in batch_slice]
+            batch_ids = [b['id'] for b in batch_slice]
+            sub_batches.append((batch_texts, batch_ids))
 
-            # Rate limiting - wait if needed
-            request_count += 1
-            if request_count > 1 and request_count % RPM_LIMIT == 0:
-                elapsed = time.time() - start_time
-                if elapsed < 60:
-                    wait_time = 60 - elapsed
-                    print(f"  Rate limit reached, waiting {wait_time:.0f}s...")
-                    time.sleep(wait_time)
-                start_time = time.time()
+        log(f"Total: {len(all_batches):,} sections in {len(sub_batches)} batches")
 
-            embeddings = generate_embeddings_batch(batch_texts)
+        try:
+            # Process batches with thread pool
+            if args.workers > 1:
+                with ThreadPoolExecutor(max_workers=args.workers) as executor:
+                    futures = {
+                        executor.submit(process_batch, texts, ids): (texts, ids)
+                        for texts, ids in sub_batches
+                    }
 
-            # Prepare updates
-            # IMPORTANT: Hash must include context enrichment to detect changes
-            updates = []
-            for section_id, embedding, section, text in zip(
-                batch_ids, embeddings, batch_sections, batch_texts
-            ):
-                updates.append({
-                    'id': section_id,
-                    'embedding': embedding,
-                    'content_hash': content_hash(text)
-                })
+                    for future in as_completed(futures):
+                        # Check time limit
+                        if args.max_time > 0:
+                            elapsed_min = (time.time() - start_time) / 60
+                            if elapsed_min >= args.max_time:
+                                log(f"⏱ Time limit reached ({args.max_time} min)")
+                                executor.shutdown(wait=False, cancel_futures=True)
+                                stopped_early = True
+                                break
 
-            update_section_embeddings(supabase, updates)
-            total_processed += len(updates)
+                        try:
+                            successful = future.result()
+                            total_processed += successful
+                            elapsed_min = (time.time() - start_time) / 60
+                            rate = total_processed / elapsed_min if elapsed_min > 0 else 0
+                            remaining = len(all_batches) - total_processed
+                            eta_min = remaining / rate if rate > 0 else 0
+                            log(f"Processed {total_processed:,} / {len(all_batches):,} ({rate:.0f}/min, ETA {eta_min:.0f} min)")
+                        except Exception as e:
+                            log(f"[ERROR] Batch failed: {e}")
+                        if args.delay > 0:
+                            time.sleep(args.delay)
+            else:
+                # Sequential processing (original behavior)
+                for batch_texts, batch_ids in sub_batches:
+                    # Check time limit
+                    if args.max_time > 0:
+                        elapsed_min = (time.time() - start_time) / 60
+                        if elapsed_min >= args.max_time:
+                            log(f"⏱ Time limit reached ({args.max_time} min)")
+                            stopped_early = True
+                            break
 
-            print(f"  Processed {total_processed} sections...")
+                    successful = process_batch(batch_texts, batch_ids)
+                    total_processed += successful
+                    elapsed_min = (time.time() - start_time) / 60
+                    rate = total_processed / elapsed_min if elapsed_min > 0 else 0
+                    remaining = len(all_batches) - total_processed
+                    eta_min = remaining / rate if rate > 0 else 0
+                    log(f"Processed {total_processed:,} / {len(all_batches):,} ({rate:.0f}/min, ETA {eta_min:.0f} min)")
+                    if args.delay > 0:
+                        time.sleep(args.delay)
 
-    # Calculate estimates
-    num_requests = (total_processed + args.batch_size - 1) // args.batch_size
-    est_minutes = num_requests / RPM_LIMIT
+        except KeyboardInterrupt:
+            log("⚠ Interrupted by user (Ctrl+C)")
+            stopped_early = True
 
-    print(f"\nDone!")
-    print(f"  Total processed: {total_processed} sections")
-    print(f"  Estimated tokens: {total_tokens:,}")
-    print(f"  Estimated cost: ${total_tokens * 0.15 / 1_000_000:.2f}")
-    print(f"  Estimated time: ~{est_minutes:.0f} min ({RPM_LIMIT} RPM)")
+    elapsed = time.time() - start_time
+    rate = total_processed / (elapsed / 60) if elapsed > 0 else 0
+
+    print("")  # blank line
+    log(f"{'STOPPED' if stopped_early else 'DONE'} in {elapsed/60:.1f} minutes")
+    log(f"Processed: {total_processed:,} sections ({rate:.0f}/min avg)")
+    if stopped_early:
+        remaining = len(all_batches) - total_processed
+        log(f"Remaining: {remaining:,} sections")
+    log(f"Tokens used: ~{total_tokens:,} (${total_tokens * 0.15 / 1_000_000:.2f})")
 
 
 if __name__ == "__main__":
