@@ -47,12 +47,13 @@ Tilgang til norske lover og forskrifter fra Lovdata Public API (92 000+ paragraf
 1. **Ukjent rettsområde?** → `sok("brede nøkkelord")` - kartlegg først!
 2. **Vet hvilken lov?** → `lov("navn")` gir innholdsfortegnelse med tokens
 3. **Trenger flere §§?** → `hent_flere()` er ~80% raskere
-4. **Store paragrafer?** → `sjekk_storrelse()` før henting
+4. **Store paragrafer?** → `sjekk_storrelse()` først, spør bruker ved >5000 tokens
 5. **Presis sitering?** → `lov("navn", "paragraf")`
 
 **Viktig:** Ikke anta du kjenner hele rettsbildet!
 - Søk bredt ved tverrfaglige spørsmål
 - Søk tilgrensende områder (personvern → også "arkiv", "taushetsplikt")
+- Ved offentlig sektor: søk også sektorspesifikke regler
 
 ## GDPR / Personvern
 
