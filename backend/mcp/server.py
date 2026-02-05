@@ -197,8 +197,10 @@ SEARCH_UI_TEMPLATE = """
   <div class="results" id="results"></div>
 
   <script>
-    // MCP Apps data hydration via postMessage
+    // MCP Apps data hydration via postMessage (spec 2026-01-26)
     let data = { results: [], query: '', count: 0 };
+    let requestId = 1;
+    let hostContext = {};
 
     function renderResults(filter = 'all') {
       const container = document.getElementById('results');
@@ -224,13 +226,13 @@ SEARCH_UI_TEMPLATE = """
         </div>
       `).join('');
 
-      // Click handler for drilling down
+      // Click handler for drilling down - use standard MCP tools/call
       container.querySelectorAll('.result-card').forEach(card => {
         card.onclick = () => {
-          // Send message to host to call tool
           window.parent.postMessage({
             jsonrpc: '2.0',
-            method: 'ui/tool-call',
+            id: requestId++,
+            method: 'tools/call',
             params: {
               name: 'lov',
               arguments: {
@@ -252,13 +254,40 @@ SEARCH_UI_TEMPLATE = """
       };
     });
 
-    // Listen for data from MCP host via postMessage
+    // MCP Apps protocol: send initialize request and wait for response
+    function sendRequest(method, params) {
+      return new Promise((resolve, reject) => {
+        const id = requestId++;
+        const handler = (event) => {
+          if (event.source !== window.parent) return;
+          if (event.data?.id === id) {
+            window.removeEventListener('message', handler);
+            if (event.data.error) {
+              reject(new Error(event.data.error.message || 'Request failed'));
+            } else {
+              resolve(event.data.result);
+            }
+          }
+        };
+        window.addEventListener('message', handler);
+        window.parent.postMessage({ jsonrpc: '2.0', id, method, params }, '*');
+      });
+    }
+
+    // Listen for notifications from MCP host
     window.addEventListener('message', (event) => {
-      // Only accept messages from parent (host)
       if (event.source !== window.parent) return;
 
       const message = event.data;
       if (!message || message.jsonrpc !== '2.0') return;
+      // Ignore responses (they have id), only handle notifications
+      if (message.id !== undefined) return;
+
+      // Handle tool input (arguments) - sent before tool-result
+      if (message.method === 'ui/notifications/tool-input') {
+        // Tool arguments available in message.params.arguments
+        // For search UI, we wait for tool-result with actual data
+      }
 
       // Handle tool result with structuredContent
       if (message.method === 'ui/notifications/tool-result') {
@@ -268,19 +297,25 @@ SEARCH_UI_TEMPLATE = """
           renderResults();
         }
       }
-
-      // Also handle direct data injection (some hosts use this)
-      if (message.method === 'ui/hydrate' && message.params) {
-        data = message.params;
-        renderResults();
-      }
     });
 
-    // Signal to host that we're ready to receive data
-    window.parent.postMessage({
-      jsonrpc: '2.0',
-      method: 'ui/ready'
-    }, '*');
+    // MCP Apps handshake: initialize → notifications/initialized
+    async function initializeMcpApp() {
+      const result = await sendRequest('initialize', {
+        protocolVersion: '2026-01-26',
+        capabilities: {},
+        clientInfo: { name: 'Lovdata Search UI', version: '1.0.0' }
+      });
+      hostContext = result?.hostContext || {};
+
+      window.parent.postMessage({
+        jsonrpc: '2.0',
+        method: 'notifications/initialized'
+      }, '*');
+    }
+
+    // Start initialization
+    initializeMcpApp();
 
     // Initial render with loading state
     document.getElementById('result-count').textContent = 'Venter på data...';
@@ -400,13 +435,15 @@ LAW_UI_TEMPLATE = """
   <div id="content"></div>
 
   <script>
-    // MCP Apps data hydration via postMessage
+    // MCP Apps data hydration via postMessage (spec 2026-01-26)
     let data = {
       lawName: 'Laster...',
       shortName: '',
       lastModified: '',
       chapters: []
     };
+    let requestId = 1;
+    let hostContext = {};
 
     function render() {
       document.getElementById('law-title').textContent = data.lawName;
@@ -453,12 +490,34 @@ LAW_UI_TEMPLATE = """
       el.nextElementSibling.classList.toggle('hidden');
     }
 
-    // Listen for data from MCP host via postMessage
+    // MCP Apps protocol: send request and wait for response
+    function sendRequest(method, params) {
+      return new Promise((resolve, reject) => {
+        const id = requestId++;
+        const handler = (event) => {
+          if (event.source !== window.parent) return;
+          if (event.data?.id === id) {
+            window.removeEventListener('message', handler);
+            if (event.data.error) {
+              reject(new Error(event.data.error.message || 'Request failed'));
+            } else {
+              resolve(event.data.result);
+            }
+          }
+        };
+        window.addEventListener('message', handler);
+        window.parent.postMessage({ jsonrpc: '2.0', id, method, params }, '*');
+      });
+    }
+
+    // Listen for notifications from MCP host
     window.addEventListener('message', (event) => {
       if (event.source !== window.parent) return;
 
       const message = event.data;
       if (!message || message.jsonrpc !== '2.0') return;
+      // Ignore responses (they have id), only handle notifications
+      if (message.id !== undefined) return;
 
       if (message.method === 'ui/notifications/tool-result') {
         const toolResult = message.params;
@@ -467,17 +526,25 @@ LAW_UI_TEMPLATE = """
           render();
         }
       }
-
-      if (message.method === 'ui/hydrate' && message.params) {
-        data = message.params;
-        render();
-      }
     });
 
-    // Signal ready
-    window.parent.postMessage({ jsonrpc: '2.0', method: 'ui/ready' }, '*');
+    // MCP Apps handshake: initialize → notifications/initialized
+    async function initializeMcpApp() {
+      const result = await sendRequest('initialize', {
+        protocolVersion: '2026-01-26',
+        capabilities: {},
+        clientInfo: { name: 'Lovdata Law UI', version: '1.0.0' }
+      });
+      hostContext = result?.hostContext || {};
 
-    // Initial render
+      window.parent.postMessage({
+        jsonrpc: '2.0',
+        method: 'notifications/initialized'
+      }, '*');
+    }
+
+    // Start initialization and render
+    initializeMcpApp();
     render();
   </script>
 </body>
