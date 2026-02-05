@@ -7,6 +7,7 @@ for exposing Norwegian law lookup tools to AI assistants.
 Protocol specification: https://modelcontextprotocol.io/specification/2025-03-26
 """
 
+import re
 from typing import Any
 
 from services.lovdata_service import LovdataService
@@ -87,6 +88,337 @@ Kjør `liste` for komplett oversikt med kategorier.
 3. **Sjekk størrelse først** med `sjekk_storrelse` for potensielt lange paragrafer
 4. **Søk først** med `sok` hvis usikker på hvilken lov som er relevant
 5. **Henvis til lovdata.no** for rettsavgjørelser og forarbeider
+"""
+
+
+# =============================================================================
+# MCP Apps UI Templates
+# =============================================================================
+
+SEARCH_UI_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 16px;
+      background: #fafafa;
+      color: #1a1a1a;
+    }
+    .header {
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #2563eb;
+    }
+    .header h2 { font-size: 18px; color: #1e40af; }
+    .header .count { font-size: 14px; color: #6b7280; margin-top: 4px; }
+    .filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 6px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 20px;
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.15s;
+    }
+    .filter-btn:hover { background: #f3f4f6; }
+    .filter-btn.active {
+      background: #dbeafe;
+      border-color: #2563eb;
+      color: #1e40af;
+    }
+    .results { display: flex; flex-direction: column; gap: 10px; }
+    .result-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .result-card:hover {
+      border-color: #2563eb;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+    }
+    .result-card .law-name {
+      font-weight: 600;
+      color: #2563eb;
+      font-size: 15px;
+    }
+    .result-card .section {
+      color: #6b7280;
+      font-size: 13px;
+      margin-top: 2px;
+    }
+    .result-card .snippet {
+      color: #374151;
+      font-size: 14px;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+    .result-card .snippet mark {
+      background: #fef08a;
+      padding: 1px 2px;
+      border-radius: 2px;
+    }
+    .result-card .type-badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-top: 8px;
+    }
+    .type-badge.lov { background: #dbeafe; color: #1e40af; }
+    .type-badge.forskrift { background: #dcfce7; color: #166534; }
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>Søkeresultater</h2>
+    <div class="count" id="result-count">Laster...</div>
+  </div>
+
+  <div class="filters">
+    <button class="filter-btn active" data-type="all">Alle</button>
+    <button class="filter-btn" data-type="lov">Lover</button>
+    <button class="filter-btn" data-type="forskrift">Forskrifter</button>
+  </div>
+
+  <div class="results" id="results"></div>
+
+  <script>
+    // MCP Apps data injection point
+    const data = window.__MCP_DATA__ || { results: [], query: '', count: 0 };
+
+    function renderResults(filter = 'all') {
+      const container = document.getElementById('results');
+      const countEl = document.getElementById('result-count');
+
+      const filtered = filter === 'all'
+        ? data.results
+        : data.results.filter(r => r.type === filter);
+
+      countEl.textContent = `${filtered.length} treff for "${data.query}"`;
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">Ingen resultater funnet</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(r => `
+        <div class="result-card" data-law-id="${r.lawId}" data-section="${r.section}">
+          <div class="law-name">${r.lawName}</div>
+          <div class="section">§ ${r.section}</div>
+          <div class="snippet">${r.snippet}</div>
+          <span class="type-badge ${r.type}">${r.type === 'lov' ? 'Lov' : 'Forskrift'}</span>
+        </div>
+      `).join('');
+
+      // Click handler for drilling down
+      container.querySelectorAll('.result-card').forEach(card => {
+        card.onclick = () => {
+          if (window.mcpBridge?.callTool) {
+            window.mcpBridge.callTool('lov', {
+              lov_id: card.dataset.lawId,
+              paragraf: card.dataset.section
+            });
+          }
+        };
+      });
+    }
+
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderResults(btn.dataset.type);
+      };
+    });
+
+    // Initial render
+    renderResults();
+  </script>
+</body>
+</html>
+"""
+
+LAW_UI_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fefefe;
+      color: #1a1a1a;
+      line-height: 1.7;
+    }
+    .law-header {
+      border-bottom: 3px solid #1e40af;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .law-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1e3a5f;
+    }
+    .law-meta {
+      color: #6b7280;
+      font-size: 14px;
+      margin-top: 6px;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .toc {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 28px;
+    }
+    .toc-title {
+      font-weight: 600;
+      margin-bottom: 10px;
+      font-family: -apple-system, sans-serif;
+      font-size: 14px;
+      color: #475569;
+    }
+    .toc-item {
+      padding: 6px 0;
+      color: #2563eb;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: -apple-system, sans-serif;
+    }
+    .toc-item:hover { text-decoration: underline; }
+    .chapter {
+      margin-bottom: 32px;
+    }
+    .chapter-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1e3a5f;
+      margin-bottom: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .chapter-title::before {
+      content: '▼';
+      font-size: 10px;
+      transition: transform 0.2s;
+    }
+    .chapter-title.collapsed::before {
+      transform: rotate(-90deg);
+    }
+    .chapter-content.hidden { display: none; }
+    .paragraph {
+      margin-bottom: 20px;
+      padding-left: 16px;
+      border-left: 3px solid transparent;
+    }
+    .paragraph:hover {
+      border-left-color: #2563eb;
+      background: #f8fafc;
+    }
+    .paragraph-num {
+      font-weight: bold;
+      color: #1e40af;
+      font-family: -apple-system, sans-serif;
+    }
+    .paragraph-text {
+      margin-top: 4px;
+    }
+    .highlight { background: #fef08a; }
+  </style>
+</head>
+<body>
+  <div class="law-header">
+    <div class="law-title" id="law-title">Laster...</div>
+    <div class="law-meta" id="law-meta"></div>
+  </div>
+
+  <div class="toc" id="toc">
+    <div class="toc-title">Innhold</div>
+    <div id="toc-items"></div>
+  </div>
+
+  <div id="content"></div>
+
+  <script>
+    const data = window.__MCP_DATA__ || {
+      lawName: 'Ukjent lov',
+      shortName: '',
+      lastModified: '',
+      chapters: []
+    };
+
+    function render() {
+      document.getElementById('law-title').textContent = data.lawName;
+      document.getElementById('law-meta').textContent =
+        `${data.shortName} • Sist endret: ${data.lastModified}`;
+
+      // Table of contents
+      const tocItems = document.getElementById('toc-items');
+      tocItems.innerHTML = data.chapters.map((ch, i) =>
+        `<div class="toc-item" onclick="scrollTo('chapter-${i}')">${ch.title}</div>`
+      ).join('');
+
+      // Content
+      const content = document.getElementById('content');
+      content.innerHTML = data.chapters.map((ch, i) => `
+        <div class="chapter" id="chapter-${i}">
+          <div class="chapter-title" onclick="toggleChapter(this)">
+            ${ch.title}
+          </div>
+          <div class="chapter-content">
+            ${ch.paragraphs.map(p => `
+              <div class="paragraph">
+                <span class="paragraph-num">§ ${p.number}</span>
+                <div class="paragraph-text">${p.text}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function scrollTo(id) {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function toggleChapter(el) {
+      el.classList.toggle('collapsed');
+      el.nextElementSibling.classList.toggle('hidden');
+    }
+
+    render();
+  </script>
+</body>
+</html>
 """
 
 
@@ -293,6 +625,8 @@ class MCPServer:
                 result = self.handle_tools_call(params)
             elif method == "resources/list":
                 result = self.handle_resources_list()
+            elif method == "resources/read":
+                result = self.handle_resources_read(params)
             elif method == "prompts/list":
                 result = self.handle_prompts_list()
             elif method == "prompts/get":
@@ -368,10 +702,33 @@ class MCPServer:
                     arguments.get("paragraf")
                 )
             elif tool_name == "sok":
-                content = self.lovdata.search(
-                    arguments.get("query", ""),
-                    arguments.get("limit", 10)
-                )
+                query = arguments.get("query", "")
+                limit = arguments.get("limit", 10)
+                content = self.lovdata.search(query, limit)
+
+                # Parse results for MCP Apps UI
+                structured_results = self._parse_search_results(content)
+
+                # Return with MCP Apps UI metadata
+                return {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": content
+                        }
+                    ],
+                    "structuredContent": {
+                        "results": structured_results,
+                        "query": query,
+                        "count": len(structured_results)
+                    },
+                    "_meta": {
+                        "ui": {
+                            "resourceUri": "ui://lovdata/search"
+                        }
+                    }
+                }
+
             elif tool_name == "liste":
                 content = self.lovdata.list_available_laws()
             elif tool_name == "sync":
@@ -415,6 +772,73 @@ class MCPServer:
                 ],
                 "isError": True
             }
+
+    def _parse_search_results(self, markdown_content: str) -> list[dict[str, Any]]:
+        """
+        Parse search results markdown into structured format for MCP Apps UI.
+
+        Expected markdown format from lovdata.search():
+        ### Lov/Forskrift navn
+        **§ X-Y** - Paragraftittel
+        > Relevant snippet med søkeord...
+
+        Returns list of dicts with: lawId, lawName, section, snippet, type
+        """
+        results = []
+        current_law = None
+        current_type = "lov"
+
+        lines = markdown_content.split("\n")
+        i = 0
+
+        while i < len(lines):
+            line = lines[i].strip()
+
+            # Match law/regulation header: ### Avhendingslova (avhl) or ### Forskrift om...
+            if line.startswith("### "):
+                law_name = line[4:].strip()
+                current_law = law_name
+
+                # Determine type
+                if "forskrift" in law_name.lower():
+                    current_type = "forskrift"
+                else:
+                    current_type = "lov"
+
+                # Extract short ID if present in parentheses
+                match = re.search(r"\(([^)]+)\)$", law_name)
+                law_id = match.group(1) if match else law_name.lower().replace(" ", "-")
+
+            # Match section: **§ 3-9** - Mangel
+            elif line.startswith("**§") and current_law:
+                section_match = re.match(r"\*\*§\s*([^*]+)\*\*\s*[-–]?\s*(.*)", line)
+                if section_match:
+                    section = section_match.group(1).strip()
+                    title = section_match.group(2).strip()
+
+                    # Look for snippet in next lines (blockquote)
+                    snippet = ""
+                    j = i + 1
+                    while j < len(lines) and lines[j].strip().startswith(">"):
+                        snippet += lines[j].strip()[1:].strip() + " "
+                        j += 1
+
+                    # Also check for non-blockquote snippet
+                    if not snippet and j < len(lines) and lines[j].strip():
+                        snippet = lines[j].strip()
+
+                    results.append({
+                        "lawId": law_id if 'law_id' in dir() else current_law.lower().replace(" ", "-"),
+                        "lawName": current_law,
+                        "section": section,
+                        "title": title,
+                        "snippet": snippet.strip()[:200] + "..." if len(snippet) > 200 else snippet.strip(),
+                        "type": current_type
+                    })
+
+            i += 1
+
+        return results
 
     def _format_sync_results(self, results: dict[str, int]) -> str:
         """Format sync results for display."""
@@ -490,8 +914,60 @@ Kjør `sync()` for å laste ned lovdata fra Lovdata API.
 """
 
     def handle_resources_list(self) -> dict[str, Any]:
-        """Return list of available resources (none for now)."""
-        return {"resources": []}
+        """Return list of available resources including MCP Apps UI."""
+        return {
+            "resources": [
+                {
+                    "uri": "ui://lovdata/search",
+                    "name": "Søkeresultater UI",
+                    "mimeType": "text/html",
+                    "description": "Interaktiv visning av søkeresultater med filtrering"
+                },
+                {
+                    "uri": "ui://lovdata/law",
+                    "name": "Lovtekst UI",
+                    "mimeType": "text/html",
+                    "description": "Interaktiv visning av lovtekst med innholdsfortegnelse"
+                }
+            ]
+        }
+
+    def handle_resources_read(self, params: dict[str, Any]) -> dict[str, Any]:
+        """
+        Read a resource by URI.
+
+        Supports MCP Apps UI resources (ui:// scheme).
+        """
+        uri = params.get("uri", "")
+        logger.debug(f"Reading resource: {uri}")
+
+        if uri == "ui://lovdata/search":
+            return {
+                "contents": [{
+                    "uri": uri,
+                    "mimeType": "text/html",
+                    "text": self._get_search_ui_template()
+                }]
+            }
+        elif uri == "ui://lovdata/law":
+            return {
+                "contents": [{
+                    "uri": uri,
+                    "mimeType": "text/html",
+                    "text": self._get_law_ui_template()
+                }]
+            }
+
+        logger.warning(f"Unknown resource URI: {uri}")
+        return {"contents": []}
+
+    def _get_search_ui_template(self) -> str:
+        """Return HTML template for search results UI."""
+        return SEARCH_UI_TEMPLATE
+
+    def _get_law_ui_template(self) -> str:
+        """Return HTML template for law view UI."""
+        return LAW_UI_TEMPLATE
 
     def handle_prompts_list(self) -> dict[str, Any]:
         """Return list of available prompts."""
