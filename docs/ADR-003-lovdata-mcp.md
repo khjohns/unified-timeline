@@ -286,7 +286,7 @@ Claude trenger verktøy for å:
 |---------|----------------|-----|
 | `lov(lov_id, paragraf, max_tokens)` | `LovdataService.lookup_law()` | ✅ |
 | `forskrift(forskrift_id, paragraf, max_tokens)` | `LovdataService.lookup_regulation()` | ✅ |
-| `sok(query, limit)` | `LovdataService.search()` | ✅ |
+| `sok(query, limit=20)` | `LovdataService.search()` | ✅ |
 | `liste()` | `LovdataService.list_available_laws()` | ✅ |
 | `status()` | `LovdataService.get_sync_status()` | ✅ |
 | `sync(force)` | `LovdataService.sync()` | ✅ |
