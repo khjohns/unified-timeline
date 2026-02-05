@@ -49,7 +49,15 @@ Tilgang til norske lover og forskrifter fra Lovdata Public API (92 000+ paragraf
 4. **Store paragrafer?** → `sjekk_storrelse()` først, spør bruker ved >5000 tokens
 5. **Presis sitering?** → `lov("navn", "paragraf")`
 
-**Viktig:** Ikke anta du kjenner hele rettsbildet!
+## Viktig om lov-IDer
+
+**Hvis lovnavn ikke fungerer:** Bruk full ID fra sok-resultatet!
+- `sok("tvangsfullbyrdelse")` → gir ID `lov/1992-06-26-86`
+- `lov("lov/1992-06-26-86", "13-2")` → fungerer alltid
+
+Sok returnerer alltid gyldig ID som kan brukes direkte i lov().
+
+**Ikke anta du kjenner hele rettsbildet!**
 - Søk bredt ved tverrfaglige spørsmål
 - Søk tilgrensende områder (personvern → også "arkiv", "taushetsplikt")
 - Ved offentlig sektor: sok også sektorspesifikke regler
