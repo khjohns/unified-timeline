@@ -774,6 +774,57 @@ class LovdataSupabaseService:
             'estimated_tokens': int(char_count / CHARS_PER_TOKEN)
         }
 
+    def get_sections_batch(
+        self,
+        dok_id: str,
+        section_ids: list[str]
+    ) -> list[LawSection]:
+        """
+        Fetch multiple sections in a single database call.
+
+        Args:
+            dok_id: Document ID or alias
+            section_ids: List of section IDs to fetch
+
+        Returns:
+            List of LawSection objects (in same order as input)
+        """
+        doc = self._find_document(dok_id)
+        if not doc:
+            return []
+
+        # Normalize section IDs
+        normalized_ids = [s.replace('§', '').strip() for s in section_ids]
+
+        @with_retry()
+        def _execute():
+            return self.client.table('lovdata_sections').select(
+                'section_id, title, content, char_count'
+            ).eq('dok_id', doc['dok_id']).in_('section_id', normalized_ids).execute()
+
+        result = safe_execute(_execute, f"Failed to fetch sections batch for {dok_id}", default=None)
+        if not result or not result.data:
+            return []
+
+        # Create lookup dict for ordering
+        sections_dict = {row['section_id']: row for row in result.data}
+
+        # Return in requested order
+        sections = []
+        for section_id in normalized_ids:
+            if section_id in sections_dict:
+                row = sections_dict[section_id]
+                sections.append(LawSection(
+                    dok_id=doc['dok_id'],
+                    section_id=row['section_id'],
+                    title=row.get('title'),
+                    content=row['content'],
+                    address=None,
+                    char_count=row.get('char_count') or len(row['content'])
+                ))
+
+        return sections
+
     @with_retry()
     def search(
         self,

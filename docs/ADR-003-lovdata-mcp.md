@@ -291,6 +291,21 @@ Claude trenger verktøy for å:
 | `status()` | `LovdataService.get_sync_status()` | ✅ |
 | `sync(force)` | `LovdataService.sync()` | ✅ |
 | `sjekk_storrelse(lov_id, paragraf)` | `LovdataService.get_section_size()` | ✅ |
+| `hent_flere(lov_id, paragrafer)` | `LovdataService.lookup_sections_batch()` | ✅ |
+
+### Batch-henting
+
+Hent flere paragrafer i ett kall - ~80% raskere enn separate kall:
+
+```
+# Separate kall: 491ms
+lov('personopplysningsloven', 'Artikkel 5')
+lov('personopplysningsloven', 'Artikkel 6')
+lov('personopplysningsloven', 'Artikkel 35')
+
+# Batch: 100ms
+hent_flere('personopplysningsloven', ['Artikkel 5', 'Artikkel 6', 'Artikkel 35'])
+```
 
 ### Innholdsfortegnelse
 

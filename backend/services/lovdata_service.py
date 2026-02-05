@@ -349,6 +349,102 @@ class LovdataService:
 
         return None
 
+    def lookup_sections_batch(
+        self,
+        lov_id: str,
+        section_ids: list[str],
+        max_tokens: int | None = None
+    ) -> str:
+        """
+        Look up multiple sections in a single call.
+
+        More efficient than multiple lookup_law() calls.
+
+        Args:
+            lov_id: Law identifier or alias
+            section_ids: List of section IDs (e.g., ['Artikkel 5', 'Artikkel 6'])
+            max_tokens: Optional token limit per section
+
+        Returns:
+            Formatted text with all sections
+        """
+        resolved_id = self._resolve_id(lov_id)
+        law_name = self._get_law_name(resolved_id)
+        url = self._format_lovdata_url(resolved_id)
+
+        logger.info(f"Batch lookup: {resolved_id}, sections: {section_ids}")
+
+        backend = _get_backend_service()
+
+        try:
+            if hasattr(backend, 'get_sections_batch'):
+                sections = backend.get_sections_batch(resolved_id, section_ids)
+            else:
+                # Fallback: fetch one by one
+                sections = []
+                for section_id in section_ids:
+                    section = backend.get_section(resolved_id, section_id)
+                    if section:
+                        sections.append(section)
+
+            if not sections:
+                return self._format_fallback_response(
+                    law_name=law_name,
+                    law_id=resolved_id,
+                    paragraf=", ".join(section_ids),
+                    url=url
+                )
+
+            # Format all sections
+            content_parts = []
+            total_tokens = 0
+
+            for section in sections:
+                section_content = ""
+                if section.title:
+                    section_content = f"### § {section.section_id}: {section.title}\n\n"
+                else:
+                    section_content = f"### § {section.section_id}\n\n"
+
+                text = section.content
+
+                # Apply token limit per section if specified
+                if max_tokens:
+                    max_chars = int(max_tokens * CHARS_PER_TOKEN)
+                    if len(text) > max_chars:
+                        text = text[:max_chars] + "\n\n... [avkortet]"
+
+                section_content += text
+                content_parts.append(section_content)
+                total_tokens += estimate_tokens(section_content)
+
+            content = "\n\n---\n\n".join(content_parts)
+
+            return f"""## {law_name}
+
+**Paragrafer:** {", ".join(f"§ {s.section_id}" for s in sections)}
+**Lovdata ID:** {resolved_id}
+**Totalt:** ~{total_tokens:,} tokens
+
+---
+
+{content}
+
+---
+
+**Kilde:** [{url}]({url})
+**Lisens:** NLOD 2.0 - Norsk lisens for offentlige data
+"""
+
+        except Exception as e:
+            logger.warning(f"Batch lookup failed for {resolved_id}: {e}")
+            return self._format_fallback_response(
+                law_name=law_name,
+                law_id=resolved_id,
+                paragraf=", ".join(section_ids),
+                url=url
+            )
+
     def sync(self, force: bool = False) -> dict[str, int]:
         """
         Sync law data from Lovdata API.

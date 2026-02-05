@@ -534,6 +534,33 @@ class MCPServer:
                 }
             },
             {
+                "name": "hent_flere",
+                "description": (
+                    "Hent flere paragrafer fra samme lov i ett kall. "
+                    "Mer effektivt enn flere separate lov()-kall. "
+                    "Eksempel: hent_flere('personopplysningsloven', ['Artikkel 5', 'Artikkel 6', 'Artikkel 35'])"
+                ),
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "lov_id": {
+                            "type": "string",
+                            "description": "Lov-ID eller alias (f.eks. 'personopplysningsloven')"
+                        },
+                        "paragrafer": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Liste med paragraf-IDer (f.eks. ['Artikkel 5', 'Artikkel 6'])"
+                        },
+                        "max_tokens": {
+                            "type": "integer",
+                            "description": "Maks tokens per paragraf (valgfri)"
+                        }
+                    },
+                    "required": ["lov_id", "paragrafer"]
+                }
+            },
+            {
                 "name": "liste",
                 "description": (
                     "List alle tilgjengelige lover og forskrifter med deres kortnavn. "
@@ -734,6 +761,13 @@ class MCPServer:
                     }
                 }
 
+            elif tool_name == "hent_flere":
+                lov_id = arguments.get("lov_id", "")
+                paragrafer = arguments.get("paragrafer", [])
+                max_tokens = arguments.get("max_tokens")
+                content = self.lovdata.lookup_sections_batch(
+                    lov_id, paragrafer, max_tokens=max_tokens
+                )
             elif tool_name == "liste":
                 content = self.lovdata.list_available_laws()
             elif tool_name == "sync":
