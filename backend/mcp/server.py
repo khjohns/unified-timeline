@@ -498,6 +498,10 @@ class MCPServer:
                         "paragraf": {
                             "type": "string",
                             "description": "Paragrafnummer (valgfritt)"
+                        },
+                        "max_tokens": {
+                            "type": "integer",
+                            "description": "Maks antall tokens i respons (valgfritt)"
                         }
                     },
                     "required": ["forskrift_id"]
@@ -699,7 +703,8 @@ class MCPServer:
             elif tool_name == "forskrift":
                 content = self.lovdata.lookup_regulation(
                     arguments.get("forskrift_id", ""),
-                    arguments.get("paragraf")
+                    arguments.get("paragraf"),
+                    max_tokens=arguments.get("max_tokens")
                 )
             elif tool_name == "sok":
                 query = arguments.get("query", "")

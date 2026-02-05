@@ -441,38 +441,48 @@ Lovteksten er ikke tilgjengelig i lokal cache.
 **Lisens:** NLOD 2.0 - Norsk lisens for offentlige data
 """
 
-    def lookup_regulation(self, forskrift_id: str, paragraf: str | None = None) -> str:
+    def lookup_regulation(
+        self,
+        forskrift_id: str,
+        paragraf: str | None = None,
+        max_tokens: int | None = None
+    ) -> str:
         """
-        Look up a Norwegian regulation.
+        Look up a Norwegian regulation or specific section.
 
         Args:
             forskrift_id: Regulation identifier or alias
             paragraf: Optional section number
+            max_tokens: Optional token limit for truncating long responses
 
         Returns:
             Formatted regulation text with metadata
         """
         resolved_id = self._resolve_id(forskrift_id)
+        regulation_name = self._get_law_name(resolved_id)
         url = self._format_lovdata_url(resolved_id, paragraf)
-        section_header = f"§ {paragraf}" if paragraf else "(hele forskriften)"
 
-        logger.info(f"Looking up regulation: {resolved_id}, section: {paragraf}")
+        logger.info(f"Looking up regulation: {resolved_id}, section: {paragraf}, max_tokens: {max_tokens}")
 
-        return f"""## Forskrift: {forskrift_id}
+        # Try to fetch from cache (same as laws - both stored in lovdata_sections)
+        content = self._fetch_law_content(resolved_id, paragraf, max_tokens=max_tokens)
 
-**Paragraf:** {section_header}
-**ID:** {resolved_id}
-
----
-
-Se fullstendig tekst på Lovdata:
-
-**Lenke:** [{url}]({url})
-
----
-
-**Lisens:** NLOD 2.0 - Norsk lisens for offentlige data
-"""
+        if content:
+            return self._format_response(
+                law_name=regulation_name,
+                law_id=resolved_id,
+                paragraf=paragraf,
+                content=content,
+                url=url
+            )
+        else:
+            # Fallback: Return link with metadata
+            return self._format_fallback_response(
+                law_name=regulation_name,
+                law_id=resolved_id,
+                paragraf=paragraf,
+                url=url
+            )
 
     def search(self, query: str, limit: int = 10) -> str:
         """
