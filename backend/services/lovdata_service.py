@@ -550,7 +550,7 @@ Lovteksten er ikke tilgjengelig i lokal cache.
                 url=url
             )
 
-    def search(self, query: str, limit: int = 10) -> str:
+    def search(self, query: str, limit: int = 20) -> str:
         """
         Search Norwegian laws and regulations.
 

@@ -526,8 +526,8 @@ class MCPServer:
                         },
                         "limit": {
                             "type": "integer",
-                            "description": "Maks antall resultater (standard: 10)",
-                            "default": 10
+                            "description": "Maks antall resultater (standard: 20)",
+                            "default": 20
                         }
                     },
                     "required": ["query"]
@@ -708,7 +708,7 @@ class MCPServer:
                 )
             elif tool_name == "sok":
                 query = arguments.get("query", "")
-                limit = arguments.get("limit", 10)
+                limit = arguments.get("limit", 20)
                 content = self.lovdata.search(query, limit)
 
                 # Parse results for MCP Apps UI
