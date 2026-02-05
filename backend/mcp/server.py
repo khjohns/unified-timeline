@@ -173,7 +173,7 @@ class MCPServer:
                 }
             },
             {
-                "name": "søk",
+                "name": "sok",
                 "title": "Søk i Lovdata",
                 "description": (
                     "Fulltekstsøk i norske lover og forskrifter. "
@@ -274,7 +274,7 @@ class MCPServer:
                 }
             },
             {
-                "name": "sjekk_størrelse",
+                "name": "sjekk_storrelse",
                 "title": "Sjekk paragrafstørrelse",
                 "description": (
                     "Sjekk størrelsen på en paragraf før henting. "
@@ -404,7 +404,7 @@ class MCPServer:
                     arguments.get("paragraf"),
                     max_tokens=arguments.get("max_tokens")
                 )
-            elif tool_name == "søk":
+            elif tool_name == "sok":
                 query = arguments.get("query", "")
                 limit = arguments.get("limit", 20)
                 content = self.lovdata.search(query, limit)
@@ -424,7 +424,7 @@ class MCPServer:
             elif tool_name == "status":
                 status = self.lovdata.get_sync_status()
                 content = self._format_status(status)
-            elif tool_name == "sjekk_størrelse":
+            elif tool_name == "sjekk_storrelse":
                 size_info = self.lovdata.get_section_size(
                     arguments.get("lov_id", ""),
                     arguments.get("paragraf", "")
