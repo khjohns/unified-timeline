@@ -2,7 +2,7 @@
 
 ## Prosjektoversikt
 
-Dette er en digital samhandlingsplattform for håndtering av endringsordrer (KOE - Krav om Endring) i byggeprosjekter etter NS 8407:2011 totalentreprisekontrakten. Utviklet for Oslobygg KF.
+Dette er en digital samhandlingsplattform for håndtering av endringsordrer (KOE - Krav om Endring) i byggeprosjekter etter NS 8407:2011 totalentreprisekontrakten.
 
 ## Tech Stack
 

@@ -2,7 +2,7 @@
 
 **Digital samhandlingsplattform for strukturerte endringsmeldinger i byggeprosjekter**
 
-Et system for håndtering av endringsordrer (KOE) etter NS 8407:2011, integrert med prosjekthotellet Catenda. Utviklet av Oslobygg KF for å erstatte manuelle PDF/Word-baserte prosesser med strukturerte, sporbare data.
+Et system for håndtering av endringsordrer (KOE) etter NS 8407:2011, integrert med prosjekthotellet Catenda. Erstatter manuelle PDF/Word-baserte prosesser med strukturerte, sporbare data.
 
 **Sist oppdatert:** 2026-01-14
 
