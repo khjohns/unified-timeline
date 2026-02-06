@@ -203,7 +203,7 @@ function RegistrationFlow({
         <ul className="space-y-2 text-sm text-pkt-text-body-subtle mb-4">
           <li className="flex items-start gap-2">
             <CheckCircledIcon className="w-4 h-4 text-pkt-brand-dark-green-1000 flex-shrink-0 mt-0.5" />
-            <span>100 gratis oppslag per måned</span>
+            <span>Ubegrenset tilgang, helt gratis</span>
           </li>
           <li className="flex items-start gap-2">
             <CheckCircledIcon className="w-4 h-4 text-pkt-brand-dark-green-1000 flex-shrink-0 mt-0.5" />
@@ -407,14 +407,24 @@ function InfoCard() {
 
       {/* Pricing */}
       <div className="mb-6">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 rounded-lg border border-pkt-border-subtle">
-            <div className="text-sm font-medium text-pkt-text-body-dark">Gratis</div>
-            <div className="text-xs text-pkt-text-body-subtle mt-1">100 oppslag/mnd</div>
+        <div className="space-y-2">
+          <div className="p-3 rounded-lg border border-pkt-border-subtle flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-pkt-text-body-dark">Gratis</div>
+              <div className="text-xs text-pkt-text-body-subtle mt-0.5">200 oppslag/mnd uten registrering</div>
+            </div>
           </div>
-          <div className="p-3 rounded-lg border-2 border-pkt-brand-warm-blue-1000 bg-pkt-surface-subtle-pale-blue">
-            <div className="text-sm font-medium text-pkt-text-body-dark">Pro · 49 kr/mnd</div>
-            <div className="text-xs text-pkt-text-body-subtle mt-1">Ubegrenset</div>
+          <div className="p-3 rounded-lg border-2 border-pkt-brand-warm-blue-1000 bg-pkt-surface-subtle-pale-blue flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-pkt-text-body-dark">Ubegrenset</div>
+              <div className="text-xs text-pkt-text-body-subtle mt-0.5">Gratis med e-postregistrering</div>
+            </div>
+          </div>
+          <div className="p-3 rounded-lg border border-pkt-border-subtle flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-pkt-text-body-dark">Self-host</div>
+              <div className="text-xs text-pkt-text-body-subtle mt-0.5">Open source · MIT-lisens</div>
+            </div>
           </div>
         </div>
       </div>
