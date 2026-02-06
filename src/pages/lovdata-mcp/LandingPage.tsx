@@ -380,13 +380,13 @@ function InfoCard() {
         </div>
         <div>
           <h1 className="text-xl font-bold text-pkt-text-body-dark">Paragraf</h1>
-          <p className="text-sm text-pkt-text-body-subtle">Norsk lov for AI</p>
+          <p className="text-sm text-pkt-text-body-subtle">Norsk lov for KI</p>
         </div>
       </div>
 
       {/* Description */}
       <p className="text-pkt-text-body-default leading-relaxed mb-6">
-        Gir AI-assistenter tilgang til norske lover og forskrifter fra Lovdata.
+        Koble KI-assistenten din til 92 000 paragrafer fra norsk rett. Oppslag, søk og presis sitering via MCP.
       </p>
 
       {/* Stats */}
@@ -502,10 +502,10 @@ export function LandingPage() {
           {/* Header */}
           <div className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-3">
-              Faktisk lovtekst, ikke gjetning
+              Riktig paragraf for kunstig intelligens
             </h2>
             <p className="text-white/60 leading-relaxed">
-              AI hallusinerer ofte juss. Med Paragraf kan de sitere korrekt.
+              KI-verktøy gjetter lovtekst. Paragraf gir dem tilgang til oppdaterte lover og forskrifter fra Lovdata, slik at svarene kan etterprøves.
             </p>
           </div>
 
@@ -518,7 +518,7 @@ export function LandingPage() {
           <div className="mt-8">
             <p className="text-xs text-white/40 mb-3">Fungerer med</p>
             <div className="flex flex-wrap gap-2">
-              {['Claude', 'Cursor', 'VS Code', 'Windsurf'].map((client) => (
+              {['Claude', 'ChatGPT', 'Gemini', 'Copilot', 'Cursor'].map((client) => (
                 <span
                   key={client}
                   className="px-3 py-1 text-xs text-white/70 bg-white/5 rounded-full border border-white/10"
