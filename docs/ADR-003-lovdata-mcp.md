@@ -2,7 +2,7 @@
 
 **Status:** Akseptert
 **Dato:** 2026-02-03
-**Oppdatert:** 2026-02-06 (hierarkisk struktur, vektorsøk med filter)
+**Oppdatert:** 2026-02-06 (hierarkisk struktur, vektorsøk med filter, OR-fallback)
 **Beslutningstagere:** Utviklingsteam
 **Kontekst:** Implementasjon av MCP-integrasjon for norsk lovdata
 
@@ -225,6 +225,35 @@ $$;
 - `miljø OR tildelingskriterier` → Fant anskaffelsesforskriften § 8-11 ✅
 - `"vesentlig mislighold"` → Kun eksakte treff ✅
 - `mangel -bil` → Ekskluderte bilrelaterte treff ✅
+
+### Automatisk OR-fallback (2026-02-06)
+
+**Problem:** Websearch bruker AND-logikk som default - alle ord må finnes i samme paragraf. Søk som `oppsigelse nedbemanning` returnerte 0 treff fordi få paragrafer inneholder begge ordene.
+
+**Løsning:** SQL-funksjonen prøver først AND-søk, og faller automatisk tilbake til OR hvis:
+1. AND-søk returnerer 0 resultater
+2. Query har ingen spesialoperatorer (OR, "frase", -ekskludering)
+
+```sql
+-- Pseudo-logikk
+IF and_count = 0 AND NOT has_special_operators THEN
+    or_query := regexp_replace(query_text, '\s+', ' OR ', 'g');
+    -- Kjør OR-søk
+END IF;
+```
+
+**Indikatorer:**
+- `search_mode: 'and'` - Normal søk, resultater funnet med AND
+- `search_mode: 'or_fallback'` - AND ga 0 treff, brukte OR-fallback
+
+**Brukermelding:** Når OR-fallback brukes, vises:
+> **Merk:** Søk med alle ordene ga 0 treff. Viser resultater der minst ett av ordene finnes.
+> For mer presist søk, bruk `"eksakt frase"` eller `ord1 OR ord2` syntaks.
+
+**Viktig:** Spesialoperatorer konverteres IKKE til OR:
+- `"vesentlig mislighold"` → Forblir fraselasting
+- `miljø OR klima` → Beholder eksplisitt OR
+- `mangel -bil` → Beholder ekskludering
 
 ### Ytelsesoptimalisering
 
