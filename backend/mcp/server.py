@@ -57,24 +57,30 @@ Tilgang til norske lover og forskrifter fra Lovdata Public API (92 000+ paragraf
 
 ## Søketips for FTS (`sok`)
 
-FTS bruker AND-logikk: alle ord MÅ finnes i samme paragraf.
+FTS prøver AND-logikk først. Hvis 0 treff, faller den automatisk tilbake til OR.
 
-| Søk | Resultat | Hvorfor |
-|-----|----------|---------|
-| `klima` | ✅ | Enkeltord fungerer |
-| `vesentlig mislighold` | ✅ | Begge ord i teksten |
-| `anskaffelsesforskriften miljø` | ❌ | "anskaffelsesforskriften" er tittel, ikke innhold |
-| `miljøkriterier` | ❌ | Prøv `miljø` eller `klima` i stedet |
+| Søk | Resultat | Modus |
+|-----|----------|-------|
+| `klima` | ✅ | AND |
+| `vesentlig mislighold` | ✅ | AND (begge ord finnes) |
+| `oppsigelse nedbemanning` | ✅ | OR-fallback (AND ga 0) |
+| `"eksakt frase"` | ✅ | AND (quotes respekteres) |
+
+**Automatisk OR-fallback:**
+- Søk med flere ord prøver AND først
+- Hvis 0 treff → konverteres automatisk til OR
+- Responsen viser om OR-fallback ble brukt
+- Spesielle operatorer (OR, quotes, -) respekteres og utløser ikke fallback
 
 **Søkesyntaks:**
-- `miljø OR klima` → minst ett ord må matche
+- `miljø OR klima` → eksplisitt OR (ingen fallback)
 - `"vesentlig mislighold"` → eksakt frase
 - `mangel -bil` → mangel, men ikke bil
 
 **Tommelfingerregler:**
 - Bruk 1-2 **substantiver fra lovteksten** (ikke dokumentnavn)
-- Ved usikkerhet → bruk `OR` mellom alternativer
-- Lange spørsmål → `erstatning OR mangel eiendom`, ikke hele setninger
+- For presise treff → bruk `"eksakt frase"` med quotes
+- For brede søk → la automatisk OR-fallback gjøre jobben
 
 ## Anbefalt arbeidsflyt
 

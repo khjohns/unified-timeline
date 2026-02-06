@@ -101,6 +101,7 @@ class SearchResult:
     snippet: str
     rank: float
     section_id: str | None = None
+    search_mode: str | None = None  # 'and' or 'or_fallback'
 
     @property
     def estimated_tokens(self) -> int:
@@ -924,7 +925,8 @@ class LovdataSupabaseService:
                 doc_type=row.get('doc_type', 'lov'),
                 snippet=snippet,
                 rank=row.get('rank', 0.0),
-                section_id=row.get('section_id')
+                section_id=row.get('section_id'),
+                search_mode=row.get('search_mode')
             ))
 
         return results

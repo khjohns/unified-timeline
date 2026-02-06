@@ -814,6 +814,7 @@ Fant {len(results)} treff (alias-søk):
     def _format_fts_results(self, query: str, results: list[dict]) -> str:
         """Format full-text search results."""
         result_lines = []
+        used_or_fallback = False
 
         for r in results:
             # Handle both dict and SearchResult dataclass
@@ -824,6 +825,7 @@ Fant {len(results)} treff (alias-søk):
                 snippet = r.snippet or ''
                 dok_id = r.dok_id
                 section_id = getattr(r, 'section_id', None)
+                search_mode = getattr(r, 'search_mode', None)
             else:
                 # Dict fallback
                 doc_type = "Lov" if r.get('doc_type') == 'lov' else "Forskrift"
@@ -831,6 +833,10 @@ Fant {len(results)} treff (alias-søk):
                 snippet = r.get('snippet', '')
                 dok_id = r['dok_id']
                 section_id = r.get('section_id')
+                search_mode = r.get('search_mode')
+
+            if search_mode == 'or_fallback':
+                used_or_fallback = True
 
             # Clean up snippet (remove HTML if present)
             snippet = snippet.replace('<mark>', '**').replace('</mark>', '**')
@@ -844,10 +850,19 @@ Fant {len(results)} treff (alias-søk):
 {snippet}
 """)
 
+        # Add note if OR fallback was used
+        fallback_note = ""
+        if used_or_fallback:
+            fallback_note = """
+> **Merk:** Søk med alle ordene ga 0 treff. Viser resultater der minst ett av ordene finnes.
+> For mer presist søk, bruk `"eksakt frase"` eller `ord1 OR ord2` syntaks.
+
+"""
+
         return f"""## Søkeresultater for "{query}"
 
 Fant {len(results)} treff (fulltekstsøk):
-
+{fallback_note}
 {chr(10).join(result_lines)}
 
 ---
