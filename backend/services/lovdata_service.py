@@ -182,14 +182,38 @@ class LovdataService:
         """
         Resolve alias to Lovdata ID.
 
+        Uses a three-tier resolution strategy:
+        1. Hardcoded aliases (fast, for common abbreviations like aml, pbl)
+        2. Database lookup via short_title (covers all 4400+ laws/regulations)
+        3. Return original input (may already be a valid ID)
+
         Args:
             alias: Law name, abbreviation, or ID
 
         Returns:
-            Lovdata ID (e.g., LOV-1992-07-03-93)
+            Lovdata ID (e.g., LOV-1992-07-03-93 or lov/1992-07-03-93)
         """
+        if not alias or not alias.strip():
+            return ""
+
         normalized = alias.lower().replace(" ", "-").replace("_", "-")
-        return self.LOV_ALIASES.get(normalized, alias.upper())
+
+        # 1. Check hardcoded aliases (fast path for common abbreviations)
+        if normalized in self.LOV_ALIASES:
+            return self.LOV_ALIASES[normalized]
+
+        # 2. Database fallback - search by short_title
+        backend = _get_backend_service()
+        if hasattr(backend, '_find_document'):
+            try:
+                doc = backend._find_document(alias)
+                if doc and doc.get('dok_id'):
+                    return doc['dok_id']
+            except Exception as e:
+                logger.debug(f"Database lookup failed for '{alias}': {e}")
+
+        # 3. Return original (may already be a valid ID like lov/1999-03-26-17)
+        return alias.upper() if alias.startswith(('lov', 'LOV', 'for', 'FOR')) else alias
 
     def _get_law_name(self, lov_id: str) -> str:
         """Get human-readable name for a law ID."""
@@ -240,6 +264,10 @@ class LovdataService:
         Returns:
             Formatted law text with metadata and source link
         """
+        # Input validation
+        if not lov_id or not lov_id.strip():
+            return "**Feil:** Lov-ID kan ikke være tom. Oppgi lovnavn eller ID."
+
         resolved_id = self._resolve_id(lov_id)
         law_name = self._get_law_name(resolved_id)
         url = self._format_lovdata_url(resolved_id, paragraf)
@@ -369,6 +397,13 @@ class LovdataService:
         Returns:
             Formatted text with all sections
         """
+        # Input validation
+        if not lov_id or not lov_id.strip():
+            return "**Feil:** Lov-ID kan ikke være tom."
+
+        if not section_ids:
+            return "**Feil:** Paragraf-listen kan ikke være tom. Oppgi minst én paragraf."
+
         resolved_id = self._resolve_id(lov_id)
         law_name = self._get_law_name(resolved_id)
         url = self._format_lovdata_url(resolved_id)
@@ -757,6 +792,11 @@ Lovteksten er ikke tilgjengelig i lokal cache.
         Returns:
             Formatted search results
         """
+        # Input validation
+        if not query or not query.strip():
+            return "**Feil:** Søkestreng kan ikke være tom. Oppgi ett eller flere søkeord."
+
+        query = query.strip()
         logger.info(f"Searching laws for: {query} (limit={limit})")
 
         # Try FTS search first if data is synced
