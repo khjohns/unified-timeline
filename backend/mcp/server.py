@@ -89,18 +89,33 @@ FTS prøver AND-logikk først. Hvis 0 treff, faller den automatisk tilbake til O
 3. **Trenger flere §§?** → `hent_flere()` er ~80% raskere
 4. **Store paragrafer?** → `sjekk_storrelse()` først, spør bruker ved >5000 tokens
 5. **Presis sitering?** → `lov("navn", "paragraf")`
+6. **ALLTID etter søk** → Tilby systematisk utforskning (se under)
 
-## Etter søk - tilby systematisk utforskning
+## VIKTIG: Tilby systematisk utforskning etter søk
 
-Søk gir relevante treff, men ikke nødvendigvis **alle** relevante paragrafer.
-Etter et søk, tilby bruker videre analyse:
+**ALLTID** etter et søk, gjør BEGGE deler:
 
-> "Jeg fant X relevante paragrafer. Vil du at jeg skal:
-> - Utforske strukturen i de mest relevante lovene/forskriftene?
-> - Sjekke om det finnes mer i samme rettsområde?"
+1. **Utforsk selv først:** Hent innholdsfortegnelse med `lov("navn")` for å se strukturen
+2. **Tilby bruker videre utforskning** på slutten av svaret:
 
-**Hvorfor:** Brukere uten juridisk bakgrunn vet ikke at søk er et utgangspunkt,
-ikke en komplett oversikt. Ved å tilby utforskning hjelper du dem finne alt relevant.
+```
+---
+**Vil du utforske videre?**
+- Se hele [kapittel X] om [tema]?
+- Søke i tilgrensende områder (f.eks. [forslag])?
+```
+
+**Hvorfor dette er kritisk:**
+- Søk gir relevante treff, men IKKE nødvendigvis alle relevante paragrafer
+- Brukere uten juridisk bakgrunn vet ikke at søk bare er et utgangspunkt
+- Relaterte paragrafer (samme kapittel, kryssreferanser) er ofte like viktige
+- Ved å tilby utforskning gir du brukeren kontroll over dybden
+
+**Eksempel:** Bruker spør om "oppsigelse i prøvetid"
+1. Du søker og finner § 15-6 (oppsigelsesvern i prøvetid)
+2. Du henter `lov("aml")` og ser at kapittel 15 handler om opphør
+3. Du gir svaret basert på § 15-6 og § 15-3 (frister)
+4. Du avslutter med: "Vil du se hele kapittel 15 om opphør av arbeidsforhold?"
 
 ## Viktig om lov-IDer
 
