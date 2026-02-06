@@ -2,7 +2,7 @@
 
 **Status:** Akseptert
 **Dato:** 2026-02-03
-**Oppdatert:** 2026-02-06 (hierarkisk struktur, vektorsøk med filter, OR-fallback)
+**Oppdatert:** 2026-02-06 (hierarkisk struktur, vektorsøk med filter, OR-fallback, alias-oppløsning, input-validering)
 **Beslutningstagere:** Utviklingsteam
 **Kontekst:** Implementasjon av MCP-integrasjon for norsk lovdata
 
@@ -417,6 +417,33 @@ lov('personopplysningsloven', 'Artikkel 35')
 # Batch: 100ms
 hent_flere('personopplysningsloven', ['Artikkel 5', 'Artikkel 6', 'Artikkel 35'])
 ```
+
+### Alias-oppløsning (2026-02-06)
+
+**Problem:** Manuell vedlikehold av alias-liste skalerer ikke til 4400+ lover/forskrifter.
+
+**Løsning:** Tre-nivå oppløsningsstrategi:
+
+| Nivå | Kilde | Eksempel |
+|------|-------|----------|
+| 1. Hardkodet | `LOV_ALIASES` dict | `aml` → `LOV-2005-06-17-62` |
+| 2. Database | `short_title` i lovdata_documents | `husleieloven` → `lov/1999-03-26-17` |
+| 3. Direkte | Returner input som-er | `lov/1999-03-26-17` |
+
+**Resultat:** Alle lover/forskrifter kan nå slås opp med naturlig navn:
+- `lov("husleieloven")` ✅
+- `lov("ferieloven")` ✅
+- `lov("romloven")` ✅
+
+### Input-validering (2026-02-06)
+
+Alle MCP-verktøy validerer input og gir tydelige feilmeldinger:
+
+| Scenario | Feilmelding |
+|----------|-------------|
+| `lov("")` | "Lov-ID kan ikke være tom. Oppgi lovnavn eller ID." |
+| `sok("")` | "Søkestreng kan ikke være tom. Oppgi ett eller flere søkeord." |
+| `hent_flere("aml", [])` | "Paragraf-listen kan ikke være tom. Oppgi minst én paragraf." |
 
 ### Innholdsfortegnelse
 
