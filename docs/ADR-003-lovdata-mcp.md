@@ -2,7 +2,7 @@
 
 **Status:** Akseptert
 **Dato:** 2026-02-03
-**Oppdatert:** 2026-02-06 (hierarkisk struktur, vektorsøk, OR-fallback, alias-oppløsning, input-validering, edge case testing, fuzzy minimum lengde)
+**Oppdatert:** 2026-02-06 (hierarkisk struktur, vektorsøk, OR-fallback, alias-oppløsning, input-validering, edge case testing, fuzzy minimum lengde, semantisk_sok, robusthet)
 **Beslutningstagere:** Utviklingsteam
 **Kontekst:** Implementasjon av MCP-integrasjon for norsk lovdata
 
@@ -159,8 +159,8 @@ with tempfile.NamedTemporaryFile() as tmp:
 Claude trenger å finne relevante paragrafer basert på søkeord eller tema. Søk må være raskt nok for interaktiv bruk (<3 sekunder).
 
 Datasettet inneholder:
-- **4 436 dokumenter** (lover og forskrifter)
-- **92 027 seksjoner** (paragrafer)
+- **4 439 dokumenter** (lover og forskrifter)
+- **92 130 seksjoner** (paragrafer), hvorav 90 253 har embeddings
 - **13 909 strukturer** (deler, kapitler, avsnitt, vedlegg)
 - **160 MB** tabell + **42 MB** TOAST + **37 MB** GIN-indeks
 
@@ -183,30 +183,52 @@ Datasettet inneholder:
 - **Tilstrekkelig:** For MCP-bruk er det viktigste å finne riktig paragraf (dok_id + section_id). Full tekst hentes i separat kall.
 - **Enkel:** Ingen ekstra infrastruktur utover eksisterende Supabase.
 
-### SQL-funksjon (optimalisert)
+### SQL-funksjon (forenklet oversikt)
+
+Funksjonen `search_lovdata_fast` bruker CTE-pattern for ytelse og inkluderer OR-fallback:
 
 ```sql
 CREATE OR REPLACE FUNCTION search_lovdata_fast(
     query_text TEXT,
     max_results INTEGER DEFAULT 20
-)
-LANGUAGE sql STABLE
+) RETURNS TABLE (
+    dok_id TEXT, section_id TEXT, title TEXT, short_title TEXT,
+    doc_type TEXT, snippet TEXT, rank REAL, search_mode TEXT
+) LANGUAGE plpgsql STABLE
+SET search_path = public
 AS $$
-    WITH ranked AS (
+DECLARE
+    has_special_operators BOOLEAN;
+    and_count INT;
+BEGIN
+    -- Sjekk for spesialoperatorer (OR, "frase", -ekskludering)
+    has_special_operators := (query_text ~* '\mOR\M' OR query_text ~ '"' OR query_text ~ '-\w');
+
+    -- 1. Prøv AND-søk først
+    RETURN QUERY WITH ranked AS (
         SELECT s.dok_id, s.section_id,
-            ts_rank(s.search_vector, websearch_to_tsquery('norwegian', query_text)) as rank
+            ts_rank(s.search_vector, websearch_to_tsquery('norwegian', query_text)) as rk
         FROM lovdata_sections s
         WHERE s.search_vector @@ websearch_to_tsquery('norwegian', query_text)
-        ORDER BY rank DESC
-        LIMIT max_results
+        ORDER BY rk DESC LIMIT max_results
     )
     SELECT r.dok_id, r.section_id, d.title, d.short_title, d.doc_type,
-           LEFT(s.content, 500) as snippet, r.rank
+           LEFT(s.content, 500), r.rk, 'and'::TEXT
     FROM ranked r
     JOIN lovdata_documents d ON d.dok_id = r.dok_id
     JOIN lovdata_sections s ON s.dok_id = r.dok_id AND s.section_id = r.section_id;
+
+    GET DIAGNOSTICS and_count = ROW_COUNT;
+
+    -- 2. Hvis 0 treff OG ingen spesialoperatorer → OR-fallback
+    IF and_count = 0 AND NOT has_special_operators THEN
+        RETURN QUERY ... -- Samme query med ' OR ' mellom ord, search_mode='or_fallback'
+    END IF;
+END;
 $$;
 ```
+
+Se `supabase/migrations/20260206_fts_or_fallback.sql` for full implementasjon.
 
 ### Websearch-syntaks (2026-02-05)
 
@@ -398,6 +420,7 @@ Claude trenger verktøy for å:
 | `lov(lov_id, paragraf, max_tokens)` | `LovdataService.lookup_law()` | ✅ |
 | `forskrift(forskrift_id, paragraf, max_tokens)` | `LovdataService.lookup_regulation()` | ✅ |
 | `sok(query, limit=20)` | `LovdataService.search()` | ✅ |
+| `semantisk_sok(query, limit, doc_type, ministry)` | `LovdataVectorSearch.search()` | ✅ |
 | `liste()` | `LovdataService.list_available_laws()` | ✅ |
 | `status()` | `LovdataService.get_sync_status()` | ✅ |
 | `sync(force)` | `LovdataService.sync()` | ✅ |
@@ -525,16 +548,29 @@ Instruksjonene dekker:
 
 ### Arbeidsflyt for Claude
 
+**Grunnleggende arbeidsflyt:**
+
 ```
-1. sok("standstill karensperiode", limit=10)
-   → Får liste med relevante paragrafer
+1. Velg søkeverktøy:
+   - sok("juridisk term") - FTS for eksakte termer
+   - semantisk_sok("naturlig språk") - AI for synonymer/naturlig språk
 
-2. Vurder hvilke som er relevante basert på snippet
+2. Vurder hvilke treff som er relevante basert på snippet
 
-3. lov("forskrift/2016-08-12-974", "25-2")
+3. lov("anskaffelsesforskriften", "25-2")
    → Hent full tekst for relevant paragraf
 
 4. Presenter svar til bruker med presis lovhenvisning
+```
+
+**Utvidet arbeidsflyt med systematisk utforskning:**
+
+```
+1. sok(...) eller semantisk_sok(...) → Finn relevante treff
+2. lov("lovnavn") UTEN paragraf → Få innholdsfortegnelse
+3. Identifiser relevante kapitler/deler fra strukturen
+4. hent_flere("lovnavn", ["§ 1", "§ 2", ...]) → Batch-hent
+5. Tilby bruker videre utforskning av tilgrensende områder
 ```
 
 ### Konsekvenser
@@ -545,6 +581,24 @@ Instruksjonene dekker:
 | Positiv | Token-effektivt (henter kun det som trengs) |
 | Positiv | Presise lovhenvisninger i svar |
 | Positiv | Instruksjoner bakt inn i MCP - fungerer fra alle klienter |
+
+### Robusthet og feilhåndtering
+
+**Retry-strategi:** Alle database-operasjoner bruker `@with_retry()` decorator med:
+- Exponential backoff (default: 0.5s base, maks 30s)
+- Jitter (±25%) for å unngå thundering herd
+- Kun transiente feil retries (nettverksfeil, timeout)
+- Permanente feil (404, validering) feiler umiddelbart
+
+**Graceful degradation:**
+- Vektorsøk faller tilbake til FTS ved Gemini API-feil
+- Database-feil returnerer tydelige feilmeldinger, ikke exceptions
+- Missing paragraphs rapporteres i batch-respons
+
+**Input-sanitering:**
+- Parameteriserte queries (ingen string interpolation)
+- WAF blokkerer SQL injection-forsøk
+- Tom input returnerer tydelige feilmeldinger
 
 ### Testing og edge cases (2026-02-06)
 
@@ -648,16 +702,24 @@ lovdata_sync_meta (
 CREATE INDEX idx_lovdata_sections_search ON lovdata_sections USING GIN (search_vector);
 CREATE INDEX idx_lovdata_documents_search ON lovdata_documents USING GIN (search_vector);
 
+-- GIN-indeks for fuzzy matching (pg_trgm)
+CREATE INDEX idx_lovdata_documents_short_title_trgm ON lovdata_documents
+    USING GIN (short_title gin_trgm_ops);
+
 -- B-tree indekser for oppslag
 CREATE INDEX idx_lovdata_documents_dok_id ON lovdata_documents(dok_id);
+CREATE INDEX idx_lovdata_documents_doc_type ON lovdata_documents(doc_type);
 CREATE INDEX idx_lovdata_documents_short_title ON lovdata_documents(short_title);
 CREATE INDEX idx_lovdata_sections_dok_section ON lovdata_sections(dok_id, section_id);
+CREATE INDEX idx_lovdata_sections_structure ON lovdata_sections(structure_id);
 CREATE INDEX idx_lovdata_structure_dok_id ON lovdata_structure(dok_id);
+CREATE INDEX idx_lovdata_structure_parent ON lovdata_structure(parent_id);
+CREATE INDEX idx_lovdata_structure_type ON lovdata_structure(dok_id, structure_type);
 
 -- IVFFlat-indeks for vektorsøk (pgvector)
 -- Valgt over HNSW pga. timeout ved indeksbygging på 90k vektorer
 CREATE INDEX lovdata_sections_embedding_ivfflat_idx ON lovdata_sections
-USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+    USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 ```
 
 ### Strukturdata (målt 2026-02-06)
