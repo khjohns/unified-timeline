@@ -60,6 +60,9 @@ backend/test_output_*.pdf
 
 # Supabase
 supabase/.temp/
+supabase/config.toml
+supabase/.gitignore
+backend/supabase/
 
 # Third-party API specs
 tredjepart-api/

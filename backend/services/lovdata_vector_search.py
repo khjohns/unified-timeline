@@ -152,7 +152,7 @@ class LovdataVectorSearch:
         query: str,
         limit: int = 10,
         fts_weight: float = DEFAULT_FTS_WEIGHT,
-        ef_search: int = 100,
+        ivfflat_probes: int = 10,
         doc_type: str | None = None,
         ministry: str | None = None
     ) -> list[VectorSearchResult]:
@@ -163,7 +163,7 @@ class LovdataVectorSearch:
             query: Search query (natural language)
             limit: Max number of results
             fts_weight: Weight for FTS vs vector (0-1, default 0.5)
-            ef_search: HNSW recall (higher = better recall, slower, default 100)
+            ivfflat_probes: IVFFlat probe count (higher = better recall, slower, default 10)
             doc_type: Filter by document type ("lov" or "forskrift")
             ministry: Filter by ministry (partial match, e.g., "Klima" matches "Klima- og miljødepartementet")
 
@@ -183,7 +183,7 @@ class LovdataVectorSearch:
             'query_embedding': query_embedding,
             'match_count': limit,
             'fts_weight': fts_weight,
-            'ef_search': ef_search,
+            'ivfflat_probes': ivfflat_probes,
             'doc_type_filter': doc_type,
             'ministry_filter': ministry
         }).execute()
@@ -211,7 +211,7 @@ class LovdataVectorSearch:
         self,
         query: str,
         limit: int = 10,
-        ef_search: int = 100
+        ivfflat_probes: int = 10
     ) -> list[VectorSearchResult]:
         """Pure vector search (for testing/comparison)."""
         try:
@@ -223,7 +223,7 @@ class LovdataVectorSearch:
         result = self.supabase.rpc('search_lovdata_vector', {
             'query_embedding': query_embedding,
             'match_count': limit,
-            'ef_search': ef_search
+            'ivfflat_probes': ivfflat_probes
         }).execute()
 
         if not result.data:

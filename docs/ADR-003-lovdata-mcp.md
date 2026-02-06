@@ -286,8 +286,27 @@ Vektor: "skjulte feil i boligen" → ✅ finner "mangel"-paragrafer
 | Komponent | Teknologi |
 |-----------|-----------|
 | Embedding-modell | Gemini gemini-embedding-001 (1536 dim) |
-| Vektor-indeks | pgvector HNSW |
-| Hybrid-scoring | `(1-fts_weight) * semantic + fts_weight * fts_rank` |
+| Vektor-indeks | pgvector **IVFFlat** (lists=100) |
+| Hybrid-scoring | `(1-fts_weight) * similarity + fts_weight * fts_rank` |
+
+**Merk:** IVFFlat valgt over HNSW fordi HNSW-indeksbygging timet ut på 90k vektorer. IVFFlat er raskere å bygge og gir god nok recall med `probes=10`.
+
+### Testresultater (2026-02-06)
+
+| Test | FTS | Vektor | Hybrid |
+|------|-----|--------|--------|
+| Eksakt frase ("vesentlig mislighold") | ✅ Beste | ⚠️ Relaterte i samme lov | ✅ |
+| Synonym (avskjed ↔ oppsigelse) | ❌ Separate søk | ✅ Kobler (0.86+) | ✅ |
+| Naturlig språk | ❌ Ofte 0 treff | ✅ Beste | ✅ |
+| Filter (doc_type, ministry) | ✅ | ✅ | ✅ |
+
+**Eksempel hybrid-resultat:** "forbruker OR heving"
+
+| Paragraf | Similarity | FTS Rank | Combined |
+|----------|------------|----------|----------|
+| Forbrukerkjøpsloven §23 Heving | 1.000 | 0.334 | **0.667** |
+| Forbrukerkjøpsloven §49 Virkninger av heving | 0.908 | 0.348 | **0.628** |
+| Kjøpsloven §39 Heving | 0.910 | 0.334 | **0.622** |
 
 ### Filter-støtte (2026-02-06)
 
@@ -517,9 +536,10 @@ CREATE INDEX idx_lovdata_documents_short_title ON lovdata_documents(short_title)
 CREATE INDEX idx_lovdata_sections_dok_section ON lovdata_sections(dok_id, section_id);
 CREATE INDEX idx_lovdata_structure_dok_id ON lovdata_structure(dok_id);
 
--- HNSW-indeks for vektorsøk (pgvector)
-CREATE INDEX idx_lovdata_sections_embedding ON lovdata_sections
-USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
+-- IVFFlat-indeks for vektorsøk (pgvector)
+-- Valgt over HNSW pga. timeout ved indeksbygging på 90k vektorer
+CREATE INDEX lovdata_sections_embedding_ivfflat_idx ON lovdata_sections
+USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 ```
 
 ### Strukturdata (målt 2026-02-06)
