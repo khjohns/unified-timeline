@@ -186,6 +186,7 @@ class LovdataService:
         1. Hardcoded aliases (fast, for common abbreviations like aml, pbl)
         2. Database lookup via short_title (covers all 4400+ laws/regulations)
         3. Fuzzy matching via pg_trgm (handles misspellings like husleielova)
+           - Only for inputs >= 8 chars to avoid false positives with short words
         4. Return original input (may already be a valid ID)
 
         Args:
@@ -214,7 +215,10 @@ class LovdataService:
                 logger.debug(f"Database lookup failed for '{alias}': {e}")
 
         # 3. Fuzzy matching - handles misspellings (requires pg_trgm)
-        if hasattr(backend, 'find_similar_law'):
+        # Only use fuzzy matching for inputs >= 8 chars to avoid false positives
+        # with short generic words like "loven" matching "SE-loven"
+        MIN_FUZZY_LENGTH = 8
+        if len(alias) >= MIN_FUZZY_LENGTH and hasattr(backend, 'find_similar_law'):
             try:
                 similar = backend.find_similar_law(alias, threshold=0.4)
                 if similar:

@@ -2,7 +2,7 @@
 
 **Status:** Akseptert
 **Dato:** 2026-02-03
-**Oppdatert:** 2026-02-06 (hierarkisk struktur, vektorsøk, OR-fallback, alias-oppløsning, input-validering, edge case testing)
+**Oppdatert:** 2026-02-06 (hierarkisk struktur, vektorsøk, OR-fallback, alias-oppløsning, input-validering, edge case testing, fuzzy minimum lengde)
 **Beslutningstagere:** Utviklingsteam
 **Kontekst:** Implementasjon av MCP-integrasjon for norsk lovdata
 
@@ -458,6 +458,14 @@ SELECT * FROM find_similar_law('husleielova', 0.4, 5);
 
 **Threshold:** 0.4 (40% likhet) - balanserer mellom å fange feil og unngå feil-positiver.
 
+**Minimum lengde:** 8 tegn - korte generiske ord som "loven" (5 tegn) hoppes over for å unngå feil-positiver:
+
+| Input | Lengde | Fuzzy? | Grunn |
+|-------|--------|--------|-------|
+| `loven` | 5 | ❌ Nei | For kort, matcher "SE-loven" feilaktig |
+| `forskrift` | 9 | ✅ Ja | Lang nok |
+| `husleielova` | 11 | ✅ Ja | Reell stavefeil |
+
 ### Input-validering (2026-02-06)
 
 Alle MCP-verktøy validerer input og gir tydelige feilmeldinger:
@@ -556,7 +564,7 @@ Instruksjonene dekker:
 | Case sensitivity | ✅ Fungerer | `HUSLEIELOVEN` = `husleieloven` |
 | Norske tegn (æøå) | ✅ Fungerer | Både input og output |
 | Partial match | ⚠️ Upålitelig | Finner ofte feil dokument |
-| Stavefeil (fuzzy) | ✅ Fungerer | `husleielova` → husleieloven |
+| Stavefeil (fuzzy) | ✅ Fungerer | `husleielova` → husleieloven (min 8 tegn) |
 | Batch ugyldig paragraf | ✅ Rapporteres | Viser "Ikke funnet: X, Y" |
 | Spesialtegn (§, «») | ✅ Fungerer | |
 | Em-dash (–) | ✅ Normaliseres | Konverteres til bindestrek |
