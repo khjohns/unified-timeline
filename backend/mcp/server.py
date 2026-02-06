@@ -743,7 +743,7 @@ Kjør `sync()` for å laste ned lovdata fra Lovdata API.
         return {
             "prompts": [
                 {
-                    "name": "lovdata-guide",
+                    "name": "paragraf-guide",
                     "description": (
                         "Komplett brukerveiledning for Paragraf. "
                         "Inkluderer tilgjengelige verktøy, aliaser, begrensninger og tips."
@@ -765,7 +765,7 @@ Kjør `sync()` for å laste ned lovdata fra Lovdata API.
         """
         prompt_name = params.get("name", "")
 
-        if prompt_name == "lovdata-guide":
+        if prompt_name == "paragraf-guide":
             return {
                 "description": "Brukerveiledning for Paragraf",
                 "messages": [
