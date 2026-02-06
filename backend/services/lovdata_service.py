@@ -182,10 +182,11 @@ class LovdataService:
         """
         Resolve alias to Lovdata ID.
 
-        Uses a three-tier resolution strategy:
+        Uses a four-tier resolution strategy:
         1. Hardcoded aliases (fast, for common abbreviations like aml, pbl)
         2. Database lookup via short_title (covers all 4400+ laws/regulations)
-        3. Return original input (may already be a valid ID)
+        3. Fuzzy matching via pg_trgm (handles misspellings like husleielova)
+        4. Return original input (may already be a valid ID)
 
         Args:
             alias: Law name, abbreviation, or ID
@@ -202,7 +203,7 @@ class LovdataService:
         if normalized in self.LOV_ALIASES:
             return self.LOV_ALIASES[normalized]
 
-        # 2. Database fallback - search by short_title
+        # 2. Database fallback - search by short_title (exact/ILIKE)
         backend = _get_backend_service()
         if hasattr(backend, '_find_document'):
             try:
@@ -212,7 +213,17 @@ class LovdataService:
             except Exception as e:
                 logger.debug(f"Database lookup failed for '{alias}': {e}")
 
-        # 3. Return original (may already be a valid ID like lov/1999-03-26-17)
+        # 3. Fuzzy matching - handles misspellings (requires pg_trgm)
+        if hasattr(backend, 'find_similar_law'):
+            try:
+                similar = backend.find_similar_law(alias, threshold=0.4)
+                if similar:
+                    logger.info(f"Fuzzy match: '{alias}' -> '{similar['short_title']}' (similarity: {similar['similarity']:.2f})")
+                    return similar['dok_id']
+            except Exception as e:
+                logger.debug(f"Fuzzy matching failed for '{alias}': {e}")
+
+        # 4. Return original (may already be a valid ID like lov/1999-03-26-17)
         return alias.upper() if alias.startswith(('lov', 'LOV', 'for', 'FOR')) else alias
 
     def _get_law_name(self, lov_id: str) -> str:

@@ -1055,6 +1055,40 @@ class LovdataSupabaseService:
 
         return None
 
+    @with_retry()
+    def find_similar_law(self, search_term: str, threshold: float = 0.4) -> dict | None:
+        """
+        Find similar law names using fuzzy matching (pg_trgm).
+
+        Handles misspellings like:
+        - husleielova -> husleieloven
+        - avhendingsloven -> avhendingslova
+        - arbeidsmiljølov -> arbeidsmiljøloven
+
+        Args:
+            search_term: The misspelled or approximate law name
+            threshold: Minimum similarity score (0.0-1.0), default 0.4
+
+        Returns:
+            Best matching document or None
+        """
+        try:
+            result = self.client.rpc(
+                'find_similar_law',
+                {
+                    'search_term': search_term,
+                    'similarity_threshold': threshold,
+                    'max_results': 1
+                }
+            ).execute()
+
+            if result.data and len(result.data) > 0:
+                return result.data[0]
+        except Exception as e:
+            logger.warning(f"Fuzzy matching failed: {e}")
+
+        return None
+
 
 # =============================================================================
 # Token Estimation Utilities
