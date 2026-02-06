@@ -21,13 +21,13 @@ PROTOCOL_VERSION = "2025-06-18"
 
 # Server info
 SERVER_INFO = {
-    "name": "lovdata-mcp",
+    "name": "paragraf",
     "version": "0.1.0",
 }
 
 # Server instructions - shown to connecting clients
 SERVER_INSTRUCTIONS = """
-# Lovdata MCP - Norsk Lovoppslag
+# Paragraf - Norsk Lovoppslag
 
 Tilgang til norske lover og forskrifter fra Lovdata Public API (92 000+ paragrafer).
 
@@ -745,7 +745,7 @@ Kjør `sync()` for å laste ned lovdata fra Lovdata API.
                 {
                     "name": "lovdata-guide",
                     "description": (
-                        "Komplett brukerveiledning for Lovdata MCP. "
+                        "Komplett brukerveiledning for Paragraf. "
                         "Inkluderer tilgjengelige verktøy, aliaser, begrensninger og tips."
                     ),
                     "arguments": []
@@ -767,7 +767,7 @@ Kjør `sync()` for å laste ned lovdata fra Lovdata API.
 
         if prompt_name == "lovdata-guide":
             return {
-                "description": "Brukerveiledning for Lovdata MCP",
+                "description": "Brukerveiledning for Paragraf",
                 "messages": [
                     {
                         "role": "user",

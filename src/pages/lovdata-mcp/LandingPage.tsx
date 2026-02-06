@@ -1,5 +1,5 @@
 /**
- * Lovdata MCP Landing Page
+ * Paragraf Landing Page
  *
  * Split layout with animated law lookup simulation on the left
  * and info card on the right. Inspired by AuthLanding.
@@ -88,7 +88,7 @@ function LawLookupSimulation() {
           <div className="w-3 h-3 rounded-full bg-white/20" />
           <div className="w-3 h-3 rounded-full bg-white/20" />
         </div>
-        <span className="text-xs text-white/40 ml-2">lovdata-mcp</span>
+        <span className="text-xs text-white/40 ml-2">paragraf</span>
       </div>
 
       {/* Content area - fixed height with scroll */}
@@ -379,8 +379,8 @@ function InfoCard() {
           <span className="text-white font-bold text-xl">§</span>
         </div>
         <div>
-          <h1 className="text-xl font-bold text-pkt-text-body-dark">Lovdata MCP</h1>
-          <p className="text-sm text-pkt-text-body-subtle">Model Context Protocol</p>
+          <h1 className="text-xl font-bold text-pkt-text-body-dark">Paragraf</h1>
+          <p className="text-sm text-pkt-text-body-subtle">Norsk lov for AI</p>
         </div>
       </div>
 
@@ -430,7 +430,7 @@ function InfoCard() {
         {regState.step === 'idle' && (
           <Button variant="secondary" size="md">
             <a
-              href="https://github.com/user/lovdata-mcp"
+              href="https://github.com/user/paragraf"
               className="flex items-center gap-2"
               target="_blank"
               rel="noopener noreferrer"
@@ -495,7 +495,7 @@ export function LandingPage() {
               Faktisk lovtekst, ikke gjetning
             </h2>
             <p className="text-white/60 leading-relaxed">
-              AI hallusinerer ofte juss. Med tilgang til Lovdata kan de sitere korrekt.
+              AI hallusinerer ofte juss. Med Paragraf kan de sitere korrekt.
             </p>
           </div>
 
@@ -532,10 +532,10 @@ export function LandingPage() {
           {/* Mobile header */}
           <div className="lg:hidden mb-6">
             <h1 className="text-2xl font-bold text-pkt-text-body-dark mb-2">
-              Lovdata MCP
+              Paragraf
             </h1>
             <p className="text-sm text-pkt-text-body-subtle">
-              Norsk lov for AI-assistenter
+              Norsk lov for AI
             </p>
           </div>
 
