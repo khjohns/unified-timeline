@@ -30,6 +30,11 @@ urllib3>=2.6.0
 httpx>=0.27.0                        # Async HTTP client (Lovdata API)
 
 # ------------------------------------------------------------------------------
+# Lovdata / Paragraf MCP Server
+# ------------------------------------------------------------------------------
+paragraf @ git+https://github.com/khjohns/paragraf.git  # Norwegian law lookup MCP
+
+# ------------------------------------------------------------------------------
 # HTML/XML Parsing
 # ------------------------------------------------------------------------------
 beautifulsoup4>=4.12.0               # HTML5-compatible XML parsing (Lovdata)
