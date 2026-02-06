@@ -10,6 +10,7 @@ Protocol specification: https://modelcontextprotocol.io/specification/2025-03-26
 from typing import Any
 
 from services.lovdata_service import LovdataService
+from services.lovdata_vector_search import LovdataVectorSearch
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -36,14 +37,27 @@ Tilgang til norske lover og forskrifter fra Lovdata Public API (92 000+ paragraf
 |---------|------|
 | `lov(lov_id, paragraf?)` | Slå opp lov. Uten paragraf → hierarkisk innholdsfortegnelse (Del/Kapittel/§) |
 | `forskrift(id, paragraf?)` | Slå opp forskrift. Uten paragraf → hierarkisk innholdsfortegnelse |
-| `sok(query, limit=20)` | Fulltekstsok (returnerer 500-tegn snippets) |
+| `sok(query, limit=20)` | **FTS-søk** for juridiske termer (returnerer 500-tegn snippets) |
+| `semantisk_sok(query, limit?, doc_type?, ministry?)` | **AI-søk** for naturlig språk og synonymer |
 | `hent_flere(lov_id, [paragrafer])` | Batch-henting (~80% raskere enn separate kall) |
 | `liste` | Vis aliaser (IKKE komplett liste - alle 770+ lover kan slås opp) |
 | `sjekk_storrelse` | Estimer tokens før henting |
 
-## Søketips (VIKTIG!)
+## Velg riktig søk
 
-Søket bruker AND-logikk: alle ord MÅ finnes i samme paragraf.
+| Brukersituasjon | Bruk | Hvorfor |
+|-----------------|------|---------|
+| Kjenner juridisk term | `sok("vesentlig mislighold")` | FTS er raskere |
+| Vil kombinere/ekskludere | `sok("miljø OR klima -bil")` | FTS har full søkesyntaks |
+| Bruker spør med egne ord | `semantisk_sok("skjulte feil i boligen")` | AI forstår → finner "mangel" |
+| Synonym-problem | `semantisk_sok("oppsigelse")` | Finner også "avskjed"-paragrafer |
+| Filtrere på type/departement | `semantisk_sok(query, doc_type="lov")` | Kun semantisk har filter |
+
+**Kjerneforskjell:** FTS krever at ordene finnes i teksten. Semantisk finner relatert innhold selv om ordene er annerledes.
+
+## Søketips for FTS (`sok`)
+
+FTS bruker AND-logikk: alle ord MÅ finnes i samme paragraf.
 
 | Søk | Resultat | Hvorfor |
 |-----|----------|---------|
@@ -129,8 +143,15 @@ class MCPServer:
             lovdata_service: LovdataService instance (created if not provided)
         """
         self.lovdata = lovdata_service or LovdataService()
+        self._vector_search: LovdataVectorSearch | None = None  # Lazy init
         self.tools = self._define_tools()
         logger.info(f"MCPServer initialized with {len(self.tools)} tools")
+
+    def _get_vector_search(self) -> LovdataVectorSearch:
+        """Get or create vector search service (lazy init)."""
+        if self._vector_search is None:
+            self._vector_search = LovdataVectorSearch()
+        return self._vector_search
 
     def _define_tools(self) -> list[dict[str, Any]]:
         """Define available MCP tools with their schemas."""
@@ -202,11 +223,12 @@ class MCPServer:
             },
             {
                 "name": "sok",
-                "title": "Søk i Lovdata",
+                "title": "Søk i Lovdata (FTS)",
                 "description": (
-                    "Fulltekstsøk i norske lover. Støtter: OR, \"frase\", -ekskluder. "
+                    "Fulltekstsøk i norske lover. Raskt og presist når du kjenner termene. "
+                    "Støtter: OR, \"frase\", -ekskluder. "
                     "Eks: 'mangel', 'miljø OR klima', '\"vesentlig mislighold\"'. "
-                    "Bruk substantiver fra lovteksten, ikke dokumentnavn."
+                    "For naturlig språk/synonymer, bruk semantisk_sok."
                 ),
                 "inputSchema": {
                     "type": "object",
@@ -223,6 +245,47 @@ class MCPServer:
                             "type": "integer",
                             "description": "Maks antall resultater (standard: 20)",
                             "default": 20
+                        }
+                    },
+                    "required": ["query"]
+                }
+            },
+            {
+                "name": "semantisk_sok",
+                "title": "Semantisk søk (AI)",
+                "description": (
+                    "Hybrid vektorsøk med AI-embeddings. Beste for naturlig språk og synonymer. "
+                    "Finner relaterte paragrafer selv om ordene ikke matcher eksakt. "
+                    "Eks: 'skjulte feil i boligen' → finner 'mangel'-paragrafer. "
+                    "Kan filtrere på doc_type og ministry."
+                ),
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": (
+                                "Søketekst i naturlig språk. "
+                                "Eks: 'hva skjer hvis jeg ikke betaler husleie', "
+                                "'oppsigelse av ansatt', 'skjulte feil ved boligkjøp'"
+                            )
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Maks antall resultater (standard: 10)",
+                            "default": 10
+                        },
+                        "doc_type": {
+                            "type": "string",
+                            "enum": ["lov", "forskrift"],
+                            "description": "Filtrer på dokumenttype (valgfritt)"
+                        },
+                        "ministry": {
+                            "type": "string",
+                            "description": (
+                                "Filtrer på departement (delvis match). "
+                                "Eks: 'Klima' matcher 'Klima- og miljødepartementet'"
+                            )
                         }
                     },
                     "required": ["query"]
@@ -438,6 +501,14 @@ class MCPServer:
                 query = arguments.get("query", "")
                 limit = arguments.get("limit", 20)
                 content = self.lovdata.search(query, limit)
+            elif tool_name == "semantisk_sok":
+                query = arguments.get("query", "")
+                limit = arguments.get("limit", 10)
+                doc_type = arguments.get("doc_type")
+                ministry = arguments.get("ministry")
+                content = self._handle_semantic_search(
+                    query, limit, doc_type, ministry
+                )
             elif tool_name == "hent_flere":
                 lov_id = arguments.get("lov_id", "")
                 paragrafer = arguments.get("paragrafer", [])
@@ -561,6 +632,68 @@ Kjør `sync()` for å laste ned lovdata fra Lovdata API.
 - **Estimerte tokens:** {tokens:,}
 {warning}
 """
+
+    def _handle_semantic_search(
+        self,
+        query: str,
+        limit: int = 10,
+        doc_type: str | None = None,
+        ministry: str | None = None
+    ) -> str:
+        """
+        Handle semantic search using hybrid vector + FTS.
+
+        Args:
+            query: Natural language search query
+            limit: Max results
+            doc_type: Filter by "lov" or "forskrift"
+            ministry: Filter by ministry (partial match)
+
+        Returns:
+            Formatted search results
+        """
+        try:
+            vector_search = self._get_vector_search()
+            results = vector_search.search(
+                query=query,
+                limit=limit,
+                doc_type=doc_type,
+                ministry=ministry
+            )
+        except Exception as e:
+            logger.warning(f"Semantic search failed, falling back to FTS: {e}")
+            return self.lovdata.search(query, limit)
+
+        if not results:
+            return f"Ingen treff for: {query}"
+
+        lines = [f"## Semantisk søk: {query}\n"]
+
+        if doc_type or ministry:
+            filters = []
+            if doc_type:
+                filters.append(f"type={doc_type}")
+            if ministry:
+                filters.append(f"departement={ministry}")
+            lines.append(f"*Filter: {', '.join(filters)}*\n")
+
+        lines.append(f"Fant {len(results)} relevante paragrafer:\n")
+
+        for r in results:
+            # Format reference
+            ref = f"{r.short_title} § {r.section_id}" if r.short_title else f"{r.dok_id} § {r.section_id}"
+
+            # Truncate content for snippet
+            snippet = r.content[:300] + "..." if len(r.content) > 300 else r.content
+
+            lines.append(f"### {ref}")
+            if r.title:
+                lines.append(f"**{r.title}**")
+            lines.append(f"*Score: {r.combined_score:.2f} (vektor: {r.similarity:.2f}, FTS: {r.fts_rank:.2f})*")
+            lines.append(f"\n{snippet}\n")
+            lines.append(f"→ `lov(\"{r.dok_id}\", \"{r.section_id}\")`\n")
+
+        return "\n".join(lines)
 
     def handle_resources_list(self) -> dict[str, Any]:
         """Return list of available resources."""

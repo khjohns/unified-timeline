@@ -64,5 +64,8 @@ supabase/config.toml
 supabase/.gitignore
 backend/supabase/
 
+# MCP config (contains local project refs)
+.mcp.json
+
 # Third-party API specs
 tredjepart-api/
