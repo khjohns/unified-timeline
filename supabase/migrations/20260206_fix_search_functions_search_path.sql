@@ -154,3 +154,95 @@ COMMENT ON FUNCTION search_lovdata IS
 'Full-text search across Lovdata documents and sections.
 Supports websearch syntax: OR, "phrase", -exclude.
 Returns document-level results with highlighted snippets.';
+
+-- =============================================================================
+-- 4. Fix search_lovdata_hybrid (parameter rename: ef_search -> ivfflat_probes)
+-- =============================================================================
+
+DROP FUNCTION IF EXISTS search_lovdata_hybrid(text, vector, integer, double precision, integer, text, text);
+
+CREATE FUNCTION search_lovdata_hybrid(
+    query_text TEXT,
+    query_embedding vector(1536),
+    match_count INT DEFAULT 10,
+    fts_weight FLOAT DEFAULT 0.5,
+    ivfflat_probes INT DEFAULT 10,
+    doc_type_filter TEXT DEFAULT NULL,
+    ministry_filter TEXT DEFAULT NULL
+)
+RETURNS TABLE (
+    id UUID,
+    dok_id TEXT,
+    section_id TEXT,
+    title TEXT,
+    content TEXT,
+    short_title TEXT,
+    doc_type TEXT,
+    ministry TEXT,
+    similarity FLOAT,
+    fts_rank FLOAT,
+    combined_score FLOAT
+)
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+    PERFORM set_config('ivfflat.probes', ivfflat_probes::TEXT, true);
+
+    RETURN QUERY
+    WITH
+    filtered_docs AS (
+        SELECT d.dok_id, d.short_title, d.doc_type, d.ministry
+        FROM public.lovdata_documents d
+        WHERE (doc_type_filter IS NULL OR d.doc_type = doc_type_filter)
+          AND (ministry_filter IS NULL OR d.ministry ILIKE '%' || ministry_filter || '%')
+    ),
+    vector_search AS (
+        SELECT
+            s.id,
+            s.dok_id,
+            s.section_id,
+            s.title,
+            s.content,
+            1 - (s.embedding <=> query_embedding) AS similarity
+        FROM public.lovdata_sections s
+        WHERE s.embedding IS NOT NULL
+          AND (doc_type_filter IS NULL AND ministry_filter IS NULL
+               OR EXISTS (SELECT 1 FROM filtered_docs fd WHERE fd.dok_id = s.dok_id))
+        ORDER BY s.embedding <=> query_embedding
+        LIMIT match_count * 3
+    ),
+    fts_scores AS (
+        SELECT
+            s.id,
+            ts_rank(s.search_vector, websearch_to_tsquery('norwegian', query_text)) AS fts_rank
+        FROM public.lovdata_sections s
+        WHERE s.search_vector @@ websearch_to_tsquery('norwegian', query_text)
+    )
+    SELECT
+        v.id,
+        v.dok_id,
+        v.section_id,
+        v.title,
+        v.content,
+        d.short_title,
+        d.doc_type,
+        d.ministry,
+        v.similarity::FLOAT,
+        COALESCE(f.fts_rank, 0)::FLOAT AS fts_rank,
+        ((1 - fts_weight) * v.similarity + fts_weight * COALESCE(f.fts_rank, 0))::FLOAT AS combined_score
+    FROM vector_search v
+    LEFT JOIN fts_scores f ON v.id = f.id
+    JOIN public.lovdata_documents d ON v.dok_id = d.dok_id
+    ORDER BY combined_score DESC
+    LIMIT match_count;
+END;
+$$;
+
+COMMENT ON FUNCTION search_lovdata_hybrid IS
+'Hybrid vector + FTS search for best of both worlds.
+Parameters:
+  - ivfflat_probes: IVFFlat probe count (higher = better recall, slower)
+  - fts_weight: 0-1, weight for FTS vs vector (0.5 = equal)
+  - doc_type_filter: "lov" or "forskrift"
+  - ministry_filter: partial match on ministry name';
