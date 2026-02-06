@@ -34,6 +34,7 @@ class VectorSearchResult:
     content: str
     short_title: str
     doc_type: str
+    ministry: str | None
     similarity: float
     fts_rank: float
     combined_score: float
@@ -52,6 +53,7 @@ class VectorSearchResult:
             'content': self.content,
             'short_title': self.short_title,
             'doc_type': self.doc_type,
+            'ministry': self.ministry,
             'similarity': self.similarity,
             'fts_rank': self.fts_rank,
             'combined_score': self.combined_score,
@@ -136,6 +138,7 @@ class LovdataVectorSearch:
                 content=row.get('snippet', ''),
                 short_title=row.get('short_title', ''),
                 doc_type=row.get('doc_type', ''),
+                ministry=row.get('ministry'),
                 similarity=0.0,
                 fts_rank=row.get('rank', 0.0),
                 combined_score=row.get('rank', 0.0)
@@ -149,16 +152,20 @@ class LovdataVectorSearch:
         query: str,
         limit: int = 10,
         fts_weight: float = DEFAULT_FTS_WEIGHT,
-        ef_search: int = 100
+        ef_search: int = 100,
+        doc_type: str | None = None,
+        ministry: str | None = None
     ) -> list[VectorSearchResult]:
         """
-        Perform hybrid search.
+        Perform hybrid search with optional filters.
 
         Args:
             query: Search query (natural language)
             limit: Max number of results
             fts_weight: Weight for FTS vs vector (0-1, default 0.5)
             ef_search: HNSW recall (higher = better recall, slower, default 100)
+            doc_type: Filter by document type ("lov" or "forskrift")
+            ministry: Filter by ministry (partial match, e.g., "Klima" matches "Klima- og miljødepartementet")
 
         Returns:
             List of VectorSearchResult sorted by relevance
@@ -170,13 +177,15 @@ class LovdataVectorSearch:
             logger.error(f"Embedding API error: {e}")
             return self._fallback_fts_search(query, limit)
 
-        # Call hybrid search function
+        # Call hybrid search function with filters
         result = self.supabase.rpc('search_lovdata_hybrid', {
             'query_text': query,
             'query_embedding': query_embedding,
             'match_count': limit,
             'fts_weight': fts_weight,
-            'ef_search': ef_search
+            'ef_search': ef_search,
+            'doc_type_filter': doc_type,
+            'ministry_filter': ministry
         }).execute()
 
         if not result.data:
@@ -190,6 +199,7 @@ class LovdataVectorSearch:
                 content=row['content'],
                 short_title=row['short_title'],
                 doc_type=row['doc_type'],
+                ministry=row.get('ministry'),
                 similarity=row['similarity'],
                 fts_rank=row['fts_rank'],
                 combined_score=row['combined_score']
@@ -227,6 +237,7 @@ class LovdataVectorSearch:
                 content=row['content'],
                 short_title=row['short_title'],
                 doc_type=row['doc_type'],
+                ministry=row.get('ministry'),
                 similarity=row['similarity'],
                 fts_rank=0.0,
                 combined_score=row['similarity']

@@ -307,8 +307,9 @@ class LovdataService:
                 doc = backend.get_document(lov_id)
                 if doc:
                     sections = backend.list_sections(lov_id)
+                    structures = backend.list_structures(lov_id) if hasattr(backend, 'list_structures') else []
                     if sections:
-                        return self._format_table_of_contents(doc, sections)
+                        return self._format_table_of_contents(doc, sections, structures)
                     return "*Dokument funnet, men ingen paragrafer i cache.*"
 
         except Exception as e:
@@ -479,16 +480,19 @@ class LovdataService:
         """Return which backend is in use."""
         return "supabase" if USE_SUPABASE else "sqlite"
 
-    def _format_table_of_contents(self, doc: dict, sections: list[dict]) -> str:
+    def _format_table_of_contents(
+        self, doc: dict, sections: list[dict], structures: list[dict] | None = None
+    ) -> str:
         """
         Format table of contents for a law/regulation.
 
-        Shows all available paragraphs with their titles and token estimates,
-        so Claude can decide which sections to fetch.
+        Shows hierarchical structure (Del, Kapittel) when available,
+        otherwise falls back to flat list of paragraphs.
 
         Args:
             doc: Document metadata from backend
             sections: List of sections with section_id, title, char_count, estimated_tokens
+            structures: Optional list of structures (Del, Kapittel, etc.)
 
         Returns:
             Formatted table of contents with usage guidance
@@ -501,32 +505,13 @@ class LovdataService:
             "",
             f"**Totalt:** {len(sections)} paragrafer (~{total_tokens:,} tokens)",
             "",
-            "| Paragraf | Tittel | Tokens |",
-            "|----------|--------|-------:|",
         ]
 
-        # Group sections for better display (show all, but limit very long lists)
-        MAX_DISPLAY = 100
-        displayed_sections = sections[:MAX_DISPLAY]
-
-        for sec in displayed_sections:
-            section_id = sec.get('section_id', '?')
-            section_title = sec.get('title', '') or ''
-            tokens = sec.get('estimated_tokens', 0)
-
-            # Truncate long titles
-            if len(section_title) > 50:
-                section_title = section_title[:47] + "..."
-
-            # Escape pipe characters in title
-            section_title = section_title.replace('|', '\\|')
-
-            lines.append(f"| § {section_id} | {section_title} | {tokens:,} |")
-
-        if len(sections) > MAX_DISPLAY:
-            remaining = len(sections) - MAX_DISPLAY
-            remaining_tokens = sum(s.get('estimated_tokens', 0) for s in sections[MAX_DISPLAY:])
-            lines.append(f"| ... | *{remaining} flere paragrafer* | {remaining_tokens:,} |")
+        # Use hierarchical display if structures are available
+        if structures:
+            lines.extend(self._format_hierarchical_toc(sections, structures))
+        else:
+            lines.extend(self._format_flat_toc(sections))
 
         # Add usage guidance
         lines.extend([
@@ -541,6 +526,119 @@ class LovdataService:
         ])
 
         return "\n".join(lines)
+
+    def _format_flat_toc(self, sections: list[dict]) -> list[str]:
+        """Format flat table of contents (fallback when no structure)."""
+        lines = [
+            "| Paragraf | Tittel | Tokens |",
+            "|----------|--------|-------:|",
+        ]
+
+        MAX_DISPLAY = 100
+        displayed_sections = sections[:MAX_DISPLAY]
+
+        for sec in displayed_sections:
+            section_id = sec.get('section_id', '?')
+            section_title = sec.get('title', '') or ''
+            tokens = sec.get('estimated_tokens', 0)
+
+            if len(section_title) > 50:
+                section_title = section_title[:47] + "..."
+            section_title = section_title.replace('|', '\\|')
+
+            lines.append(f"| § {section_id} | {section_title} | {tokens:,} |")
+
+        if len(sections) > MAX_DISPLAY:
+            remaining = len(sections) - MAX_DISPLAY
+            remaining_tokens = sum(s.get('estimated_tokens', 0) for s in sections[MAX_DISPLAY:])
+            lines.append(f"| ... | *{remaining} flere paragrafer* | {remaining_tokens:,} |")
+
+        return lines
+
+    def _format_hierarchical_toc(
+        self, sections: list[dict], structures: list[dict]
+    ) -> list[str]:
+        """Format hierarchical table of contents with Del/Kapittel structure."""
+        lines = []
+
+        # Build address-to-structure mapping
+        # Structure addresses are like /kapittel/1/paragraf/1-1/
+        # Section addresses are like /kapittel/1/paragraf/1-1/ledd/1/
+        # We match sections to the structure they belong to
+
+        # Group sections by their parent structure based on address matching
+        structure_sections: dict[str, list[dict]] = {}
+        orphan_sections: list[dict] = []
+
+        for sec in sections:
+            address = sec.get('address', '') or ''
+            matched = False
+
+            # Find the most specific matching structure
+            for struct in reversed(structures):  # Check deepest first
+                struct_addr = struct.get('address', '') or ''
+                if struct_addr and address.startswith(struct_addr):
+                    key = f"{struct.get('structure_type')}:{struct.get('structure_id')}"
+                    if key not in structure_sections:
+                        structure_sections[key] = []
+                    structure_sections[key].append(sec)
+                    matched = True
+                    break
+
+            if not matched:
+                orphan_sections.append(sec)
+
+        # Render structures with their sections
+        MAX_SECTIONS_PER_STRUCT = 8
+
+        for struct in structures:
+            struct_type = struct.get('structure_type', '')
+            struct_id = struct.get('structure_id', '')
+            struct_title = struct.get('title', '')
+            heading_level = struct.get('heading_level', 2)
+            key = f"{struct_type}:{struct_id}"
+
+            # Indentation based on structure type
+            if struct_type == 'del':
+                indent = ""
+                lines.append("")  # Extra spacing before Del
+            elif struct_type == 'kapittel':
+                indent = "  "
+            else:  # avsnitt, vedlegg
+                indent = "    "
+
+            # Format structure heading
+            lines.append(f"{indent}**{struct_title}**")
+
+            # List sections in this structure
+            struct_secs = structure_sections.get(key, [])
+            for sec in struct_secs[:MAX_SECTIONS_PER_STRUCT]:
+                sec_id = sec.get('section_id', '?')
+                sec_title = sec.get('title', '') or ''
+                tokens = sec.get('estimated_tokens', 0)
+
+                if len(sec_title) > 35:
+                    sec_title = sec_title[:32] + "..."
+
+                lines.append(f"{indent}  - § {sec_id}: {sec_title} ({tokens} tok)")
+
+            if len(struct_secs) > MAX_SECTIONS_PER_STRUCT:
+                remaining = len(struct_secs) - MAX_SECTIONS_PER_STRUCT
+                remaining_tokens = sum(s.get('estimated_tokens', 0) for s in struct_secs[MAX_SECTIONS_PER_STRUCT:])
+                lines.append(f"{indent}  - *... og {remaining} flere ({remaining_tokens} tok)*")
+
+        # Show orphan sections (no matching structure)
+        if orphan_sections:
+            lines.append("")
+            lines.append("**Andre paragrafer:**")
+            for sec in orphan_sections[:20]:
+                sec_id = sec.get('section_id', '?')
+                tokens = sec.get('estimated_tokens', 0)
+                lines.append(f"  - § {sec_id} ({tokens} tok)")
+            if len(orphan_sections) > 20:
+                lines.append(f"  - *... og {len(orphan_sections) - 20} flere*")
+
+        return lines
 
     def _format_response(
         self,

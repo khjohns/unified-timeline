@@ -2,7 +2,7 @@
 
 **Status:** Akseptert
 **Dato:** 2026-02-03
-**Oppdatert:** 2026-02-05 (lengre snippets, innholdsfortegnelse, websearch-syntaks)
+**Oppdatert:** 2026-02-06 (hierarkisk struktur, vektorsøk med filter)
 **Beslutningstagere:** Utviklingsteam
 **Kontekst:** Implementasjon av MCP-integrasjon for norsk lovdata
 
@@ -161,6 +161,7 @@ Claude trenger å finne relevante paragrafer basert på søkeord eller tema. Sø
 Datasettet inneholder:
 - **4 436 dokumenter** (lover og forskrifter)
 - **92 027 seksjoner** (paragrafer)
+- **13 909 strukturer** (deler, kapitler, avsnitt, vedlegg)
 - **160 MB** tabell + **42 MB** TOAST + **37 MB** GIN-indeks
 
 ### Alternativer vurdert
@@ -263,6 +264,70 @@ Ved første kjøring etter deploy/restart kan responstiden være høyere (~600ms
 
 ---
 
+## ADR-003.4b: Vektorsøk (hybrid)
+
+### Kontekst
+
+FTS krever at brukeren kjenner juridisk terminologi. Vektorsøk muliggjør naturlig språk:
+
+```
+FTS:    "mangel bolig" → ✅ treff
+FTS:    "skjulte feil i boligen" → ❌ ingen treff
+
+Vektor: "skjulte feil i boligen" → ✅ finner "mangel"-paragrafer
+```
+
+### Beslutning
+
+**Valgt: Hybrid søk (50% vektor + 50% FTS) med pgvector**
+
+### Implementasjon
+
+| Komponent | Teknologi |
+|-----------|-----------|
+| Embedding-modell | Gemini gemini-embedding-001 (1536 dim) |
+| Vektor-indeks | pgvector HNSW |
+| Hybrid-scoring | `(1-fts_weight) * semantic + fts_weight * fts_rank` |
+
+### Filter-støtte (2026-02-06)
+
+Hybrid-søk støtter filtrering uten re-embedding:
+
+```python
+search(
+    query="miljøkrav",
+    doc_type="forskrift",      # Kun forskrifter
+    ministry="Klima"           # Kun Klima- og miljødepartementet
+)
+```
+
+| Filter | Verdier | Matching |
+|--------|---------|----------|
+| `doc_type` | `"lov"`, `"forskrift"` | Eksakt |
+| `ministry` | Fritekst | Partial (ILIKE) |
+
+### Kostnad
+
+| Post | Estimat |
+|------|---------|
+| Initial embedding (92k seksjoner) | ~$2 (eller gratis kvote) |
+| Løpende søk | < $1/mnd |
+| Lagring (pgvector) | Inkludert i Supabase |
+
+### Konsekvenser
+
+| Type | Konsekvens |
+|------|------------|
+| Positiv | Naturlig språk-søk for ikke-jurister |
+| Positiv | FTS-fallback ved API-feil |
+| Positiv | Filter uten re-embedding |
+| Negativ | Avhengighet til Gemini API |
+| Negativ | Initial embedding tar ~2 timer |
+
+Se også: `docs/lovdata-vector-search-plan.md` for detaljert implementeringsplan.
+
+---
+
 ## ADR-003.5: MCP-verktøy
 
 ### Kontekst
@@ -307,25 +372,38 @@ hent_flere('personopplysningsloven', ['Artikkel 5', 'Artikkel 6', 'Artikkel 35']
 
 ### Innholdsfortegnelse
 
-Når `lov()` eller `forskrift()` kalles **uten paragraf-parameter**, returneres en innholdsfortegnelse:
+Når `lov()` eller `forskrift()` kalles **uten paragraf-parameter**, returneres en hierarkisk innholdsfortegnelse:
 
 ```
-### Innholdsfortegnelse: Personopplysningsloven
+### Innholdsfortegnelse: Arbeidsmiljøloven
 
-**Totalt:** 134 paragrafer (~45,000 tokens)
+**Totalt:** 197 paragrafer (~43,515 tokens)
 
-| Paragraf | Tittel | Tokens |
-|----------|--------|-------:|
-| § 1 | Gjennomføring av personvernforordningen | 124 |
-| § 2 | Saklig virkeområde | 321 |
-| § Artikkel 5 | Prinsipper for behandling | 467 |
+  **Kapittel 1. Innledende bestemmelser**
+    - § 1-1: Lovens formål (199 tok)
+    - § 1-2: Hva loven omfatter (311 tok)
+    - § 1-3: Virksomhet til havs (336 tok)
+    - *... og 6 flere (1065 tok)*
+  **Kapittel 2. Arbeidsgivers og arbeidstakers plikter**
+    - § 2-1: Arbeidsgivers plikter (23 tok)
+    - § 2-2: Arbeidsgivers plikter overfor an... (283 tok)
+  **Kapittel 2 A. Varsling**
+    - § 2 A-1: Rett til å varsle... (190 tok)
 ...
 ```
 
+For forskrifter med deler vises også disse:
+
+```
+**Del I. Alminnelige bestemmelser**
+  **Kapittel 1. Virkeområde**
+    - § 1-1: Hvilke anskaffelser... (59 tok)
+```
+
 Dette lar Claude:
-- Vurdere omfang før henting
-- Navigere til relevante paragrafer
-- Estimere token-kostnad
+- Forstå dokumentets struktur før henting
+- Navigere direkte til relevante kapitler/deler
+- Estimere token-kostnad per seksjon
 
 ### MCP-instruksjoner
 
@@ -392,11 +470,28 @@ lovdata_sections (
     section_id TEXT NOT NULL,  -- f.eks. "3-9"
     title TEXT,
     content TEXT NOT NULL,
-    address TEXT,  -- data-absoluteaddress fra XML
+    address TEXT,  -- id-attributt fra XML (brukes for struktur-matching)
+    structure_id UUID REFERENCES lovdata_structure(id) ON DELETE SET NULL,
     char_count INTEGER GENERATED ALWAYS AS (LENGTH(content)) STORED,
     search_vector TSVECTOR,
+    embedding VECTOR(1536),     -- Gemini embedding for vektorsøk
+    content_hash TEXT,          -- For inkrementell re-embedding
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(dok_id, section_id)
+)
+
+-- Hierarkisk struktur (Del, Kapittel, Avsnitt, Vedlegg)
+lovdata_structure (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    dok_id TEXT NOT NULL REFERENCES lovdata_documents(dok_id) ON DELETE CASCADE,
+    structure_type TEXT NOT NULL CHECK (structure_type IN ('del', 'kapittel', 'avsnitt', 'vedlegg')),
+    structure_id TEXT NOT NULL,  -- f.eks. "1", "2 A", "I"
+    title TEXT NOT NULL,         -- Full overskrift
+    sort_order INTEGER NOT NULL,
+    parent_id UUID REFERENCES lovdata_structure(id) ON DELETE CASCADE,
+    address TEXT,                -- id-attributt fra XML
+    heading_level INTEGER,
+    UNIQUE(dok_id, structure_type, structure_id)
 )
 
 -- Sync-metadata
@@ -420,7 +515,22 @@ CREATE INDEX idx_lovdata_documents_search ON lovdata_documents USING GIN (search
 CREATE INDEX idx_lovdata_documents_dok_id ON lovdata_documents(dok_id);
 CREATE INDEX idx_lovdata_documents_short_title ON lovdata_documents(short_title);
 CREATE INDEX idx_lovdata_sections_dok_section ON lovdata_sections(dok_id, section_id);
+CREATE INDEX idx_lovdata_structure_dok_id ON lovdata_structure(dok_id);
+
+-- HNSW-indeks for vektorsøk (pgvector)
+CREATE INDEX idx_lovdata_sections_embedding ON lovdata_sections
+USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
 ```
+
+### Strukturdata (målt 2026-02-06)
+
+| Struktur-type | Antall |
+|---------------|-------:|
+| del | 634 |
+| kapittel | 11,168 |
+| avsnitt | 665 |
+| vedlegg | 1,442 |
+| **Totalt** | **13,909** |
 
 ### Kolonnestørrelser (målt)
 
@@ -430,6 +540,7 @@ CREATE INDEX idx_lovdata_sections_dok_section ON lovdata_sections(dok_id, sectio
 | search_vector | 419 bytes | tsvector for FTS |
 | title | 33 bytes | Paragraftittel |
 | dok_id | 23 bytes | Dokument-ID |
+| address | ~25 bytes | XML id-attributt (brukes for struktur-matching) |
 
 ---
 

@@ -22,6 +22,7 @@ from datetime import datetime
 import httpx
 from bs4 import BeautifulSoup
 
+from services.lovdata_structure_parser import StructureRecord, extract_structure_hierarchy
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -228,9 +229,10 @@ class LovdataSupabaseService:
         import tempfile
 
         total_docs = 0
-        batch_size = 50  # Process 50 documents at a time
+        batch_size = 20  # Reduced from 50 to avoid Supabase statement timeouts
         doc_batch = []
         section_batch = []
+        structure_batch: list[StructureRecord] = []
         seen_dok_ids = set()  # Track for deduplication
 
         # Download to temp file (streaming)
@@ -258,7 +260,7 @@ class LovdataSupabaseService:
                             continue
 
                         content = f.read().decode('utf-8')
-                        doc, secs = self._parse_xml(content, doc_type)
+                        doc, secs, structs = self._parse_xml(content, doc_type)
 
                         if doc:
                             dok_id = doc['dok_id']
@@ -269,13 +271,15 @@ class LovdataSupabaseService:
 
                             doc_batch.append(doc)
                             section_batch.extend(secs)
+                            structure_batch.extend(structs)
                             total_docs += 1
 
                             # Flush batch when full
                             if len(doc_batch) >= batch_size:
-                                self._flush_batch(doc_batch, section_batch, doc_type)
+                                self._flush_batch(doc_batch, section_batch, structure_batch, doc_type)
                                 doc_batch = []
                                 section_batch = []
+                                structure_batch = []
                                 logger.info(f"Processed {total_docs} documents...")
 
                     except Exception as e:
@@ -283,18 +287,53 @@ class LovdataSupabaseService:
 
             # Flush remaining
             if doc_batch:
-                self._flush_batch(doc_batch, section_batch, doc_type)
+                self._flush_batch(doc_batch, section_batch, structure_batch, doc_type)
                 logger.info(f"Processed {total_docs} documents (final batch)")
 
         return total_docs
 
     @with_retry()
-    def _flush_batch(self, documents: list[dict], sections: list[dict], doc_type: str) -> None:
-        """Insert a batch of documents and sections."""
+    def _flush_batch(
+        self,
+        documents: list[dict],
+        sections: list[dict],
+        structures: list[StructureRecord],
+        doc_type: str,
+    ) -> None:
+        """Insert a batch of documents, sections, and structures."""
         if documents:
             self.client.table('lovdata_documents').upsert(
                 documents,
                 on_conflict='dok_id'
+            ).execute()
+
+        # Insert structures (before sections to enable FK resolution)
+        if structures:
+            # Convert StructureRecord to dict for upsert
+            # Note: parent_id is a key like "del:I", resolved later
+            structure_dicts = []
+            for s in structures:
+                structure_dicts.append({
+                    'dok_id': s.dok_id,
+                    'structure_type': s.structure_type,
+                    'structure_id': s.structure_id,
+                    'title': s.title,
+                    'sort_order': s.sort_order,
+                    'address': s.address,
+                    'heading_level': s.heading_level,
+                    # parent_id left as NULL for now - resolved in post-processing
+                })
+
+            # Deduplicate structures
+            seen_structs = {}
+            for s in structure_dicts:
+                key = (s['dok_id'], s['structure_type'], s['structure_id'])
+                seen_structs[key] = s
+            unique_structures = list(seen_structs.values())
+
+            self.client.table('lovdata_structure').upsert(
+                unique_structures,
+                on_conflict='dok_id,structure_type,structure_id'
             ).execute()
 
         if sections:
@@ -302,6 +341,8 @@ class LovdataSupabaseService:
             seen = {}
             for sec in sections:
                 key = (sec['dok_id'], sec['section_id'])
+                # Remove temporary structure_key before insert
+                sec.pop('structure_key', None)
                 seen[key] = sec
             unique_sections = list(seen.values())
 
@@ -310,11 +351,16 @@ class LovdataSupabaseService:
                 on_conflict='dok_id,section_id'
             ).execute()
 
-    def _parse_xml(self, content: str, doc_type: str) -> tuple[dict | None, list[dict]]:
+    def _parse_xml(
+        self, content: str, doc_type: str
+    ) -> tuple[dict | None, list[dict], list[StructureRecord]]:
         """
         Parse XML/HTML content from Lovdata.
 
         Handles various XML structures used in Norwegian law documents.
+
+        Returns:
+            (document, sections, structures) tuple
         """
         try:
             soup = BeautifulSoup(content, 'html.parser')
@@ -323,7 +369,7 @@ class LovdataSupabaseService:
 
             dok_id = self._extract_meta(header, 'dokid')
             if not dok_id:
-                return None, []
+                return None, [], []
 
             # Normalize dok_id - remove all known prefixes
             for prefix in ('NL/', 'SF/', 'LTI/', 'NLE/', 'NLO/'):
@@ -344,11 +390,20 @@ class LovdataSupabaseService:
             # Parse sections - try multiple strategies
             sections = self._extract_sections(soup, dok_id)
 
-            return doc, sections
+            # Parse hierarchical structure (Del, Kapittel, etc.)
+            structures, section_mapping = extract_structure_hierarchy(soup, dok_id)
+
+            # Update sections with structure_id
+            for section in sections:
+                address = section.get('address')
+                if address and address in section_mapping:
+                    section['structure_key'] = section_mapping[address]
+
+            return doc, sections, structures
 
         except Exception as e:
             logger.error(f"Parse error for {dok_id if 'dok_id' in dir() else 'unknown'}: {e}")
-            return None, []
+            return None, [], []
 
     def _extract_sections(self, soup: BeautifulSoup, dok_id: str) -> list[dict]:
         """
@@ -506,7 +561,8 @@ class LovdataSupabaseService:
             'section_id': section_id,
             'title': title,
             'content': '\n\n'.join(content_parts),
-            'address': article.get('data-absoluteaddress'),
+            # API XML uses 'id', website uses 'data-absoluteaddress'
+            'address': article.get('id') or article.get('data-absoluteaddress'),
         }
 
     def _parse_element_by_address(self, elem, dok_id: str, addr: str) -> dict | None:
@@ -891,7 +947,7 @@ class LovdataSupabaseService:
         @with_retry()
         def _execute() -> list[dict]:
             result = self.client.table('lovdata_sections').select(
-                'section_id, title, char_count'
+                'section_id, title, char_count, address'
             ).eq('dok_id', doc['dok_id']).execute()
             return result.data if result.data else []
 
@@ -925,6 +981,26 @@ class LovdataSupabaseService:
 
         sections.sort(key=sort_key)
         return sections
+
+    def list_structures(self, dok_id: str) -> list[dict]:
+        """
+        List all hierarchical structures (Del, Kapittel, etc.) for a document.
+
+        Returns list of dicts with: structure_type, structure_id, title, sort_order, heading_level
+        Sorted by sort_order.
+        """
+        doc = self._find_document(dok_id)
+        if not doc:
+            return []
+
+        @with_retry()
+        def _execute() -> list[dict]:
+            result = self.client.table('lovdata_structure').select(
+                'structure_type, structure_id, title, sort_order, heading_level, address'
+            ).eq('dok_id', doc['dok_id']).order('sort_order').execute()
+            return result.data if result.data else []
+
+        return safe_execute(_execute, f"Failed to list structures for {dok_id}", default=[]) or []
 
     def get_sync_status(self) -> dict:
         """Get sync status for all datasets."""

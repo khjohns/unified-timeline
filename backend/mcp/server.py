@@ -34,8 +34,8 @@ Tilgang til norske lover og forskrifter fra Lovdata Public API (92 000+ paragraf
 
 | Verktøy | Bruk |
 |---------|------|
-| `lov(lov_id, paragraf?)` | Slå opp lov. Uten paragraf → innholdsfortegnelse |
-| `forskrift(id, paragraf?)` | Slå opp forskrift. Uten paragraf → innholdsfortegnelse |
+| `lov(lov_id, paragraf?)` | Slå opp lov. Uten paragraf → hierarkisk innholdsfortegnelse (Del/Kapittel/§) |
+| `forskrift(id, paragraf?)` | Slå opp forskrift. Uten paragraf → hierarkisk innholdsfortegnelse |
 | `sok(query, limit=20)` | Fulltekstsok (returnerer 500-tegn snippets) |
 | `hent_flere(lov_id, [paragrafer])` | Batch-henting (~80% raskere enn separate kall) |
 | `liste` | Vis aliaser (IKKE komplett liste - alle 770+ lover kan slås opp) |
@@ -65,7 +65,7 @@ Søket bruker AND-logikk: alle ord MÅ finnes i samme paragraf.
 ## Anbefalt arbeidsflyt
 
 1. **Ukjent rettsområde?** → `sok("brede nøkkelord")` - kartlegg først!
-2. **Vet hvilken lov?** → `lov("navn")` gir innholdsfortegnelse med tokens
+2. **Vet hvilken lov?** → `lov("navn")` gir hierarkisk oversikt (Del → Kapittel → §) med tokens
 3. **Trenger flere §§?** → `hent_flere()` er ~80% raskere
 4. **Store paragrafer?** → `sjekk_storrelse()` først, spør bruker ved >5000 tokens
 5. **Presis sitering?** → `lov("navn", "paragraf")`
@@ -99,18 +99,17 @@ GDPR (personvernforordningen) er tilgjengelig via personopplysningsloven:
 
 → Henvis til lovdata.no for disse.
 
+## Kommuniser muligheter til brukeren
+
+Når relevant, informer brukeren om hva du kan tilby:
+- "Vil du se hvordan loven er bygd opp? Jeg kan vise kapitteloversikt."
+- "Jeg kan søke på tvers av alle 92 000 paragrafer hvis du er usikker på hvilken lov."
+- "Skal jeg hente flere paragrafer samtidig?"
+
 ## Aliaser
 
-| Kort | Full |
-|------|------|
-| `avhl` | avhendingslova |
-| `buofl` | bustadoppføringslova |
-| `pbl` | plan-og-bygningsloven |
-| `aml` | arbeidsmiljøloven |
-| `foa` | anskaffelsesforskriften |
-| `tek17` | byggteknisk forskrift |
-
-Kjør `liste` for komplett oversikt.
+Forkortelser som `aml`, `avhl`, `pbl`, `foa` finnes i databasen.
+Bruk `liste` for oversikt, eller søk direkte - f.eks. `lov("aml")` fungerer.
 """
 
 
