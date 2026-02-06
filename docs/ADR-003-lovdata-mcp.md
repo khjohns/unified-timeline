@@ -2,7 +2,7 @@
 
 **Status:** Akseptert
 **Dato:** 2026-02-03
-**Oppdatert:** 2026-02-06 (hierarkisk struktur, vektorsøk med filter, OR-fallback, alias-oppløsning, input-validering)
+**Oppdatert:** 2026-02-06 (hierarkisk struktur, vektorsøk, OR-fallback, alias-oppløsning, input-validering, edge case testing)
 **Beslutningstagere:** Utviklingsteam
 **Kontekst:** Implementasjon av MCP-integrasjon for norsk lovdata
 
@@ -514,6 +514,33 @@ Instruksjonene dekker:
 | Positiv | Token-effektivt (henter kun det som trengs) |
 | Positiv | Presise lovhenvisninger i svar |
 | Positiv | Instruksjoner bakt inn i MCP - fungerer fra alle klienter |
+
+### Testing og edge cases (2026-02-06)
+
+**Sikkerhetstesting:**
+
+| Test | Resultat |
+|------|----------|
+| SQL injection (`'; DROP TABLE--`) | ✅ WAF blokkerer |
+| SQL injection (`1 OR 1=1`) | ✅ Behandles som tekst |
+| Path traversal (`../../../etc/passwd`) | ✅ Ingen filsystem-tilgang |
+| XSS (`<script>alert('xss')</script>`) | ✅ Behandles som tekst |
+
+**Funksjonell testing:**
+
+| Test | Status | Merknad |
+|------|--------|---------|
+| Case sensitivity | ✅ Fungerer | `HUSLEIELOVEN` = `husleieloven` |
+| Norske tegn (æøå) | ✅ Fungerer | Både input og output |
+| Partial match | ⚠️ Upålitelig | Finner ofte feil dokument |
+| Stavefeil | ❌ Ingen toleranse | Krever eksakt stavemåte |
+| Batch ugyldig paragraf | ✅ Rapporteres | Viser "Ikke funnet: X, Y" |
+| Spesialtegn (§, «») | ✅ Fungerer | |
+| Em-dash (–) | ✅ Normaliseres | Konverteres til bindestrek |
+
+**Ikke testet:**
+- Store batch-requests (100+ paragrafer) - ytelsesgrenser ukjent
+- Fuzzy matching - ikke implementert, vurderes som fremtidig forbedring
 
 ---
 
