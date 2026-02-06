@@ -415,6 +415,11 @@ class LovdataService:
         if not section_ids:
             return "**Feil:** Paragraf-listen kan ikke være tom. Oppgi minst én paragraf."
 
+        # Limit batch size to prevent excessive response sizes (~10k tokens max)
+        MAX_BATCH_SIZE = 50
+        if len(section_ids) > MAX_BATCH_SIZE:
+            return f"**Feil:** For mange paragrafer ({len(section_ids)}). Maks {MAX_BATCH_SIZE} per batch for å unngå for store responser. Del opp i flere kall."
+
         resolved_id = self._resolve_id(lov_id)
         law_name = self._get_law_name(resolved_id)
         url = self._format_lovdata_url(resolved_id)

@@ -422,18 +422,41 @@ hent_flere('personopplysningsloven', ['Artikkel 5', 'Artikkel 6', 'Artikkel 35']
 
 **Problem:** Manuell vedlikehold av alias-liste skalerer ikke til 4400+ lover/forskrifter.
 
-**Løsning:** Tre-nivå oppløsningsstrategi:
+**Løsning:** Fire-nivå oppløsningsstrategi:
 
 | Nivå | Kilde | Eksempel |
 |------|-------|----------|
 | 1. Hardkodet | `LOV_ALIASES` dict | `aml` → `LOV-2005-06-17-62` |
 | 2. Database | `short_title` i lovdata_documents | `husleieloven` → `lov/1999-03-26-17` |
-| 3. Direkte | Returner input som-er | `lov/1999-03-26-17` |
+| 3. Fuzzy | `pg_trgm` trigram matching | `husleielova` → `lov/1999-03-26-17` |
+| 4. Direkte | Returner input som-er | `lov/1999-03-26-17` |
 
 **Resultat:** Alle lover/forskrifter kan nå slås opp med naturlig navn:
 - `lov("husleieloven")` ✅
 - `lov("ferieloven")` ✅
 - `lov("romloven")` ✅
+
+### Fuzzy matching (2026-02-06)
+
+**Problem:** Brukere skriver ofte feil (bokmål/nynorsk-endelser, typos).
+
+**Løsning:** PostgreSQL `pg_trgm` extension med trigram similarity:
+
+```sql
+-- Finner lignende lovnavn
+SELECT * FROM find_similar_law('husleielova', 0.4, 5);
+-- Returnerer: Husleieloven (similarity: 0.59)
+```
+
+**Testresultater:**
+
+| Input | Fant | Similarity |
+|-------|------|------------|
+| `husleielova` | Husleieloven | 0.59 |
+| `avhendingsloven` | Avhendingslova | 0.65 |
+| `arbeidsmiljølov` | Arbeidsmiljøloven | 0.68 |
+
+**Threshold:** 0.4 (40% likhet) - balanserer mellom å fange feil og unngå feil-positiver.
 
 ### Input-validering (2026-02-06)
 
@@ -533,14 +556,18 @@ Instruksjonene dekker:
 | Case sensitivity | ✅ Fungerer | `HUSLEIELOVEN` = `husleieloven` |
 | Norske tegn (æøå) | ✅ Fungerer | Både input og output |
 | Partial match | ⚠️ Upålitelig | Finner ofte feil dokument |
-| Stavefeil | ❌ Ingen toleranse | Krever eksakt stavemåte |
+| Stavefeil (fuzzy) | ✅ Fungerer | `husleielova` → husleieloven |
 | Batch ugyldig paragraf | ✅ Rapporteres | Viser "Ikke funnet: X, Y" |
 | Spesialtegn (§, «») | ✅ Fungerer | |
 | Em-dash (–) | ✅ Normaliseres | Konverteres til bindestrek |
+| Batch-grense | ✅ Implementert | Maks 50 paragrafer per batch |
 
-**Ikke testet:**
-- Store batch-requests (100+ paragrafer) - ytelsesgrenser ukjent
-- Fuzzy matching - ikke implementert, vurderes som fremtidig forbedring
+**Ytelsesgrenser:**
+
+| Ressurs | Grense | Begrunnelse |
+|---------|--------|-------------|
+| Batch-størrelse | 50 §§ | ~10k tokens maks, unngår timeout |
+| Største lover | 99k tokens | Skatteloven (364 §§) |
 
 ---
 
