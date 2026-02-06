@@ -1,4 +1,4 @@
-# Lovdata MCP Server
+# Paragraf
 
 MCP-server som gir AI-assistenter tilgang til alle norske lover og forskrifter via [Model Context Protocol](https://modelcontextprotocol.io/).
 
@@ -72,7 +72,7 @@ Svar:    "Etter husleieloven § 9-7 skal oppsigelse fra utleier
 
 ```bash
 git clone <repo-url>
-cd lovdata-mcp
+cd paragraf
 
 python -m venv .venv
 source .venv/bin/activate
@@ -290,7 +290,7 @@ lovdata_structure (13 909 rader)
 # render.yaml
 services:
   - type: web
-    name: lovdata-mcp
+    name: paragraf
     runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
@@ -349,11 +349,11 @@ curl -X POST http://localhost:8000/mcp/ \
 
 ## Lisens
 
-Lovdata brukes under [NLOD 2.0](https://data.norge.no/nlod/no/2.0) — Norsk lisens for offentlige data.
+Inneholder data under Norsk lisens for offentlige data ([NLOD 2.0](https://data.norge.no/nlod/no/2.0)) tilgjengeliggjort av [Lovdata](https://lovdata.no).
 
 ## Relatert dokumentasjon
 
-- [ADR-003: Lovdata MCP Arkitektur](docs/ADR-003-lovdata-mcp.md) — alle arkitekturbeslutninger
+- [ADR-003: Arkitekturbeslutninger](docs/ADR-003-lovdata-mcp.md) — alle arkitekturbeslutninger
 - [Dataflytdiagram](docs/lovdata-mcp-dataflyt.md) — sikkerhet og nettverksmodell
 - [Vektorsøk-plan](docs/lovdata-vector-search-plan.md) — semantisk søk i detalj
 - [MCP Apps-plan](docs/lovdata-mcp-apps-plan.md) — interaktiv UI-roadmap

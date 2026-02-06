@@ -296,7 +296,7 @@ def mcp_health() -> Response:
     """Health check endpoint for MCP server."""
     return jsonify({
         "status": "ok",
-        "server": "lovdata-mcp",
+        "server": "paragraf",
         "version": "0.1.0",
         "protocol": "2025-06-18",
     })
@@ -321,7 +321,7 @@ def mcp_info() -> Response:
 
     return jsonify({
         "server": {
-            "name": "lovdata-mcp",
+            "name": "paragraf",
             "version": "0.1.0",
             "description": "MCP server for Norwegian law lookup via Lovdata API",
         },

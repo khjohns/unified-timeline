@@ -1,5 +1,5 @@
 /**
- * Lovdata MCP Landing Page
+ * Paragraf Landing Page
  *
  * Split layout with animated law lookup simulation on the left
  * and info card on the right. Inspired by AuthLanding.
@@ -88,7 +88,7 @@ function LawLookupSimulation() {
           <div className="w-3 h-3 rounded-full bg-white/20" />
           <div className="w-3 h-3 rounded-full bg-white/20" />
         </div>
-        <span className="text-xs text-white/40 ml-2">lovdata-mcp</span>
+        <span className="text-xs text-white/40 ml-2">paragraf</span>
       </div>
 
       {/* Content area - fixed height with scroll */}
@@ -203,7 +203,7 @@ function RegistrationFlow({
         <ul className="space-y-2 text-sm text-pkt-text-body-subtle mb-4">
           <li className="flex items-start gap-2">
             <CheckCircledIcon className="w-4 h-4 text-pkt-brand-dark-green-1000 flex-shrink-0 mt-0.5" />
-            <span>100 gratis oppslag per måned</span>
+            <span>Ubegrenset tilgang, helt gratis</span>
           </li>
           <li className="flex items-start gap-2">
             <CheckCircledIcon className="w-4 h-4 text-pkt-brand-dark-green-1000 flex-shrink-0 mt-0.5" />
@@ -379,14 +379,14 @@ function InfoCard() {
           <span className="text-white font-bold text-xl">§</span>
         </div>
         <div>
-          <h1 className="text-xl font-bold text-pkt-text-body-dark">Lovdata MCP</h1>
-          <p className="text-sm text-pkt-text-body-subtle">Model Context Protocol</p>
+          <h1 className="text-xl font-bold text-pkt-text-body-dark">Paragraf</h1>
+          <p className="text-sm text-pkt-text-body-subtle">Norsk lov for KI</p>
         </div>
       </div>
 
       {/* Description */}
       <p className="text-pkt-text-body-default leading-relaxed mb-6">
-        Gir AI-assistenter tilgang til norske lover og forskrifter fra Lovdata.
+        Koble KI-assistenten din til 92 000 paragrafer fra norsk rett. Oppslag, søk og presis sitering via MCP.
       </p>
 
       {/* Stats */}
@@ -407,14 +407,24 @@ function InfoCard() {
 
       {/* Pricing */}
       <div className="mb-6">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 rounded-lg border border-pkt-border-subtle">
-            <div className="text-sm font-medium text-pkt-text-body-dark">Gratis</div>
-            <div className="text-xs text-pkt-text-body-subtle mt-1">100 oppslag/mnd</div>
+        <div className="space-y-2">
+          <div className="p-3 rounded-lg border border-pkt-border-subtle flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-pkt-text-body-dark">Gratis</div>
+              <div className="text-xs text-pkt-text-body-subtle mt-0.5">200 oppslag/mnd uten registrering</div>
+            </div>
           </div>
-          <div className="p-3 rounded-lg border-2 border-pkt-brand-warm-blue-1000 bg-pkt-surface-subtle-pale-blue">
-            <div className="text-sm font-medium text-pkt-text-body-dark">Pro · 49 kr/mnd</div>
-            <div className="text-xs text-pkt-text-body-subtle mt-1">Ubegrenset</div>
+          <div className="p-3 rounded-lg border-2 border-pkt-brand-warm-blue-1000 bg-pkt-surface-subtle-pale-blue flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-pkt-text-body-dark">Ubegrenset</div>
+              <div className="text-xs text-pkt-text-body-subtle mt-0.5">Gratis med e-postregistrering</div>
+            </div>
+          </div>
+          <div className="p-3 rounded-lg border border-pkt-border-subtle flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-pkt-text-body-dark">Self-host</div>
+              <div className="text-xs text-pkt-text-body-subtle mt-0.5">Open source · MIT-lisens</div>
+            </div>
           </div>
         </div>
       </div>
@@ -430,7 +440,7 @@ function InfoCard() {
         {regState.step === 'idle' && (
           <Button variant="secondary" size="md">
             <a
-              href="https://github.com/user/lovdata-mcp"
+              href="https://github.com/user/paragraf"
               className="flex items-center gap-2"
               target="_blank"
               rel="noopener noreferrer"
@@ -492,10 +502,10 @@ export function LandingPage() {
           {/* Header */}
           <div className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-3">
-              Faktisk lovtekst, ikke gjetning
+              Riktig paragraf for kunstig intelligens
             </h2>
             <p className="text-white/60 leading-relaxed">
-              AI hallusinerer ofte juss. Med tilgang til Lovdata kan de sitere korrekt.
+              KI-verktøy gjetter lovtekst. Paragraf gir dem tilgang til oppdaterte lover og forskrifter fra Lovdata, slik at svarene kan etterprøves.
             </p>
           </div>
 
@@ -508,7 +518,7 @@ export function LandingPage() {
           <div className="mt-8">
             <p className="text-xs text-white/40 mb-3">Fungerer med</p>
             <div className="flex flex-wrap gap-2">
-              {['Claude', 'Cursor', 'VS Code', 'Windsurf'].map((client) => (
+              {['Claude', 'ChatGPT', 'Gemini', 'Copilot', 'Cursor'].map((client) => (
                 <span
                   key={client}
                   className="px-3 py-1 text-xs text-white/70 bg-white/5 rounded-full border border-white/10"
@@ -532,10 +542,10 @@ export function LandingPage() {
           {/* Mobile header */}
           <div className="lg:hidden mb-6">
             <h1 className="text-2xl font-bold text-pkt-text-body-dark mb-2">
-              Lovdata MCP
+              Paragraf
             </h1>
             <p className="text-sm text-pkt-text-body-subtle">
-              Norsk lov for AI-assistenter
+              Norsk lov for KI
             </p>
           </div>
 
