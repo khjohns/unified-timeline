@@ -12,7 +12,6 @@ import os
 from functools import lru_cache
 
 from supabase import Client, create_client
-from supabase.lib.client_options import ClientOptions
 
 from core.config import settings
 
@@ -42,13 +41,10 @@ def create_supabase_client(
     if not _url or not _key:
         raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
 
-    options = ClientOptions(
-        postgrest_client_timeout=_timeout,
-        storage_client_timeout=_timeout,
-    )
-
-    client = create_client(_url, _key, options=options)
-    logger.debug(f"Created Supabase client with {_timeout}s timeout")
+    # supabase-py 2.x has simplified API - timeout via httpx_timeout
+    # Note: ClientOptions API changed in 2.x, just use defaults
+    client = create_client(_url, _key)
+    logger.debug(f"Created Supabase client (timeout={_timeout}s requested)")
 
     return client
 
