@@ -545,7 +545,7 @@ export function LandingPage() {
               Paragraf
             </h1>
             <p className="text-sm text-pkt-text-body-subtle">
-              Norsk lov for AI
+              Norsk lov for KI
             </p>
           </div>
 
