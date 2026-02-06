@@ -431,6 +431,11 @@ class LovdataService:
                     url=url
                 )
 
+            # Track which sections were found vs requested
+            found_ids = {s.section_id for s in sections}
+            requested_ids = set(section_ids)
+            not_found = requested_ids - found_ids
+
             # Format all sections
             content_parts = []
             total_tokens = 0
@@ -456,11 +461,17 @@ class LovdataService:
 
             content = "\n\n---\n\n".join(content_parts)
 
+            # Build not-found warning if any sections were missing
+            not_found_warning = ""
+            if not_found:
+                not_found_list = ", ".join(sorted(not_found))
+                not_found_warning = f"\n\n> **Ikke funnet:** {not_found_list}"
+
             return f"""## {law_name}
 
 **Paragrafer:** {", ".join(f"§ {s.section_id}" for s in sections)}
 **Lovdata ID:** {resolved_id}
-**Totalt:** ~{total_tokens:,} tokens
+**Totalt:** ~{total_tokens:,} tokens{not_found_warning}
 
 ---
 
@@ -797,6 +808,14 @@ Lovteksten er ikke tilgjengelig i lokal cache.
             return "**Feil:** Søkestreng kan ikke være tom. Oppgi ett eller flere søkeord."
 
         query = query.strip()
+
+        # Normalize typographic variants for better matching
+        # Em-dash (–) and en-dash (–) to hyphen (-)
+        query = query.replace('–', '-').replace('—', '-')
+        # Smart quotes to regular quotes
+        query = query.replace('"', '"').replace('"', '"')
+        query = query.replace(''', "'").replace(''', "'")
+
         logger.info(f"Searching laws for: {query} (limit={limit})")
 
         # Try FTS search first if data is synced
