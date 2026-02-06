@@ -84,6 +84,18 @@ FTS bruker AND-logikk: alle ord MÅ finnes i samme paragraf.
 4. **Store paragrafer?** → `sjekk_storrelse()` først, spør bruker ved >5000 tokens
 5. **Presis sitering?** → `lov("navn", "paragraf")`
 
+## Etter søk - tilby systematisk utforskning
+
+Søk gir relevante treff, men ikke nødvendigvis **alle** relevante paragrafer.
+Etter et søk, tilby bruker videre analyse:
+
+> "Jeg fant X relevante paragrafer. Vil du at jeg skal:
+> - Utforske strukturen i de mest relevante lovene/forskriftene?
+> - Sjekke om det finnes mer i samme rettsområde?"
+
+**Hvorfor:** Brukere uten juridisk bakgrunn vet ikke at søk er et utgangspunkt,
+ikke en komplett oversikt. Ved å tilby utforskning hjelper du dem finne alt relevant.
+
 ## Viktig om lov-IDer
 
 **Hvis lovnavn ikke fungerer:** Bruk full ID fra sok-resultatet!
