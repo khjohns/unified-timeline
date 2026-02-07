@@ -35,6 +35,11 @@ httpx>=0.27.0                        # Async HTTP client (Lovdata API)
 paragraf @ git+https://github.com/khjohns/paragraf.git  # Norwegian law lookup MCP
 
 # ------------------------------------------------------------------------------
+# KOFA MCP Server
+# ------------------------------------------------------------------------------
+kofa @ git+https://github.com/khjohns/kofa.git  # KOFA public procurement decisions MCP
+
+# ------------------------------------------------------------------------------
 # HTML/XML Parsing
 # ------------------------------------------------------------------------------
 beautifulsoup4>=4.12.0               # HTML5-compatible XML parsing (Lovdata)
