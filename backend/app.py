@@ -182,6 +182,7 @@ from routes.forsering_routes import forsering_bp
 from routes.fravik_routes import fravik_bp
 from routes.letter_routes import letter_bp
 from paragraf.web import create_mcp_blueprint  # MCP server for Lovdata (external package)
+from kofa.web import create_mcp_blueprint as create_kofa_mcp_blueprint  # MCP server for KOFA
 from routes.oauth_consent_routes import oauth_consent_bp  # OAuth consent API
 from routes.sync_routes import sync_bp
 from routes.utility_routes import utility_bp
@@ -199,6 +200,7 @@ app.register_blueprint(sync_bp)
 app.register_blueprint(fravik_bp)
 app.register_blueprint(letter_bp)
 app.register_blueprint(create_mcp_blueprint(), url_prefix="/mcp")
+app.register_blueprint(create_kofa_mcp_blueprint(), url_prefix="/mcp/kofa")
 app.register_blueprint(oauth_consent_bp)
 app.register_blueprint(wellknown_bp)
 
