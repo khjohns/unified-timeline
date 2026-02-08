@@ -173,3 +173,23 @@ def limit_webhook(f):
     if limiter is None:
         return f
     return limiter.limit(f"{RATE_LIMIT_WEBHOOK} per minute")(f)
+
+
+RATE_LIMIT_MCP = os.getenv("RATE_LIMIT_MCP", "120")
+
+
+def limit_mcp(f):
+    """
+    Decorator for MCP endpoints.
+
+    Applies rate limit for MCP requests (default: 120 per minute).
+
+    Usage:
+        @app.route('/mcp/', methods=['POST'])
+        @limit_mcp
+        def mcp():
+            ...
+    """
+    if limiter is None:
+        return f
+    return limiter.limit(f"{RATE_LIMIT_MCP} per minute")(f)
