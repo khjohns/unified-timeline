@@ -14,6 +14,7 @@ import {
   FileTextIcon,
   EnvelopeClosedIcon,
   CrossCircledIcon,
+  CheckCircledIcon,
 } from '@radix-ui/react-icons';
 import { SporType, SakState, TimelineEvent, extractEventType } from '../../types/timeline';
 import { isLetterSupportedEvent } from '../../types/letter';
@@ -25,7 +26,7 @@ import { LetterPreviewModal } from './LetterPreviewModal';
 
 // ============ TYPES ============
 
-export type SporHistoryEntryType = 'te_krav' | 'te_oppdatering' | 'te_trukket' | 'bh_respons' | 'bh_oppdatering';
+export type SporHistoryEntryType = 'te_krav' | 'te_oppdatering' | 'te_trukket' | 'te_akseptert' | 'bh_respons' | 'bh_oppdatering';
 
 export interface SporHistoryEntry {
   id: string;
@@ -74,6 +75,7 @@ const ENTRY_TYPE_MAP: Record<string, Record<'TE' | 'BH', SporHistoryEntryType>> 
   opprettet: { TE: 'te_krav', BH: 'bh_respons' },
   oppdatert: { TE: 'te_oppdatering', BH: 'bh_oppdatering' },
   trukket: { TE: 'te_trukket', BH: 'bh_oppdatering' },
+  akseptert: { TE: 'te_akseptert', BH: 'te_akseptert' },
   respons: { TE: 'te_oppdatering', BH: 'bh_respons' },
   respons_oppdatert: { TE: 'te_oppdatering', BH: 'bh_oppdatering' },
 };
@@ -90,6 +92,8 @@ function getVederlagSammendrag(entry: VederlagHistorikkEntry): string {
       return krav_belop != null ? `Oppdatert til ${formatCurrency(krav_belop)}` : 'Krav oppdatert';
     case 'trukket':
       return 'Krav trukket';
+    case 'akseptert':
+      return 'Svaret godtatt';
     case 'respons': {
       const belopText = godkjent_belop != null ? ` ${formatCurrency(godkjent_belop)}` : '';
       if (bh_resultat === 'godkjent') return `Godkjent${belopText}`;
@@ -113,6 +117,8 @@ function getFristSammendrag(entry: FristHistorikkEntry): string {
       return krav_dager != null ? `Oppdatert til ${formatDays(krav_dager)}` : 'Krav oppdatert';
     case 'trukket':
       return 'Krav trukket';
+    case 'akseptert':
+      return 'Svaret godtatt';
     case 'respons': {
       const dagerText = godkjent_dager != null ? ` ${formatDays(godkjent_dager)}` : '';
       if (bh_resultat === 'godkjent') return `Godkjent${dagerText}`;
@@ -136,6 +142,8 @@ function getGrunnlagSammendrag(entry: GrunnlagHistorikkEntry): string {
       return 'Grunnlag oppdatert';
     case 'trukket':
       return 'Grunnlag trukket';
+    case 'akseptert':
+      return 'Svaret godtatt';
     case 'respons':
       return BH_RESULTAT_LABELS[bh_resultat ?? ''] || bh_resultat_label || 'Svar mottatt';
     case 'respons_oppdatert':
@@ -257,6 +265,7 @@ const ENTRY_ICONS: Record<SporHistoryEntryType, React.ReactNode> = {
   te_krav: <ArrowRightIcon className="h-4 w-4" />,
   te_oppdatering: <ReloadIcon className="h-4 w-4" />,
   te_trukket: <CrossCircledIcon className="h-4 w-4" />,
+  te_akseptert: <CheckCircledIcon className="h-4 w-4" />,
   bh_respons: <ChatBubbleIcon className="h-4 w-4" />,
   bh_oppdatering: <CheckIcon className="h-4 w-4" />,
 };
@@ -280,6 +289,9 @@ function getEntryVariant(type: SporHistoryEntryType, resultat?: string | null): 
   if (type === 'te_trukket') {
     return 'warning';
   }
+  if (type === 'te_akseptert') {
+    return 'success';
+  }
   // BH actions: variant based on resultat
   return BH_RESULTAT_VARIANTS[resultat ?? ''] ?? 'warning';
 }
@@ -294,6 +306,10 @@ function getEntryLabel(entry: SporHistoryEntry): string {
     return `${entry.sammendrag || 'Trukket'} tilbake`;
   }
 
+  if (entry.type === 'te_akseptert') {
+    return entry.sammendrag || 'Svaret godtatt';
+  }
+
   if (entry.type === 'te_krav' || entry.type === 'te_oppdatering') {
     // Use sammendrag for grunnlag (contains "Grunnlag opprettet/oppdatert")
     // For vederlag/frist, sammendrag has amount info which is better than generic labels
@@ -306,6 +322,7 @@ function getEntryLabel(entry: SporHistoryEntry): string {
     te_krav: 'Krav sendt',
     te_oppdatering: `Krav oppdatert${teVersionRef}`,
     te_trukket: '', // Handled above
+    te_akseptert: '', // Handled above
     bh_respons: `${entry.sammendrag || 'Svar mottatt'}${teVersionRef}`,
     bh_oppdatering: `Standpunkt oppdatert${teVersionRef}`,
   };

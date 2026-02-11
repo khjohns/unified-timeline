@@ -1566,6 +1566,10 @@ class TimelineService:
                 EventType.RESPONS_VEDERLAG,
                 EventType.RESPONS_VEDERLAG_OPPDATERT,
             }
+            or (
+                e.event_type == EventType.TE_AKSEPTERER_RESPONS
+                and getattr(e, "spor", None) == SporType.VEDERLAG
+            )
         ]
         vederlag_events.sort(key=lambda e: e.tidsstempel)
 
@@ -1734,6 +1738,16 @@ class TimelineService:
                 )
                 historikk.append(entry.model_dump(mode="json"))
 
+            elif event.event_type == EventType.TE_AKSEPTERER_RESPONS:
+                entry = VederlagHistorikkEntry(
+                    versjon=te_versjon,
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="akseptert",
+                    event_id=event.event_id,
+                )
+                historikk.append(entry.model_dump(mode="json"))
+
         return historikk
 
     def get_frist_historikk(self, events: list[AnyEvent]) -> list[dict[str, Any]]:
@@ -1761,6 +1775,10 @@ class TimelineService:
                 EventType.RESPONS_FRIST,
                 EventType.RESPONS_FRIST_OPPDATERT,
             }
+            or (
+                e.event_type == EventType.TE_AKSEPTERER_RESPONS
+                and getattr(e, "spor", None) == SporType.FRIST
+            )
         ]
         frist_events.sort(key=lambda e: e.tidsstempel)
 
@@ -1924,6 +1942,16 @@ class TimelineService:
                 )
                 historikk.append(entry.model_dump(mode="json"))
 
+            elif event.event_type == EventType.TE_AKSEPTERER_RESPONS:
+                entry = FristHistorikkEntry(
+                    versjon=te_versjon,
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="akseptert",
+                    event_id=event.event_id,
+                )
+                historikk.append(entry.model_dump(mode="json"))
+
         return historikk
 
     def get_grunnlag_historikk(self, events: list[AnyEvent]) -> list[dict[str, Any]]:
@@ -1950,6 +1978,10 @@ class TimelineService:
                 EventType.RESPONS_GRUNNLAG,
                 EventType.RESPONS_GRUNNLAG_OPPDATERT,
             }
+            or (
+                e.event_type == EventType.TE_AKSEPTERER_RESPONS
+                and getattr(e, "spor", None) == SporType.GRUNNLAG
+            )
         ]
         grunnlag_events.sort(key=lambda e: e.tidsstempel)
 
@@ -2033,6 +2065,16 @@ class TimelineService:
                         event.data.resultat
                     ),
                     bh_begrunnelse=event.data.begrunnelse,
+                )
+                historikk.append(entry.model_dump(mode="json"))
+
+            elif event.event_type == EventType.TE_AKSEPTERER_RESPONS:
+                entry = GrunnlagHistorikkEntry(
+                    versjon=te_versjon,
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="akseptert",
+                    event_id=event.event_id,
                 )
                 historikk.append(entry.model_dump(mode="json"))
 

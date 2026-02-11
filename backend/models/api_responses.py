@@ -112,7 +112,7 @@ class GrunnlagHistorikkEntry(BaseModel):
     tidsstempel: datetime
     aktor: AktorInfo
     endring_type: Literal[
-        "opprettet", "oppdatert", "trukket", "respons", "respons_oppdatert"
+        "opprettet", "oppdatert", "trukket", "respons", "respons_oppdatert", "akseptert"
     ]
     event_id: str
 
@@ -184,7 +184,7 @@ class VederlagHistorikkEntry(BaseModel):
     tidsstempel: datetime
     aktor: AktorInfo
     endring_type: Literal[
-        "sendt", "oppdatert", "trukket", "respons", "respons_oppdatert"
+        "sendt", "oppdatert", "trukket", "respons", "respons_oppdatert", "akseptert"
     ]
     event_id: str
 
@@ -283,7 +283,7 @@ class FristHistorikkEntry(BaseModel):
     tidsstempel: datetime
     aktor: AktorInfo
     endring_type: Literal[
-        "sendt", "oppdatert", "trukket", "respons", "respons_oppdatert", "spesifisert"
+        "sendt", "oppdatert", "trukket", "respons", "respons_oppdatert", "spesifisert", "akseptert"
     ]
     event_id: str
 

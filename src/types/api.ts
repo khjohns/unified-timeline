@@ -56,9 +56,9 @@ export interface AktorInfo {
   tidsstempel: string;
 }
 
-export type GrunnlagEndringType = 'opprettet' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert';
-export type VederlagEndringType = 'sendt' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert';
-export type FristEndringType = 'sendt' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert' | 'spesifisert';
+export type GrunnlagEndringType = 'opprettet' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert' | 'akseptert';
+export type VederlagEndringType = 'sendt' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert' | 'akseptert';
+export type FristEndringType = 'sendt' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert' | 'spesifisert' | 'akseptert';
 
 export interface GrunnlagHistorikkEntry {
   versjon: number;
