@@ -166,6 +166,9 @@ export interface GrunnlagTilstand {
   /** Which version of the claim BH last responded to (0-indexed: 0 = original, 1 = rev 1, etc.) */
   bh_respondert_versjon?: number;
 
+  /** True hvis entreprenør har akseptert byggherrens respons (partene er enige) */
+  te_akseptert?: boolean;
+
   // Tilbaketrekking
   /** Begrunnelse for tilbaketrekking av grunnlag */
   trukket_begrunnelse?: string;
@@ -232,6 +235,9 @@ export interface VederlagTilstand {
   har_subsidiaert_standpunkt?: boolean;
   visningsstatus?: string;
 
+  /** True hvis entreprenør har akseptert byggherrens respons (partene er enige) */
+  te_akseptert?: boolean;
+
   // Tilbaketrekking
   /** Begrunnelse for tilbaketrekking av vederlagskrav */
   trukket_begrunnelse?: string;
@@ -291,6 +297,9 @@ export interface FristTilstand {
 
   /** Which version of the claim BH last responded to (0-indexed: 0 = original, 1 = rev 1, etc.) */
   bh_respondert_versjon?: number;
+
+  /** True hvis entreprenør har akseptert byggherrens respons (partene er enige) */
+  te_akseptert?: boolean;
 
   // Tilbaketrekking
   /** Begrunnelse for tilbaketrekking av fristkrav */
@@ -623,7 +632,8 @@ export type EventType =
   | 'eo_utstedt'                   // BH utsteder EO formelt
   | 'eo_akseptert'                 // TE aksepterer EO
   | 'eo_bestridt'                  // TE bestrider EO
-  | 'eo_revidert';                 // BH reviderer EO
+  | 'eo_revidert'                  // BH reviderer EO
+  | 'te_aksepterer_respons';       // TE aksepterer BHs svar (per spor)
 
 // Varsel info structure (reusable)
 export interface VarselInfo {

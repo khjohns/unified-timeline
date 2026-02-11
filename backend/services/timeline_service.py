@@ -34,6 +34,7 @@ from models.events import (
     SakOpprettetEvent,
     SporStatus,
     SporType,
+    TEAkseptererResponsEvent,
     VederlagEvent,
 )
 from models.sak_state import (
@@ -271,6 +272,7 @@ class TimelineService:
             EventType.EO_KOE_FJERNET: self._handle_eo_koe_fjernet,
             EventType.EO_BESTRIDT: self._handle_eo_bestridt,
             EventType.EO_REVIDERT: self._handle_eo_revidert,
+            EventType.TE_AKSEPTERER_RESPONS: self._handle_te_aksepterer_respons,
         }
 
         handler = handlers.get(event.event_type)
@@ -1201,6 +1203,39 @@ class TimelineService:
             f"EO {state.endringsordre_data.eo_nummer} revidert til rev. {data.ny_revisjon_nummer}"
         )
 
+        return state
+
+    # ============ TE AKSEPTERER RESPONS ============
+
+    def _handle_te_aksepterer_respons(
+        self, state: SakState, event: TEAkseptererResponsEvent
+    ) -> SakState:
+        """Håndterer TE_AKSEPTERER_RESPONS - TE godtar BHs svar på et spor.
+
+        Når TE aksepterer, er partene enige og sporet markeres som GODKJENT.
+        BHs verdier (godkjent_belop/godkjent_dager) beholdes som avtalt.
+        """
+        spor = event.spor
+
+        if spor == SporType.GRUNNLAG:
+            state.grunnlag.te_akseptert = True
+            state.grunnlag.status = SporStatus.GODKJENT
+            state.grunnlag.siste_event_id = event.event_id
+            state.grunnlag.siste_oppdatert = event.tidsstempel
+
+        elif spor == SporType.VEDERLAG:
+            state.vederlag.te_akseptert = True
+            state.vederlag.status = SporStatus.GODKJENT
+            state.vederlag.siste_event_id = event.event_id
+            state.vederlag.siste_oppdatert = event.tidsstempel
+
+        elif spor == SporType.FRIST:
+            state.frist.te_akseptert = True
+            state.frist.status = SporStatus.GODKJENT
+            state.frist.siste_event_id = event.event_id
+            state.frist.siste_oppdatert = event.tidsstempel
+
+        logger.debug(f"TE aksepterte BH respons på {spor.value}")
         return state
 
     # ============ HELPERS ============

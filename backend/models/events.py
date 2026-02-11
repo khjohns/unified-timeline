@@ -105,6 +105,9 @@ class EventType(str, Enum):
     EO_BESTRIDT = "eo_bestridt"  # TE bestrider EO
     EO_REVIDERT = "eo_revidert"  # BH reviderer EO
 
+    # TE aksepterer BH respons (per spor)
+    TE_AKSEPTERER_RESPONS = "te_aksepterer_respons"
+
 
 # ============ VEDERLAG ENUMS ============
 
@@ -1758,6 +1761,37 @@ class EORevidertEvent(SakEvent):
         return v
 
 
+# ============ TE AKSEPTERER RESPONS ============
+
+
+class TEAkseptererResponsData(BaseModel):
+    """Data for TEs aksept av byggherrens respons på et spor."""
+
+    kommentar: str | None = Field(
+        default=None, description="Valgfri kommentar fra entreprenør"
+    )
+
+
+class TEAkseptererResponsEvent(SakEvent):
+    """Event når TE aksepterer BHs respons på et spor (grunnlag/vederlag/frist)."""
+
+    event_type: EventType = Field(
+        default=EventType.TE_AKSEPTERER_RESPONS,
+        description="TE aksepterer BHs respons",
+    )
+    spor: SporType = Field(..., description="Hvilket spor aksepten gjelder")
+    data: TEAkseptererResponsData = Field(..., description="Akseptdata")
+
+    @field_validator("event_type")
+    @classmethod
+    def validate_event_type(cls, v):
+        if v != EventType.TE_AKSEPTERER_RESPONS:
+            raise ValueError(
+                f"Ugyldig event_type for TEAkseptererResponsEvent: {v}"
+            )
+        return v
+
+
 # ============ TYPE UNION ============
 
 # Alle mulige event-typer for typing
@@ -1778,6 +1812,7 @@ AnyEvent = Union[
     EOAkseptertEvent,
     EOBestridtEvent,
     EORevidertEvent,
+    TEAkseptererResponsEvent,
 ]
 
 
@@ -1830,6 +1865,8 @@ def parse_event(data: dict) -> AnyEvent:
         EventType.EO_AKSEPTERT.value: EOAkseptertEvent,
         EventType.EO_BESTRIDT.value: EOBestridtEvent,
         EventType.EO_REVIDERT.value: EORevidertEvent,
+        # TE aksepterer BH respons
+        EventType.TE_AKSEPTERER_RESPONS.value: TEAkseptererResponsEvent,
     }
 
     event_class = type_map.get(event_type)
@@ -1935,14 +1972,18 @@ def parse_event_from_request(request_data: dict) -> AnyEvent:
         EventType.RESPONS_FRIST.value,
         EventType.RESPONS_FRIST_OPPDATERT.value,
     ]
-    if event_type in respons_event_types:
+    # Events that require 'spor' field
+    spor_event_types = respons_event_types + [
+        EventType.TE_AKSEPTERER_RESPONS.value,
+    ]
+    if event_type in spor_event_types:
         # Try to extract spor from data (if frontend sent it there)
         data = request_data.get("data", {})
         if isinstance(data, dict) and "spor" in data:
             request_data["spor"] = data.pop("spor")
 
-        # If still no spor, derive from event_type
-        if "spor" not in request_data:
+        # If still no spor, derive from event_type (only for respons events)
+        if "spor" not in request_data and event_type in respons_event_types:
             spor_map = {
                 EventType.RESPONS_GRUNNLAG.value: SporType.GRUNNLAG.value,
                 EventType.RESPONS_GRUNNLAG_OPPDATERT.value: SporType.GRUNNLAG.value,

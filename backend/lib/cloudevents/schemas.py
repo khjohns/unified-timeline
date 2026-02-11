@@ -33,6 +33,7 @@ from models.events import (
     FristResponsData,
     GrunnlagData,
     GrunnlagResponsData,
+    TEAkseptererResponsData,
     VederlagData,
     VederlagResponsData,
 )
@@ -85,6 +86,8 @@ EVENT_TYPE_TO_DATA_MODEL = {
     EventType.FORSERING_KOSTNADER_OPPDATERT.value: ForseringKostnaderOppdatertData,
     EventType.FORSERING_KOE_LAGT_TIL.value: ForseringKoeHandlingData,
     EventType.FORSERING_KOE_FJERNET.value: ForseringKoeHandlingData,
+    # TE aksepterer BH respons
+    EventType.TE_AKSEPTERER_RESPONS.value: TEAkseptererResponsData,
 }
 
 

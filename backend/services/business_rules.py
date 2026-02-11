@@ -102,6 +102,11 @@ class BusinessRuleValidator:
             EventType.FRIST_KRAV_TRUKKET: [
                 ("TRACK_ACTIVE", self._rule_frist_can_be_withdrawn),
             ],
+            # ========== TE AKSEPTERER RESPONS ==========
+            EventType.TE_AKSEPTERER_RESPONS: [
+                ("BH_HAS_RESPONDED", self._rule_bh_has_responded),
+                ("NOT_ALREADY_ACCEPTED", self._rule_not_already_accepted),
+            ],
             # ========== ENDRINGSORDRE RULES ==========
             # EO opprettelse - ingen spesifikke regler utover rolle-sjekk
             EventType.EO_OPPRETTET: [],
@@ -155,6 +160,8 @@ class BusinessRuleValidator:
             # Forsering TE-handlinger
             EventType.FORSERING_KOE_LAGT_TIL,
             EventType.FORSERING_KOE_FJERNET,
+            # TE aksepterer BH respons
+            EventType.TE_AKSEPTERER_RESPONS,
         }
 
         bh_only_events = {
@@ -463,5 +470,78 @@ class BusinessRuleValidator:
                 is_valid=False,
                 message="Fristkrav kan ikke trekkes tilbake når status er godkjent, ikke sendt, eller allerede trukket",
             )
+
+        return ValidationResult(is_valid=True)
+
+    # ========== TE AKSEPTERER RESPONS RULES ==========
+
+    def _rule_bh_has_responded(
+        self, event: AnyEvent, state: SakState
+    ) -> ValidationResult:
+        """R: BH must have responded on the track before TE can accept."""
+        from models.events import SporType
+
+        spor = getattr(event, "spor", None)
+        if spor == SporType.GRUNNLAG:
+            if state.grunnlag.bh_resultat is None:
+                return ValidationResult(
+                    is_valid=False,
+                    message="Byggherre har ikke svart på grunnlag ennå",
+                )
+        elif spor == SporType.VEDERLAG:
+            if state.vederlag.bh_resultat is None:
+                return ValidationResult(
+                    is_valid=False,
+                    message="Byggherre har ikke svart på vederlag ennå",
+                )
+        elif spor == SporType.FRIST:
+            if state.frist.bh_resultat is None:
+                return ValidationResult(
+                    is_valid=False,
+                    message="Byggherre har ikke svart på frist ennå",
+                )
+
+        return ValidationResult(is_valid=True)
+
+    def _rule_not_already_accepted(
+        self, event: AnyEvent, state: SakState
+    ) -> ValidationResult:
+        """R: Cannot accept if already accepted or track is settled."""
+        from models.events import SporType
+
+        spor = getattr(event, "spor", None)
+        if spor == SporType.GRUNNLAG:
+            if state.grunnlag.te_akseptert:
+                return ValidationResult(
+                    is_valid=False,
+                    message="Entreprenør har allerede akseptert svaret på grunnlag",
+                )
+            if state.grunnlag.status in {SporStatus.GODKJENT, SporStatus.LAAST, SporStatus.TRUKKET}:
+                return ValidationResult(
+                    is_valid=False,
+                    message="Grunnlag er allerede avsluttet",
+                )
+        elif spor == SporType.VEDERLAG:
+            if state.vederlag.te_akseptert:
+                return ValidationResult(
+                    is_valid=False,
+                    message="Entreprenør har allerede akseptert svaret på vederlag",
+                )
+            if state.vederlag.status in {SporStatus.GODKJENT, SporStatus.TRUKKET}:
+                return ValidationResult(
+                    is_valid=False,
+                    message="Vederlag er allerede avsluttet",
+                )
+        elif spor == SporType.FRIST:
+            if state.frist.te_akseptert:
+                return ValidationResult(
+                    is_valid=False,
+                    message="Entreprenør har allerede akseptert svaret på frist",
+                )
+            if state.frist.status in {SporStatus.GODKJENT, SporStatus.TRUKKET}:
+                return ValidationResult(
+                    is_valid=False,
+                    message="Frist er allerede avsluttet",
+                )
 
         return ValidationResult(is_valid=True)

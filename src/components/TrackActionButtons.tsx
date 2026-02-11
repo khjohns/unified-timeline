@@ -14,6 +14,7 @@ import {
   FileTextIcon,
   RocketIcon,
   CrossCircledIcon,
+  CheckCircledIcon,
 } from '@radix-ui/react-icons';
 import type { UserRole, AvailableActions } from '../hooks/useActionPermissions';
 import type { GrunnlagTilstand, FristTilstand } from '../types/timeline';
@@ -29,6 +30,7 @@ interface GrunnlagActionButtonsProps {
   onWithdrawGrunnlag: () => void;
   onRespondGrunnlag: () => void;
   onUpdateGrunnlagResponse: () => void;
+  onAcceptGrunnlagResponse: () => void;
   onUtstEO: () => void;
 }
 
@@ -44,6 +46,7 @@ export function GrunnlagActionButtons({
   onWithdrawGrunnlag,
   onRespondGrunnlag,
   onUpdateGrunnlagResponse,
+  onAcceptGrunnlagResponse,
   onUtstEO,
 }: GrunnlagActionButtonsProps) {
   // Compute update button variant: Primary if BH rejected and TE hasn't sent new version
@@ -73,6 +76,13 @@ export function GrunnlagActionButtons({
         <Button variant="ghost" size="sm" onClick={onWithdrawGrunnlag} className="ml-auto">
           <CrossCircledIcon className="w-4 h-4 mr-2" />
           Trekk tilbake
+        </Button>
+      )}
+      {/* TE Actions: Accept BH's response */}
+      {userRole === 'TE' && actions.canAcceptGrunnlagResponse && (
+        <Button variant="secondary" size="sm" onClick={onAcceptGrunnlagResponse}>
+          <CheckCircledIcon className="w-4 h-4 mr-2" />
+          Godta svaret
         </Button>
       )}
       {/* BH Actions: Respond to TE's submission */}
@@ -110,6 +120,7 @@ interface VederlagActionButtonsProps {
   onWithdrawVederlag: () => void;
   onRespondVederlag: () => void;
   onUpdateVederlagResponse: () => void;
+  onAcceptVederlagResponse: () => void;
 }
 
 /**
@@ -123,6 +134,7 @@ export function VederlagActionButtons({
   onWithdrawVederlag,
   onRespondVederlag,
   onUpdateVederlagResponse,
+  onAcceptVederlagResponse,
 }: VederlagActionButtonsProps) {
   return (
     <>
@@ -144,6 +156,13 @@ export function VederlagActionButtons({
         <Button variant="ghost" size="sm" onClick={onWithdrawVederlag} className="ml-auto">
           <CrossCircledIcon className="w-4 h-4 mr-2" />
           Trekk tilbake
+        </Button>
+      )}
+      {/* TE Actions: Accept BH's response */}
+      {userRole === 'TE' && actions.canAcceptVederlagResponse && (
+        <Button variant="secondary" size="sm" onClick={onAcceptVederlagResponse}>
+          <CheckCircledIcon className="w-4 h-4 mr-2" />
+          Godta svaret
         </Button>
       )}
       {/* BH Actions: Respond to TE's submission */}
@@ -176,6 +195,7 @@ interface FristActionButtonsProps {
   onSendForsering: () => void;
   onRespondFrist: () => void;
   onUpdateFristResponse: () => void;
+  onAcceptFristResponse: () => void;
 }
 
 /**
@@ -191,6 +211,7 @@ export function FristActionButtons({
   onSendForsering,
   onRespondFrist,
   onUpdateFristResponse,
+  onAcceptFristResponse,
 }: FristActionButtonsProps) {
   return (
     <>
@@ -212,6 +233,13 @@ export function FristActionButtons({
         <Button variant="ghost" size="sm" onClick={onWithdrawFrist} className="ml-auto">
           <CrossCircledIcon className="w-4 h-4 mr-2" />
           Trekk tilbake
+        </Button>
+      )}
+      {/* TE Actions: Accept BH's response */}
+      {userRole === 'TE' && actions.canAcceptFristResponse && (
+        <Button variant="secondary" size="sm" onClick={onAcceptFristResponse}>
+          <CheckCircledIcon className="w-4 h-4 mr-2" />
+          Godta svaret
         </Button>
       )}
       {/* TE Actions: Forsering (§33.8) - available when BH has rejected */}

@@ -26,6 +26,10 @@ export interface AvailableActions {
   canUpdateGrunnlagResponse: boolean;
   canUpdateVederlagResponse: boolean;
   canUpdateFristResponse: boolean;
+  // TE Actions: Accept BH's response (per track)
+  canAcceptGrunnlagResponse: boolean;
+  canAcceptVederlagResponse: boolean;
+  canAcceptFristResponse: boolean;
   // TE Actions: Forsering (§33.8)
   canSendForsering: boolean;
   canIssueEO: boolean;
@@ -180,6 +184,27 @@ export function useActionPermissions(
         state.frist.bh_respondert_versjon,
         state.frist.antall_versjoner
       ),
+
+    // TE Actions: Accept BH's response ("Godta svaret")
+    // Available when: TE, BH has responded, result is not GODKJENT, and not already accepted/settled
+    canAcceptGrunnlagResponse:
+      isTE &&
+      state.grunnlag.bh_resultat != null &&
+      state.grunnlag.bh_resultat !== 'godkjent' &&
+      !state.grunnlag.te_akseptert &&
+      !['godkjent', 'laast', 'trukket'].includes(state.grunnlag.status),
+    canAcceptVederlagResponse:
+      isTE &&
+      state.vederlag.bh_resultat != null &&
+      state.vederlag.bh_resultat !== 'godkjent' &&
+      !state.vederlag.te_akseptert &&
+      !['godkjent', 'trukket'].includes(state.vederlag.status),
+    canAcceptFristResponse:
+      isTE &&
+      state.frist.bh_resultat != null &&
+      state.frist.bh_resultat !== 'godkjent' &&
+      !state.frist.te_akseptert &&
+      !['godkjent', 'trukket'].includes(state.frist.status),
 
     // TE Actions: Forsering (§33.8)
     // Available when BH has rejected frist (wholly or partially) OR rejected grunnlag

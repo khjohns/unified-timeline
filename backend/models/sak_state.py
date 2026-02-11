@@ -109,6 +109,12 @@ class GrunnlagTilstand(BaseModel):
         description="Hvilken versjon av kravet BH sist responderte på (0-indeksert)",
     )
 
+    # TE aksept av BH respons
+    te_akseptert: bool = Field(
+        default=False,
+        description="True hvis TE har akseptert BHs respons (partene er enige)",
+    )
+
     # Tilbaketrekking
     trukket_begrunnelse: str | None = Field(
         default=None, description="Begrunnelse for tilbaketrekking av grunnlag"
@@ -264,6 +270,12 @@ class VederlagTilstand(BaseModel):
     bh_respondert_versjon: int | None = Field(
         default=None,
         description="Hvilken versjon av kravet BH sist responderte på (0-indeksert)",
+    )
+
+    # TE aksept av BH respons
+    te_akseptert: bool = Field(
+        default=False,
+        description="True hvis TE har akseptert BHs respons (partene er enige)",
     )
 
     # Tilbaketrekking
@@ -759,6 +771,12 @@ class FristTilstand(BaseModel):
     bh_respondert_versjon: int | None = Field(
         default=None,
         description="Hvilken versjon av kravet BH sist responderte på (0-indeksert)",
+    )
+
+    # TE aksept av BH respons
+    te_akseptert: bool = Field(
+        default=False,
+        description="True hvis TE har akseptert BHs respons (partene er enige)",
     )
 
     # Tilbaketrekking
