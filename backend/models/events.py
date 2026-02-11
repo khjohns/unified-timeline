@@ -1895,6 +1895,16 @@ def parse_event(data: dict) -> AnyEvent:
         data = dict(data)  # Don't mutate original
         data["spor"] = spor_map.get(event_type)
 
+    # For TEAkseptererResponsEvent: Extract 'spor' from nested data if not at top level
+    # This handles events stored in Supabase where spor was serialized inside 'data'
+    # via to_cloudevent() but needs to be at top level for model validation
+    if event_type == EventType.TE_AKSEPTERER_RESPONS.value and "spor" not in data:
+        event_data = data.get("data")
+        if isinstance(event_data, dict) and "spor" in event_data:
+            data = dict(data)  # Don't mutate original
+            data["data"] = dict(event_data)  # Don't mutate nested dict
+            data["spor"] = data["data"].pop("spor")
+
     # For SakOpprettetEvent: Extract fields from 'data' dict to top level
     # This handles events stored in Supabase where event-specific fields are in 'data'
     if event_type == EventType.SAK_OPPRETTET.value:

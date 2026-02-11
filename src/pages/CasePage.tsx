@@ -60,6 +60,8 @@ import {
   SendForseringModal,
   // Withdrawal modals (TE)
   WithdrawModal,
+  // Accept response modal (TE)
+  AcceptResponseModal,
 } from '../components/actions';
 import { findForseringerForSak, type FindForseringerResponse } from '../api/forsering';
 import { findEOerForSak, type FindEOerResponse } from '../api/endringsordre';
@@ -315,22 +317,6 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
     [sakId, state.frist.krevd_dager, directSendMutation, approvalWorkflow, toast]
   );
 
-  // Handler: TE accepts BH's response on a track
-  const handleAcceptResponse = useCallback(
-    async (spor: 'grunnlag' | 'vederlag' | 'frist') => {
-      try {
-        await directSendMutation.mutateAsync({
-          eventType: 'te_aksepterer_respons',
-          data: { spor },
-        });
-        toast.success('Svaret er godtatt', 'Partene er nå enige.');
-      } catch {
-        // Error toast handled by useSubmitEvent onError
-      }
-    },
-    [directSendMutation, toast]
-  );
-
   return (
     <div className="min-h-screen bg-pkt-bg-subtle relative">
       {/* Background grid - only visible on xl+ screens outside main content */}
@@ -486,7 +472,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               onWithdrawGrunnlag={() => modals.withdrawGrunnlag.setOpen(true)}
               onRespondGrunnlag={() => modals.respondGrunnlag.setOpen(true)}
               onUpdateGrunnlagResponse={() => modals.updateGrunnlagResponse.setOpen(true)}
-              onAcceptGrunnlagResponse={() => handleAcceptResponse('grunnlag')}
+              onAcceptGrunnlagResponse={() => modals.acceptGrunnlag.setOpen(true)}
               onUtstEO={() => modals.utstEO.setOpen(true)}
             />
           }
@@ -499,7 +485,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               onWithdrawVederlag={() => modals.withdrawVederlag.setOpen(true)}
               onRespondVederlag={() => modals.respondVederlag.setOpen(true)}
               onUpdateVederlagResponse={() => modals.updateVederlagResponse.setOpen(true)}
-              onAcceptVederlagResponse={() => handleAcceptResponse('vederlag')}
+              onAcceptVederlagResponse={() => modals.acceptVederlag.setOpen(true)}
             />
           }
           inlineVederlagRevision={
@@ -542,7 +528,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
               onSendForsering={() => modals.sendForsering.setOpen(true)}
               onRespondFrist={() => modals.respondFrist.setOpen(true)}
               onUpdateFristResponse={() => modals.updateFristResponse.setOpen(true)}
-              onAcceptFristResponse={() => handleAcceptResponse('frist')}
+              onAcceptFristResponse={() => modals.acceptFrist.setOpen(true)}
             />
           }
           inlineFristRevision={
@@ -939,6 +925,32 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
           <WithdrawModal
             open={modals.withdrawFrist.open}
             onOpenChange={modals.withdrawFrist.setOpen}
+            sakId={sakId}
+            track="frist"
+            sakState={state}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
+          />
+
+          {/* Accept Response Modals (TE) */}
+          <AcceptResponseModal
+            open={modals.acceptGrunnlag.open}
+            onOpenChange={modals.acceptGrunnlag.setOpen}
+            sakId={sakId}
+            track="grunnlag"
+            sakState={state}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
+          />
+          <AcceptResponseModal
+            open={modals.acceptVederlag.open}
+            onOpenChange={modals.acceptVederlag.setOpen}
+            sakId={sakId}
+            track="vederlag"
+            sakState={state}
+            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
+          />
+          <AcceptResponseModal
+            open={modals.acceptFrist.open}
+            onOpenChange={modals.acceptFrist.setOpen}
             sakId={sakId}
             track="frist"
             sakState={state}

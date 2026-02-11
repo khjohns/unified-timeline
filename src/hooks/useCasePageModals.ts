@@ -41,6 +41,11 @@ interface CasePageModals {
   withdrawVederlag: ModalState;
   withdrawFrist: ModalState;
 
+  // TE Accept Response
+  acceptGrunnlag: ModalState;
+  acceptVederlag: ModalState;
+  acceptFrist: ModalState;
+
   // Special Actions - BH
   utstEO: ModalState;
 
@@ -108,6 +113,11 @@ export function useCasePageModals(): CasePageModals {
   const withdrawVederlag = useModalState();
   const withdrawFrist = useModalState();
 
+  // TE Accept Response
+  const acceptGrunnlag = useModalState();
+  const acceptVederlag = useModalState();
+  const acceptFrist = useModalState();
+
   // Special Actions - BH
   const utstEO = useModalState();
 
@@ -150,6 +160,11 @@ export function useCasePageModals(): CasePageModals {
       withdrawVederlag,
       withdrawFrist,
 
+      // TE Accept Response
+      acceptGrunnlag,
+      acceptVederlag,
+      acceptFrist,
+
       // Special Actions - BH
       utstEO,
 
@@ -179,6 +194,9 @@ export function useCasePageModals(): CasePageModals {
       withdrawGrunnlag,
       withdrawVederlag,
       withdrawFrist,
+      acceptGrunnlag,
+      acceptVederlag,
+      acceptFrist,
       utstEO,
       sendResponsPakke,
       approvePakke,

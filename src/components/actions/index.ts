@@ -34,3 +34,6 @@ export { SendForseringModal } from './SendForseringModal';
 
 // Withdrawal modals (TE)
 export { WithdrawModal } from './WithdrawModal';
+
+// Accept response modal (TE)
+export { AcceptResponseModal } from './AcceptResponseModal';

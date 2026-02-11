@@ -246,6 +246,13 @@ class CloudEventMixin(BaseModel):
             if event_data:
                 ce["data"] = event_data
 
+        # Inject 'spor' into data payload if present on event
+        # Needed for events like TEAkseptererResponsEvent where spor can't be
+        # auto-derived from event_type during parse_event() round-trip
+        spor = getattr(self, "spor", None)
+        if spor and isinstance(ce.get("data"), dict):
+            ce["data"]["spor"] = spor.value if hasattr(spor, "value") else str(spor)
+
         # Fjern None-verdier fra ce dict (unntatt data som kan være tom dict)
         ce = {k: v for k, v in ce.items() if v is not None or k == "data"}
 
