@@ -182,6 +182,18 @@ export async function fjernKOE(
   );
 }
 
+/**
+ * Fetch next available EO number from backend
+ */
+export async function fetchNesteEONummer(): Promise<{
+  neste_nummer: string;
+  antall_eksisterende: number;
+}> {
+  return apiFetch<{ neste_nummer: string; antall_eksisterende: number }>(
+    '/api/endringsordre/neste-nummer'
+  );
+}
+
 // ============================================================================
 // EO LOOKUP (for related cases)
 // ============================================================================

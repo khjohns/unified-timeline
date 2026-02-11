@@ -181,6 +181,20 @@ class SakMetadataRepository:
                     )
             return cases
 
+    def count_by_sakstype(self, sakstype: str) -> int:
+        """Count cases by sakstype."""
+        with self.lock:
+            if not self.csv_path.exists():
+                return 0
+
+            count = 0
+            with open(self.csv_path, encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    if row.get("sakstype", "standard") == sakstype:
+                        count += 1
+            return count
+
     def delete(self, sak_id: str) -> bool:
         """Delete case metadata by ID."""
         with self.lock:

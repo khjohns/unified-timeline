@@ -180,6 +180,25 @@ def fjern_koe(sak_id: str, koe_sak_id: str):
     )
 
 
+@endringsordre_bp.route("/api/endringsordre/neste-nummer", methods=["GET"])
+@handle_service_errors
+def hent_neste_eo_nummer():
+    """
+    Hent neste ledige EO-nummer basert på antall eksisterende endringsordrer.
+
+    Returns:
+        { "neste_nummer": "EO-004", "antall_eksisterende": 3 }
+    """
+    container = _get_container()
+    metadata_repo = container.metadata_repository
+    antall = metadata_repo.count_by_sakstype("endringsordre")
+    neste = antall + 1
+    return jsonify({
+        "neste_nummer": f"EO-{neste:03d}",
+        "antall_eksisterende": antall,
+    })
+
+
 @endringsordre_bp.route("/api/endringsordre/kandidater", methods=["GET"])
 @handle_service_errors
 def hent_kandidat_koe_saker():

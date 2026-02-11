@@ -262,6 +262,17 @@ class SupabaseSakMetadataRepository:
         return [self._row_to_metadata(row) for row in result.data]
 
     @with_retry()
+    def count_by_sakstype(self, sakstype: str) -> int:
+        """Count cases by sakstype. Uses indexed column for fast lookup."""
+        result = (
+            self.client.table(self.TABLE_NAME)
+            .select("sak_id", count="exact")
+            .eq("sakstype", sakstype)
+            .execute()
+        )
+        return result.count or 0
+
+    @with_retry()
     def delete(self, sak_id: str) -> bool:
         """Delete case metadata by ID."""
         result = (

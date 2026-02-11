@@ -49,6 +49,7 @@ import {
 import {
   opprettEndringsordre,
   fetchKandidatKOESaker,
+  fetchNesteEONummer,
   type OpprettEORequest,
   type KandidatKOE,
 } from '../../api/endringsordre';
@@ -254,17 +255,28 @@ export function UtstEndringsordreModal({
 
   const kandidatSaker = kandidaterData?.kandidat_saker ?? [];
 
-  // Generate next EO number based on existing EOs
-  const generateNextEoNummer = useCallback(() => {
-    const existingNumbers = kandidatSaker
-      .map((k) => {
-        const match = k.tittel?.match(/EO-?(\d+)/i);
-        return match?.[1] ? parseInt(match[1], 10) : 0;
-      })
-      .filter((n) => n > 0);
-    const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
-    return `EO-${String(nextNumber).padStart(3, '0')}`;
-  }, [kandidatSaker]);
+  // Fetch next EO number from backend
+  const { data: nesteNummerData } = useQuery({
+    queryKey: endringsordreKeys.nesteNummer(),
+    queryFn: fetchNesteEONummer,
+    enabled: open,
+    staleTime: STALE_TIME.DEFAULT,
+  });
+
+  // Auto-fill EO-nummer when backend data arrives and field is empty
+  const hasAutoFilled = useRef(false);
+  useEffect(() => {
+    if (open && nesteNummerData?.neste_nummer && !hasAutoFilled.current) {
+      const currentValue = formValues.eo_nummer;
+      if (!currentValue) {
+        setValue('eo_nummer', nesteNummerData.neste_nummer);
+        hasAutoFilled.current = true;
+      }
+    }
+    if (!open) {
+      hasAutoFilled.current = false;
+    }
+  }, [open, nesteNummerData, formValues.eo_nummer, setValue]);
 
   // Create EO mutation
   const createEOMutation = useMutation({
@@ -284,6 +296,7 @@ export function UtstEndringsordreModal({
       clearBackup();
       queryClient.invalidateQueries({ queryKey: sakKeys.state(sakId) });
       queryClient.invalidateQueries({ queryKey: sakKeys.timeline(sakId) });
+      queryClient.invalidateQueries({ queryKey: endringsordreKeys.nesteNummer() });
       reset();
       setSelectedKoeIds(preselectedKoeIds);
       setCurrentStep(1);
@@ -488,7 +501,12 @@ export function UtstEndringsordreModal({
                     <Button
                       type="button"
                       variant="secondary"
-                      onClick={() => setValue('eo_nummer', generateNextEoNummer())}
+                      onClick={() => {
+                        if (nesteNummerData?.neste_nummer) {
+                          setValue('eo_nummer', nesteNummerData.neste_nummer);
+                        }
+                      }}
+                      disabled={!nesteNummerData}
                       className="w-full sm:w-auto"
                     >
                       Generer neste

@@ -8,6 +8,7 @@ import { queryOptions } from '@tanstack/react-query';
 import {
   fetchEOKontekst,
   fetchKandidatKOESaker,
+  fetchNesteEONummer,
   type EOKontekstResponse,
   type KandidatKOE,
 } from '../api/endringsordre';
@@ -21,6 +22,7 @@ export const endringsordreKeys = {
   kontekst: (sakId: string) => ['endringsordre', sakId, 'kontekst'] as const,
   kandidater: () => ['endringsordre', 'kandidater'] as const,
   byRelatert: (sakId: string) => ['endringsordre', 'by-relatert', sakId] as const,
+  nesteNummer: () => ['endringsordre', 'neste-nummer'] as const,
 };
 
 /**
@@ -45,5 +47,15 @@ export const endringsordreQueries = {
       queryKey: endringsordreKeys.kandidater(),
       queryFn: fetchKandidatKOESaker,
       staleTime: STALE_TIME.EXTENDED,
+    }),
+
+  /**
+   * Fetch next available EO number
+   */
+  nesteNummer: () =>
+    queryOptions<{ neste_nummer: string; antall_eksisterende: number }, Error>({
+      queryKey: endringsordreKeys.nesteNummer(),
+      queryFn: fetchNesteEONummer,
+      staleTime: STALE_TIME.DEFAULT,
     }),
 };
