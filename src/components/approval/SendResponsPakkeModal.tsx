@@ -49,6 +49,12 @@ interface SendResponsPakkeModalProps {
   vederlagDraft?: DraftResponseData;
   fristDraft?: DraftResponseData;
   onSubmit: (dagmulktsats: number, comment?: string) => void;
+  /** Callback for sending events directly (bypassing approval when fullmakt or deadlock) */
+  onDirectSend?: (drafts: {
+    grunnlagDraft?: DraftResponseData;
+    vederlagDraft?: DraftResponseData;
+    fristDraft?: DraftResponseData;
+  }) => void;
   defaultDagmulktsats?: number;
   currentMockUser: MockPerson;
   currentMockManager?: MockPerson;
@@ -63,6 +69,7 @@ export function SendResponsPakkeModal({
   vederlagDraft,
   fristDraft,
   onSubmit,
+  onDirectSend,
   defaultDagmulktsats = 50_000,
   currentMockUser,
   currentMockManager,
@@ -92,6 +99,10 @@ export function SendResponsPakkeModal({
     [samletBelop, currentMockUser.rolle]
   );
   const noApprovalRequired = approvalSteps.length === 0;
+
+  // Deadlock detection: approval is required but no manager is configured
+  // In a real system this would mean the approval chain can't progress
+  const isDeadlock = !noApprovalRequired && !currentMockManager;
 
   // The first approver is always the manager (simulating real Entra ID workflow)
   // The manager's role determines who can be selected as alternative approvers
@@ -156,6 +167,17 @@ export function SendResponsPakkeModal({
   const includedTracks = [grunnlagDraft, vederlagDraft, fristDraft].filter(Boolean).length;
 
   const handleSubmit = () => {
+    // When user has fullmakt (or deadlock with direct-send chosen), send events directly
+    if ((noApprovalRequired || isDeadlock) && onDirectSend) {
+      onDirectSend({ grunnlagDraft, vederlagDraft, fristDraft });
+      setComment('');
+      setApproverSelection('manager');
+      setSelectedOtherApprover('');
+      setActiveTab('form');
+      setPdfBlob(null);
+      onOpenChange(false);
+      return;
+    }
     onSubmit(dagmulktsats, comment || undefined);
     setComment('');
     setApproverSelection('manager');
@@ -192,7 +214,7 @@ export function SendResponsPakkeModal({
   };
 
   // Dynamic modal title based on whether approval is required
-  const modalTitle = noApprovalRequired ? 'Godkjenn og send respons' : 'Send til godkjenning';
+  const modalTitle = noApprovalRequired || isDeadlock ? 'Godkjenn og send respons' : 'Send til godkjenning';
 
   return (
     <Modal
@@ -223,6 +245,12 @@ export function SendResponsPakkeModal({
               Som {APPROVAL_ROLE_LABELS[currentMockUser.rolle]} har du fullmakt til å godkjenne
               beløp opp til denne størrelsen. Svaret på {formatSummaryList(summaryParts)} vil
               bli godkjent direkte og sendt til entreprenør.
+            </Alert>
+          ) : isDeadlock ? (
+            <Alert variant="warning" title="Ingen godkjenner tilgjengelig">
+              Godkjenning er påkrevd for dette beløpet, men det finnes ingen
+              overordnet godkjenner i systemet for din rolle ({APPROVAL_ROLE_LABELS[currentMockUser.rolle]}).
+              For å unngå at svaret blir stående, kan du sende direkte.
             </Alert>
           ) : (
             <Alert variant="info" title="Intern godkjenning kreves">
@@ -332,8 +360,8 @@ export function SendResponsPakkeModal({
           </table>
         </SectionContainer>
 
-        {/* Approver Selection - only show when approval is required */}
-        {!noApprovalRequired && (
+        {/* Approver Selection - only show when approval is required and not deadlocked */}
+        {!noApprovalRequired && !isDeadlock && (
           <SectionContainer title="Godkjenner">
             {/* Current user info */}
             <div className="text-sm text-pkt-text-body-muted">
@@ -419,7 +447,7 @@ export function SendResponsPakkeModal({
             Avbryt
           </Button>
           <Button variant="primary" onClick={handleSubmit}>
-            {noApprovalRequired ? 'Godkjenn og send' : 'Send til godkjenning'}
+            {noApprovalRequired || isDeadlock ? 'Godkjenn og send' : 'Send til godkjenning'}
           </Button>
         </div>
       </div>

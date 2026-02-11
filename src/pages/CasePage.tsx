@@ -6,7 +6,7 @@
  * Shows a banner if the case is part of a forsering case or an endringsordre.
  */
 
-import { useMemo, Suspense, useEffect } from 'react';
+import { useMemo, useCallback, Suspense, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { forseringKeys, endringsordreKeys } from '../queries';
@@ -19,6 +19,7 @@ import { useHistorikk } from '../hooks/useRevisionHistory';
 import { useActionPermissions } from '../hooks/useActionPermissions';
 import { useUserRole } from '../hooks/useUserRole';
 import { useApprovalWorkflow } from '../hooks/useApprovalWorkflow';
+import { useSubmitEvent } from '../hooks/useSubmitEvent';
 import { useCasePageModals } from '../hooks/useCasePageModals';
 import { CaseDashboard } from '../components/views/CaseDashboard';
 import {
@@ -27,7 +28,7 @@ import {
   FristActionButtons,
 } from '../components/TrackActionButtons';
 import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
-import { Alert, Button, AlertDialog, Card, DropdownMenuItem } from '../components/primitives';
+import { Alert, Button, AlertDialog, Card, DropdownMenuItem, useToast } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { formatCurrency } from '../utils/formatters';
 import { downloadApprovedPdf } from '../pdf/generator';
@@ -62,7 +63,8 @@ import {
 } from '../components/actions';
 import { findForseringerForSak, type FindForseringerResponse } from '../api/forsering';
 import { findEOerForSak, type FindEOerResponse } from '../api/endringsordre';
-import type { SakState, TimelineEvent } from '../types/timeline';
+import type { SakState, TimelineEvent, EventType } from '../types/timeline';
+import type { DraftResponseData } from '../types/approval';
 import {
   DownloadIcon,
   PaperPlaneIcon,
@@ -152,6 +154,18 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
   // Approval workflow (mock) - must be called unconditionally
   const approvalWorkflow = useApprovalWorkflow(sakId);
 
+  // Toast for direct-send feedback
+  const toast = useToast();
+
+  // Submit event hook for direct-send (when PL has fullmakt)
+  const directSendMutation = useSubmitEvent(sakId, {
+    onSuccess: () => {
+      // Individual event success - handled in the callback below
+    },
+    onError: (error) => {
+      toast.error('Feil ved sending', error.message);
+    },
+  });
 
   // Onboarding guide state
   const onboarding = useOnboarding(casePageSteps.length);
@@ -194,6 +208,103 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
   const grunnlagVarsletForSent = useMemo((): boolean => {
     return state.grunnlag.grunnlag_varslet_i_tide === false;
   }, [state.grunnlag.grunnlag_varslet_i_tide]);
+
+  // Direct send callback: bypasses approval workflow and sends events to backend
+  // Used when PL has fullmakt (amount within authority) or deadlock (no approver available)
+  const handleDirectSend = useCallback(
+    async (drafts: {
+      grunnlagDraft?: DraftResponseData;
+      vederlagDraft?: DraftResponseData;
+      fristDraft?: DraftResponseData;
+    }) => {
+      const events: { eventType: EventType; data: Record<string, unknown> }[] = [];
+
+      // Build grunnlag event from draft
+      if (drafts.grunnlagDraft) {
+        const fd = (drafts.grunnlagDraft.formData ?? {}) as Record<string, unknown>;
+        events.push({
+          eventType: 'respons_grunnlag',
+          data: {
+            grunnlag_event_id: `grunnlag-${sakId}`,
+            resultat: fd.resultat ?? drafts.grunnlagDraft.resultat,
+            begrunnelse: fd.begrunnelse ?? drafts.grunnlagDraft.begrunnelse,
+            grunnlag_varslet_i_tide: fd.grunnlag_varslet_i_tide,
+          },
+        });
+      }
+
+      // Build vederlag event from draft
+      if (drafts.vederlagDraft) {
+        const fd = (drafts.vederlagDraft.formData ?? {}) as Record<string, unknown>;
+        events.push({
+          eventType: 'respons_vederlag',
+          data: {
+            vederlag_krav_id: `vederlag-${sakId}`,
+            // Preklusjon
+            hovedkrav_varslet_i_tide: fd.hovedkrav_varslet_i_tide,
+            rigg_varslet_i_tide: fd.rigg_varslet_i_tide,
+            produktivitet_varslet_i_tide: fd.produktivitet_varslet_i_tide,
+            // Beregningsmetode
+            aksepterer_metode: fd.aksepterer_metode,
+            oensket_metode: fd.oensket_metode,
+            ep_justering_varslet_i_tide: fd.ep_justering_varslet_i_tide,
+            ep_justering_akseptert: fd.ep_justering_akseptert,
+            hold_tilbake: fd.hold_tilbake,
+            // Beløpsvurdering
+            hovedkrav_vurdering: fd.hovedkrav_vurdering,
+            hovedkrav_godkjent_belop: fd.hovedkrav_godkjent_belop,
+            rigg_vurdering: fd.rigg_vurdering,
+            rigg_godkjent_belop: fd.rigg_godkjent_belop,
+            produktivitet_vurdering: fd.produktivitet_vurdering,
+            produktivitet_godkjent_belop: fd.produktivitet_godkjent_belop,
+            // Oppsummering
+            begrunnelse: drafts.vederlagDraft.begrunnelse ?? fd.begrunnelse,
+            beregnings_resultat: drafts.vederlagDraft.resultat,
+            total_godkjent_belop: drafts.vederlagDraft.belop,
+          },
+        });
+      }
+
+      // Build frist event from draft
+      if (drafts.fristDraft) {
+        const fd = (drafts.fristDraft.formData ?? {}) as Record<string, unknown>;
+        events.push({
+          eventType: 'respons_frist',
+          data: {
+            frist_krav_id: `frist-${sakId}`,
+            // Preklusjon
+            frist_varsel_ok: fd.frist_varsel_ok,
+            spesifisert_krav_ok: fd.spesifisert_krav_ok,
+            foresporsel_svar_ok: fd.foresporsel_svar_ok,
+            send_foresporsel: fd.send_foresporsel,
+            frist_for_spesifisering: fd.frist_for_spesifisering,
+            // Vilkår
+            vilkar_oppfylt: fd.vilkar_oppfylt,
+            // Beregning
+            godkjent_dager: drafts.fristDraft.dager,
+            ny_sluttdato: fd.ny_sluttdato,
+            // Oppsummering
+            begrunnelse: drafts.fristDraft.begrunnelse ?? fd.begrunnelse,
+            beregnings_resultat: drafts.fristDraft.resultat,
+            krevd_dager: state.frist.krevd_dager,
+          },
+        });
+      }
+
+      // Send all events sequentially
+      try {
+        for (const event of events) {
+          await directSendMutation.mutateAsync(event);
+        }
+        // Clear all drafts after successful send
+        approvalWorkflow.clearAllDrafts();
+        toast.success('Svar sendt', 'Alle responser er sendt direkte til entreprenør.');
+      } catch {
+        // Error toast is handled by useSubmitEvent onError
+      }
+    },
+    [sakId, state.frist.krevd_dager, directSendMutation, approvalWorkflow, toast]
+  );
 
   return (
     <div className="min-h-screen bg-pkt-bg-subtle relative">
@@ -824,6 +935,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
             onSubmit={(dagmulktsats, comment) => {
               approvalWorkflow.submitPakkeForApproval(dagmulktsats, comment);
             }}
+            onDirectSend={handleDirectSend}
             currentMockUser={currentMockUser}
             currentMockManager={currentMockManager}
             sakState={state}

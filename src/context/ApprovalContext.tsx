@@ -59,6 +59,8 @@ interface ApprovalContextType {
   canApprovePakke: (sakId: string, role: ApprovalRole) => boolean;
   /** Restore drafts from a rejected package for re-submission */
   restoreDraftsFromPakke: (sakId: string) => boolean;
+  /** Clear all drafts for a specific case */
+  clearAllDrafts: (sakId: string) => void;
 }
 
 const ApprovalContext = createContext<ApprovalContextType | null>(null);
@@ -373,6 +375,16 @@ export function ApprovalProvider({ children }: ApprovalProviderProps) {
     [bhResponsPakker]
   );
 
+  const clearAllDrafts = useCallback((sakId: string) => {
+    setDrafts((prev) => {
+      const next = new Map(prev);
+      next.delete(makeKey(sakId, 'grunnlag'));
+      next.delete(makeKey(sakId, 'vederlag'));
+      next.delete(makeKey(sakId, 'frist'));
+      return next;
+    });
+  }, []);
+
   const canApprovePakke = useCallback(
     (sakId: string, role: ApprovalRole): boolean => {
       const pakke = bhResponsPakker.get(sakId);
@@ -398,6 +410,7 @@ export function ApprovalProvider({ children }: ApprovalProviderProps) {
     cancelPakke,
     canApprovePakke,
     restoreDraftsFromPakke,
+    clearAllDrafts,
   };
 
   return (

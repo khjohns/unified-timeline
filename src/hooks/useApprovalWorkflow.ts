@@ -47,6 +47,9 @@ interface UseApprovalWorkflowResult {
 
   // Re-submission after rejection
   restoreDraftsFromPakke: () => boolean;
+
+  // Clear all drafts for this case
+  clearAllDrafts: () => void;
 }
 
 export function useApprovalWorkflow(sakId: string): UseApprovalWorkflowResult {
@@ -150,6 +153,11 @@ export function useApprovalWorkflow(sakId: string): UseApprovalWorkflowResult {
     return context.restoreDraftsFromPakke(sakId);
   }, [context, sakId]);
 
+  // Clear all drafts for this case
+  const clearAllDrafts = useCallback(() => {
+    context.clearAllDrafts(sakId);
+  }, [context, sakId]);
+
   // Package status helpers
   const isPendingPakkeApproval = bhResponsPakke?.status === 'pending';
   const isPakkeApproved = bhResponsPakke?.status === 'approved';
@@ -189,5 +197,6 @@ export function useApprovalWorkflow(sakId: string): UseApprovalWorkflowResult {
     isPakkeRejected,
     nextPakkeApprover,
     restoreDraftsFromPakke,
+    clearAllDrafts,
   };
 }

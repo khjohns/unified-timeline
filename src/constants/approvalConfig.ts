@@ -92,7 +92,7 @@ export function createApprovalSteps(amount: number): ApprovalStep[] {
 /**
  * Role hierarchy from lowest to highest authority
  */
-const ROLE_HIERARCHY: ApprovalRole[] = ['PL', 'SL', 'AL', 'DU', 'AD'];
+export const ROLE_HIERARCHY: ApprovalRole[] = ['PL', 'SL', 'AL', 'DU', 'AD'];
 
 /**
  * Create approval steps excluding the submitter's role level and below.
