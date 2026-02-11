@@ -17,6 +17,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './components/primitives/Toast';
 import { ConnectionStatusProvider } from './hooks/useConnectionStatus';
+import { ProjectProvider } from './context/ProjectContext';
 
 // Handle GitHub Pages SPA routing redirect
 // When 404.html redirects to /index.html?route=%2Fdemo, we need to
@@ -71,13 +72,15 @@ root.render(
           <ThemeProvider>
             <ToastProvider>
               <ConnectionStatusProvider>
-                <AuthProvider>
-                  <UserRoleProvider>
-                    <ErrorBoundary>
-                      <App />
-                    </ErrorBoundary>
-                  </UserRoleProvider>
-                </AuthProvider>
+                <ProjectProvider>
+                  <AuthProvider>
+                    <UserRoleProvider>
+                      <ErrorBoundary>
+                        <App />
+                      </ErrorBoundary>
+                    </UserRoleProvider>
+                  </AuthProvider>
+                </ProjectProvider>
               </ConnectionStatusProvider>
             </ToastProvider>
           </ThemeProvider>

@@ -20,17 +20,18 @@ import { queryOptions } from '@tanstack/react-query';
 import { fetchCaseState, fetchTimeline, fetchHistorikk } from '../api/state';
 import { StateResponse, TimelineResponse, HistorikkResponse } from '../types/api';
 import { STALE_TIME } from '../constants/queryConfig';
+import { getActiveProjectId } from '../api/client';
 
 /**
  * Query key factory for sak-related queries.
- * Provides type-safe, consistent query keys.
+ * Provides type-safe, consistent query keys scoped to active project.
  */
 export const sakKeys = {
-  all: ['sak'] as const,
-  detail: (sakId: string) => ['sak', sakId] as const,
-  state: (sakId: string) => ['sak', sakId, 'state'] as const,
-  timeline: (sakId: string) => ['sak', sakId, 'timeline'] as const,
-  historikk: (sakId: string) => ['sak', sakId, 'historikk'] as const,
+  all: () => ['sak', getActiveProjectId()] as const,
+  detail: (sakId: string) => ['sak', getActiveProjectId(), sakId] as const,
+  state: (sakId: string) => ['sak', getActiveProjectId(), sakId, 'state'] as const,
+  timeline: (sakId: string) => ['sak', getActiveProjectId(), sakId, 'timeline'] as const,
+  historikk: (sakId: string) => ['sak', getActiveProjectId(), sakId, 'historikk'] as const,
 };
 
 /**

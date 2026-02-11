@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from core.unit_of_work import TrackingUnitOfWork
     from integrations.catenda import CatendaClient
     from repositories import EventRepository, SakMetadataRepository
+    from repositories.project_repository import SupabaseProjectRepository
     from services.catenda_service import CatendaService
     from services.endringsordre_service import EndringsordreService
     from services.forsering_service import ForseringService
@@ -70,6 +71,7 @@ class Container:
     # Private cache for lazy-loaded instances
     _event_repo: Optional["EventRepository"] = field(default=None, repr=False)
     _metadata_repo: Optional["SakMetadataRepository"] = field(default=None, repr=False)
+    _project_repo: Optional["SupabaseProjectRepository"] = field(default=None, repr=False)
     _timeline_service: Optional["TimelineService"] = field(default=None, repr=False)
     _catenda_service: Optional["CatendaService"] = field(default=None, repr=False)
     _catenda_client: Optional["CatendaClient"] = field(default=None, repr=False)
@@ -108,6 +110,19 @@ class Container:
 
             self._metadata_repo = create_metadata_repository()
         return self._metadata_repo
+
+    @property
+    def project_repository(self) -> "SupabaseProjectRepository":
+        """
+        Lazy-load ProjectRepository.
+
+        Only supports Supabase backend (projects are a cloud feature).
+        """
+        if self._project_repo is None:
+            from repositories.project_repository import SupabaseProjectRepository
+
+            self._project_repo = SupabaseProjectRepository()
+        return self._project_repo
 
     # -------------------------------------------------------------------------
     # Services
@@ -222,6 +237,7 @@ class Container:
         """
         self._event_repo = None
         self._metadata_repo = None
+        self._project_repo = None
         self._timeline_service = None
         self._catenda_service = None
         self._catenda_client = None

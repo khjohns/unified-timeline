@@ -8,16 +8,17 @@ import { queryOptions } from '@tanstack/react-query';
 import { fetchFravikState, fetchFravikEvents } from '../api/fravik';
 import type { FravikState, FravikEvent } from '../types/fravik';
 import { STALE_TIME } from '../constants/queryConfig';
+import { getActiveProjectId } from '../api/client';
 
 /**
  * Query key factory for fravik-related queries.
  */
 export const fravikKeys = {
-  all: ['fravik'] as const,
-  detail: (sakId: string) => ['fravik', sakId] as const,
-  state: (sakId: string) => ['fravik', sakId, 'state'] as const,
-  events: (sakId: string) => ['fravik', sakId, 'events'] as const,
-  liste: () => ['fravik-liste'] as const,
+  all: () => ['fravik', getActiveProjectId()] as const,
+  detail: (sakId: string) => ['fravik', getActiveProjectId(), sakId] as const,
+  state: (sakId: string) => ['fravik', getActiveProjectId(), sakId, 'state'] as const,
+  events: (sakId: string) => ['fravik', getActiveProjectId(), sakId, 'events'] as const,
+  liste: () => ['fravik-liste', getActiveProjectId()] as const,
 };
 
 /**

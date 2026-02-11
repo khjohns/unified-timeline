@@ -153,8 +153,24 @@ class SakMetadataRepository:
                         )
             return None
 
-    def list_all(self) -> list[SakMetadata]:
-        """List all cases (for case list view)."""
+    def _get_project_id(self, prosjekt_id: str | None = None) -> str | None:
+        """Get project ID from parameter or Flask context. Returns None outside Flask."""
+        if prosjekt_id:
+            return prosjekt_id
+        try:
+            from flask import has_request_context
+
+            if has_request_context():
+                from lib.project_context import get_project_id
+
+                return get_project_id()
+        except ImportError:
+            pass
+        return None
+
+    def list_all(self, prosjekt_id: str | None = None) -> list[SakMetadata]:
+        """List all cases for a project (for case list view)."""
+        pid = self._get_project_id(prosjekt_id)
         with self.lock:
             if not self.csv_path.exists():
                 return []
@@ -163,6 +179,8 @@ class SakMetadataRepository:
             with open(self.csv_path, encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
+                    if pid and (row.get("prosjekt_id") or "oslobygg") != pid:
+                        continue
                     cases.append(
                         SakMetadata(
                             sak_id=row["sak_id"],
@@ -181,8 +199,9 @@ class SakMetadataRepository:
                     )
             return cases
 
-    def count_by_sakstype(self, sakstype: str) -> int:
-        """Count cases by sakstype."""
+    def count_by_sakstype(self, sakstype: str, prosjekt_id: str | None = None) -> int:
+        """Count cases by sakstype within a project."""
+        pid = self._get_project_id(prosjekt_id)
         with self.lock:
             if not self.csv_path.exists():
                 return 0
@@ -191,6 +210,8 @@ class SakMetadataRepository:
             with open(self.csv_path, encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
+                    if pid and (row.get("prosjekt_id") or "oslobygg") != pid:
+                        continue
                     if row.get("sakstype", "standard") == sakstype:
                         count += 1
             return count

@@ -2,12 +2,14 @@
  * useCaseList Hook
  *
  * React Query hook for fetching and caching the list of all cases.
+ * Query keys are scoped to the active project for cache isolation.
  */
 
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { fetchCaseList } from '../api/cases';
 import { CaseListResponse } from '../types/api';
 import { STALE_TIME } from '../constants/queryConfig';
+import { getActiveProjectId } from '../api/client';
 
 export interface UseCaseListOptions {
   /**
@@ -63,7 +65,7 @@ export function useCaseList(options: UseCaseListOptions = {}) {
   } = options;
 
   return useQuery<CaseListResponse, Error>({
-    queryKey: ['cases', sakstype ?? 'all'],
+    queryKey: ['cases', getActiveProjectId(), sakstype ?? 'all'],
     queryFn: () => fetchCaseList(sakstype),
     staleTime,
     refetchOnWindowFocus,
@@ -89,7 +91,7 @@ export function useCaseListSuspense(options: UseCaseListSuspenseOptions = {}) {
   } = options;
 
   return useSuspenseQuery<CaseListResponse, Error>({
-    queryKey: ['cases', sakstype ?? 'all'],
+    queryKey: ['cases', getActiveProjectId(), sakstype ?? 'all'],
     queryFn: () => fetchCaseList(sakstype),
     staleTime,
     refetchOnWindowFocus,

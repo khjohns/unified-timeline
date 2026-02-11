@@ -51,6 +51,7 @@ from core.logging_config import setup_logging
 
 # Request context
 from core.request_context import init_request_context
+from lib.project_context import init_project_context
 from core.system_context import SystemContext
 from lib.auth.magic_link import MagicLinkManager
 
@@ -167,11 +168,15 @@ init_limiter(app)
 # Request context (request ID tracking)
 init_request_context(app)
 
+# Project context (X-Project-ID header)
+init_project_context(app)
+
 
 # ============================================================================
 # Register Blueprints
 # ============================================================================
 
+from routes.project_routes import projects_bp
 from routes.analytics_routes import analytics_bp
 from routes.catenda_webhook_routes import webhook_bp  # Catenda-specific webhooks
 from routes.cloudevents_routes import cloudevents_bp
@@ -203,6 +208,7 @@ app.register_blueprint(create_mcp_blueprint(), url_prefix="/mcp")
 app.register_blueprint(create_kofa_mcp_blueprint(), url_prefix="/mcp/kofa")
 app.register_blueprint(oauth_consent_bp)
 app.register_blueprint(wellknown_bp)
+app.register_blueprint(projects_bp)
 
 # Register error handlers
 register_error_handlers(app)

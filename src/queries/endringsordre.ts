@@ -13,16 +13,17 @@ import {
   type KandidatKOE,
 } from '../api/endringsordre';
 import { STALE_TIME } from '../constants/queryConfig';
+import { getActiveProjectId } from '../api/client';
 
 /**
  * Query key factory for endringsordre-related queries.
  */
 export const endringsordreKeys = {
-  all: ['endringsordre'] as const,
-  kontekst: (sakId: string) => ['endringsordre', sakId, 'kontekst'] as const,
-  kandidater: () => ['endringsordre', 'kandidater'] as const,
-  byRelatert: (sakId: string) => ['endringsordre', 'by-relatert', sakId] as const,
-  nesteNummer: () => ['endringsordre', 'neste-nummer'] as const,
+  all: () => ['endringsordre', getActiveProjectId()] as const,
+  kontekst: (sakId: string) => ['endringsordre', getActiveProjectId(), sakId, 'kontekst'] as const,
+  kandidater: () => ['endringsordre', getActiveProjectId(), 'kandidater'] as const,
+  byRelatert: (sakId: string) => ['endringsordre', getActiveProjectId(), 'by-relatert', sakId] as const,
+  nesteNummer: () => ['endringsordre', getActiveProjectId(), 'neste-nummer'] as const,
 };
 
 /**

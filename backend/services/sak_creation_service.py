@@ -101,6 +101,12 @@ class SakCreationService:
         now = datetime.now(UTC)
         meta_kwargs = metadata_kwargs or {}
 
+        # Default prosjekt_id from request context if not provided
+        if not prosjekt_id:
+            from lib.project_context import get_project_id
+
+            prosjekt_id = get_project_id()
+
         metadata = SakMetadata(
             sak_id=sak_id,
             sakstype=sakstype,

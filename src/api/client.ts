@@ -18,6 +18,17 @@ export function getAuthToken(): string | null {
   return authToken;
 }
 
+// Active project ID (set by ProjectContext)
+let activeProjectId: string = 'oslobygg';
+
+export function setActiveProjectId(projectId: string) {
+  activeProjectId = projectId;
+}
+
+export function getActiveProjectId(): string {
+  return activeProjectId;
+}
+
 // CSRF token storage and fetching
 let csrfToken: string | null = null;
 let csrfTokenPromise: Promise<string> | null = null;
@@ -123,9 +134,10 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  // Build headers with auth token if available
+  // Build headers with auth token and project ID
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'X-Project-ID': activeProjectId,
   };
 
   if (authToken) {
