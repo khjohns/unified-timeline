@@ -472,7 +472,7 @@ describe('useActionPermissions', () => {
 
     it('should not allow updating grunnlag response when BH has not responded', () => {
       const state = createMockState({ grunnlagStatus: 'sendt' });
-      state.grunnlag.bh_resultat = null;
+      state.grunnlag.bh_resultat = undefined;
 
       const actions = useActionPermissions(state, role);
       expect(actions.canUpdateGrunnlagResponse).toBe(false);
@@ -549,7 +549,7 @@ describe('useActionPermissions', () => {
 
     it('should not allow sending forsering when BH has not responded to frist', () => {
       const state = createMockState({ fristStatus: 'sendt' });
-      state.frist.bh_resultat = null;
+      state.frist.bh_resultat = undefined;
 
       const actions = useActionPermissions(state, role);
       expect(actions.canSendForsering).toBe(false);
@@ -611,7 +611,7 @@ describe('useActionPermissions', () => {
 
     it('should allow responding when BH has not responded yet', () => {
       const state = createMockState({ grunnlagStatus: 'sendt' });
-      state.grunnlag.bh_resultat = null;
+      state.grunnlag.bh_resultat = undefined;
       state.grunnlag.bh_respondert_versjon = undefined;
       state.grunnlag.antall_versjoner = 1;
 

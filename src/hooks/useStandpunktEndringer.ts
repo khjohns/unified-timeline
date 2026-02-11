@@ -86,7 +86,7 @@ function detectStandpunktEndringer(
     }
 
     // Scenario 2: Grunnlag was rejected but is now approved
-    if (state.grunnlag?.bh_resultat === 'godkjent' || state.grunnlag?.bh_resultat === 'delvis_godkjent') {
+    if (state.grunnlag?.bh_resultat === 'godkjent') {
       if (opprinneligDager > 0 && state.frist?.status !== 'avslatt') {
         const godkjentDager = state.frist?.bh_resultat === 'godkjent'
           ? opprinneligDager

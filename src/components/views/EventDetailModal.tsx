@@ -298,8 +298,9 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
           {data.varslet_for_oppstart !== undefined && (
             <DataListItem
               label="Forhåndsvarsel regningsarbeid (§34.4)"
-              value={data.varslet_for_oppstart ? 'Ja - BH ble varslet før oppstart' : 'Nei - BH ble ikke varslet'}
-            />
+            >
+              {data.varslet_for_oppstart ? 'Ja - BH ble varslet før oppstart' : 'Nei - BH ble ikke varslet'}
+            </DataListItem>
           )}
           <VedleggDisplay vedleggIds={data.vedlegg_ids} />
         </DataList>
@@ -362,8 +363,9 @@ function VederlagOppdatertSection({ data }: { data: VederlagOppdatertEventData }
           {fullData.varslet_for_oppstart !== undefined && (
             <DataListItem
               label="Forhåndsvarsel regningsarbeid (§34.4)"
-              value={fullData.varslet_for_oppstart ? 'Ja - BH ble varslet før oppstart' : 'Nei - BH ble ikke varslet'}
-            />
+            >
+              {fullData.varslet_for_oppstart ? 'Ja - BH ble varslet før oppstart' : 'Nei - BH ble ikke varslet'}
+            </DataListItem>
           )}
           <VedleggDisplay vedleggIds={fullData.vedlegg_ids} />
         </DataList>
@@ -517,7 +519,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
               <DataListItem label="Produktivitet" mono>{formatCurrency(data.produktivitet_godkjent_belop)}</DataListItem>
             )}
             {data.total_godkjent_belop !== undefined && (
-              <DataListItem label="Total" mono className="font-semibold">{formatCurrency(data.total_godkjent_belop)}</DataListItem>
+              <DataListItem label="Total" mono>{formatCurrency(data.total_godkjent_belop)}</DataListItem>
             )}
           </DataList>
         </SectionContainer>
@@ -584,7 +586,7 @@ function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdat
               <DataListItem label="Produktivitet" mono>{formatCurrency(data.produktivitet_godkjent_belop)}</DataListItem>
             )}
             {data.total_godkjent_belop !== undefined && (
-              <DataListItem label="Total" mono className="font-semibold">{formatCurrency(data.total_godkjent_belop)}</DataListItem>
+              <DataListItem label="Total" mono>{formatCurrency(data.total_godkjent_belop)}</DataListItem>
             )}
           </DataList>
         </SectionContainer>

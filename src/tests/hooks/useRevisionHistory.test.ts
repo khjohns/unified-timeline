@@ -31,7 +31,7 @@ function createEvent(
     time: new Date().toISOString(),
     actorrole: 'TE',
     summary: 'Test event',
-    data: {},
+    data: undefined,
     ...overrides,
   };
 }
@@ -65,8 +65,8 @@ describe('useRevisionHistory', () => {
       expect(result.current.currentVersion).toBe(0);
       expect(result.current.totalRevisions).toBe(0);
       expect(result.current.revisions).toHaveLength(1);
-      expect(result.current.revisions[0].versjon).toBe(0);
-      expect(result.current.revisions[0].erRevisjon).toBe(false);
+      expect(result.current.revisions[0]!.versjon).toBe(0);
+      expect(result.current.revisions[0]!.erRevisjon).toBe(false);
       expect(result.current.originalEventId).toBe('grunnlag-1');
     });
 
@@ -85,7 +85,7 @@ describe('useRevisionHistory', () => {
           spor: 'grunnlag',
           actorrole: 'TE',
           time: '2025-01-02T10:00:00Z',
-          data: { original_event_id: 'grunnlag-1' },
+          data: { original_event_id: 'grunnlag-1' } as any,
         }),
       ];
 
@@ -94,9 +94,9 @@ describe('useRevisionHistory', () => {
       expect(result.current.currentVersion).toBe(1);
       expect(result.current.totalRevisions).toBe(1);
       expect(result.current.revisions).toHaveLength(2);
-      expect(result.current.revisions[1].versjon).toBe(1);
-      expect(result.current.revisions[1].erRevisjon).toBe(true);
-      expect(result.current.revisions[1].original_event_id).toBe('grunnlag-1');
+      expect(result.current.revisions[1]!.versjon).toBe(1);
+      expect(result.current.revisions[1]!.erRevisjon).toBe(true);
+      expect(result.current.revisions[1]!.original_event_id).toBe('grunnlag-1');
     });
 
     it('should handle multiple revisions correctly', () => {
@@ -186,10 +186,10 @@ describe('useRevisionHistory', () => {
       const { result: bhResult } = renderHook(() => useRevisionHistory(events, 'grunnlag', 'BH'));
 
       expect(teResult.current.revisions).toHaveLength(1);
-      expect(teResult.current.revisions[0].event_id).toBe('te-1');
+      expect(teResult.current.revisions[0]!.event_id).toBe('te-1');
 
       expect(bhResult.current.revisions).toHaveLength(1);
-      expect(bhResult.current.revisions[0].event_id).toBe('bh-1');
+      expect(bhResult.current.revisions[0]!.event_id).toBe('bh-1');
     });
 
     it('should include all roles when no role specified', () => {
@@ -243,7 +243,7 @@ describe('useRevisionHistory', () => {
 
       const { result } = renderHook(() => useRevisionHistory(events, 'frist'));
 
-      expect(result.current.revisions[0].event_id).toBe('earliest');
+      expect(result.current.revisions[0]!.event_id).toBe('earliest');
       expect(result.current.originalEventId).toBe('earliest');
     });
   });
@@ -264,14 +264,14 @@ describe('useRevisionHistory', () => {
           spor: 'vederlag',
           actorrole: 'BH',
           time: '2025-01-02T10:00:00Z',
-          data: { original_respons_id: 'bh-resp-1' },
+          data: { original_respons_id: 'bh-resp-1' } as any,
         }),
       ];
 
       const { result } = renderHook(() => useRevisionHistory(events, 'vederlag', 'BH'));
 
       expect(result.current.totalRevisions).toBe(1);
-      expect(result.current.revisions[1].original_event_id).toBe('bh-resp-1');
+      expect(result.current.revisions[1]!.original_event_id).toBe('bh-resp-1');
     });
   });
 });
@@ -421,12 +421,12 @@ describe('groupByVersion', () => {
     const result = groupByVersion(entries);
 
     expect(result).toHaveLength(2);
-    expect(result[0].versjon).toBe(1);
-    expect(result[0].teEntry?.value).toBe('te-1');
-    expect(result[0].bhEntry?.value).toBe('bh-1');
-    expect(result[1].versjon).toBe(2);
-    expect(result[1].teEntry?.value).toBe('te-2');
-    expect(result[1].bhEntry).toBeUndefined();
+    expect(result[0]!.versjon).toBe(1);
+    expect(result[0]!.teEntry?.value).toBe('te-1');
+    expect(result[0]!.bhEntry?.value).toBe('bh-1');
+    expect(result[1]!.versjon).toBe(2);
+    expect(result[1]!.teEntry?.value).toBe('te-2');
+    expect(result[1]!.bhEntry).toBeUndefined();
   });
 
   it('should sort by version number', () => {

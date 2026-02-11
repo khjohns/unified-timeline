@@ -136,7 +136,7 @@ interface RespondVederlagModalProps {
   /** Optional vederlag event data for context display and conditional logic */
   vederlagEvent?: VederlagEventInfo;
   /** Status of the grunnlag response (for subsidiary treatment) */
-  grunnlagStatus?: 'godkjent' | 'avslatt' | 'delvis_godkjent';
+  grunnlagStatus?: 'godkjent' | 'avslatt' | 'frafalt';
   /** Hovedkategori - påvirker om §34.1.2 preklusjon gjelder (kun SVIKT/ANDRE) */
   hovedkategori?: 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE';
   /** §32.2: Har BH påberopt at grunnlagsvarselet kom for sent? (kun ENDRING)

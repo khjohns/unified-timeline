@@ -106,8 +106,6 @@ const entreprenorRules: StatusAlertRule[] = [
       const statusTekst =
         grunnlag.bh_resultat === 'godkjent'
           ? 'Endringsforholdet er godkjent.'
-          : grunnlag.bh_resultat === 'delvis_godkjent'
-          ? 'Endringsforholdet er delvis godkjent.'
           : 'Endringsforholdet er varslet.';
       return {
         type: 'action',
@@ -133,8 +131,6 @@ const entreprenorRules: StatusAlertRule[] = [
       const statusTekst =
         grunnlag.bh_resultat === 'godkjent'
           ? 'Endringsforholdet er godkjent.'
-          : grunnlag.bh_resultat === 'delvis_godkjent'
-          ? 'Endringsforholdet er delvis godkjent.'
           : 'Endringsforholdet er varslet til byggherre.';
       return {
         type: 'action',
@@ -648,8 +644,6 @@ const byggherreRules: StatusAlertRule[] = [
       const resultatTekst =
         grunnlag.bh_resultat === 'godkjent'
           ? 'godkjent'
-          : grunnlag.bh_resultat === 'delvis_godkjent'
-          ? 'delvis godkjent'
           : 'avslått';
       const kravType = erForceMajeure(state) ? 'fristforlengelse' : 'vederlagsjustering/fristforlengelse';
       return {

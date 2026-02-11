@@ -193,7 +193,6 @@ function formatGrunnlagResultat(resultat?: GrunnlagResponsResultat): string {
   if (!resultat) return '—';
   const map: Record<GrunnlagResponsResultat, string> = {
     'godkjent': 'Godkjent',
-    'delvis_godkjent': 'Delvis godkjent',
     'avslatt': 'Avslått',
     'frafalt': 'Frafalt (§32.3 c)',
   };

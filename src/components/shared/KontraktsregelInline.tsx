@@ -35,6 +35,7 @@ type Hjemmel =
   | '§24.2.2' // Risikoovergang - kontroll av byggherrens materiale
   | '§25.1.2' // Varslingsplikt ved forhold som forstyrrer gjennomføringen
   | '§25.2'   // Varslingsplikt ved uegnet prosjektering (funksjonskrav)
+  | '§31.3'   // Formell endringsordre
   | '§32.1'   // Definisjon av pålegg og utførelsesplikt
   | '§32.2'   // Irregulære endringer (pålegg uten endringsordre)
   | '§32.3'   // Passivitetsrisiko (byggherre)
@@ -156,6 +157,11 @@ const VARSLINGSREGLER: Record<Hjemmel, Varslingsregel> = {
   '§29.2': {
     regel: 'Ved vesentlig betalingsmislighold fra byggherren, eller dersom slikt mislighold klart vil inntre (§29.2), må totalentreprenøren varsle skriftlig minst 24 timer før stansing iverksettes.',
     konsekvens: 'Stansingsrett forutsetter vesentlig mislighold.',
+  },
+
+  '§31.3': {
+    regel: 'Byggherren kan pålegge totalentreprenøren endringer ved å utstede skriftlig endringsordre (§31.3). Endringen kan gjelde arbeidsomfang, kvalitet, art, utførelse eller fremdrift.',
+    konsekvens: 'En endringsordre etter §31.3 etablerer at endringen er avtalt. Totalentreprenøren har utførelsesplikt og kan kreve vederlagsjustering (§34) og fristforlengelse (§33.1 a).',
   },
 
   '§32.1': {

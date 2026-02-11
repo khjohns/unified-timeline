@@ -90,7 +90,7 @@ type VederlagFormData = z.infer<typeof vederlagSchema>;
 // Grunnlag event info for context display
 interface GrunnlagEventInfo {
   tittel?: string;
-  status?: 'godkjent' | 'avslatt' | 'delvis_godkjent';
+  status?: 'godkjent' | 'avslatt' | 'frafalt';
   dato_varslet?: string;
   dato_oppdaget?: string;
   /** Hovedkategori for preklusjonssjekk (§34.1.1 vs §34.1.2) */

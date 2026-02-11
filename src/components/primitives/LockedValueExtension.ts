@@ -56,11 +56,11 @@ export function parseLockedValueTokens(text: string): ParsedSegment[] {
     // Add the locked value
     segments.push({
       type: 'locked',
-      content: match[3], // display value
+      content: match[3]!, // display value
       lockedValue: {
-        type: match[1] as LockedValueType,
-        value: match[2],
-        display: match[3],
+        type: match[1]! as LockedValueType,
+        value: match[2]!,
+        display: match[3]!,
       },
     });
 

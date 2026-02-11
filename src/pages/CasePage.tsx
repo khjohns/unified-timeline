@@ -164,6 +164,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
       }, 1000);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [onboarding.hasCompletedBefore, onboarding.isActive, onboarding.start]);
 
   // Data is guaranteed to exist when using Suspense hooks
@@ -179,9 +180,9 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
   );
 
   // Compute grunnlag status for subsidiary logic in response modals
-  const grunnlagStatus = useMemo((): 'godkjent' | 'avslatt' | 'delvis_godkjent' | undefined => {
+  const grunnlagStatus = useMemo((): 'godkjent' | 'avslatt' | 'frafalt' | undefined => {
     const result = state.grunnlag.bh_resultat;
-    if (result === 'godkjent' || result === 'avslatt' || result === 'delvis_godkjent') {
+    if (result === 'godkjent' || result === 'avslatt' || result === 'frafalt') {
       return result;
     }
     return undefined;
@@ -517,7 +518,7 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
             grunnlagEventId={`grunnlag-${sakId}`}
             grunnlagEvent={{
               hovedkategori: state.grunnlag.hovedkategori,
-              underkategori: state.grunnlag.underkategori,
+              underkategori: Array.isArray(state.grunnlag.underkategori) ? state.grunnlag.underkategori[0] : state.grunnlag.underkategori,
               beskrivelse: state.grunnlag.beskrivelse,
               dato_oppdaget: state.grunnlag.dato_oppdaget,
               dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,

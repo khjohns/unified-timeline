@@ -97,7 +97,7 @@ export function KravOgBegrunnelseSeksjon<T extends KravFormFields>({
             error={errors.antall_dager?.message as string | undefined}
           >
             <Controller
-              name={'antall_dager' as keyof T & string}
+              name={'antall_dager' as any}
               control={control}
               render={({ field }) => (
                 <Input
@@ -120,7 +120,7 @@ export function KravOgBegrunnelseSeksjon<T extends KravFormFields>({
               error={errors.ny_sluttdato?.message as string | undefined}
             >
               <Controller
-                name={'ny_sluttdato' as keyof T & string}
+                name={'ny_sluttdato' as any}
                 control={control}
                 render={({ field }) => (
                   <DatePicker
@@ -145,7 +145,7 @@ export function KravOgBegrunnelseSeksjon<T extends KravFormFields>({
           error={errors.begrunnelse?.message as string | undefined}
         >
           <Controller
-            name={'begrunnelse' as keyof T & string}
+            name={'begrunnelse' as any}
             control={control}
             render={({ field }) => (
               <Textarea

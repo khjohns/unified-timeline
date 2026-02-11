@@ -220,7 +220,7 @@ export function BegrunnelseEditor({
     if (currentTokens !== value) {
       const html = tokensToHtml(value);
       const paragraphs = html.split(/\n\n+/).map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`);
-      editor.commands.setContent(paragraphs.join(''), false);
+      editor.commands.setContent(paragraphs.join(''), { emitUpdate: false });
     }
   }, [value, editor]);
 

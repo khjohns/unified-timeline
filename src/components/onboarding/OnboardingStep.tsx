@@ -91,6 +91,7 @@ export function OnboardingStep({
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync step on desktop
       setDisplayedStep(stepNumber);
     }
+    return undefined;
   }, [stepNumber, displayedStep, isMobile, isActive]);
 
   // Track viewport size
@@ -183,8 +184,8 @@ export function OnboardingStep({
 
   // Swipe/drag handlers for mobile
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
+    touchStartX.current = e.touches[0]!.clientX;
+    touchStartY.current = e.touches[0]!.clientY;
     isDraggingVertical.current = false;
     setSwipeOffset(0);
     setDragOffsetY(0);
@@ -192,8 +193,8 @@ export function OnboardingStep({
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isMobile) return;
-    const currentX = e.touches[0].clientX;
-    const currentY = e.touches[0].clientY;
+    const currentX = e.touches[0]!.clientX;
+    const currentY = e.touches[0]!.clientY;
     const diffX = currentX - touchStartX.current;
     const diffY = currentY - touchStartY.current;
 

@@ -63,7 +63,7 @@ export const grunnlagFormRefine = (data: z.infer<typeof grunnlagFormSchema>) => 
 
 export const grunnlagFormRefineMessage = {
   message: 'Hjemmel må velges',
-  path: ['underkategori'] as const,
+  path: ['underkategori'],
 };
 
 export type GrunnlagFormData = z.infer<typeof grunnlagFormSchema>;
@@ -114,10 +114,10 @@ export function GrunnlagForm<T extends GrunnlagFormData>({
     formState: { errors },
   } = form;
 
-  const varselSendesNa = watch('varsel_sendes_na' as keyof T) as boolean | undefined;
-  const selectedUnderkategorier = watch('underkategori' as keyof T) as string;
-  const datoOppdaget = watch('dato_oppdaget' as keyof T) as string;
-  const datoVarselSendt = watch('dato_varsel_sendt' as keyof T) as string | undefined;
+  const varselSendesNa = watch('varsel_sendes_na' as any) as boolean | undefined;
+  const selectedUnderkategorier = watch('underkategori' as any) as string;
+  const datoOppdaget = watch('dato_oppdaget' as any) as string;
+  const datoVarselSendt = watch('dato_varsel_sendt' as any) as string | undefined;
 
   // Get selected category info
   const valgtHovedkategori = useMemo(
@@ -150,7 +150,7 @@ export function GrunnlagForm<T extends GrunnlagFormData>({
             helpText="Velg rettslig grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder og hvilke krav som kan fremmes."
           >
             <Controller
-              name={'hovedkategori' as keyof T as never}
+              name={'hovedkategori' as any}
               control={control as never}
               render={({ field }) => (
                 <RadioGroup
@@ -192,7 +192,7 @@ export function GrunnlagForm<T extends GrunnlagFormData>({
           {/* Underkategori - Dynamic based on hovedkategori, grouped Select */}
           {selectedHovedkategori && valgtHovedkategori && valgtHovedkategori.underkategorier.length > 0 && (
             <Controller
-              name={'underkategori' as keyof T as never}
+              name={'underkategori' as any}
               control={control as never}
               render={({ field }) => {
                 const grupperteUnderkategorier = getGrupperteUnderkategorier(valgtHovedkategori.underkategorier);
@@ -267,7 +267,7 @@ export function GrunnlagForm<T extends GrunnlagFormData>({
             <Input
               id="tittel"
               data-testid={`${testIdPrefix}-tittel`}
-              {...register('tittel' as keyof T as never)}
+              {...register('tittel' as any)}
               fullWidth
             />
           </FormField>
@@ -281,7 +281,7 @@ export function GrunnlagForm<T extends GrunnlagFormData>({
             <Textarea
               id="beskrivelse"
               data-testid={`${testIdPrefix}-beskrivelse`}
-              {...register('beskrivelse' as keyof T as never)}
+              {...register('beskrivelse' as any)}
               rows={5}
               fullWidth
               error={!!errors.beskrivelse}
@@ -303,7 +303,7 @@ export function GrunnlagForm<T extends GrunnlagFormData>({
         >
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <Controller
-              name={'dato_oppdaget' as keyof T as never}
+              name={'dato_oppdaget' as any}
               control={control as never}
               render={({ field }) => (
                 <DatePicker
@@ -331,11 +331,11 @@ export function GrunnlagForm<T extends GrunnlagFormData>({
           description="Når og hvordan ble byggherre varslet om forholdet?"
         >
           <Controller
-            name={'varsel_sendes_na' as keyof T as never}
+            name={'varsel_sendes_na' as any}
             control={control as never}
             render={({ field: sendesNaField }) => (
               <Controller
-                name={'dato_varsel_sendt' as keyof T as never}
+                name={'dato_varsel_sendt' as any}
                 control={control as never}
                 render={({ field: datoField }) => (
                   <VarselSeksjon
@@ -344,7 +344,7 @@ export function GrunnlagForm<T extends GrunnlagFormData>({
                     onHarTidligereChange={(v) => sendesNaField.onChange(!v)}
                     datoSendt={datoField.value as string | undefined}
                     onDatoSendtChange={datoField.onChange}
-                    registerMetoder={register('varsel_metode' as keyof T as never)}
+                    registerMetoder={register('varsel_metode' as any)}
                     idPrefix={`${testIdPrefix}_varsel`}
                     testId={`${testIdPrefix}-varsel-valg`}
                     extraContent={

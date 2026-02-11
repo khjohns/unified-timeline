@@ -128,6 +128,7 @@ export function OnboardingGuide({
 
       return () => clearTimeout(scrollTimer);
     }
+    return undefined;
   }, [isActive, currentStep, currentStepConfig, updateSpotlight]);
 
   // Keep spotlight updated on scroll/resize (but not during step transitions)

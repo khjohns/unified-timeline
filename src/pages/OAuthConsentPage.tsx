@@ -206,7 +206,7 @@ export default function OAuthConsentPage() {
     return (
       <ErrorState
         title="Mangler autorisasjons-ID"
-        message="Ingen authorization_id parameter i URL-en."
+        error="Ingen authorization_id parameter i URL-en."
       />
     );
   }
@@ -222,8 +222,7 @@ export default function OAuthConsentPage() {
             <p><strong>authorization_id:</strong> {authorizationId || 'mangler'}</p>
             <p><strong>Innlogget bruker:</strong> {user?.email || 'ikke innlogget'}</p>
             <p><strong>supabase.auth.oauth:</strong> {
-              // @ts-expect-error - checking if oauth exists
-              supabase.auth.oauth ? 'tilgjengelig' : 'ikke tilgjengelig'
+              (supabase.auth as any).oauth ? 'tilgjengelig' : 'ikke tilgjengelig'
             }</p>
           </div>
           <button

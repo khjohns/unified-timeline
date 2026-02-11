@@ -202,7 +202,7 @@ export function CaseDashboard({
             <div className="mb-2">
               <CategoryLabel
                 hovedkategori={state.grunnlag.hovedkategori}
-                underkategori={state.grunnlag.underkategori}
+                underkategori={Array.isArray(state.grunnlag.underkategori) ? state.grunnlag.underkategori[0] : state.grunnlag.underkategori}
               />
             </div>
           )}

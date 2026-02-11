@@ -107,7 +107,7 @@ interface RespondFristModalProps {
   /** Optional frist event data for context display */
   fristEvent?: FristEventInfo;
   /** Status of the grunnlag response (for subsidiary treatment) */
-  grunnlagStatus?: 'godkjent' | 'avslatt' | 'delvis_godkjent';
+  grunnlagStatus?: 'godkjent' | 'avslatt' | 'frafalt';
   /** §32.2: Har BH påberopt at grunnlagsvarselet kom for sent? (kun ENDRING)
    * Når true: Hele fristkravet behandles subsidiært (ikke bare varslingen) */
   grunnlagVarsletForSent?: boolean;
