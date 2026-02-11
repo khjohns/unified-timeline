@@ -72,17 +72,17 @@ export function GrunnlagActionButtons({
           Oppdater
         </Button>
       )}
-      {userRole === 'TE' && actions.canWithdrawGrunnlag && (
-        <Button variant="ghost" size="sm" onClick={onWithdrawGrunnlag} className="ml-auto">
-          <CrossCircledIcon className="w-4 h-4 mr-2" />
-          Trekk tilbake
-        </Button>
-      )}
       {/* TE Actions: Accept BH's response */}
       {userRole === 'TE' && actions.canAcceptGrunnlagResponse && (
-        <Button variant="secondary" size="sm" onClick={onAcceptGrunnlagResponse}>
+        <Button variant="ghost" size="sm" onClick={onAcceptGrunnlagResponse} className="ml-auto">
           <CheckCircledIcon className="w-4 h-4 mr-2" />
           Godta svaret
+        </Button>
+      )}
+      {userRole === 'TE' && actions.canWithdrawGrunnlag && (
+        <Button variant="ghost" size="sm" onClick={onWithdrawGrunnlag} className={actions.canAcceptGrunnlagResponse ? '' : 'ml-auto'}>
+          <CrossCircledIcon className="w-4 h-4 mr-2" />
+          Trekk tilbake
         </Button>
       )}
       {/* BH Actions: Respond to TE's submission */}
@@ -152,17 +152,17 @@ export function VederlagActionButtons({
         </Button>
       )}
       {/* TE "Oppdater" now handled by inlineVederlagRevision prop */}
-      {userRole === 'TE' && actions.canWithdrawVederlag && (
-        <Button variant="ghost" size="sm" onClick={onWithdrawVederlag} className="ml-auto">
-          <CrossCircledIcon className="w-4 h-4 mr-2" />
-          Trekk tilbake
-        </Button>
-      )}
       {/* TE Actions: Accept BH's response */}
       {userRole === 'TE' && actions.canAcceptVederlagResponse && (
-        <Button variant="secondary" size="sm" onClick={onAcceptVederlagResponse}>
+        <Button variant="ghost" size="sm" onClick={onAcceptVederlagResponse} className="ml-auto">
           <CheckCircledIcon className="w-4 h-4 mr-2" />
           Godta svaret
+        </Button>
+      )}
+      {userRole === 'TE' && actions.canWithdrawVederlag && (
+        <Button variant="ghost" size="sm" onClick={onWithdrawVederlag} className={actions.canAcceptVederlagResponse ? '' : 'ml-auto'}>
+          <CrossCircledIcon className="w-4 h-4 mr-2" />
+          Trekk tilbake
         </Button>
       )}
       {/* BH Actions: Respond to TE's submission */}
@@ -229,19 +229,6 @@ export function FristActionButtons({
           Svar på forespørsel
         </Button>
       )}
-      {userRole === 'TE' && actions.canWithdrawFrist && (
-        <Button variant="ghost" size="sm" onClick={onWithdrawFrist} className="ml-auto">
-          <CrossCircledIcon className="w-4 h-4 mr-2" />
-          Trekk tilbake
-        </Button>
-      )}
-      {/* TE Actions: Accept BH's response */}
-      {userRole === 'TE' && actions.canAcceptFristResponse && (
-        <Button variant="secondary" size="sm" onClick={onAcceptFristResponse}>
-          <CheckCircledIcon className="w-4 h-4 mr-2" />
-          Godta svaret
-        </Button>
-      )}
       {/* TE Actions: Forsering (§33.8) - available when BH has rejected */}
       {userRole === 'TE' && actions.canSendForsering && (
         <Button
@@ -252,6 +239,19 @@ export function FristActionButtons({
         >
           <RocketIcon className="w-4 h-4 mr-2" />
           Forsering (§33.8)
+        </Button>
+      )}
+      {/* TE Actions: Accept BH's response */}
+      {userRole === 'TE' && actions.canAcceptFristResponse && (
+        <Button variant="ghost" size="sm" onClick={onAcceptFristResponse} className="ml-auto">
+          <CheckCircledIcon className="w-4 h-4 mr-2" />
+          Godta svaret
+        </Button>
+      )}
+      {userRole === 'TE' && actions.canWithdrawFrist && (
+        <Button variant="ghost" size="sm" onClick={onWithdrawFrist} className={actions.canAcceptFristResponse ? '' : 'ml-auto'}>
+          <CrossCircledIcon className="w-4 h-4 mr-2" />
+          Trekk tilbake
         </Button>
       )}
       {/* BH Actions: Respond to TE's submission */}
