@@ -185,16 +185,19 @@ def _validate_underkategori(
             )
 
 
-def _validate_begrunnelse(data: dict[str, Any]) -> None:
+def _validate_begrunnelse(data: dict[str, Any], required: bool = True) -> None:
     """
     Validate that begrunnelse field is present and non-empty.
 
     Args:
         data: Event data dict
+        required: If False, skip validation when begrunnelse is not provided
 
     Raises:
-        ValidationError: If begrunnelse is missing or empty
+        ValidationError: If begrunnelse is missing or empty (when required)
     """
+    if not required and not data.get("begrunnelse"):
+        return
     if not data.get("begrunnelse"):
         raise ValidationError("begrunnelse er påkrevd")
 
@@ -474,7 +477,10 @@ def validate_frist_event(
     # Initial claim validation
     valid_varsel_types = [vt.value for vt in FristVarselType]
     varsel_type = _validate_varsel_type_field(data, valid_varsel_types)
-    _validate_begrunnelse(data)
+    # Begrunnelse is only required for spesifisert krav (§33.6.1),
+    # not for neutral notice (§33.4 varsel)
+    begrunnelse_required = varsel_type == FristVarselType.SPESIFISERT.value
+    _validate_begrunnelse(data, required=begrunnelse_required)
     _validate_frist_varsel_info(data, varsel_type)
 
 

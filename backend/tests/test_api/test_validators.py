@@ -656,16 +656,28 @@ class TestValidateFristEvent:
             validate_frist_event({"varsel_type": "INVALID_TYPE", "begrunnelse": "Test"})
         assert "Ugyldig varsel_type" in str(exc_info.value)
 
-    def test_missing_begrunnelse(self):
-        """Raises ValidationError when begrunnelse is missing."""
+    def test_varsel_without_begrunnelse_ok(self):
+        """Neutral notice (§33.4) does not require begrunnelse."""
+        # Should not raise - only requires frist_varsel
         with pytest.raises(ValidationError) as exc_info:
             validate_frist_event({"varsel_type": "varsel"})
+        # It fails on frist_varsel, NOT on begrunnelse
+        assert "frist_varsel er påkrevd" in str(exc_info.value)
+
+    def test_spesifisert_missing_begrunnelse(self):
+        """Specified claim (§33.6.1) requires begrunnelse."""
+        with pytest.raises(ValidationError) as exc_info:
+            validate_frist_event({
+                "varsel_type": "spesifisert",
+                "spesifisert_varsel": {"dato_sendt": "2025-01-15"},
+                "antall_dager": 10,
+            })
         assert "begrunnelse er påkrevd" in str(exc_info.value)
 
     def test_varsel_requires_frist_varsel(self):
         """Raises ValidationError when frist_varsel is missing for varsel type."""
         with pytest.raises(ValidationError) as exc_info:
-            validate_frist_event({"varsel_type": "varsel", "begrunnelse": "Test"})
+            validate_frist_event({"varsel_type": "varsel"})
         assert "frist_varsel er påkrevd" in str(exc_info.value)
 
     def test_spesifisert_requires_spesifisert_varsel(self):

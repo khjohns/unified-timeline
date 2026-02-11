@@ -635,7 +635,10 @@ class FristData(BaseModel):
     """
 
     # ============ VARSELTYPE (PORT 1) ============
-    varsel_type: FristVarselType = Field(..., description="Type varsel sendt til BH")
+    # Optional for update events (frist_krav_oppdatert) where it's inherited from original
+    varsel_type: FristVarselType | None = Field(
+        default=None, description="Type varsel sendt til BH"
+    )
 
     # Varsel om fristforlengelse (§33.4) - kan sendes uten dager
     frist_varsel: VarselInfo | None = Field(
@@ -656,8 +659,9 @@ class FristData(BaseModel):
         description="Antall dager forlengelse (kun ved spesifisert krav)",
     )
 
-    begrunnelse: str = Field(
-        ..., min_length=1, description="Overordnet begrunnelse for fristkravet"
+    # Optional for neutral notice (varsel §33.4) where no justification is needed
+    begrunnelse: str | None = Field(
+        default=None, description="Overordnet begrunnelse for fristkravet"
     )
 
     # ============ FREMDRIFTSHINDRING/ÅRSAKSSAMMENHENG (PORT 2 - Vilkår) ============
@@ -678,11 +682,13 @@ class FristData(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_antall_dager(self):
-        """Valider at antall_dager er satt hvis varsel_type er SPESIFISERT"""
+    def validate_frist_fields(self):
+        """Valider felter basert på varsel_type."""
         if self.varsel_type == FristVarselType.SPESIFISERT:
             if self.antall_dager is None:
                 raise ValueError("antall_dager må være satt for spesifisert krav")
+            if not self.begrunnelse or len(self.begrunnelse.strip()) == 0:
+                raise ValueError("begrunnelse er påkrevd for spesifisert krav")
         return self
 
 

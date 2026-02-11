@@ -302,6 +302,37 @@ def test_frist_data_spesifisert_requires_antall_dager():
         )
 
 
+def test_frist_data_varsel_without_begrunnelse():
+    """Test FristData with varsel (§33.4) - begrunnelse is optional for neutral notice"""
+    data = FristData(
+        varsel_type=FristVarselType.VARSEL,
+        frist_varsel=VarselInfo(dato_sendt="2025-01-10", metode=["byggemote"]),
+    )
+    assert data.varsel_type == FristVarselType.VARSEL
+    assert data.begrunnelse is None
+
+
+def test_frist_data_spesifisert_requires_begrunnelse():
+    """Test that spesifisert krav requires begrunnelse"""
+    with pytest.raises(ValueError, match="begrunnelse er påkrevd"):
+        FristData(
+            varsel_type=FristVarselType.SPESIFISERT,
+            spesifisert_varsel=VarselInfo(dato_sendt="2025-01-20", metode=["epost"]),
+            antall_dager=14,
+            # Missing begrunnelse!
+        )
+
+
+def test_frist_data_without_varsel_type():
+    """Test FristData without varsel_type (for update events where it's inherited)"""
+    data = FristData(
+        antall_dager=10,
+        begrunnelse="Oppdatert krav",
+    )
+    assert data.varsel_type is None
+    assert data.antall_dager == 10
+
+
 def test_frist_data_with_fremdriftshindring():
     """Test FristData with fremdriftshindring documentation"""
     data = FristData(
