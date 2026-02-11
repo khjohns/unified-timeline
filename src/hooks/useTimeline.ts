@@ -7,6 +7,7 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { TimelineResponse } from '../types/api';
 import { sakQueries } from '../queries';
+import { POLL_INTERVAL } from '../constants/queryConfig';
 
 export interface UseTimelineOptions {
   staleTime?: number;
@@ -55,5 +56,6 @@ export function useTimelineSuspense(sakId: string, options: UseTimelineSuspenseO
     ...sakQueries.timeline(sakId),
     ...(staleTime !== undefined && { staleTime }),
     refetchOnWindowFocus,
+    refetchInterval: POLL_INTERVAL,
   });
 }

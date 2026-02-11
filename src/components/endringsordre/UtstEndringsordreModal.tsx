@@ -768,7 +768,7 @@ export function UtstEndringsordreModal({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FormField
                           label="Kompensasjon (tillegg)"
-                          helpText={totalFromKOE > 0 ? `Fra valgte KOE: ${formatCurrency(totalFromKOE)}` : undefined}
+                          helpText={totalFromKOE > 0 ? `Fra valgte KOE: ${formatCurrency(totalFromKOE)}` : 'Beløp som tilkjennes TE'}
                         >
                           <Controller
                             name="kompensasjon_belop"
@@ -783,7 +783,7 @@ export function UtstEndringsordreModal({
                           />
                         </FormField>
 
-                        <FormField label="Fradrag">
+                        <FormField label="Fradrag" helpText="Eventuelt motregningsbeløp">
                           <Controller
                             name="fradrag_belop"
                             control={control}
@@ -825,7 +825,7 @@ export function UtstEndringsordreModal({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FormField
                           label="Antall dager"
-                          helpText={totalDagerFromKOE > 0 ? `Fra valgte KOE: ${totalDagerFromKOE} dager` : undefined}
+                          helpText={totalDagerFromKOE > 0 ? `Fra valgte KOE: ${totalDagerFromKOE} dager` : 'Fristforlengelse i kalenderdager'}
                         >
                           <Controller
                             name="frist_dager"
@@ -843,7 +843,7 @@ export function UtstEndringsordreModal({
                           />
                         </FormField>
 
-                        <FormField label="Ny sluttdato">
+                        <FormField label="Ny sluttdato" helpText="Justert kontraktsfrist">
                           <Controller
                             name="ny_sluttdato"
                             control={control}

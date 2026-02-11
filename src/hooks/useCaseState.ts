@@ -8,6 +8,7 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { StateResponse } from '../types/api';
 import { sakQueries } from '../queries';
+import { POLL_INTERVAL } from '../constants/queryConfig';
 
 export interface UseCaseStateOptions {
   /**
@@ -96,5 +97,6 @@ export function useCaseStateSuspense(sakId: string, options: UseCaseStateSuspens
     ...sakQueries.state(sakId),
     ...(staleTime !== undefined && { staleTime }),
     refetchOnWindowFocus,
+    refetchInterval: POLL_INTERVAL,
   });
 }

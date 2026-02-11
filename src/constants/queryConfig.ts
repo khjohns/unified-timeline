@@ -19,6 +19,12 @@ export const STALE_TIME = {
 } as const;
 
 /**
+ * Polling interval for background refetching (ms).
+ * Used to auto-detect new events from other users.
+ */
+export const POLL_INTERVAL = 30_000; // 30 seconds
+
+/**
  * Retry configuration constants.
  */
 export const RETRY_CONFIG = {

@@ -6,7 +6,7 @@
  * Shows a banner if the case is part of a forsering case or an endringsordre.
  */
 
-import { useMemo, useCallback, Suspense, useEffect } from 'react';
+import { useMemo, useCallback, useRef, Suspense, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { forseringKeys, endringsordreKeys } from '../queries';
@@ -154,8 +154,17 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
   // Approval workflow (mock) - must be called unconditionally
   const approvalWorkflow = useApprovalWorkflow(sakId);
 
-  // Toast for direct-send feedback
+  // Toast for feedback
   const toast = useToast();
+
+  // Auto-refresh: detect version changes from polling and show toast
+  const prevVersionRef = useRef(data.version);
+  useEffect(() => {
+    if (data.version > prevVersionRef.current) {
+      toast.info('Oppdatert', 'Nye hendelser er registrert.');
+      prevVersionRef.current = data.version;
+    }
+  }, [data.version, toast]);
 
   // Submit event hook for direct-send (when PL has fullmakt)
   const directSendMutation = useSubmitEvent(sakId, {
