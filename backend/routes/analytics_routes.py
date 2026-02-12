@@ -25,6 +25,7 @@ from typing import Any
 from flask import Blueprint, jsonify, request
 
 from lib.auth.magic_link import require_magic_link
+from lib.auth.project_access import require_project_access
 from models.events import parse_event
 from models.sak_metadata import SakMetadata
 from utils.logger import get_logger
@@ -199,6 +200,7 @@ def _compute_all_states() -> dict[str, Any]:
 
 @analytics_bp.route("/api/analytics/summary", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_summary():
     """
     Overordnet sammendrag av alle saker.
@@ -278,6 +280,7 @@ def get_summary():
 
 @analytics_bp.route("/api/analytics/by-category", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_by_category():
     """
     Fordeling av saker etter grunnlagskategori.
@@ -367,6 +370,7 @@ def get_by_category():
 
 @analytics_bp.route("/api/analytics/timeline", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_activity_timeline():
     """
     Aktivitet over tid (events per dag/uke/måned).
@@ -448,6 +452,7 @@ def get_activity_timeline():
 
 @analytics_bp.route("/api/analytics/vederlag", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_vederlag_analytics():
     """
     Vederlagsanalyse - beløp, metoder, godkjenningsgrad.
@@ -592,6 +597,7 @@ def get_vederlag_analytics():
 
 @analytics_bp.route("/api/analytics/frist", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_frist_analytics():
     """
     Fristforlengelse og dagmulkt-analyse.
@@ -658,6 +664,7 @@ def get_frist_analytics():
 
 @analytics_bp.route("/api/analytics/response-times", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_response_times():
     """
     Behandlingstider - hvor lang tid tar det fra krav til respons?
@@ -792,6 +799,7 @@ def get_response_times():
 
 @analytics_bp.route("/api/analytics/actors", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_actor_analytics():
     """
     Analyse per aktør - hvem gjør hva?

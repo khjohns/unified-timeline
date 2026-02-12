@@ -17,6 +17,7 @@ from flask import Blueprint, jsonify, request
 
 from lib.auth.csrf_protection import require_csrf
 from lib.auth.magic_link import require_magic_link
+from lib.auth.project_access import require_project_access
 from lib.decorators import handle_service_errors
 from routes.related_cases_utils import (
     build_kandidater_response,
@@ -53,6 +54,7 @@ def _get_endringsordre_service():
 @endringsordre_bp.route("/api/endringsordre/opprett", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def opprett_endringsordresak():
     """
@@ -102,6 +104,7 @@ def opprett_endringsordresak():
 
 @endringsordre_bp.route("/api/endringsordre/<sak_id>/relaterte", methods=["GET"])
 @require_magic_link
+@require_project_access()
 @handle_service_errors
 def hent_relaterte_koe_saker(sak_id: str):
     """Hent alle KOE-saker relatert til en endringsordre."""
@@ -112,6 +115,7 @@ def hent_relaterte_koe_saker(sak_id: str):
 
 @endringsordre_bp.route("/api/endringsordre/<sak_id>/kontekst", methods=["GET"])
 @require_magic_link
+@require_project_access()
 @handle_service_errors
 def hent_eo_kontekst(sak_id: str):
     """
@@ -133,6 +137,7 @@ def hent_eo_kontekst(sak_id: str):
 @endringsordre_bp.route("/api/endringsordre/<sak_id>/koe", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def legg_til_koe(sak_id: str):
     """Legg til en KOE-sak til endringsordren."""
@@ -162,6 +167,7 @@ def legg_til_koe(sak_id: str):
 )
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def fjern_koe(sak_id: str, koe_sak_id: str):
     """Fjern en KOE-sak fra endringsordren."""
@@ -210,6 +216,7 @@ def hent_kandidat_koe_saker():
 
 @endringsordre_bp.route("/api/endringsordre/by-relatert/<sak_id>", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def finn_eoer_for_koe(sak_id: str):
     """Finn endringsordrer som refererer til en gitt KOE-sak."""
     service = _get_endringsordre_service()

@@ -23,6 +23,7 @@ from flask import Blueprint, jsonify, request
 
 from lib.auth.csrf_protection import require_csrf
 from lib.auth.magic_link import require_magic_link
+from lib.auth.project_access import require_project_access
 from lib.decorators import handle_service_errors
 from lib.helpers.version_control import handle_concurrency_error
 from models.sak_state import SakState
@@ -158,6 +159,7 @@ def _build_catenda_response(catenda_result: CatendaSyncResult | None) -> dict[st
 @forsering_bp.route("/api/forsering/opprett", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def opprett_forseringssak():
     """
@@ -213,6 +215,7 @@ def opprett_forseringssak():
 
 @forsering_bp.route("/api/forsering/<sak_id>/relaterte", methods=["GET"])
 @require_magic_link
+@require_project_access()
 @handle_service_errors
 def hent_relaterte_saker(sak_id: str):
     """Hent alle saker relatert til en forseringssak."""
@@ -223,6 +226,7 @@ def hent_relaterte_saker(sak_id: str):
 
 @forsering_bp.route("/api/forsering/<sak_id>/kontekst", methods=["GET"])
 @require_magic_link
+@require_project_access()
 @handle_service_errors
 def hent_forseringskontekst(sak_id: str):
     """
@@ -252,6 +256,7 @@ def hent_kandidat_koe_saker():
 
 @forsering_bp.route("/api/forsering/by-relatert/<sak_id>", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def finn_forseringer_for_sak(sak_id: str):
     """Finn forseringssaker som refererer til en gitt KOE-sak."""
     service = _get_forsering_service()
@@ -261,6 +266,7 @@ def finn_forseringer_for_sak(sak_id: str):
 @forsering_bp.route("/api/forsering/<sak_id>/relatert", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def legg_til_relatert_sak(sak_id: str):
     """Legg til en KOE-sak som relatert til forseringen."""
@@ -280,6 +286,7 @@ def legg_til_relatert_sak(sak_id: str):
 @forsering_bp.route("/api/forsering/<sak_id>/relatert/<koe_sak_id>", methods=["DELETE"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def fjern_relatert_sak(sak_id: str, koe_sak_id: str):
     """Fjern en KOE-sak fra forseringen."""
@@ -297,6 +304,7 @@ def fjern_relatert_sak(sak_id: str, koe_sak_id: str):
 
 @forsering_bp.route("/api/forsering/valider", methods=["POST"])
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def valider_forseringskostnad():
     """
@@ -326,6 +334,7 @@ def valider_forseringskostnad():
 @forsering_bp.route("/api/forsering/<sak_id>/bh-respons", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def registrer_bh_respons(sak_id: str):
     """
@@ -415,6 +424,7 @@ def registrer_bh_respons(sak_id: str):
 
 @forsering_bp.route("/api/forsering/<sak_id>/valider-grunnlag", methods=["GET"])
 @require_magic_link
+@require_project_access()
 @handle_service_errors
 def valider_forseringsgrunnlag(sak_id: str):
     """
@@ -440,6 +450,7 @@ def valider_forseringsgrunnlag(sak_id: str):
 @forsering_bp.route("/api/forsering/<sak_id>/stopp", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def stopp_forsering(sak_id: str):
     """
@@ -490,6 +501,7 @@ def stopp_forsering(sak_id: str):
 @forsering_bp.route("/api/forsering/<sak_id>/kostnader", methods=["PUT"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def oppdater_kostnader(sak_id: str):
     """

@@ -33,6 +33,7 @@ from core.config import settings
 from integrations.catenda import CatendaAuthError
 from lib.auth.csrf_protection import require_csrf
 from lib.auth.magic_link import get_magic_link_manager, require_magic_link
+from lib.auth.project_access import require_project_access
 from lib.catenda_factory import get_catenda_client
 from lib.cloudevents import (
     format_timeline_response,
@@ -355,6 +356,7 @@ def _ensure_catenda_auth(catenda_topic_id: str | None) -> None:
 @events_bp.route("/api/events", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 def submit_event():
     """
     Submit a single event with optional client-generated PDF.
@@ -578,6 +580,7 @@ def submit_event():
 @events_bp.route("/api/events/batch", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 def submit_batch():
     """
     Submit multiple events atomically.
@@ -747,6 +750,7 @@ def submit_batch():
 
 @events_bp.route("/api/cases", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def list_cases():
     """
     List all cases with metadata.
@@ -813,6 +817,7 @@ def list_cases():
 
 @events_bp.route("/api/cases/<sak_id>/state", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_case_state(sak_id: str):
     """
     Get computed state for a case.
@@ -854,6 +859,7 @@ def get_case_state(sak_id: str):
 
 @events_bp.route("/api/cases/<sak_id>/timeline", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_case_timeline(sak_id: str):
     """
     Get full event timeline for UI display.
@@ -911,6 +917,7 @@ def get_case_timeline(sak_id: str):
 
 @events_bp.route("/api/cases/<sak_id>/historikk", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_case_historikk(sak_id: str):
     """
     Get revision history for all three tracks (grunnlag, vederlag, frist).

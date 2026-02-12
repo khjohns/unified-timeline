@@ -13,6 +13,7 @@ from flask import Blueprint, jsonify, request
 
 from lib.auth.csrf_protection import require_csrf
 from lib.auth.magic_link import require_magic_link
+from lib.auth.project_access import require_project_access, OPEN_ACCESS_PROJECTS
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -30,9 +31,22 @@ def _get_project_repo():
 @projects_bp.route("/api/projects", methods=["GET"])
 @require_magic_link
 def list_projects():
-    """List all active projects."""
+    """List projects the current user has access to."""
     try:
-        projects = _get_project_repo().list_active()
+        email = request.magic_link_data.get("email")
+        if not email:
+            projects = _get_project_repo().list_active()
+        else:
+            from core.container import get_container
+            memberships = get_container().membership_repository.get_user_projects(email)
+            member_project_ids = {m.project_id for m in memberships}
+
+            all_projects = _get_project_repo().list_active()
+            projects = [
+                p for p in all_projects
+                if p.id in member_project_ids or p.id in OPEN_ACCESS_PROJECTS
+            ]
+
         return jsonify({
             "projects": [p.model_dump(mode="json") for p in projects]
         })
@@ -43,6 +57,7 @@ def list_projects():
 
 @projects_bp.route("/api/projects/<project_id>", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_project(project_id: str):
     """Get a single project by ID."""
     try:

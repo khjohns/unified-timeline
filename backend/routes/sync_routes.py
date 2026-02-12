@@ -19,6 +19,7 @@ from flask import Blueprint, Response, jsonify, request
 
 from lib.auth.csrf_protection import require_csrf
 from lib.auth.magic_link import require_magic_link
+from lib.auth.project_access import require_project_access
 from lib.catenda_factory import get_catenda_client
 from lib.dalux_factory import get_dalux_client
 from models.sync_models import DaluxCatendaSyncMapping
@@ -52,6 +53,7 @@ _sync_lock = threading.Lock()
 
 @sync_bp.route("/api/sync/mappings", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def list_mappings():
     """
     List all sync mappings.
@@ -83,6 +85,7 @@ def list_mappings():
 
 @sync_bp.route("/api/sync/mappings/<mapping_id>", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_mapping(mapping_id: str):
     """
     Get single sync mapping by ID.
@@ -106,6 +109,7 @@ def get_mapping(mapping_id: str):
 @sync_bp.route("/api/sync/mappings", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 def create_mapping():
     """
     Create new sync mapping.
@@ -172,6 +176,7 @@ def create_mapping():
 @sync_bp.route("/api/sync/mappings/<mapping_id>", methods=["PATCH"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 def update_mapping(mapping_id: str):
     """
     Update sync mapping.
@@ -224,6 +229,7 @@ def update_mapping(mapping_id: str):
 @sync_bp.route("/api/sync/mappings/<mapping_id>", methods=["DELETE"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 def delete_mapping(mapping_id: str):
     """
     Delete sync mapping and all related records.
@@ -260,6 +266,7 @@ def delete_mapping(mapping_id: str):
 @sync_bp.route("/api/sync/mappings/<mapping_id>/trigger", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 def trigger_sync(mapping_id: str):
     """
     Trigger manual sync for a mapping.
@@ -449,6 +456,7 @@ def sync_progress(mapping_id: str):
 
 @sync_bp.route("/api/sync/mappings/<mapping_id>/history", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def sync_history(mapping_id: str):
     """
     Get sync history (task sync records).
@@ -506,6 +514,7 @@ def sync_history(mapping_id: str):
 @sync_bp.route("/api/sync/mappings/<mapping_id>/filters", methods=["PATCH"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 def update_task_filters(mapping_id: str):
     """
     Update task filters for a mapping.
@@ -550,6 +559,7 @@ def update_task_filters(mapping_id: str):
 
 @sync_bp.route("/api/sync/mappings/<mapping_id>/filter-options", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_filter_options(mapping_id: str):
     """
     Get available task types from Dalux for filter configuration.
@@ -599,6 +609,7 @@ def get_filter_options(mapping_id: str):
 
 @sync_bp.route("/api/sync/mappings/<mapping_id>/tasks", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_mapping_tasks(mapping_id: str):
     """
     Get Dalux tasks for a mapping (preview).
@@ -636,6 +647,7 @@ def get_mapping_tasks(mapping_id: str):
 
 @sync_bp.route("/api/sync/mappings/<mapping_id>/forms", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_mapping_forms(mapping_id: str):
     """
     Get Dalux forms for a mapping.
@@ -679,6 +691,7 @@ def get_mapping_forms(mapping_id: str):
 @sync_bp.route("/api/sync/validate", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 def validate_config():
     """
     Validate Dalux/Catenda configuration without creating mapping.
@@ -777,6 +790,7 @@ def validate_config():
 @sync_bp.route("/api/sync/mappings/<mapping_id>/test", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 def test_connection(mapping_id: str):
     """
     Test connections for an existing mapping.

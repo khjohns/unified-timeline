@@ -26,6 +26,7 @@ from flask import Blueprint, jsonify, request
 
 from lib.auth.csrf_protection import require_csrf
 from lib.auth.magic_link import require_magic_link
+from lib.auth.project_access import require_project_access
 from lib.decorators import handle_service_errors
 from lib.helpers.version_control import (
     handle_concurrency_error,
@@ -111,6 +112,7 @@ def _append_event(sak_id: str, event: Any, expected_version: int) -> int:
 @fravik_bp.route("/api/fravik/opprett", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def opprett_fravik_soknad():
     """
@@ -203,6 +205,7 @@ def opprett_fravik_soknad():
 
 @fravik_bp.route("/api/fravik/<sak_id>/state", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_fravik_state(sak_id: str):
     """
     Hent tilstand for en fravik-søknad.
@@ -239,6 +242,7 @@ def get_fravik_state(sak_id: str):
 
 @fravik_bp.route("/api/fravik/<sak_id>/events", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def get_fravik_events(sak_id: str):
     """
     Hent event-logg for en fravik-søknad.
@@ -271,6 +275,7 @@ def get_fravik_events(sak_id: str):
 @fravik_bp.route("/api/fravik/<sak_id>/oppdater", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def oppdater_soknad(sak_id: str):
     """
@@ -363,6 +368,7 @@ def oppdater_soknad(sak_id: str):
 @fravik_bp.route("/api/fravik/<sak_id>/maskin", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def legg_til_maskin(sak_id: str):
     """
@@ -442,6 +448,7 @@ def legg_til_maskin(sak_id: str):
 @fravik_bp.route("/api/fravik/<sak_id>/send-inn", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def send_inn_soknad(sak_id: str):
     """
@@ -505,6 +512,7 @@ def send_inn_soknad(sak_id: str):
 @fravik_bp.route("/api/fravik/<sak_id>/miljo-vurdering", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def miljo_vurdering(sak_id: str):
     """
@@ -579,6 +587,7 @@ def miljo_vurdering(sak_id: str):
 @fravik_bp.route("/api/fravik/<sak_id>/pl-vurdering", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def pl_vurdering(sak_id: str):
     """
@@ -638,6 +647,7 @@ def pl_vurdering(sak_id: str):
 @fravik_bp.route("/api/fravik/<sak_id>/arbeidsgruppe-vurdering", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def arbeidsgruppe_vurdering(sak_id: str):
     """
@@ -702,6 +712,7 @@ def arbeidsgruppe_vurdering(sak_id: str):
 @fravik_bp.route("/api/fravik/<sak_id>/eier-beslutning", methods=["POST"])
 @require_csrf
 @require_magic_link
+@require_project_access(min_role="member")
 @handle_service_errors
 def eier_beslutning(sak_id: str):
     """
@@ -790,6 +801,7 @@ def eier_beslutning(sak_id: str):
 
 @fravik_bp.route("/api/fravik/liste", methods=["GET"])
 @require_magic_link
+@require_project_access()
 def liste_fravik_soknader():
     """
     List alle fravik-søknader.
