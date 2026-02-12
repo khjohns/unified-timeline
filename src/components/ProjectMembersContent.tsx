@@ -6,7 +6,7 @@
  * Admin-only controls with "last admin" protection.
  */
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Card,
   Button,
@@ -183,7 +183,7 @@ function MemberRow({
 
   const isMemberAdmin = member.role === 'admin';
   const canRemove = isAdmin && !isCurrentUser && !(isMemberAdmin && isLastAdmin);
-  const canChangeRole = isAdmin && !(isMemberAdmin && isLastAdmin);
+  const canChangeRole = isAdmin && !isCurrentUser && !(isMemberAdmin && isLastAdmin);
 
   const handleRoleChange = async (newRole: string) => {
     // Prevent demoting the last admin
@@ -301,6 +301,16 @@ export function ProjectMembersContent() {
   const { data: members, isLoading, error } = useProjectMembers(projectId);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) {
+        clearTimeout(successTimerRef.current);
+      }
+    };
+  }, []);
 
   const currentUserEmail = user?.email ?? null;
 
@@ -322,8 +332,12 @@ export function ProjectMembersContent() {
   const handleFormSuccess = () => {
     setFormError(null);
     setSuccessMessage('Medlem lagt til.');
+    // Clear previous timer if still running
+    if (successTimerRef.current) {
+      clearTimeout(successTimerRef.current);
+    }
     // Clear success after 3 seconds
-    setTimeout(() => setSuccessMessage(null), 3000);
+    successTimerRef.current = setTimeout(() => setSuccessMessage(null), 3000);
   };
 
   return (
