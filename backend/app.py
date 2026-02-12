@@ -176,6 +176,7 @@ init_project_context(app)
 # Register Blueprints
 # ============================================================================
 
+from routes.membership_routes import membership_bp
 from routes.project_routes import projects_bp
 from routes.analytics_routes import analytics_bp
 from routes.catenda_webhook_routes import webhook_bp  # Catenda-specific webhooks
@@ -209,6 +210,7 @@ app.register_blueprint(create_kofa_mcp_blueprint(), url_prefix="/mcp/kofa")
 app.register_blueprint(oauth_consent_bp)
 app.register_blueprint(wellknown_bp)
 app.register_blueprint(projects_bp)
+app.register_blueprint(membership_bp)
 
 # Register error handlers
 register_error_handlers(app)
