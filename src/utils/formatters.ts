@@ -32,6 +32,33 @@ export function formatCurrency(value?: number | null): string {
 }
 
 /**
+ * Format a number as compact Norwegian currency (for tables/lists)
+ *
+ * @example formatCurrencyCompact(450000) // '450k'
+ * @example formatCurrencyCompact(2400000) // '2,4M'
+ * @example formatCurrencyCompact(1200) // '1 200'
+ * @example formatCurrencyCompact(undefined) // '—'
+ */
+export function formatCurrencyCompact(value?: number | null): string {
+  if (value === null || value === undefined) return '—';
+  if (value === 0) return '0';
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (abs >= 1_000_000) {
+    const millions = abs / 1_000_000;
+    const formatted = millions % 1 === 0
+      ? millions.toString()
+      : millions.toLocaleString(NORWEGIAN_LOCALE, { maximumFractionDigits: 1 });
+    return `${sign}${formatted}M`;
+  }
+  if (abs >= 10_000) {
+    const thousands = Math.round(abs / 1000);
+    return `${sign}${thousands}k`;
+  }
+  return value.toLocaleString(NORWEGIAN_LOCALE);
+}
+
+/**
  * Format a number as days
  *
  * @example formatDays(5) // '5 dager'
@@ -41,6 +68,17 @@ export function formatCurrency(value?: number | null): string {
 export function formatDays(value?: number | null): string {
   if (value === null || value === undefined) return '-';
   return `${value} ${value === 1 ? 'dag' : 'dager'}`;
+}
+
+/**
+ * Format days as compact string (for tables/lists)
+ *
+ * @example formatDaysCompact(30) // '30d'
+ * @example formatDaysCompact(undefined) // '—'
+ */
+export function formatDaysCompact(value?: number | null): string {
+  if (value === null || value === undefined) return '—';
+  return `${value}d`;
 }
 
 /**
