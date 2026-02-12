@@ -108,12 +108,17 @@ class SupabaseProjectRepository:
         )
         return len(result.data) > 0
 
+    UPDATABLE_FIELDS = {"name", "description"}
+
     @with_retry()
     def update(self, project_id: str, updates: dict) -> Project | None:
         """Update a project's fields. Returns updated Project or None if not found."""
+        filtered = {k: v for k, v in updates.items() if k in self.UPDATABLE_FIELDS}
+        if not filtered:
+            return self.get(project_id)
         result = (
             self.client.table(self.TABLE_NAME)
-            .update(updates)
+            .update(filtered)
             .eq("id", project_id)
             .execute()
         )

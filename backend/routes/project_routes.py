@@ -14,6 +14,7 @@ Endpoints:
 import uuid
 
 from flask import Blueprint, jsonify, request
+from pydantic import ValidationError
 
 from lib.auth.csrf_protection import require_csrf
 from lib.auth.magic_link import require_magic_link
@@ -103,7 +104,7 @@ def create_project():
         # Validate request via Pydantic
         try:
             req = CreateProjectRequest(**payload)
-        except Exception as e:
+        except ValidationError as e:
             return jsonify({
                 "error": "VALIDATION_ERROR",
                 "message": str(e),
@@ -165,17 +166,17 @@ def update_project(project_id: str):
         # Validate request via Pydantic
         try:
             req = UpdateProjectRequest(**payload)
-        except Exception as e:
+        except ValidationError as e:
             return jsonify({
                 "error": "VALIDATION_ERROR",
                 "message": str(e),
             }), 400
 
-        # Build updates dict from non-None fields
+        # Build updates dict from explicitly provided fields
         updates = {}
-        if req.name is not None:
+        if "name" in req.model_fields_set:
             updates["name"] = req.name
-        if req.description is not None:
+        if "description" in req.model_fields_set:
             updates["description"] = req.description
 
         if not updates:
