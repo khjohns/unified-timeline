@@ -13,6 +13,7 @@ where no real user authentication is needed.
 Requires:
 - Anonymous sign-ins enabled in Supabase Dashboard
 - MCP_REQUIRE_AUTH=true in environment
+- SUPABASE_PUBLISHABLE_KEY in environment
 - OAuth client registered in Supabase (e.g., for Claude.ai)
 """
 
@@ -34,18 +35,12 @@ def _get_supabase_url() -> str:
     return os.getenv("SUPABASE_URL", "")
 
 
-def _get_supabase_anon_key() -> str:
-    """Get Supabase anon key for anonymous sign-in."""
-    return os.getenv("SUPABASE_ANON_KEY", "")
+def _get_supabase_publishable_key() -> str:
+    return os.getenv("SUPABASE_PUBLISHABLE_KEY", "")
 
 
-def _get_supabase_service_key() -> str:
-    return (
-        os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-        or os.getenv("SUPABASE_SECRET_KEY")
-        or os.getenv("SUPABASE_KEY")
-        or ""
-    )
+def _get_supabase_secret_key() -> str:
+    return os.getenv("SUPABASE_SECRET_KEY") or os.getenv("SUPABASE_KEY") or ""
 
 
 @oauth_auto_consent_bp.route("/consent", methods=["GET"])
@@ -62,11 +57,11 @@ def auto_consent():
         return "Missing authorization_id", 400
 
     supabase_url = _get_supabase_url()
-    anon_key = _get_supabase_anon_key()
-    service_key = _get_supabase_service_key()
+    publishable_key = _get_supabase_publishable_key()
+    secret_key = _get_supabase_secret_key()
 
-    if not supabase_url or not anon_key:
-        logger.error("SUPABASE_URL or SUPABASE_ANON_KEY not configured")
+    if not supabase_url or not publishable_key:
+        logger.error("SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY not configured")
         return "Server not configured for OAuth", 500
 
     try:
@@ -75,7 +70,7 @@ def auto_consent():
             signup_resp = client.post(
                 f"{supabase_url}/auth/v1/signup",
                 headers={
-                    "apikey": anon_key,
+                    "apikey": publishable_key,
                     "Content-Type": "application/json",
                 },
                 json={},
@@ -104,7 +99,7 @@ def auto_consent():
                 f"{supabase_url}/auth/v1/oauth/authorize/approve",
                 headers={
                     "Authorization": f"Bearer {access_token}",
-                    "apikey": service_key or anon_key,
+                    "apikey": secret_key or publishable_key,
                     "Content-Type": "application/json",
                 },
                 json={"authorizationId": authorization_id},
