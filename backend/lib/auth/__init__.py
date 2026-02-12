@@ -17,6 +17,7 @@ from .entra_id import (
     validate_entra_token,
 )
 from .magic_link import MagicLinkManager, get_magic_link_manager, require_magic_link
+from .project_access import require_project_access
 from .supabase_validator import (
     get_current_user,
     require_supabase_auth,
@@ -35,6 +36,8 @@ __all__ = [
     "require_supabase_auth",
     "validate_supabase_token",
     "get_current_user",
+    # Project access control
+    "require_project_access",
     # Entra ID / IDA (alle brukere)
     "EntraUser",
     "validate_entra_token",
