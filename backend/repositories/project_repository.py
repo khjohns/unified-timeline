@@ -107,3 +107,27 @@ class SupabaseProjectRepository:
             .execute()
         )
         return len(result.data) > 0
+
+    @with_retry()
+    def update(self, project_id: str, updates: dict) -> Project | None:
+        """Update a project's fields. Returns updated Project or None if not found."""
+        result = (
+            self.client.table(self.TABLE_NAME)
+            .update(updates)
+            .eq("id", project_id)
+            .execute()
+        )
+        if result.data:
+            return self._row_to_project(result.data[0])
+        return None
+
+    @with_retry()
+    def deactivate(self, project_id: str) -> bool:
+        """Soft-delete a project by setting is_active=false."""
+        result = (
+            self.client.table(self.TABLE_NAME)
+            .update({"is_active": False})
+            .eq("id", project_id)
+            .execute()
+        )
+        return len(result.data) > 0
