@@ -34,25 +34,44 @@ Hver sak har tre uavhengige spor som behandles parallelt:
 
 ### Roller
 
+**Domeneroller** (NS 8407-kontekst):
 - **TE** (Totalentreprenør) - Sender krav
 - **BH** (Byggherre) - Responderer på krav
+
+**Prosjektroller** (tilgangsstyring):
+- **admin** - Full tilgang, kan administrere medlemmer
+- **member** - Kan lese og skrive i prosjektet
+- **viewer** - Kun lesetilgang
+
+### Multi-prosjekt og tilgangsstyring
+
+Plattformen støtter flere prosjekter med prosjektbasert tilgangsstyring:
+
+- **Email-basert medlemskap** - `project_memberships`-tabellen bruker `user_email` (ikke UUID), kompatibelt med både magic links og fremtidig Entra ID
+- **`OPEN_ACCESS_PROJECTS`** - Standardprosjektet `oslobygg` har åpen tilgang (bakoverkompatibilitet)
+- **`@require_project_access`-dekoratør** - Påkrevd på alle API-endepunkter, sjekker medlemskap og rolle
+- **`X-Project-ID` header** - Frontend sender aktivt prosjekt-ID med alle API-kall
+- **Entra ID-klar** - `external_id`-felt i membership-tabellen reservert for fremtidig `oid`-claim
 
 ## Mappestruktur
 
 ```
 src/
+├── api/           # API-klienter (client.ts, membership.ts, etc.)
 ├── components/    # React komponenter
+├── context/       # React contexts (Auth, Project, UserRole, Theme)
+├── hooks/         # Custom hooks (React Query wrappers)
 ├── pages/         # Sideruter
-├── api/           # API-klienter
-├── hooks/         # Custom hooks
 ├── types/         # TypeScript typer
 └── constants/     # Konstanter
 
 backend/
-├── models/        # Event + State modeller
+├── core/          # Config, DI-container, CORS, middleware
+├── lib/auth/      # Auth-dekoratører (@require_magic_link, @require_project_access)
+├── models/        # Event + State + Membership modeller (Pydantic v2)
 ├── services/      # Forretningslogikk
-├── routes/        # API endpoints
-└── repositories/  # Database-lag
+├── routes/        # API endpoints (Flask blueprints)
+└── repositories/  # Database-lag (Supabase + in-memory for test)
 ```
 
 ## Kommandoer
@@ -88,9 +107,32 @@ python scripts/security_scan.py     # Sikkerhetsscan
 |-----|---------|
 | `backend/models/events.py` | Alle event-typer og data-modeller |
 | `backend/models/sak_state.py` | State-projeksjoner |
+| `backend/core/container.py` | DI-container (lazy-loaded repositories og services) |
+| `backend/lib/auth/project_access.py` | `@require_project_access` dekoratør + rollesjekk |
+| `backend/routes/membership_routes.py` | CRUD for prosjektmedlemskap |
 | `src/types/timeline.ts` | Frontend TypeScript typer |
+| `src/context/ProjectContext.tsx` | Aktiv prosjekt-kontekst + API-synk |
 | `src/constants/categories.ts` | Grunnlag-kategorier |
 | `docs/ARCHITECTURE_AND_DATAMODEL.md` | Detaljert arkitektur |
+
+## Auth-arkitektur
+
+Autentisering og autorisering skjer i to lag:
+
+1. **`@require_magic_link`** - Verifiserer Supabase-token, setter `request.magic_link_data`
+2. **`@require_project_access(min_role="viewer")`** - Sjekker prosjektmedlemskap via `X-Project-ID` header
+
+Dekoratør-rekkefølge er viktig - `@require_project_access` må komme ETTER `@require_magic_link` (nærmere funksjonen):
+
+```python
+@bp.route("/api/endpoint")
+@require_magic_link        # Kjøres først
+@require_project_access()  # Kjøres etter, leser fra request.magic_link_data
+def endpoint():
+    ...
+```
+
+Backend bruker Supabase **service_role key** (bypasser RLS). RLS er et forsvarslag, ikke primær tilgangskontroll.
 
 ## Designsystem
 

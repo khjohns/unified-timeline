@@ -72,7 +72,7 @@ def setup_cors(app: Flask) -> None:
             r"/api/*": {
                 "origins": allowed_origins,
                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-                "allow_headers": ["Content-Type", "X-CSRF-Token", "Authorization"],
+                "allow_headers": ["Content-Type", "X-CSRF-Token", "Authorization", "X-Project-ID"],
                 "expose_headers": ["X-RateLimit-Remaining", "X-RateLimit-Reset"],
                 "supports_credentials": False,
                 "max_age": 3600,
@@ -92,7 +92,7 @@ def setup_cors(app: Flask) -> None:
                 "GET, POST, PUT, DELETE, OPTIONS"
             )
             response.headers["Access-Control-Allow-Headers"] = (
-                "Content-Type, X-CSRF-Token, Authorization"
+                "Content-Type, X-CSRF-Token, Authorization, X-Project-ID"
             )
             response.headers["Access-Control-Expose-Headers"] = (
                 "X-RateLimit-Remaining, X-RateLimit-Reset"
