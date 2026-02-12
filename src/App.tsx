@@ -21,6 +21,7 @@ const MappingDetailPage = lazy(() => import('./pages/MappingDetailPage'));
 const PersonvernPage = lazy(() => import('./pages/PersonvernPage'));
 const CookiesPage = lazy(() => import('./pages/CookiesPage'));
 const OAuthConsentPage = lazy(() => import('./pages/OAuthConsentPage'));
+const ProjectMembersPage = lazy(() => import('./pages/ProjectMembersPage'));
 
 /**
  * Main App for Event Sourcing Architecture
@@ -37,6 +38,7 @@ const OAuthConsentPage = lazy(() => import('./pages/OAuthConsentPage'));
  * - /fravik-analyse : Fravik analytics (decision support for BH)
  * - /analyse : Analytics dashboard (project/portfolio insights)
  * - /integrasjoner : Dalux-Catenda sync management
+ * - /medlemmer : Project members management
  * - /showcase : Component showcase for testing primitives
  * - /personvern : Privacy policy page (GDPR)
  * - /cookies : Cookie and local storage information
@@ -115,6 +117,14 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <MappingDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/medlemmer"
+            element={
+              <ProtectedRoute>
+                <ProjectMembersPage />
               </ProtectedRoute>
             }
           />

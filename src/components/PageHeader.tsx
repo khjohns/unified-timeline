@@ -17,6 +17,7 @@ import {
   BarChartIcon,
   MixerHorizontalIcon,
   ChatBubbleIcon,
+  PersonIcon,
 } from '@radix-ui/react-icons';
 import { ThemeToggle } from './ThemeToggle';
 import { ModeToggle } from './ModeToggle';
@@ -159,6 +160,9 @@ export function PageHeader({
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup label="Innstillinger">
+                    <DropdownMenuItem icon={<PersonIcon />} asChild>
+                      <Link to="/medlemmer">Prosjektmedlemmer</Link>
+                    </DropdownMenuItem>
                     <DropdownMenuItem icon={<MixerHorizontalIcon />} asChild>
                       <Link to="/integrasjoner">Integrasjoner</Link>
                     </DropdownMenuItem>
