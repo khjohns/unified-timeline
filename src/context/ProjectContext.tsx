@@ -21,7 +21,7 @@ export interface ProjectInfo {
 
 const STORAGE_KEY = 'koe-active-project';
 
-const DEFAULT_PROJECT: ProjectInfo = {
+export const DEFAULT_PROJECT: ProjectInfo = {
   id: 'oslobygg',
   name: 'Oslobygg',
 };

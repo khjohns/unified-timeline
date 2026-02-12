@@ -29,7 +29,7 @@ import {
 } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { InlineLoading } from '../components/PageStateHelpers';
-import { useProject } from '../context/ProjectContext';
+import { useProject, DEFAULT_PROJECT } from '../context/ProjectContext';
 import { useSupabaseAuth } from '../context/SupabaseAuthContext';
 import { useProjectDetail, useUpdateProject, useDeactivateProject } from '../hooks/useProjects';
 import { useProjectMembers } from '../hooks/useProjectMembers';
@@ -107,7 +107,7 @@ export function ProsjektInnstillingerPage() {
     try {
       const updated = await updateMutation.mutateAsync({
         name: data.name,
-        description: data.description || undefined,
+        description: data.description || null,
       });
       toast.success('Prosjekt oppdatert', `Endringene er lagret.`);
       // Update active project context if name changed
@@ -127,7 +127,7 @@ export function ProsjektInnstillingerPage() {
       await deactivateMutation.mutateAsync(projectId);
       toast.success('Prosjekt deaktivert', 'Prosjektet er nå deaktivert.');
       // Switch to default project and navigate away
-      setActiveProject({ id: 'oslobygg', name: 'Oslobygg' });
+      setActiveProject(DEFAULT_PROJECT);
       navigate('/saker');
     } catch (err) {
       toast.error(

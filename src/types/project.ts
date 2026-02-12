@@ -23,5 +23,5 @@ export interface CreateProjectPayload {
 
 export interface UpdateProjectPayload {
   name?: string;
-  description?: string;
+  description?: string | null;
 }
