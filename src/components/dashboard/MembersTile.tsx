@@ -1,0 +1,76 @@
+/**
+ * MembersTile - Shows project members as avatar circles grouped by role.
+ */
+
+import { BentoCard } from './BentoCard';
+import type { ProjectMembership } from '../../types/membership';
+
+function getInitials(member: ProjectMembership): string {
+  if (member.display_name) {
+    return member.display_name
+      .split(' ')
+      .map(w => w[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  }
+  return member.user_email.slice(0, 2).toUpperCase();
+}
+
+function getDisplayName(member: ProjectMembership): string {
+  return member.display_name || member.user_email;
+}
+
+const ROLE_COLORS: Record<string, string> = {
+  admin: 'bg-pkt-brand-blue-1000 text-white',
+  member: 'bg-pkt-brand-warm-blue-1000 text-white',
+  viewer: 'bg-pkt-grays-gray-400 text-white',
+};
+
+const MAX_SHOWN = 6;
+
+interface MembersTileProps {
+  members: ProjectMembership[];
+}
+
+export function MembersTile({ members }: MembersTileProps) {
+  const shown = members.slice(0, MAX_SHOWN);
+  const overflow = members.length - MAX_SHOWN;
+
+  return (
+    <BentoCard colSpan="col-span-12 md:col-span-3" delay={100}>
+      <div className="p-5">
+        <p className="text-xs font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
+          Medlemmer
+        </p>
+
+        <div className="flex flex-wrap gap-2">
+          {shown.map((member) => (
+            <div key={member.id} className="group relative">
+              <div
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold ${
+                  ROLE_COLORS[member.role] ?? ROLE_COLORS.viewer
+                }`}
+                title={`${getDisplayName(member)} (${member.role})`}
+              >
+                {getInitials(member)}
+              </div>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded bg-pkt-brand-dark-blue-1000 text-white text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                {getDisplayName(member)}
+              </div>
+            </div>
+          ))}
+          {overflow > 0 && (
+            <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold bg-pkt-grays-gray-200 text-pkt-text-body-subtle">
+              +{overflow}
+            </div>
+          )}
+        </div>
+
+        <p className="text-xs text-pkt-text-body-subtle mt-3">
+          {members.length} {members.length === 1 ? 'medlem' : 'medlemmer'}
+        </p>
+      </div>
+    </BentoCard>
+  );
+}

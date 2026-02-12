@@ -178,11 +178,13 @@ def update_project(project_id: str):
             updates["name"] = req.name
         if "description" in req.model_fields_set:
             updates["description"] = req.description
+        if "settings" in req.model_fields_set:
+            updates["settings"] = req.settings
 
         if not updates:
             return jsonify({
                 "error": "MISSING_PARAMETERS",
-                "message": "At least one of name or description is required",
+                "message": "At least one of name, description, or settings is required",
             }), 400
 
         updated_project = _get_project_repo().update(project_id, updates)

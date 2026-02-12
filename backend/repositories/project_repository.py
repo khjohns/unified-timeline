@@ -108,7 +108,7 @@ class SupabaseProjectRepository:
         )
         return len(result.data) > 0
 
-    UPDATABLE_FIELDS = {"name", "description"}
+    UPDATABLE_FIELDS = {"name", "description", "settings"}
 
     @with_retry()
     def update(self, project_id: str, updates: dict) -> Project | None:

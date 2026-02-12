@@ -1,0 +1,81 @@
+/**
+ * ProjectIdentityTile - Project name, BH/TE, health indicator, and "venter" pulse.
+ */
+
+import { useMemo } from 'react';
+import { BentoCard } from './BentoCard';
+import type { ContractSettings } from '../../types/project';
+import type { CaseListItem } from '../../types/api';
+
+const CLOSED_STATUSES = new Set(['OMFORENT', 'LUKKET', 'LUKKET_TRUKKET']);
+const BH_PENDING_STATUSES = new Set(['SENDT', 'UNDER_BEHANDLING']);
+const TE_PENDING_STATUSES = new Set(['VENTER_PAA_SVAR']);
+
+function getHealthColor(cases: CaseListItem[]): { color: string; label: string } {
+  if (cases.length === 0) return { color: 'bg-pkt-grays-gray-400', label: 'Ingen saker' };
+  const openCount = cases.filter(c => !CLOSED_STATUSES.has(c.cached_status?.toUpperCase() ?? '')).length;
+  const ratio = openCount / cases.length;
+  if (ratio > 0.7) return { color: 'bg-red-500', label: 'Mange åpne saker' };
+  if (ratio > 0.4) return { color: 'bg-yellow-500', label: 'Moderat' };
+  return { color: 'bg-emerald-500', label: 'God kontroll' };
+}
+
+interface ProjectIdentityTileProps {
+  projectName: string;
+  contract: ContractSettings | null;
+  cases: CaseListItem[];
+  userRole: 'BH' | 'TE';
+}
+
+export function ProjectIdentityTile({ projectName, contract, cases, userRole }: ProjectIdentityTileProps) {
+  const health = useMemo(() => getHealthColor(cases), [cases]);
+
+  const pendingCount = useMemo(() => {
+    const pendingStatuses = userRole === 'BH' ? BH_PENDING_STATUSES : TE_PENDING_STATUSES;
+    return cases.filter(c => {
+      const status = c.cached_status?.toUpperCase() ?? '';
+      return !CLOSED_STATUSES.has(status) && pendingStatuses.has(status);
+    }).length;
+  }, [cases, userRole]);
+
+  return (
+    <BentoCard colSpan="col-span-12 sm:col-span-6 lg:col-span-4" delay={0}>
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <div className={`w-2 h-2 rounded-full ${health.color} animate-pulse`} />
+          <span className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-widest">
+            {health.label}
+          </span>
+        </div>
+        <h2 className="text-base font-bold text-pkt-text-body-dark leading-tight mb-2 truncate" title={projectName}>
+          {projectName}
+        </h2>
+        {contract ? (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-pkt-text-body-subtle w-5">BH</span>
+              <span className="text-xs text-pkt-text-body-default truncate">{contract.byggherre_navn}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-pkt-text-body-subtle w-5">TE</span>
+              <span className="text-xs text-pkt-text-body-default truncate">{contract.totalentreprenor_navn}</span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-pkt-text-body-subtle">NS 8407 Endringsregister</p>
+        )}
+
+        {pendingCount > 0 && (
+          <div className="mt-2 pt-2 border-t border-pkt-border-subtle">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-pkt-brand-yellow-1000 animate-pulse" />
+              <span className="text-[11px] font-medium text-pkt-text-body-default">
+                {pendingCount} venter på {userRole === 'BH' ? 'ditt svar' : 'svar fra BH'}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    </BentoCard>
+  );
+}

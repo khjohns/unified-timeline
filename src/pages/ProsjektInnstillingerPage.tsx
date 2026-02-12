@@ -1,11 +1,12 @@
 /**
  * ProsjektInnstillingerPage
  *
- * Project settings page for editing project info and managing project lifecycle.
+ * Project settings page for editing project info, contract data, and managing project lifecycle.
  * Route: /innstillinger
  *
  * Sections:
  * - Prosjektinformasjon: Edit name/description (admin only, read-only for others)
+ * - Kontraktsdata: BH/TE names, org numbers, contract sum, dagmulkt, dates (admin only)
  * - Medlemmer: Link to /medlemmer for member management
  * - Faresone: Deactivate project (admin only)
  */
@@ -33,12 +34,13 @@ import { useProject, DEFAULT_PROJECT } from '../context/ProjectContext';
 import { useSupabaseAuth } from '../context/SupabaseAuthContext';
 import { useProjectDetail, useUpdateProject, useDeactivateProject } from '../hooks/useProjects';
 import { useProjectMembers } from '../hooks/useProjectMembers';
+import type { ProjectSettings } from '../types/project';
 
 // ============================================================
-// Schema
+// Schemas
 // ============================================================
 
-const prosjektInnstillingerSchema = z.object({
+const prosjektInfoSchema = z.object({
   name: z
     .string()
     .min(1, 'Prosjektnavn er påkrevd')
@@ -50,7 +52,20 @@ const prosjektInnstillingerSchema = z.object({
     .or(z.literal('')),
 });
 
-type ProsjektInnstillingerFormData = z.infer<typeof prosjektInnstillingerSchema>;
+type ProsjektInfoFormData = z.infer<typeof prosjektInfoSchema>;
+
+const kontraktsdataSchema = z.object({
+  byggherre_navn: z.string().min(1, 'Byggherre-navn er påkrevd').max(200),
+  byggherre_org_nr: z.string().max(20).optional().or(z.literal('')),
+  totalentreprenor_navn: z.string().min(1, 'Totalentreprenør-navn er påkrevd').max(200),
+  totalentreprenor_org_nr: z.string().max(20).optional().or(z.literal('')),
+  kontraktssum: z.coerce.number().min(0, 'Må være 0 eller høyere'),
+  dagmulkt_sats: z.coerce.number().min(0, 'Må være 0 eller høyere'),
+  kontraktstart: z.string().min(1, 'Kontraktstart er påkrevd'),
+  kontraktsfrist: z.string().min(1, 'Kontraktsfrist er påkrevd'),
+});
+
+type KontraktsdataFormData = z.infer<typeof kontraktsdataSchema>;
 
 // ============================================================
 // Component
@@ -63,54 +78,46 @@ export function ProsjektInnstillingerPage() {
   const { user } = useSupabaseAuth();
   const { data: project, isLoading, error } = useProjectDetail(projectId);
   const updateMutation = useUpdateProject(projectId);
+  const contractMutation = useUpdateProject(projectId);
   const deactivateMutation = useDeactivateProject();
   const { data: members } = useProjectMembers(projectId);
 
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
 
   // Determine admin status from membership list
-  const currentUserEmail = user?.email ?? null;
+  // In dev mode (DISABLE_AUTH), backend uses test@example.com
+  const authDisabled = import.meta.env.VITE_DISABLE_AUTH === 'true';
+  const currentUserEmail = user?.email ?? (authDisabled ? 'test@example.com' : null);
   const currentMembership = members?.find(
     (m) => m.user_email === currentUserEmail
   );
   const isAdmin = currentMembership?.role === 'admin';
 
-  // Form setup with values populated from the fetched project
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isDirty },
-  } = useForm<ProsjektInnstillingerFormData>({
-    resolver: zodResolver(prosjektInnstillingerSchema),
-    defaultValues: {
-      name: '',
-      description: '',
-    },
+  // ============================================================
+  // Project Info Form
+  // ============================================================
+
+  const infoForm = useForm<ProsjektInfoFormData>({
+    resolver: zodResolver(prosjektInfoSchema),
+    defaultValues: { name: '', description: '' },
   });
 
-  // Populate form when project data loads
   useEffect(() => {
     if (project) {
-      reset({
+      infoForm.reset({
         name: project.name,
         description: project.description ?? '',
       });
     }
-  }, [project, reset]);
+  }, [project, infoForm.reset]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ============================================================
-  // Handlers
-  // ============================================================
-
-  const onSubmit = async (data: ProsjektInnstillingerFormData) => {
+  const onInfoSubmit = async (data: ProsjektInfoFormData) => {
     try {
       const updated = await updateMutation.mutateAsync({
         name: data.name,
         description: data.description || null,
       });
-      toast.success('Prosjekt oppdatert', `Endringene er lagret.`);
-      // Update active project context if name changed
+      toast.success('Prosjekt oppdatert', 'Endringene er lagret.');
       if (updated.name !== activeProject.name) {
         setActiveProject({ id: updated.id, name: updated.name });
       }
@@ -122,11 +129,74 @@ export function ProsjektInnstillingerPage() {
     }
   };
 
+  // ============================================================
+  // Contract Data Form
+  // ============================================================
+
+  const contractForm = useForm<KontraktsdataFormData>({
+    resolver: zodResolver(kontraktsdataSchema),
+    defaultValues: {
+      byggherre_navn: '',
+      byggherre_org_nr: '',
+      totalentreprenor_navn: '',
+      totalentreprenor_org_nr: '',
+      kontraktssum: 0,
+      dagmulkt_sats: 0,
+      kontraktstart: '',
+      kontraktsfrist: '',
+    },
+  });
+
+  useEffect(() => {
+    if (project?.settings?.contract) {
+      const c = project.settings.contract;
+      contractForm.reset({
+        byggherre_navn: c.byggherre_navn ?? '',
+        byggherre_org_nr: c.byggherre_org_nr ?? '',
+        totalentreprenor_navn: c.totalentreprenor_navn ?? '',
+        totalentreprenor_org_nr: c.totalentreprenor_org_nr ?? '',
+        kontraktssum: c.kontraktssum ?? 0,
+        dagmulkt_sats: c.dagmulkt_sats ?? 0,
+        kontraktstart: c.kontraktstart ?? '',
+        kontraktsfrist: c.kontraktsfrist ?? '',
+      });
+    }
+  }, [project, contractForm.reset]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onContractSubmit = async (data: KontraktsdataFormData) => {
+    try {
+      const existingSettings = project?.settings ?? {};
+      const newSettings: ProjectSettings = {
+        ...existingSettings,
+        contract: {
+          byggherre_navn: data.byggherre_navn,
+          byggherre_org_nr: data.byggherre_org_nr || undefined,
+          totalentreprenor_navn: data.totalentreprenor_navn,
+          totalentreprenor_org_nr: data.totalentreprenor_org_nr || undefined,
+          kontraktssum: data.kontraktssum,
+          dagmulkt_sats: data.dagmulkt_sats,
+          kontraktstart: data.kontraktstart,
+          kontraktsfrist: data.kontraktsfrist,
+        },
+      };
+      await contractMutation.mutateAsync({ settings: newSettings });
+      toast.success('Kontraktsdata lagret', 'Kontraktsinformasjonen er oppdatert.');
+    } catch (err) {
+      toast.error(
+        'Feil ved lagring',
+        err instanceof Error ? err.message : 'En feil oppstod',
+      );
+    }
+  };
+
+  // ============================================================
+  // Deactivate Handler
+  // ============================================================
+
   const handleDeactivate = async () => {
     try {
       await deactivateMutation.mutateAsync(projectId);
       toast.success('Prosjekt deaktivert', 'Prosjektet er nå deaktivert.');
-      // Switch to default project and navigate away
       setActiveProject(DEFAULT_PROJECT);
       navigate('/saker');
     } catch (err) {
@@ -176,7 +246,7 @@ export function ProsjektInnstillingerPage() {
             {/* Section 1: Prosjektinformasjon */}
             {isAdmin ? (
               <Card variant="outlined" padding="none">
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-0">
+                <form onSubmit={infoForm.handleSubmit(onInfoSubmit)} className="space-y-0">
                   <SectionContainer
                     title="Prosjektinformasjon"
                     description="Rediger prosjektets navn og beskrivelse"
@@ -184,20 +254,20 @@ export function ProsjektInnstillingerPage() {
                     <FormField
                       label="Prosjektnavn"
                       required
-                      error={errors.name?.message}
+                      error={infoForm.formState.errors.name?.message}
                     >
                       <Input
                         id="settings-name"
                         data-testid="innstillinger-name"
                         placeholder="F.eks. Oslobygg Skoleprosjekt"
-                        {...register('name')}
+                        {...infoForm.register('name')}
                         className="w-full"
                       />
                     </FormField>
 
                     <FormField
                       label="Beskrivelse"
-                      error={errors.description?.message}
+                      error={infoForm.formState.errors.description?.message}
                       helpText="Valgfri beskrivelse av prosjektet"
                     >
                       <Textarea
@@ -206,12 +276,11 @@ export function ProsjektInnstillingerPage() {
                         placeholder="Kort beskrivelse av prosjektet..."
                         rows={4}
                         fullWidth
-                        {...register('description')}
+                        {...infoForm.register('description')}
                       />
                     </FormField>
                   </SectionContainer>
 
-                  {/* Error Message */}
                   {updateMutation.isError && (
                     <div className="px-4 pb-4">
                       <Alert variant="danger" title="Feil ved oppdatering">
@@ -222,12 +291,11 @@ export function ProsjektInnstillingerPage() {
                     </div>
                   )}
 
-                  {/* Actions */}
                   <div className="flex justify-end p-4 border-t-2 border-pkt-border-subtle">
                     <Button
                       type="submit"
                       variant="primary"
-                      disabled={!isDirty || updateMutation.isPending}
+                      disabled={!infoForm.formState.isDirty || updateMutation.isPending}
                       data-testid="innstillinger-submit"
                     >
                       {updateMutation.isPending ? 'Lagrer...' : 'Lagre endringer'}
@@ -268,7 +336,175 @@ export function ProsjektInnstillingerPage() {
               </Card>
             )}
 
-            {/* Section 2: Medlemmer */}
+            {/* Section 2: Kontraktsdata (admin only) */}
+            {isAdmin ? (
+              <Card variant="outlined" padding="none">
+                <form onSubmit={contractForm.handleSubmit(onContractSubmit)} className="space-y-0">
+                  <SectionContainer
+                    title="Kontraktsdata"
+                    description="Informasjon om kontraktspartene, kontraktssum og frister (NS 8407)"
+                  >
+                    {/* Byggherre */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField
+                        label="Byggherre (BH)"
+                        required
+                        error={contractForm.formState.errors.byggherre_navn?.message}
+                      >
+                        <Input
+                          id="contract-bh-name"
+                          placeholder="F.eks. Oslo kommune"
+                          {...contractForm.register('byggherre_navn')}
+                          className="w-full"
+                        />
+                      </FormField>
+                      <FormField
+                        label="BH org.nr."
+                        error={contractForm.formState.errors.byggherre_org_nr?.message}
+                      >
+                        <Input
+                          id="contract-bh-org"
+                          placeholder="123 456 789"
+                          {...contractForm.register('byggherre_org_nr')}
+                          className="w-full"
+                        />
+                      </FormField>
+                    </div>
+
+                    {/* Totalentreprenør */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField
+                        label="Totalentreprenør (TE)"
+                        required
+                        error={contractForm.formState.errors.totalentreprenor_navn?.message}
+                      >
+                        <Input
+                          id="contract-te-name"
+                          placeholder="F.eks. Veidekke AS"
+                          {...contractForm.register('totalentreprenor_navn')}
+                          className="w-full"
+                        />
+                      </FormField>
+                      <FormField
+                        label="TE org.nr."
+                        error={contractForm.formState.errors.totalentreprenor_org_nr?.message}
+                      >
+                        <Input
+                          id="contract-te-org"
+                          placeholder="987 654 321"
+                          {...contractForm.register('totalentreprenor_org_nr')}
+                          className="w-full"
+                        />
+                      </FormField>
+                    </div>
+
+                    {/* Økonomi */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField
+                        label="Kontraktssum (kr)"
+                        required
+                        error={contractForm.formState.errors.kontraktssum?.message}
+                      >
+                        <Input
+                          id="contract-sum"
+                          type="number"
+                          min={0}
+                          placeholder="150000000"
+                          {...contractForm.register('kontraktssum')}
+                          className="w-full"
+                        />
+                      </FormField>
+                      <FormField
+                        label="Dagmulktsats (kr/dag)"
+                        required
+                        error={contractForm.formState.errors.dagmulkt_sats?.message}
+                      >
+                        <Input
+                          id="contract-dagmulkt"
+                          type="number"
+                          min={0}
+                          placeholder="50000"
+                          {...contractForm.register('dagmulkt_sats')}
+                          className="w-full"
+                        />
+                      </FormField>
+                    </div>
+
+                    {/* Datoer */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField
+                        label="Kontraktstart"
+                        required
+                        error={contractForm.formState.errors.kontraktstart?.message}
+                      >
+                        <Input
+                          id="contract-start"
+                          type="date"
+                          {...contractForm.register('kontraktstart')}
+                          className="w-full"
+                        />
+                      </FormField>
+                      <FormField
+                        label="Kontraktsfrist"
+                        required
+                        error={contractForm.formState.errors.kontraktsfrist?.message}
+                      >
+                        <Input
+                          id="contract-deadline"
+                          type="date"
+                          {...contractForm.register('kontraktsfrist')}
+                          className="w-full"
+                        />
+                      </FormField>
+                    </div>
+                  </SectionContainer>
+
+                  {contractMutation.isError && (
+                    <div className="px-4 pb-4">
+                      <Alert variant="danger" title="Feil ved lagring av kontraktsdata">
+                        {contractMutation.error instanceof Error
+                          ? contractMutation.error.message
+                          : 'En feil oppstod'}
+                      </Alert>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end p-4 border-t-2 border-pkt-border-subtle">
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      disabled={!contractForm.formState.isDirty || contractMutation.isPending}
+                    >
+                      {contractMutation.isPending ? 'Lagrer...' : 'Lagre kontraktsdata'}
+                    </Button>
+                  </div>
+                </form>
+              </Card>
+            ) : (
+              project.settings?.contract && (
+                <Card variant="outlined" padding="lg">
+                  <h3 className="text-base font-semibold text-pkt-text-body-dark mb-3">
+                    Kontraktsdata
+                  </h3>
+                  <dl className="grid grid-cols-2 gap-3">
+                    <div>
+                      <dt className="text-sm font-medium text-pkt-text-body-subtle">Byggherre</dt>
+                      <dd className="mt-0.5 text-sm text-pkt-text-body-default">
+                        {project.settings.contract.byggherre_navn}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium text-pkt-text-body-subtle">Totalentreprenør</dt>
+                      <dd className="mt-0.5 text-sm text-pkt-text-body-default">
+                        {project.settings.contract.totalentreprenor_navn}
+                      </dd>
+                    </div>
+                  </dl>
+                </Card>
+              )
+            )}
+
+            {/* Section 3: Medlemmer */}
             <Card variant="outlined" padding="lg">
               <div className="flex items-center justify-between">
                 <div>
@@ -289,7 +525,7 @@ export function ProsjektInnstillingerPage() {
               </div>
             </Card>
 
-            {/* Section 3: Faresone (admin only) */}
+            {/* Section 4: Faresone (admin only) */}
             {isAdmin && (
               <Card variant="outlined" padding="lg" className="border-red-300 dark:border-red-700">
                 <h3 className="text-base font-semibold text-red-700 dark:text-red-400 mb-1">

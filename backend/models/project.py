@@ -36,3 +36,4 @@ class UpdateProjectRequest(BaseModel):
 
     name: str | None = Field(default=None, min_length=1, max_length=200, description="New project name")
     description: str | None = Field(default=None, max_length=2000, description="New project description")
+    settings: dict | None = Field(default=None, description="Project settings (JSONB)")

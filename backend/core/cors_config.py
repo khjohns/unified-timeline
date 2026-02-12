@@ -71,7 +71,7 @@ def setup_cors(app: Flask) -> None:
         resources={
             r"/api/*": {
                 "origins": allowed_origins,
-                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
                 "allow_headers": ["Content-Type", "X-CSRF-Token", "Authorization", "X-Project-ID"],
                 "expose_headers": ["X-RateLimit-Remaining", "X-RateLimit-Reset"],
                 "supports_credentials": False,
@@ -89,7 +89,7 @@ def setup_cors(app: Flask) -> None:
         if _is_vercel_origin(origin) and origin not in allowed_origins:
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Methods"] = (
-                "GET, POST, PUT, DELETE, OPTIONS"
+                "GET, POST, PUT, PATCH, DELETE, OPTIONS"
             )
             response.headers["Access-Control-Allow-Headers"] = (
                 "Content-Type, X-CSRF-Token, Authorization, X-Project-ID"
