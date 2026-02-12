@@ -51,9 +51,9 @@ from core.logging_config import setup_logging
 
 # Request context
 from core.request_context import init_request_context
-from lib.project_context import init_project_context
 from core.system_context import SystemContext
 from lib.auth.magic_link import MagicLinkManager
+from lib.project_context import init_project_context
 
 # Security
 from lib.security.rate_limiter import init_limiter
@@ -176,8 +176,13 @@ init_project_context(app)
 # Register Blueprints
 # ============================================================================
 
-from routes.membership_routes import membership_bp
-from routes.project_routes import projects_bp
+from kofa.web import (
+    create_mcp_blueprint as create_kofa_mcp_blueprint,  # MCP server for KOFA
+)
+from paragraf.web import (
+    create_mcp_blueprint,  # MCP server for Lovdata (external package)
+)
+
 from routes.analytics_routes import analytics_bp
 from routes.catenda_webhook_routes import webhook_bp  # Catenda-specific webhooks
 from routes.cloudevents_routes import cloudevents_bp
@@ -187,9 +192,10 @@ from routes.event_routes import events_bp
 from routes.forsering_routes import forsering_bp
 from routes.fravik_routes import fravik_bp
 from routes.letter_routes import letter_bp
-from paragraf.web import create_mcp_blueprint  # MCP server for Lovdata (external package)
-from kofa.web import create_mcp_blueprint as create_kofa_mcp_blueprint  # MCP server for KOFA
+from routes.membership_routes import membership_bp
+from routes.oauth_auto_consent_routes import oauth_auto_consent_bp  # noqa: F401
 from routes.oauth_consent_routes import oauth_consent_bp  # OAuth consent API
+from routes.project_routes import projects_bp
 from routes.sync_routes import sync_bp
 from routes.utility_routes import utility_bp
 from routes.wellknown_routes import wellknown_bp  # OAuth discovery endpoints
@@ -208,6 +214,7 @@ app.register_blueprint(letter_bp)
 app.register_blueprint(create_mcp_blueprint(), url_prefix="/mcp")
 app.register_blueprint(create_kofa_mcp_blueprint(), url_prefix="/mcp/kofa")
 app.register_blueprint(oauth_consent_bp)
+app.register_blueprint(oauth_auto_consent_bp)
 app.register_blueprint(wellknown_bp)
 app.register_blueprint(projects_bp)
 app.register_blueprint(membership_bp)
