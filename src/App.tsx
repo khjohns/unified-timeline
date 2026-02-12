@@ -22,6 +22,8 @@ const PersonvernPage = lazy(() => import('./pages/PersonvernPage'));
 const CookiesPage = lazy(() => import('./pages/CookiesPage'));
 const OAuthConsentPage = lazy(() => import('./pages/OAuthConsentPage'));
 const ProjectMembersPage = lazy(() => import('./pages/ProjectMembersPage'));
+const OpprettProsjektPage = lazy(() => import('./pages/OpprettProsjektPage'));
+const ProsjektInnstillingerPage = lazy(() => import('./pages/ProsjektInnstillingerPage'));
 
 /**
  * Main App for Event Sourcing Architecture
@@ -39,6 +41,8 @@ const ProjectMembersPage = lazy(() => import('./pages/ProjectMembersPage'));
  * - /analyse : Analytics dashboard (project/portfolio insights)
  * - /integrasjoner : Dalux-Catenda sync management
  * - /medlemmer : Project members management
+ * - /prosjekter/nytt : Create new project
+ * - /innstillinger : Project settings
  * - /showcase : Component showcase for testing primitives
  * - /personvern : Privacy policy page (GDPR)
  * - /cookies : Cookie and local storage information
@@ -125,6 +129,22 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <ProjectMembersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/prosjekter/nytt"
+            element={
+              <ProtectedRoute>
+                <OpprettProsjektPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/innstillinger"
+            element={
+              <ProtectedRoute>
+                <ProsjektInnstillingerPage />
               </ProtectedRoute>
             }
           />
