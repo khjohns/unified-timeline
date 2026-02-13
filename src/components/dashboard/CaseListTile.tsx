@@ -32,6 +32,7 @@ import {
   ChevronUpIcon,
   ArrowUpIcon,
   ArrowDownIcon,
+  Cross1Icon,
 } from '@radix-ui/react-icons';
 
 // ========== Constants ==========
@@ -258,25 +259,63 @@ function CaseListToolbar({
   expanded: boolean;
   onToggleExpand: () => void;
 }) {
+  const [searchOpen, setSearchOpen] = useState(false);
+
   return (
-    <div className="px-4 py-3 space-y-2">
+    <div className="px-3 sm:px-4 py-3 space-y-2">
       {/* Row 1: Title + filter pills + search + expand/collapse */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide shrink-0">
           Saker
         </p>
-        <PillToggle
-          options={[
-            { key: 'all' as SakstypeFilter, label: 'Alle', count: typeCounts.all },
-            { key: 'standard' as SakstypeFilter, label: 'KOE', count: typeCounts.standard },
-            { key: 'forsering' as SakstypeFilter, label: 'Forsering', count: typeCounts.forsering },
-            { key: 'endringsordre' as SakstypeFilter, label: 'EO', count: typeCounts.endringsordre },
-          ]}
-          value={filter}
-          onChange={setFilter}
-        />
+
+        {/* Mobile: hide pills when search is open */}
+        <div className={`overflow-x-auto scrollbar-hide ${searchOpen ? 'hidden' : 'block'} sm:block`}>
+          <PillToggle
+            options={[
+              { key: 'all' as SakstypeFilter, label: 'Alle', count: typeCounts.all },
+              { key: 'standard' as SakstypeFilter, label: 'KOE', count: typeCounts.standard },
+              { key: 'forsering' as SakstypeFilter, label: 'Forsering', count: typeCounts.forsering },
+              { key: 'endringsordre' as SakstypeFilter, label: 'EO', count: typeCounts.endringsordre },
+            ]}
+            value={filter}
+            onChange={setFilter}
+          />
+        </div>
+
         <div className="flex-1" />
-        <div className="relative w-40">
+
+        {/* Mobile: collapsible search */}
+        {searchOpen ? (
+          <div className="relative flex-1 sm:hidden">
+            <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-pkt-text-body-subtle pointer-events-none" />
+            <Input
+              placeholder="Sok..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              width="full"
+              autoFocus
+              className="!pl-8 !py-1 !min-h-[28px] !text-xs !rounded-full !bg-pkt-bg-subtle !border-transparent focus:!border-pkt-border-default"
+            />
+            <button
+              onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-pkt-text-body-subtle hover:text-pkt-text-body-default"
+            >
+              <Cross1Icon className="w-3 h-3" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="p-1.5 rounded-full hover:bg-pkt-bg-subtle transition-colors text-pkt-text-body-subtle sm:hidden"
+            title="Sok"
+          >
+            <MagnifyingGlassIcon className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        {/* Desktop: always-visible search */}
+        <div className="relative w-40 hidden sm:block">
           <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-pkt-text-body-subtle pointer-events-none" />
           <Input
             placeholder="Sok..."
@@ -286,6 +325,7 @@ function CaseListToolbar({
             className="!pl-8 !py-1 !min-h-[28px] !text-xs !rounded-full !bg-pkt-bg-subtle !border-transparent focus:!border-pkt-border-default"
           />
         </div>
+
         <button
           onClick={onToggleExpand}
           className="flex items-center gap-0.5 text-xs text-pkt-text-action-active hover:underline shrink-0"
@@ -295,8 +335,8 @@ function CaseListToolbar({
         </button>
       </div>
 
-      {/* Row 2: group + sort controls */}
-      <div className="flex items-center gap-1.5 text-[11px] text-pkt-text-body-subtle">
+      {/* Row 2: group + sort controls (wraps on mobile) */}
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-pkt-text-body-subtle">
         <span>Grupper:</span>
         <PillToggle
           options={[
@@ -307,7 +347,7 @@ function CaseListToolbar({
           value={groupBy}
           onChange={setGroupBy}
         />
-        <div className="flex-1" />
+        <div className="flex-1 min-w-[8px]" />
         <span>Sorter:</span>
         <PillToggle
           options={[
@@ -324,15 +364,44 @@ function CaseListToolbar({
   );
 }
 
+// ========== Dynamic Value Helper ==========
+
+function getDynamicValue(item: CaseListItem, sortBy: SortBy): React.ReactNode {
+  switch (sortBy) {
+    case 'belop':
+      return (
+        <span className="font-mono text-xs tabular-nums">
+          <span className="text-pkt-text-body-default">{formatCurrencyCompact(item.cached_sum_krevd)}</span>
+          <span className="text-pkt-text-body-subtle text-[10px] mx-0.5">/</span>
+          <span className="text-pkt-text-body-subtle">{formatCurrencyCompact(item.cached_sum_godkjent)}</span>
+        </span>
+      );
+    case 'saksnummer':
+      return (
+        <span className="text-xs text-pkt-text-body-subtle tabular-nums">
+          {formatDateShort(item.last_event_at)}
+        </span>
+      );
+    default: // 'dato'
+      return (
+        <span className="text-xs text-pkt-text-body-subtle tabular-nums">
+          {formatDateShort(item.last_event_at)}
+        </span>
+      );
+  }
+}
+
 // ========== Case Row ==========
 
 function CaseRow({
   item,
   showExtendedColumns,
+  sortBy,
   to,
 }: {
   item: CaseListItem;
   showExtendedColumns: boolean;
+  sortBy: SortBy;
   to: string;
 }) {
   const typeTag = getTypeTag(item.sakstype);
@@ -340,68 +409,95 @@ function CaseRow({
   return (
     <Link
       to={to}
-      className="block px-4 py-2 hover:bg-pkt-bg-subtle/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pkt-brand-warm-blue-1000/30 transition-colors border-t border-pkt-border-subtle/50 first:border-t-0 no-underline"
+      className="block px-3 sm:px-4 py-2 hover:bg-pkt-bg-subtle/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pkt-brand-warm-blue-1000/30 transition-colors border-t border-pkt-border-subtle/50 first:border-t-0 no-underline"
     >
       {showExtendedColumns ? (
-        /* Expanded: full grid with all columns */
-        <div className="md:grid md:grid-cols-12 md:gap-3 md:items-center">
-          {/* Sak-ID + Title */}
-          <div className="col-span-4 flex items-center gap-2 min-w-0">
-            <span
-              className={`w-1.5 h-1.5 rounded-full shrink-0 ${getStatusDotColor(item.cached_status)}`}
-            />
-            <span className={`font-mono text-xs shrink-0 ${typeTag.className}`}>
-              {formatSakId(item.sak_id, item.sakstype)}
-            </span>
-            <p className="text-sm font-medium text-pkt-text-body-dark truncate min-w-0">
-              {item.cached_title || 'Uten tittel'}
-            </p>
+        <>
+          {/* Mobile (<md): two-column layout with merged ID/title + dynamic value */}
+          <div className="md:hidden">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${getStatusDotColor(item.cached_status)}`} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-1.5 min-w-0">
+                  <span className={`font-mono text-xs shrink-0 ${typeTag.className}`}>
+                    {formatSakId(item.sak_id, item.sakstype)}
+                  </span>
+                  <span className="text-pkt-text-body-subtle text-[10px]">&middot;</span>
+                  <p className="text-sm font-medium text-pkt-text-body-dark truncate min-w-0">
+                    {item.cached_title || 'Uten tittel'}
+                  </p>
+                </div>
+                <p className="text-[11px] text-pkt-text-body-subtle mt-0.5">
+                  {getStatusLabel(item.cached_status)}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                {getDynamicValue(item, sortBy)}
+              </div>
+            </div>
           </div>
-          {/* Status */}
-          <div className="col-span-2 mt-0.5 md:mt-0">
-            <span className="text-xs text-pkt-text-body-subtle">
-              {getStatusLabel(item.cached_status)}
-            </span>
+
+          {/* Desktop (md+): full grid with all columns */}
+          <div className="hidden md:grid md:grid-cols-12 md:gap-3 md:items-center">
+            {/* Sak-ID + Title */}
+            <div className="col-span-4 flex items-center gap-2 min-w-0">
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${getStatusDotColor(item.cached_status)}`} />
+              <span className={`font-mono text-xs shrink-0 ${typeTag.className}`}>
+                {formatSakId(item.sak_id, item.sakstype)}
+              </span>
+              <p className="text-sm font-medium text-pkt-text-body-dark truncate min-w-0">
+                {item.cached_title || 'Uten tittel'}
+              </p>
+            </div>
+            {/* Status */}
+            <div className="col-span-2">
+              <span className="text-xs text-pkt-text-body-subtle">
+                {getStatusLabel(item.cached_status)}
+              </span>
+            </div>
+            {/* Vederlag */}
+            <div className="col-span-2 text-right">
+              <span className="font-mono text-xs text-pkt-text-body-default">
+                {formatCurrencyCompact(item.cached_sum_krevd)}
+              </span>
+              <span className="text-pkt-text-body-subtle text-[10px] mx-0.5">/</span>
+              <span className="font-mono text-xs text-pkt-text-body-subtle">
+                {formatCurrencyCompact(item.cached_sum_godkjent)}
+              </span>
+            </div>
+            {/* Frist */}
+            <div className="col-span-2 text-right">
+              <span className="font-mono text-xs text-pkt-text-body-default">
+                {formatDaysCompact(item.cached_dager_krevd)}
+              </span>
+              <span className="text-pkt-text-body-subtle text-[10px] mx-0.5">/</span>
+              <span className="font-mono text-xs text-pkt-text-body-subtle">
+                {formatDaysCompact(item.cached_dager_godkjent)}
+              </span>
+            </div>
+            {/* Date */}
+            <div className="col-span-2 text-right">
+              <span className="text-xs text-pkt-text-body-subtle tabular-nums">
+                {formatDateShort(item.last_event_at)}
+              </span>
+            </div>
           </div>
-          {/* Vederlag */}
-          <div className="col-span-2 mt-0.5 md:mt-0 text-right">
-            <span className="font-mono text-xs text-pkt-text-body-default">
-              {formatCurrencyCompact(item.cached_sum_krevd)}
-            </span>
-            <span className="text-pkt-text-body-subtle text-[10px] mx-0.5">/</span>
-            <span className="font-mono text-xs text-pkt-text-body-subtle">
-              {formatCurrencyCompact(item.cached_sum_godkjent)}
-            </span>
-          </div>
-          {/* Frist */}
-          <div className="col-span-2 mt-0.5 md:mt-0 text-right">
-            <span className="font-mono text-xs text-pkt-text-body-default">
-              {formatDaysCompact(item.cached_dager_krevd)}
-            </span>
-            <span className="text-pkt-text-body-subtle text-[10px] mx-0.5">/</span>
-            <span className="font-mono text-xs text-pkt-text-body-subtle">
-              {formatDaysCompact(item.cached_dager_godkjent)}
-            </span>
-          </div>
-          {/* Date */}
-          <div className="col-span-2 mt-0.5 md:mt-0 text-right hidden md:block">
-            <span className="text-xs text-pkt-text-body-subtle tabular-nums">
-              {formatDateShort(item.last_event_at)}
-            </span>
-          </div>
-        </div>
+        </>
       ) : (
-        /* Compact: ID + title + status + date */
+        /* Compact: merged ID/title + dynamic value on mobile, full info on desktop */
         <div className="flex items-center gap-2 min-w-0">
-          <span
-            className={`w-1.5 h-1.5 rounded-full shrink-0 ${getStatusDotColor(item.cached_status)}`}
-          />
+          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${getStatusDotColor(item.cached_status)}`} />
           <span className={`font-mono text-xs shrink-0 ${typeTag.className}`}>
             {formatSakId(item.sak_id, item.sakstype)}
           </span>
           <p className="text-sm font-medium text-pkt-text-body-dark truncate min-w-0 flex-1">
             {item.cached_title || 'Uten tittel'}
           </p>
+          {/* Mobile: dynamic value */}
+          <span className="shrink-0 sm:hidden">
+            {getDynamicValue(item, sortBy)}
+          </span>
+          {/* Desktop: status + date */}
           <span className="text-[11px] text-pkt-text-body-subtle shrink-0 hidden sm:inline">
             {getStatusLabel(item.cached_status)}
           </span>
@@ -570,6 +666,7 @@ export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: Case
                         key={item.sak_id}
                         item={item}
                         showExtendedColumns
+                        sortBy={sortBy}
                         to={getCaseRoute(item)}
                       />
                     ))}
@@ -602,6 +699,7 @@ export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: Case
                   key={item.sak_id}
                   item={item}
                   showExtendedColumns={false}
+                  sortBy={sortBy}
                   to={getCaseRoute(item)}
                 />
               ))}
