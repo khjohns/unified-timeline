@@ -1,19 +1,21 @@
 /**
- * CasePageBento - TEST PAGE (V2 - Organisk layout)
+ * CasePageBento - TEST PAGE (V3 - Expand/Collapse layout)
  *
  * Bento grid layout variant of CasePage for A/B comparison.
  * Route: /saker/:sakId/bento
  *
- * V2 enhancements over V1:
- * 1. TrackNextStep: Kontekstuell neste-steg direkte på sporkortet (erstatter StatusAlert)
- * 2. TrackStepper: Mini prosessflyt-indikator i hvert kort
- * 3. CrossTrackActivity: Siste aktivitet på tvers av alle spor
- * 4. DependencyIndicator: Visuell kobling mellom master/dependent kort
- * 5. BentoHeaderMeta: Metadata integrert i header (parter, kategori, status)
+ * V3 enhancements over V2:
+ * - CaseIdentityTile: Consolidated identity header (title, parties, amounts)
+ * - CaseActivityStripTile: Thin activity strip below identity
+ * - TrackFormView: Inline expand/collapse forms instead of modals
+ * - Streamlined layout: removed bottom Navigasjon + Detaljer tiles
+ *
+ * Carried forward from V2:
+ * - TrackNextStep, TrackStepper, CrossTrackActivity, DependencyIndicator
  */
 
-import { useMemo, useCallback, useRef, Suspense, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useMemo, useCallback, useRef, useState, Suspense, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { forseringKeys, endringsordreKeys } from '../queries';
 import { STALE_TIME } from '../constants/queryConfig';
@@ -33,43 +35,41 @@ import {
   BentoVederlagActionButtons,
   BentoFristActionButtons,
 } from '../components/BentoTrackActionButtons';
-import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
-import { Alert, Button, AlertDialog, Card, DropdownMenuItem, useToast } from '../components/primitives';
-import { BentoCard } from '../components/dashboard/BentoCard';
+import { Alert, Button, AlertDialog, DropdownMenuItem, useToast } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { formatCurrency } from '../utils/formatters';
 import { downloadApprovedPdf } from '../pdf/generator';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
 import { MockToolbar } from '../components/MockToolbar';
-import { BentoHeaderMeta, BentoBreadcrumb, BentoSumIndicators } from '../components/bento';
+import { BentoBreadcrumb, CaseIdentityTile, CaseActivityStripTile, TrackFormView } from '../components/bento';
 import {
   ApprovePakkeModal,
   SendResponsPakkeModal,
   ApprovalDashboardCard,
 } from '../components/approval';
 import {
-  SendGrunnlagModal,
-  SendVederlagModal,
-  SendFristModal,
-  RespondGrunnlagModal,
   RespondVederlagModal,
   RespondFristModal,
   ReviseVederlagModal,
   ReviseFristModal,
   SendForseringModal,
-  WithdrawModal,
-  AcceptResponseModal,
 } from '../components/actions';
+import {
+  SendGrunnlagForm,
+  SendVederlagForm,
+  SendFristForm,
+  RespondGrunnlagForm,
+  WithdrawForm,
+  AcceptResponseForm,
+} from '../components/actions/forms';
 import { findForseringerForSak, type FindForseringerResponse } from '../api/forsering';
 import { findEOerForSak, type FindEOerResponse } from '../api/endringsordre';
 import type { SakState, TimelineEvent, EventType } from '../types/timeline';
 import type { DraftResponseData } from '../types/approval';
 import {
-  DownloadIcon,
   PaperPlaneIcon,
   QuestionMarkCircledIcon,
-  ArrowLeftIcon,
 } from '@radix-ui/react-icons';
 import { OnboardingGuide, useOnboarding, casePageSteps } from '../components/onboarding';
 import { PdfPreviewModal } from '../components/pdf';
@@ -79,8 +79,6 @@ import {
   AuthErrorState,
 } from '../components/PageStateHelpers';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { downloadRevisionHistoryCsv } from '../utils/csvExport';
-import { downloadCaseExcel } from '../utils/excelExport';
 
 /**
  * CasePageBento - Bento layout test wrapper
@@ -259,31 +257,226 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     [sakId, state.frist.krevd_dager, directSendMutation, approvalWorkflow, toast]
   );
 
-  // Collect related cases for the "related cases" tile
-  const relatedCases = useMemo(() => {
-    const items: { id: string; type: string; label: string; route: string }[] = [];
-    if (forseringData?.forseringer) {
-      for (const f of forseringData.forseringer) {
-        items.push({
-          id: f.forsering_sak_id,
-          type: 'forsering',
-          label: f.forsering_sak_tittel || `Forsering ${f.forsering_sak_id}`,
-          route: `/forsering/${f.forsering_sak_id}`,
-        });
-      }
+  // ===== EXPAND/COLLAPSE STATE =====
+  const [expandedTrack, setExpandedTrack] = useState<{
+    track: 'grunnlag' | 'vederlag' | 'frist';
+    action: string;
+  } | null>(null);
+
+  const handleExpandTrack = useCallback((track: 'grunnlag' | 'vederlag' | 'frist', action: string) => {
+    setExpandedTrack({ track, action });
+  }, []);
+
+  const handleCollapseTrack = useCallback(() => {
+    setExpandedTrack(null);
+  }, []);
+
+  // ===== EXPANDED FORM RENDERER =====
+  const renderExpandedForm = useCallback(() => {
+    if (!expandedTrack || !sakId) return null;
+    const { track, action } = expandedTrack;
+    const onSuccess = handleCollapseTrack;
+    const onCancel = handleCollapseTrack;
+    const onCatendaWarning = () => modals.catendaWarning.setOpen(true);
+
+    switch (`${track}:${action}`) {
+      case 'grunnlag:send':
+        return (
+          <SendGrunnlagForm
+            sakId={sakId}
+            onSuccess={onSuccess}
+            onCancel={onCancel}
+            onCatendaWarning={onCatendaWarning}
+          />
+        );
+      case 'grunnlag:update':
+        return (
+          <SendGrunnlagForm
+            sakId={sakId}
+            onSuccess={onSuccess}
+            onCancel={onCancel}
+            onCatendaWarning={onCatendaWarning}
+            originalEvent={{
+              event_id: state.grunnlag.siste_event_id || `grunnlag-${sakId}`,
+              grunnlag: state.grunnlag,
+            }}
+          />
+        );
+      case 'grunnlag:respond':
+        return (
+          <RespondGrunnlagForm
+            sakId={sakId}
+            grunnlagEventId={`grunnlag-${sakId}`}
+            grunnlagEvent={{
+              hovedkategori: state.grunnlag.hovedkategori,
+              underkategori: Array.isArray(state.grunnlag.underkategori) ? state.grunnlag.underkategori[0] : state.grunnlag.underkategori,
+              beskrivelse: state.grunnlag.beskrivelse,
+              dato_oppdaget: state.grunnlag.dato_oppdaget,
+              dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,
+            }}
+            onSuccess={onSuccess}
+            onCancel={onCancel}
+            onCatendaWarning={onCatendaWarning}
+            approvalEnabled={approvalWorkflow.approvalEnabled}
+            onSaveDraft={(draftData) => {
+              approvalWorkflow.saveDraft({
+                sporType: 'grunnlag',
+                resultat: draftData.resultat as 'godkjent' | 'avslatt' | 'frafalt',
+                begrunnelse: draftData.begrunnelse,
+                formData: draftData.formData,
+              });
+            }}
+          />
+        );
+      case 'grunnlag:updateResponse':
+        return (
+          <RespondGrunnlagForm
+            sakId={sakId}
+            grunnlagEventId={`grunnlag-${sakId}`}
+            lastResponseEvent={{
+              event_id: `grunnlag-response-${sakId}`,
+              resultat: state.grunnlag.bh_resultat || 'godkjent',
+            }}
+            sakState={state}
+            onSuccess={onSuccess}
+            onCancel={onCancel}
+            onCatendaWarning={onCatendaWarning}
+            approvalEnabled={approvalWorkflow.approvalEnabled}
+            onSaveDraft={(draftData) => {
+              approvalWorkflow.saveDraft({
+                sporType: 'grunnlag',
+                resultat: draftData.resultat as 'godkjent' | 'avslatt' | 'frafalt',
+                begrunnelse: draftData.begrunnelse,
+                formData: draftData.formData,
+              });
+            }}
+          />
+        );
+      case 'grunnlag:withdraw':
+        return (
+          <WithdrawForm
+            sakId={sakId}
+            track="grunnlag"
+            sakState={state}
+            onSuccess={onSuccess}
+            onCancel={onCancel}
+            onCatendaWarning={onCatendaWarning}
+          />
+        );
+      case 'grunnlag:accept':
+        return (
+          <AcceptResponseForm
+            sakId={sakId}
+            track="grunnlag"
+            sakState={state}
+            onSuccess={onSuccess}
+            onCancel={onCancel}
+            onCatendaWarning={onCatendaWarning}
+          />
+        );
+      case 'vederlag:send':
+        return (
+          <SendVederlagForm
+            sakId={sakId}
+            grunnlagEventId={`grunnlag-${sakId}`}
+            grunnlagEvent={{
+              tittel: state.sakstittel,
+              status: grunnlagStatus,
+              dato_oppdaget: state.grunnlag.dato_oppdaget,
+              hovedkategori: state.grunnlag.hovedkategori as 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE' | undefined,
+            }}
+            onSuccess={onSuccess}
+            onCancel={onCancel}
+            onCatendaWarning={onCatendaWarning}
+          />
+        );
+      case 'vederlag:withdraw':
+        return (
+          <WithdrawForm
+            sakId={sakId}
+            track="vederlag"
+            sakState={state}
+            onSuccess={onSuccess}
+            onCancel={onCancel}
+            onCatendaWarning={onCatendaWarning}
+          />
+        );
+      case 'vederlag:accept':
+        return (
+          <AcceptResponseForm
+            sakId={sakId}
+            track="vederlag"
+            sakState={state}
+            onSuccess={onSuccess}
+            onCancel={onCancel}
+            onCatendaWarning={onCatendaWarning}
+          />
+        );
+      case 'frist:send':
+        return (
+          <SendFristForm
+            sakId={sakId}
+            grunnlagEventId={`grunnlag-${sakId}`}
+            grunnlagEvent={{
+              tittel: state.sakstittel,
+              hovedkategori: state.grunnlag.hovedkategori,
+              dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,
+            }}
+            harMottattForesporsel={state.frist.har_bh_foresporsel}
+            onSuccess={onSuccess}
+            onCancel={onCancel}
+            onCatendaWarning={onCatendaWarning}
+          />
+        );
+      case 'frist:withdraw':
+        return (
+          <WithdrawForm
+            sakId={sakId}
+            track="frist"
+            sakState={state}
+            onSuccess={onSuccess}
+            onCancel={onCancel}
+            onCatendaWarning={onCatendaWarning}
+          />
+        );
+      case 'frist:accept':
+        return (
+          <AcceptResponseForm
+            sakId={sakId}
+            track="frist"
+            sakState={state}
+            onSuccess={onSuccess}
+            onCancel={onCancel}
+            onCatendaWarning={onCatendaWarning}
+          />
+        );
+      default:
+        return null;
     }
-    if (endringsordreData?.endringsordrer) {
-      for (const eo of endringsordreData.endringsordrer) {
-        items.push({
-          id: eo.eo_sak_id,
-          type: 'endringsordre',
-          label: `EO ${eo.eo_nummer}`,
-          route: `/endringsordre/${eo.eo_sak_id}`,
-        });
-      }
-    }
-    return items;
-  }, [forseringData, endringsordreData]);
+  }, [expandedTrack, sakId, state, grunnlagStatus, approvalWorkflow, modals.catendaWarning, handleCollapseTrack]);
+
+  // ===== TRACK FORM VIEW METADATA =====
+  const getTrackFormMeta = useCallback((expanded: { track: string; action: string }) => {
+    const trackNames: Record<string, { name: string; hjemmel: string }> = {
+      grunnlag: { name: 'Ansvarsgrunnlag', hjemmel: '§25.2' },
+      vederlag: { name: 'Vederlag', hjemmel: '§34' },
+      frist: { name: 'Fristforlengelse', hjemmel: '§33' },
+    };
+    const actionTitles: Record<string, string> = {
+      send: 'Send krav',
+      update: 'Oppdater krav',
+      respond: 'Svar på krav',
+      updateResponse: 'Oppdater svar',
+      withdraw: 'Trekk krav',
+      accept: 'Godta svar',
+    };
+    const meta = trackNames[expanded.track] || { name: expanded.track, hjemmel: '' };
+    return {
+      trackName: meta.name,
+      hjemmel: meta.hjemmel,
+      actionTitle: actionTitles[expanded.action] || expanded.action,
+    };
+  }, []);
 
   // ===== BENTO LAYOUT =====
   return (
@@ -343,14 +536,14 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             </div>
           )}
 
-          {/* [V2] Integrated metadata strip + sum indicators */}
-          <div className="col-span-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2" data-onboarding="status-alert">
-            <div className="space-y-1">
-              <BentoBreadcrumb prosjektNavn={state.prosjekt_navn} sakId={sakId} />
-              <BentoHeaderMeta state={state} />
-            </div>
-            <BentoSumIndicators sumKrevd={state.sum_krevd} sumGodkjent={state.sum_godkjent} />
+          {/* Breadcrumb */}
+          <div className="col-span-12" data-onboarding="status-alert">
+            <BentoBreadcrumb prosjektNavn={state.prosjekt_navn} sakId={sakId} />
           </div>
+
+          {/* Identity + Activity strip */}
+          <CaseIdentityTile state={state} delay={0} />
+          <CaseActivityStripTile events={timelineEvents} delay={50} />
 
           {/* Approval alerts (full width) */}
           {approvalWorkflow.approvalEnabled && approvalWorkflow.hasAnyDraft && userRole === 'BH' && (
@@ -393,7 +586,25 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             </div>
           )}
 
-          {/* Row 2: Three-track bento dashboard (V2 with stepper + next-step + activity) */}
+          {/* Expanded track form (full width, above track cards) */}
+          {expandedTrack && sakId && (() => {
+            const meta = getTrackFormMeta(expandedTrack);
+            return (
+              <div className="col-span-12">
+                <TrackFormView
+                  trackName={meta.trackName}
+                  actionTitle={meta.actionTitle}
+                  hjemmel={meta.hjemmel}
+                  onCancel={handleCollapseTrack}
+                  isDirty={false}
+                >
+                  {renderExpandedForm()}
+                </TrackFormView>
+              </div>
+            );
+          })()}
+
+          {/* Row 3: Three-track bento dashboard (V2 with stepper + next-step + activity) */}
           <div className="col-span-12" data-onboarding="case-dashboard">
             <CaseDashboardBentoV2
               state={state}
@@ -403,17 +614,18 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
               grunnlagHistorikk={grunnlagHistorikk}
               vederlagHistorikk={vederlagHistorikk}
               fristHistorikk={fristHistorikk}
+              expandedTrack={expandedTrack?.track}
               grunnlagActions={
                 <BentoGrunnlagActionButtons
                   userRole={userRole}
                   actions={actions}
                   grunnlagState={state.grunnlag}
-                  onSendGrunnlag={() => modals.sendGrunnlag.setOpen(true)}
-                  onUpdateGrunnlag={() => modals.updateGrunnlag.setOpen(true)}
-                  onWithdrawGrunnlag={() => modals.withdrawGrunnlag.setOpen(true)}
-                  onRespondGrunnlag={() => modals.respondGrunnlag.setOpen(true)}
-                  onUpdateGrunnlagResponse={() => modals.updateGrunnlagResponse.setOpen(true)}
-                  onAcceptGrunnlagResponse={() => modals.acceptGrunnlag.setOpen(true)}
+                  onSendGrunnlag={() => handleExpandTrack('grunnlag', 'send')}
+                  onUpdateGrunnlag={() => handleExpandTrack('grunnlag', 'update')}
+                  onWithdrawGrunnlag={() => handleExpandTrack('grunnlag', 'withdraw')}
+                  onRespondGrunnlag={() => handleExpandTrack('grunnlag', 'respond')}
+                  onUpdateGrunnlagResponse={() => handleExpandTrack('grunnlag', 'updateResponse')}
+                  onAcceptGrunnlagResponse={() => handleExpandTrack('grunnlag', 'accept')}
                   onUtstEO={() => modals.utstEO.setOpen(true)}
                 />
               }
@@ -422,11 +634,11 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                   userRole={userRole}
                   actions={actions}
                   isForceMajeure={state.grunnlag.hovedkategori === 'FORCE_MAJEURE'}
-                  onSendVederlag={() => modals.sendVederlag.setOpen(true)}
-                  onWithdrawVederlag={() => modals.withdrawVederlag.setOpen(true)}
+                  onSendVederlag={() => handleExpandTrack('vederlag', 'send')}
+                  onWithdrawVederlag={() => handleExpandTrack('vederlag', 'withdraw')}
                   onRespondVederlag={() => modals.respondVederlag.setOpen(true)}
                   onUpdateVederlagResponse={() => modals.updateVederlagResponse.setOpen(true)}
-                  onAcceptVederlagResponse={() => modals.acceptVederlag.setOpen(true)}
+                  onAcceptVederlagResponse={() => handleExpandTrack('vederlag', 'accept')}
                 />
               }
               inlineVederlagRevision={
@@ -459,13 +671,13 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                   userRole={userRole}
                   actions={actions}
                   fristState={state.frist}
-                  onSendFrist={() => modals.sendFrist.setOpen(true)}
+                  onSendFrist={() => handleExpandTrack('frist', 'send')}
                   onReviseFrist={() => modals.reviseFrist.setOpen(true)}
-                  onWithdrawFrist={() => modals.withdrawFrist.setOpen(true)}
+                  onWithdrawFrist={() => handleExpandTrack('frist', 'withdraw')}
                   onSendForsering={() => modals.sendForsering.setOpen(true)}
                   onRespondFrist={() => modals.respondFrist.setOpen(true)}
                   onUpdateFristResponse={() => modals.updateFristResponse.setOpen(true)}
-                  onAcceptFristResponse={() => modals.acceptFrist.setOpen(true)}
+                  onAcceptFristResponse={() => handleExpandTrack('frist', 'accept')}
                 />
               }
               inlineFristRevision={
@@ -490,154 +702,12 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             />
           </div>
 
-          {/* Row 3: Related cases tile + Metadata tile */}
-          <BentoCard colSpan="col-span-12 lg:col-span-5" delay={200}>
-            <div className="px-4 py-3">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">
-                  Navigasjon
-                </p>
-                <Link
-                  to="/saker"
-                  className="flex items-center gap-1 text-xs text-pkt-text-action-active hover:underline no-underline"
-                >
-                  <ArrowLeftIcon className="w-3 h-3" />
-                  Saksoversikt
-                </Link>
-              </div>
-
-              {relatedCases.length > 0 ? (
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-pkt-text-body-default mb-2">Relaterte saker</p>
-                  {relatedCases.map((rc) => (
-                    <Link
-                      key={rc.id}
-                      to={rc.route}
-                      className="flex items-center gap-2 px-2.5 py-2 rounded-md hover:bg-pkt-bg-subtle/60 transition-colors no-underline"
-                    >
-                      <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                        rc.type === 'forsering' ? 'bg-pkt-brand-yellow-1000' :
-                        rc.type === 'endringsordre' ? 'bg-pkt-brand-warm-blue-1000' :
-                        'bg-pkt-grays-gray-400'
-                      }`} />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-pkt-text-body-dark truncate">
-                          {rc.label}
-                        </p>
-                        <span className="text-[10px] text-pkt-text-body-subtle uppercase">
-                          {rc.type === 'forsering' ? 'Forsering §33.8' : 'Endringsordre §31.3'}
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-pkt-text-body-subtle py-4 text-center">
-                  Ingen relaterte saker
-                </p>
-              )}
-            </div>
-          </BentoCard>
-
-          {/* [V2] Slimmer metadata tile - key metadata moved to header */}
-          <BentoCard colSpan="col-span-12 lg:col-span-7" delay={250}>
-            <div className="px-4 py-3" data-onboarding="metadata-section">
-              <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
-                Detaljer
-              </p>
-              <ComprehensiveMetadata state={state} sakId={sakId || ''} />
-
-              {/* Export Options */}
-              {(grunnlagHistorikk.length > 0 || vederlagHistorikk.length > 0 || fristHistorikk.length > 0) && (
-                <div className="mt-4 pt-3 border-t border-pkt-border-subtle">
-                  <p className="text-xs font-medium text-pkt-text-body-muted mb-2">Eksporter data</p>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      onClick={() => downloadCaseExcel({
-                        sakId: sakId || '',
-                        state,
-                        grunnlag: grunnlagHistorikk,
-                        vederlag: vederlagHistorikk,
-                        frist: fristHistorikk,
-                      })}
-                      className="flex items-center gap-2 text-sm text-pkt-text-action-normal hover:text-pkt-text-action-hover transition-colors"
-                    >
-                      <DownloadIcon className="w-4 h-4" />
-                      Excel (.xlsx)
-                    </button>
-                    <button
-                      onClick={() => downloadRevisionHistoryCsv(sakId || '', vederlagHistorikk, fristHistorikk)}
-                      className="flex items-center gap-2 text-sm text-pkt-text-action-normal hover:text-pkt-text-action-hover transition-colors"
-                    >
-                      <DownloadIcon className="w-4 h-4" />
-                      CSV
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </BentoCard>
         </div>
       </main>
 
-      {/* ===== Action Modals (identical to CasePage) ===== */}
+      {/* ===== Remaining Action Modals (complex wizards + special actions) ===== */}
       {sakId && (
         <>
-          <SendGrunnlagModal
-            open={modals.sendGrunnlag.open}
-            onOpenChange={modals.sendGrunnlag.setOpen}
-            sakId={sakId}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-          />
-          <SendVederlagModal
-            open={modals.sendVederlag.open}
-            onOpenChange={modals.sendVederlag.setOpen}
-            sakId={sakId}
-            grunnlagEventId={`grunnlag-${sakId}`}
-            grunnlagEvent={{
-              tittel: state.sakstittel,
-              status: grunnlagStatus,
-              dato_oppdaget: state.grunnlag.dato_oppdaget,
-              hovedkategori: state.grunnlag.hovedkategori as 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE' | undefined,
-            }}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-          />
-          <SendFristModal
-            open={modals.sendFrist.open}
-            onOpenChange={modals.sendFrist.setOpen}
-            sakId={sakId}
-            grunnlagEventId={`grunnlag-${sakId}`}
-            grunnlagEvent={{
-              tittel: state.sakstittel,
-              hovedkategori: state.grunnlag.hovedkategori,
-              dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,
-            }}
-            harMottattForesporsel={state.frist.har_bh_foresporsel}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-          />
-          <RespondGrunnlagModal
-            open={modals.respondGrunnlag.open}
-            onOpenChange={modals.respondGrunnlag.setOpen}
-            sakId={sakId}
-            grunnlagEventId={`grunnlag-${sakId}`}
-            grunnlagEvent={{
-              hovedkategori: state.grunnlag.hovedkategori,
-              underkategori: Array.isArray(state.grunnlag.underkategori) ? state.grunnlag.underkategori[0] : state.grunnlag.underkategori,
-              beskrivelse: state.grunnlag.beskrivelse,
-              dato_oppdaget: state.grunnlag.dato_oppdaget,
-              dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,
-            }}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-            approvalEnabled={approvalWorkflow.approvalEnabled}
-            onSaveDraft={(draftData) => {
-              approvalWorkflow.saveDraft({
-                sporType: 'grunnlag',
-                resultat: draftData.resultat as 'godkjent' | 'avslatt' | 'frafalt',
-                begrunnelse: draftData.begrunnelse,
-                formData: draftData.formData,
-              });
-            }}
-          />
           <RespondVederlagModal
             open={modals.respondVederlag.open}
             onOpenChange={modals.respondVederlag.setOpen}
@@ -698,17 +768,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             }}
           />
 
-          {/* Update Modals (TE) */}
-          <SendGrunnlagModal
-            open={modals.updateGrunnlag.open}
-            onOpenChange={modals.updateGrunnlag.setOpen}
-            sakId={sakId}
-            originalEvent={{
-              event_id: state.grunnlag.siste_event_id || `grunnlag-${sakId}`,
-              grunnlag: state.grunnlag,
-            }}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-          />
+          {/* Revise Modals (TE) - kept as modals */}
           <ReviseVederlagModal
             open={modals.reviseVederlag.open}
             onOpenChange={modals.reviseVederlag.setOpen}
@@ -762,28 +822,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             subsidiaerTriggers={state.frist.subsidiaer_triggers}
           />
 
-          {/* Update Response Modals (BH) */}
-          <RespondGrunnlagModal
-            open={modals.updateGrunnlagResponse.open}
-            onOpenChange={modals.updateGrunnlagResponse.setOpen}
-            sakId={sakId}
-            grunnlagEventId={`grunnlag-${sakId}`}
-            lastResponseEvent={{
-              event_id: `grunnlag-response-${sakId}`,
-              resultat: state.grunnlag.bh_resultat || 'godkjent',
-            }}
-            sakState={state}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-            approvalEnabled={approvalWorkflow.approvalEnabled}
-            onSaveDraft={(draftData) => {
-              approvalWorkflow.saveDraft({
-                sporType: 'grunnlag',
-                resultat: draftData.resultat as 'godkjent' | 'avslatt' | 'frafalt',
-                begrunnelse: draftData.begrunnelse,
-                formData: draftData.formData,
-              });
-            }}
-          />
+          {/* Update Response Modals (BH) - complex wizards kept as modals */}
           <RespondVederlagModal
             open={modals.updateVederlagResponse.open}
             onOpenChange={modals.updateVederlagResponse.setOpen}
@@ -872,58 +911,6 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             }}
             dagmulktsats={50000}
             subsidiaerTriggers={state.frist.subsidiaer_triggers}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-          />
-
-          {/* Withdrawal Modals (TE) */}
-          <WithdrawModal
-            open={modals.withdrawGrunnlag.open}
-            onOpenChange={modals.withdrawGrunnlag.setOpen}
-            sakId={sakId}
-            track="grunnlag"
-            sakState={state}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-          />
-          <WithdrawModal
-            open={modals.withdrawVederlag.open}
-            onOpenChange={modals.withdrawVederlag.setOpen}
-            sakId={sakId}
-            track="vederlag"
-            sakState={state}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-          />
-          <WithdrawModal
-            open={modals.withdrawFrist.open}
-            onOpenChange={modals.withdrawFrist.setOpen}
-            sakId={sakId}
-            track="frist"
-            sakState={state}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-          />
-
-          {/* Accept Response Modals (TE) */}
-          <AcceptResponseModal
-            open={modals.acceptGrunnlag.open}
-            onOpenChange={modals.acceptGrunnlag.setOpen}
-            sakId={sakId}
-            track="grunnlag"
-            sakState={state}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-          />
-          <AcceptResponseModal
-            open={modals.acceptVederlag.open}
-            onOpenChange={modals.acceptVederlag.setOpen}
-            sakId={sakId}
-            track="vederlag"
-            sakState={state}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-          />
-          <AcceptResponseModal
-            open={modals.acceptFrist.open}
-            onOpenChange={modals.acceptFrist.setOpen}
-            sakId={sakId}
-            track="frist"
-            sakState={state}
             onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
           />
 
