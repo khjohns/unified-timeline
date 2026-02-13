@@ -29,10 +29,10 @@ import { useSubmitEvent } from '../hooks/useSubmitEvent';
 import { useCasePageModals } from '../hooks/useCasePageModals';
 import { CaseDashboardBento } from '../components/views/CaseDashboardBento';
 import {
-  GrunnlagActionButtons,
-  VederlagActionButtons,
-  FristActionButtons,
-} from '../components/TrackActionButtons';
+  BentoGrunnlagActionButtons,
+  BentoVederlagActionButtons,
+  BentoFristActionButtons,
+} from '../components/BentoTrackActionButtons';
 import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
 import { Alert, Button, AlertDialog, Card, DropdownMenuItem, useToast } from '../components/primitives';
 import { BentoCard } from '../components/dashboard/BentoCard';
@@ -403,7 +403,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
               vederlagHistorikk={vederlagHistorikk}
               fristHistorikk={fristHistorikk}
               grunnlagActions={
-                <GrunnlagActionButtons
+                <BentoGrunnlagActionButtons
                   userRole={userRole}
                   actions={actions}
                   grunnlagState={state.grunnlag}
@@ -417,7 +417,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                 />
               }
               vederlagActions={
-                <VederlagActionButtons
+                <BentoVederlagActionButtons
                   userRole={userRole}
                   actions={actions}
                   isForceMajeure={state.grunnlag.hovedkategori === 'FORCE_MAJEURE'}
@@ -454,7 +454,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                   : undefined
               }
               fristActions={
-                <FristActionButtons
+                <BentoFristActionButtons
                   userRole={userRole}
                   actions={actions}
                   fristState={state.frist}
