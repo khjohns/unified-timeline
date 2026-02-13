@@ -116,7 +116,7 @@ function SaksoversiktContent() {
         }
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         {/* ===== Empty State: No cases at all ===== */}
         {allCases.length === 0 ? (
           <EmptyProjectState
@@ -126,7 +126,7 @@ function SaksoversiktContent() {
           />
         ) : (
           /* ===== Bento Grid ===== */
-          <div className="grid grid-cols-12 gap-4">
+          <div className="grid grid-cols-12 gap-2 sm:gap-4">
             {/* Row 1: Identity(4) + Progress(5) + Dagmulkt(3) = 12 */}
             <ProjectIdentityTile
               projectName={activeProject.name}

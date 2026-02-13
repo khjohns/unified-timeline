@@ -77,12 +77,44 @@ export function RecentActivityTile({ cases }: RecentActivityTileProps) {
   return (
     <BentoCard colSpan="col-span-12" delay={150}>
       <div className="px-4 py-3">
-        <div className="flex items-center gap-4">
-          <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide shrink-0">
+        {/* Mobile: label above, horizontal scroll. Desktop: label left, grid */}
+        <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide shrink-0 mb-2 sm:hidden">
+          Siste aktivitet
+        </p>
+
+        <div className="sm:flex sm:items-center sm:gap-4">
+          <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide shrink-0 hidden sm:block">
             Siste aktivitet
           </p>
 
-          <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+          {/* Mobile: horizontal scroll strip */}
+          <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1 sm:hidden scrollbar-hide">
+            {recentCases.map((item) => (
+              <Link
+                key={item.sak_id}
+                to={getCaseRoute(item)}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-pkt-bg-subtle/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pkt-brand-warm-blue-1000/30 transition-colors no-underline shrink-0 min-w-[140px] max-w-[180px]"
+              >
+                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${TYPE_DOT_COLORS[item.sakstype] ?? 'bg-pkt-grays-gray-400'}`} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-medium text-pkt-text-body-dark truncate">
+                    {item.cached_title || 'Uten tittel'}
+                  </p>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-mono text-[11px] text-pkt-text-body-subtle shrink-0">
+                      {formatSakIdShort(item.sak_id, item.sakstype)}
+                    </span>
+                    <span className="text-[10px] text-pkt-text-body-subtle shrink-0">
+                      {formatRelativeTime(item.last_event_at)}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Desktop: grid layout */}
+          <div className="hidden sm:grid sm:flex-1 sm:grid-cols-3 md:grid-cols-5 gap-2">
             {recentCases.map((item) => (
               <Link
                 key={item.sak_id}
