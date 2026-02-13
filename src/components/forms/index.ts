@@ -12,4 +12,5 @@ export {
   type EndringsordreFormData,
   OPPGJORSFORM_OPTIONS,
   formatCurrency,
+  IndeksreguleringsInfo,
 } from './EndringsordreForm';

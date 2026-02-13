@@ -101,7 +101,7 @@ export function formatCurrency(amount?: number | null): string {
   return `${amount.toLocaleString('nb-NO')} kr`;
 }
 
-function IndeksreguleringsInfo({ indeks }: { indeks: 'full' | 'delvis' | 'ingen' }) {
+export function IndeksreguleringsInfo({ indeks }: { indeks: 'full' | 'delvis' | 'ingen' }) {
   const variants: Record<string, 'success' | 'warning' | 'default'> = {
     full: 'success',
     delvis: 'warning',
@@ -256,7 +256,7 @@ export function EndringsordreForm<T extends EndringsordreFormData>({
           ) : (
             <div className="max-h-64 overflow-y-auto border border-pkt-border-subtle">
               {/* Mobilvennlig liste-layout */}
-              <div className="divide-y divide-pkt-border-subtle">
+              <div role="listbox" aria-label="Velg KOE-saker" className="divide-y divide-pkt-border-subtle">
                 {kandidatSaker.map((koe) => {
                   const isSelected = selectedKoeIds.includes(koe.sak_id);
                   return (

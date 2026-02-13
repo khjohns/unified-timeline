@@ -50,7 +50,6 @@ import {
   fetchKandidatKOESaker,
   fetchNesteEONummer,
   type OpprettEORequest,
-  type KandidatKOE,
 } from '../../api/endringsordre';
 
 // Shared form schema, types, and constants
@@ -59,6 +58,7 @@ import {
   type EndringsordreFormData,
   OPPGJORSFORM_OPTIONS,
   formatCurrency,
+  IndeksreguleringsInfo,
 } from '../forms';
 
 // ============================================================================
@@ -70,25 +70,6 @@ interface UtstEndringsordreModalProps {
   onOpenChange: (open: boolean) => void;
   sakId: string;
   preselectedKoeIds?: string[];
-}
-
-// ============================================================================
-// HELPER COMPONENTS
-// ============================================================================
-
-function IndeksreguleringsInfo({ indeks }: { indeks: 'full' | 'delvis' | 'ingen' }) {
-  const variants: Record<string, 'success' | 'warning' | 'default'> = {
-    full: 'success',
-    delvis: 'warning',
-    ingen: 'default',
-  };
-  const labels = {
-    full: 'Full indeksreg.',
-    delvis: 'Delvis indeksreg.',
-    ingen: 'Ingen indeksreg.',
-  };
-
-  return <Badge variant={variants[indeks]}>{labels[indeks]}</Badge>;
 }
 
 // ============================================================================
@@ -498,7 +479,7 @@ export function UtstEndringsordreModal({
                 ) : (
                   <div className="max-h-64 overflow-y-auto border border-pkt-border-subtle">
                     {/* Mobilvennlig liste-layout */}
-                    <div className="divide-y divide-pkt-border-subtle">
+                    <div role="listbox" aria-label="Velg KOE-saker" className="divide-y divide-pkt-border-subtle">
                       {kandidatSaker.map((koe) => {
                         const isSelected = selectedKoeIds.includes(koe.sak_id);
                         return (
