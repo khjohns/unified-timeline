@@ -97,7 +97,9 @@ function SaksoversiktContent() {
         menuActions={
           <>
             <DropdownMenuItem asChild>
-              <Link to="/saker/ny">Opprett ny sak</Link>
+              <Link to={userRole === 'BH' ? '/endringsordre/ny' : '/saker/ny'}>
+                {userRole === 'BH' ? 'Opprett endringsordre' : 'Opprett ny sak'}
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to="/analyse">Analysedashboard</Link>
@@ -112,7 +114,11 @@ function SaksoversiktContent() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {/* ===== Empty State: No cases at all ===== */}
         {allCases.length === 0 ? (
-          <EmptyProjectState projectName={activeProject.name} onCreateCase={() => navigate('/saker/ny')} />
+          <EmptyProjectState
+            projectName={activeProject.name}
+            userRole={userRole}
+            onCreateCase={() => navigate(userRole === 'BH' ? '/endringsordre/ny' : '/saker/ny')}
+          />
         ) : (
           /* ===== Bento Grid ===== */
           <div className="grid grid-cols-12 gap-4">
@@ -166,9 +172,11 @@ function SaksoversiktContent() {
 
 function EmptyProjectState({
   projectName,
+  userRole,
   onCreateCase,
 }: {
   projectName: string;
+  userRole: 'BH' | 'TE';
   onCreateCase: () => void;
 }) {
   return (
@@ -188,12 +196,13 @@ function EmptyProjectState({
           Kom i gang med {projectName}
         </h3>
         <p className="text-sm text-pkt-text-body-subtle mb-8 leading-relaxed">
-          Opprett din første KOE-sak for å starte digital håndtering av
-          endringsordrer etter NS 8407.
+          {userRole === 'BH'
+            ? 'Opprett din første endringsordre for å starte digital håndtering etter NS 8407.'
+            : 'Opprett din første KOE-sak for å starte digital håndtering av endringsordrer etter NS 8407.'}
         </p>
         <Button variant="primary" onClick={onCreateCase}>
           <PlusIcon className="w-4 h-4 mr-1.5" />
-          Opprett første sak
+          {userRole === 'BH' ? 'Opprett første endringsordre' : 'Opprett første sak'}
         </Button>
 
         <div className="flex items-center gap-3 mt-8 pt-6 border-t border-pkt-border-subtle">
