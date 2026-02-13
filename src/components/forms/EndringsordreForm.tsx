@@ -156,21 +156,21 @@ export function EndringsordreForm<T extends EndringsordreFormData>({
     formState: { errors },
   } = form;
 
-  const formValues = watch();
+  const formValues = watch() as EndringsordreFormData;
 
   // Computed netto beløp
   const nettoBelop = useMemo(() => {
-    const komp = (formValues as EndringsordreFormData).kompensasjon_belop || 0;
-    const frad = (formValues as EndringsordreFormData).fradrag_belop || 0;
+    const komp = formValues.kompensasjon_belop || 0;
+    const frad = formValues.fradrag_belop || 0;
     return komp - frad;
-  }, [(formValues as EndringsordreFormData).kompensasjon_belop, (formValues as EndringsordreFormData).fradrag_belop]);
+  }, [formValues.kompensasjon_belop, formValues.fradrag_belop]);
 
   const harKonsekvens =
-    (formValues as EndringsordreFormData).konsekvenser_sha ||
-    (formValues as EndringsordreFormData).konsekvenser_kvalitet ||
-    (formValues as EndringsordreFormData).konsekvenser_fremdrift ||
-    (formValues as EndringsordreFormData).konsekvenser_pris ||
-    (formValues as EndringsordreFormData).konsekvenser_annet;
+    formValues.konsekvenser_sha ||
+    formValues.konsekvenser_kvalitet ||
+    formValues.konsekvenser_fremdrift ||
+    formValues.konsekvenser_pris ||
+    formValues.konsekvenser_annet;
 
   return (
     <>
@@ -425,18 +425,18 @@ export function EndringsordreForm<T extends EndringsordreFormData>({
       </SectionContainer>
 
       {/* Seksjon: Oppgjør - kun hvis pris eller fremdrift */}
-      {((formValues as EndringsordreFormData).konsekvenser_pris || (formValues as EndringsordreFormData).konsekvenser_fremdrift) && (
+      {(formValues.konsekvenser_pris || formValues.konsekvenser_fremdrift) && (
         <SectionContainer
           title="Oppgjør"
           description="Spesifiser vederlag og/eller fristforlengelse"
         >
           {/* Vederlagsjustering */}
-          {(formValues as EndringsordreFormData).konsekvenser_pris && (
+          {formValues.konsekvenser_pris && (
             <div className="space-y-3 sm:space-y-4">
               <FormField
                 label="Beregningsmetode"
                 required
-                error={!(formValues as EndringsordreFormData).oppgjorsform ? 'Velg beregningsmetode' : undefined}
+                error={!formValues.oppgjorsform ? 'Velg beregningsmetode' : undefined}
               >
                 <div className="space-y-2">
                   {OPPGJORSFORM_OPTIONS.map((opt) => (
@@ -516,7 +516,7 @@ export function EndringsordreForm<T extends EndringsordreFormData>({
               </div>
 
               {/* Info om oppgjør ved sluttoppgjør (kun regningsarbeid trenger eksplisitt merknad) */}
-              {(formValues as EndringsordreFormData).oppgjorsform === 'REGNINGSARBEID' && (
+              {formValues.oppgjorsform === 'REGNINGSARBEID' && (
                 <Alert variant="info" title="Oppgjør ved sluttoppgjør">
                   Endelig beløp fastsettes basert på dokumenterte kostnader.
                 </Alert>
@@ -525,9 +525,9 @@ export function EndringsordreForm<T extends EndringsordreFormData>({
           )}
 
           {/* Fristforlengelse */}
-          {(formValues as EndringsordreFormData).konsekvenser_fremdrift && (
-            <div className={`space-y-4 ${(formValues as EndringsordreFormData).konsekvenser_pris ? 'pt-4 border-t-2 border-pkt-border-subtle' : ''}`}>
-              {(formValues as EndringsordreFormData).konsekvenser_pris && (
+          {formValues.konsekvenser_fremdrift && (
+            <div className={`space-y-4 ${formValues.konsekvenser_pris ? 'pt-4 border-t-2 border-pkt-border-subtle' : ''}`}>
+              {formValues.konsekvenser_pris && (
                 <h4 className="font-medium text-sm">Fristforlengelse</h4>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
