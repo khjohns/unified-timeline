@@ -32,7 +32,7 @@ export function DagmulktTile({
       <BentoCtaCard
         title="Dagmulkt"
         description="Sett dagmulktsats"
-        colSpan="col-span-6 lg:col-span-3"
+        colSpan="col-span-12 sm:col-span-6 lg:col-span-3"
         delay={100}
       />
     );
@@ -63,7 +63,7 @@ export function DagmulktTile({
   const forseringPct = hasForsering ? Math.min(100, (forseringPaalopt / forseringMaks) * 100) : 0;
 
   return (
-    <BentoCard colSpan="col-span-6 lg:col-span-3" delay={100}>
+    <BentoCard colSpan="col-span-12 sm:col-span-6 lg:col-span-3" delay={100}>
       <div className={`p-4 h-full ${bgColor}`}>
         <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-2">
           Dagmulkt
