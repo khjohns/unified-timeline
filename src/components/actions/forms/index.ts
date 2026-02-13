@@ -13,3 +13,6 @@ export type { WithdrawFormProps } from './WithdrawForm';
 
 export { AcceptResponseForm } from './AcceptResponseForm';
 export type { AcceptResponseFormProps } from './AcceptResponseForm';
+
+export { RespondGrunnlagForm } from './RespondGrunnlagForm';
+export type { RespondGrunnlagFormProps } from './RespondGrunnlagForm';
