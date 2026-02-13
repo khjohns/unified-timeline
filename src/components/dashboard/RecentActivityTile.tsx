@@ -88,7 +88,7 @@ export function RecentActivityTile({ cases }: RecentActivityTileProps) {
             {recentCases.map((item) => (
               <div
                 key={item.sak_id}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-pointer hover:bg-pkt-bg-subtle/60 transition-colors min-w-0"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-pointer hover:bg-pkt-bg-subtle/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pkt-brand-warm-blue-1000/30 transition-colors min-w-0"
                 role="link"
                 tabIndex={0}
                 onClick={() => navigate(getCaseRoute(item))}

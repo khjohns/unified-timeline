@@ -338,7 +338,7 @@ function CaseRow({
 
   return (
     <div
-      className="px-4 py-2 hover:bg-pkt-bg-subtle/50 transition-colors cursor-pointer border-t border-pkt-border-subtle/50 first:border-t-0"
+      className="px-4 py-2 hover:bg-pkt-bg-subtle/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pkt-brand-warm-blue-1000/30 transition-colors cursor-pointer border-t border-pkt-border-subtle/50 first:border-t-0"
       role="link"
       tabIndex={0}
       onClick={onClick}
