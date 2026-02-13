@@ -79,9 +79,9 @@ function formatSakId(sakId: string, sakstype: string): string {
 function getTypeTag(sakstype: string): { label: string; className: string } {
   switch (sakstype) {
     case 'forsering':
-      return { label: 'FORS', className: 'text-amber-600' };
+      return { label: 'FORS', className: 'text-pkt-brand-yellow-1000' };
     case 'endringsordre':
-      return { label: 'EO', className: 'text-blue-600' };
+      return { label: 'EO', className: 'text-pkt-brand-warm-blue-1000' };
     default:
       return { label: 'KOE', className: 'text-pkt-brand-dark-blue-1000' };
   }

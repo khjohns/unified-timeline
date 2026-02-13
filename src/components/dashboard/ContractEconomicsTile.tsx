@@ -73,7 +73,7 @@ export function ContractEconomicsTile({ contract, totalKrevd, totalGodkjent }: C
           </div>
           <div className="h-2 bg-pkt-grays-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
             <div
-              className="h-full bg-emerald-500 rounded-full transition-all duration-700"
+              className="h-full bg-pkt-brand-dark-green-1000 rounded-full transition-all duration-700"
               style={{ width: `${godkjentPct}%` }}
             />
           </div>

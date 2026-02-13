@@ -92,8 +92,8 @@ function CustomTooltip({ active, payload, label }: {
           <span className="font-mono text-pkt-brand-yellow-1000">+{formatCurrencyCompact(d._krevd)}</span>
         </div>
         <div className="flex justify-between gap-4">
-          <span className="text-emerald-600">Godkjent</span>
-          <span className="font-mono text-emerald-600">+{formatCurrencyCompact(d._godkjent)}</span>
+          <span className="text-pkt-brand-dark-green-1000">Godkjent</span>
+          <span className="font-mono text-pkt-brand-dark-green-1000">+{formatCurrencyCompact(d._godkjent)}</span>
         </div>
         <div className="flex justify-between gap-4 pt-1 border-t border-pkt-border-subtle">
           <span className="text-pkt-text-body-subtle">Justert sum</span>
@@ -250,7 +250,7 @@ export function EconomicsChartTile({ cases, contract, totalKrevd, totalGodkjent 
             </div>
             <div>
               <span className="text-[10px] text-pkt-text-body-subtle uppercase">Godkjent</span>
-              <p className="text-sm font-semibold font-mono text-emerald-600">
+              <p className="text-sm font-semibold font-mono text-pkt-brand-dark-green-1000">
                 {formatCurrencyCompact(totalGodkjent)}
               </p>
             </div>
@@ -258,9 +258,9 @@ export function EconomicsChartTile({ cases, contract, totalKrevd, totalGodkjent 
               <div className="ml-auto text-right">
                 <span className="text-[10px] text-pkt-text-body-subtle uppercase">Godkj.grad</span>
                 <p className={`text-sm font-bold font-mono tabular-nums ${
-                  godkjenningsgrad >= 70 ? 'text-emerald-600' :
+                  godkjenningsgrad >= 70 ? 'text-pkt-brand-dark-green-1000' :
                   godkjenningsgrad >= 40 ? 'text-pkt-brand-yellow-1000' :
-                  'text-red-600'
+                  'text-pkt-brand-red-1000'
                 }`}>
                   {godkjenningsgrad}%
                 </p>
@@ -299,7 +299,7 @@ export function EconomicsChartTile({ cases, contract, totalKrevd, totalGodkjent 
                   aria-label="Godkjent andel av kontraktssum"
                 >
                   <div
-                    className="h-full bg-emerald-500 rounded-full transition-all duration-700"
+                    className="h-full bg-pkt-brand-dark-green-1000 rounded-full transition-all duration-700"
                     style={{ width: `${Math.min(godkjentPct, 100)}%` }}
                   />
                 </div>

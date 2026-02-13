@@ -65,7 +65,7 @@ export function ProgressTile({ contract, totalDagerGodkjent }: ProgressTileProps
           <div className="flex items-baseline justify-between">
             <span className="text-[11px] text-pkt-text-body-subtle">Gjenstår</span>
             <p className={`text-sm font-mono font-bold tabular-nums ${
-              daysRemaining < 0 ? 'text-red-600' : daysRemaining < 30 ? 'text-pkt-brand-yellow-1000' : 'text-emerald-600'
+              daysRemaining < 0 ? 'text-pkt-brand-red-1000' : daysRemaining < 30 ? 'text-pkt-brand-yellow-1000' : 'text-pkt-brand-dark-green-1000'
             }`}>
               {daysRemaining < 0 ? `${Math.abs(daysRemaining)}d over` : `${daysRemaining}d`}
             </p>

@@ -56,7 +56,7 @@ function getCaseRoute(item: CaseListItem): string {
 
 const TYPE_DOT_COLORS: Record<string, string> = {
   standard: 'bg-pkt-brand-warm-blue-1000',
-  endringsordre: 'bg-emerald-500',
+  endringsordre: 'bg-pkt-brand-dark-green-1000',
   forsering: 'bg-pkt-brand-yellow-1000',
 };
 

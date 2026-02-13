@@ -17,9 +17,9 @@ function getHealthColor(cases: CaseListItem[]): { color: string; label: string }
   if (cases.length === 0) return { color: 'bg-pkt-grays-gray-400', label: 'Ingen saker' };
   const openCount = cases.filter(c => !CLOSED_STATUSES.has(c.cached_status?.toUpperCase() ?? '')).length;
   const ratio = openCount / cases.length;
-  if (ratio > 0.7) return { color: 'bg-red-500', label: 'Mange åpne saker' };
-  if (ratio > 0.4) return { color: 'bg-yellow-500', label: 'Moderat' };
-  return { color: 'bg-emerald-500', label: 'God kontroll' };
+  if (ratio > 0.7) return { color: 'bg-pkt-brand-red-1000', label: 'Mange åpne saker' };
+  if (ratio > 0.4) return { color: 'bg-pkt-brand-yellow-1000', label: 'Moderat' };
+  return { color: 'bg-pkt-brand-dark-green-1000', label: 'God kontroll' };
 }
 
 interface ProjectIdentityTileProps {

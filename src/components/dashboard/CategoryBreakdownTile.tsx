@@ -12,11 +12,11 @@ const BAR_COLORS = [
   'bg-pkt-brand-blue-1000',
   'bg-pkt-brand-warm-blue-1000',
   'bg-pkt-brand-yellow-1000',
-  'bg-emerald-500',
+  'bg-pkt-brand-dark-green-1000',
   'bg-pkt-grays-gray-400',
-  'bg-amber-500',
-  'bg-indigo-500',
-  'bg-rose-500',
+  'bg-pkt-brand-red-1000',
+  'bg-pkt-brand-green-1000',
+  'bg-pkt-brand-light-green-1000',
 ];
 
 interface CategoryGroup {

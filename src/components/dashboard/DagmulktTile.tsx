@@ -49,14 +49,14 @@ export function DagmulktTile({
   const exposure = delayDays * contract.dagmulkt_sats;
 
   // Severity: red = past deadline, yellow = within 30 days, green = safe
-  let severityColor = 'text-emerald-600';
-  let bgColor = 'bg-emerald-50 dark:bg-emerald-950/20';
+  let severityColor = 'text-pkt-brand-dark-green-1000';
+  let bgColor = 'bg-pkt-brand-light-green-400/30';
   if (delayDays > 0) {
-    severityColor = 'text-red-600';
-    bgColor = 'bg-red-50 dark:bg-red-950/20';
+    severityColor = 'text-pkt-brand-red-1000';
+    bgColor = 'bg-pkt-brand-red-100/30';
   } else if (daysToDeadline < 30) {
     severityColor = 'text-pkt-brand-yellow-1000';
-    bgColor = 'bg-yellow-50 dark:bg-yellow-950/20';
+    bgColor = 'bg-alert-warning-bg/30';
   }
 
   const hasForsering = forseringCount > 0 && forseringMaks > 0;
@@ -115,7 +115,7 @@ export function DagmulktTile({
               >
                 <div
                   className={`h-full rounded-full transition-all ${
-                    forseringPct > 80 ? 'bg-red-500' : 'bg-blue-500'
+                    forseringPct > 80 ? 'bg-pkt-brand-red-1000' : 'bg-pkt-brand-warm-blue-1000'
                   }`}
                   style={{ width: `${forseringPct}%` }}
                 />
