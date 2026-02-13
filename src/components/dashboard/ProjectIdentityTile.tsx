@@ -45,7 +45,7 @@ export function ProjectIdentityTile({ projectName, contract, cases, userRole }: 
       <div className="p-4">
         <div className="flex items-center gap-2 mb-2">
           <div className={`w-2 h-2 rounded-full ${health.color} animate-pulse`} />
-          <span className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-widest">
+          <span className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">
             {health.label}
           </span>
           {pendingCount > 0 && (

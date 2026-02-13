@@ -58,7 +58,7 @@ export function CategoryBreakdownTile({ cases }: CategoryBreakdownTileProps) {
   if (categories.length === 0) {
     return (
       <BentoCard colSpan="col-span-12 lg:col-span-7" delay={350}>
-        <div className="p-5 flex items-center justify-center min-h-[100px]">
+        <div className="p-4 flex items-center justify-center min-h-[100px]">
           <p className="text-xs text-pkt-text-body-subtle">Ingen saker å kategorisere</p>
         </div>
       </BentoCard>
@@ -69,8 +69,8 @@ export function CategoryBreakdownTile({ cases }: CategoryBreakdownTileProps) {
 
   return (
     <BentoCard colSpan="col-span-12 lg:col-span-7" delay={350}>
-      <div className="p-5">
-        <p className="text-xs font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
+      <div className="p-4">
+        <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
           Kategorier
         </p>
 

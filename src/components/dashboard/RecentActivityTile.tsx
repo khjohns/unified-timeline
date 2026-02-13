@@ -78,7 +78,7 @@ export function RecentActivityTile({ cases }: RecentActivityTileProps) {
 
   return (
     <BentoCard colSpan="col-span-12" delay={150}>
-      <div className="px-5 py-3">
+      <div className="px-4 py-3">
         <div className="flex items-center gap-4">
           <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide shrink-0">
             Siste aktivitet

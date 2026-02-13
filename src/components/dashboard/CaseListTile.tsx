@@ -258,10 +258,10 @@ function CaseListToolbar({
   onToggleExpand: () => void;
 }) {
   return (
-    <div className="px-5 pt-4 pb-3 space-y-2">
+    <div className="px-4 py-3 space-y-2">
       {/* Row 1: Title + filter pills + search + expand/collapse */}
       <div className="flex items-center gap-2">
-        <p className="text-xs font-medium text-pkt-text-body-subtle uppercase tracking-wide shrink-0">
+        <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide shrink-0">
           Saker
         </p>
         <PillToggle
@@ -338,7 +338,7 @@ function CaseRow({
 
   return (
     <div
-      className="px-5 py-2 hover:bg-pkt-bg-subtle/50 transition-colors cursor-pointer border-t border-pkt-border-subtle/50 first:border-t-0"
+      className="px-4 py-2 hover:bg-pkt-bg-subtle/50 transition-colors cursor-pointer border-t border-pkt-border-subtle/50 first:border-t-0"
       role="link"
       tabIndex={0}
       onClick={onClick}
@@ -525,7 +525,7 @@ export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: Case
 
       {/* Empty state */}
       {totalFiltered === 0 && allCases.length > 0 && (
-        <div className="text-center py-8 px-5">
+        <div className="text-center py-8 px-4">
           <p className="text-xs text-pkt-text-body-subtle">
             Ingen saker matcher &mdash;{' '}
             <button
@@ -545,7 +545,7 @@ export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: Case
             /* ===== EXPANDED: grouped with per-group expand ===== */
             <>
               {/* Column header (desktop) */}
-              <div className="hidden md:grid md:grid-cols-12 gap-3 px-5 py-1.5 text-[10px] font-semibold text-pkt-text-body-subtle uppercase tracking-wider border-t border-pkt-border-subtle">
+              <div className="hidden md:grid md:grid-cols-12 gap-3 px-4 py-1.5 text-[10px] font-semibold text-pkt-text-body-subtle uppercase tracking-wider border-t border-pkt-border-subtle">
                 <div className="col-span-4">Sak</div>
                 <div className="col-span-2">Status</div>
                 <div className="col-span-2 text-right">Vederlag</div>
@@ -563,7 +563,7 @@ export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: Case
                 return (
                   <div key={group.key}>
                     {groupBy !== 'ingen' && (
-                      <div className="flex items-center gap-2 px-5 pt-3 pb-1">
+                      <div className="flex items-center gap-2 px-4 pt-3 pb-1">
                         <span className="text-[10px] font-semibold text-pkt-text-body-subtle uppercase tracking-wider">
                           {group.label}
                         </span>
@@ -586,7 +586,7 @@ export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: Case
                     {hiddenCount > 0 && (
                       <button
                         onClick={() => toggleGroup(group.key)}
-                        className="w-full px-5 py-2 text-xs text-pkt-text-action-active hover:bg-pkt-bg-subtle/30 transition-colors text-left"
+                        className="w-full px-4 py-2 text-xs text-pkt-text-action-active hover:bg-pkt-bg-subtle/30 transition-colors text-left"
                       >
                         Vis {hiddenCount} flere...
                       </button>
@@ -594,7 +594,7 @@ export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: Case
                     {isGroupExpanded && group.cases.length > EXPANDED_ITEMS_PER_GROUP && (
                       <button
                         onClick={() => toggleGroup(group.key)}
-                        className="w-full px-5 py-2 text-xs text-pkt-text-action-active hover:bg-pkt-bg-subtle/30 transition-colors text-left"
+                        className="w-full px-4 py-2 text-xs text-pkt-text-action-active hover:bg-pkt-bg-subtle/30 transition-colors text-left"
                       >
                         Vis mindre
                       </button>
@@ -618,7 +618,7 @@ export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: Case
               {compactHiddenCount > 0 && (
                 <button
                   onClick={onToggleExpand}
-                  className="w-full px-5 py-2.5 text-xs text-pkt-text-action-active hover:bg-pkt-bg-subtle/30 transition-colors text-center"
+                  className="w-full px-4 py-2.5 text-xs text-pkt-text-action-active hover:bg-pkt-bg-subtle/30 transition-colors text-center"
                 >
                   +{compactHiddenCount} flere saker
                 </button>

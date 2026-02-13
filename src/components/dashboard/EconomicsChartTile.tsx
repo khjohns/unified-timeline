@@ -157,8 +157,8 @@ export function EconomicsChartTile({ cases, contract, totalKrevd, totalGodkjent 
 
   return (
     <BentoCard colSpan="col-span-12 lg:col-span-5" delay={300}>
-      <div className="p-5">
-        <p className="text-xs font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-2">
+      <div className="p-4">
+        <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-2">
           Kontraktsøkonomi
         </p>
 

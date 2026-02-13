@@ -41,8 +41,8 @@ export function MembersTile({ members }: MembersTileProps) {
 
   return (
     <BentoCard colSpan="col-span-12 sm:col-span-6 lg:col-span-5" delay={350}>
-      <div className="p-5">
-        <p className="text-xs font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
+      <div className="p-4">
+        <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
           Medlemmer
         </p>
 
