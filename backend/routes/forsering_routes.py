@@ -77,6 +77,30 @@ def _get_timeline_service():
     return _get_container().timeline_service
 
 
+def _update_forsering_cache(sak_id: str, service_result: dict[str, Any]) -> None:
+    """Update cached metadata for a forsering case after event processing."""
+    from datetime import UTC, datetime
+
+    state_data = service_result.get("state")
+    if not state_data:
+        return
+
+    try:
+        state = SakState(**state_data)
+    except Exception as e:
+        logger.error(f"Could not parse state for cache update of {sak_id}: {e}")
+        return
+
+    _get_metadata_repo().update_cache(
+        sak_id=sak_id,
+        cached_title=state.sakstittel,
+        cached_status=state.overordnet_status,
+        last_event_at=datetime.now(UTC),
+        cached_forsering_paalopt=state.forsering_data.paalopte_kostnader if state.forsering_data else None,
+        cached_forsering_maks=state.forsering_data.maks_forseringskostnad if state.forsering_data else None,
+    )
+
+
 def _sync_forsering_to_catenda(
     sak_id: str, service_result: dict[str, Any]
 ) -> CatendaSyncResult | None:
@@ -204,6 +228,9 @@ def opprett_forseringssak():
     )
 
     logger.info(f"Forseringssak opprettet: {result['sak_id']}")
+
+    # Oppdater cached metadata
+    _update_forsering_cache(result["sak_id"], result)
 
     return jsonify({"success": True, **result}), 201
 
@@ -402,6 +429,9 @@ def registrer_bh_respons(sak_id: str):
     except ConcurrencyError as e:
         return handle_concurrency_error(e)
 
+    # Oppdater cached metadata
+    _update_forsering_cache(sak_id, result)
+
     status = "akseptert" if payload["aksepterer"] else "avslått"
     logger.info(f"BH respons på forsering {sak_id}: {status}")
 
@@ -479,6 +509,9 @@ def stopp_forsering(sak_id: str):
     except ConcurrencyError as e:
         return handle_concurrency_error(e)
 
+    # Oppdater cached metadata
+    _update_forsering_cache(sak_id, result)
+
     logger.info(f"Forsering {sak_id} stoppet")
 
     # Catenda-synkronisering
@@ -529,6 +562,9 @@ def oppdater_kostnader(sak_id: str):
         )
     except ConcurrencyError as e:
         return handle_concurrency_error(e)
+
+    # Oppdater cached metadata
+    _update_forsering_cache(sak_id, result)
 
     logger.info(
         f"Forseringskostnader for {sak_id} oppdatert til {payload['paalopte_kostnader']}"

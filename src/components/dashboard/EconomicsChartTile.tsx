@@ -123,6 +123,14 @@ export function EconomicsChartTile({ cases, contract, totalKrevd, totalGodkjent 
   const data = useMemo(() => buildTimeSeries(cases, kontraktssum), [cases, kontraktssum]);
   const hasChart = data.length >= 2;
 
+  // Zoom Y-axis to make krevd/godkjent visible above kontraktssum baseline
+  const yDomain = useMemo<[number, number | 'auto']>(() => {
+    if (!hasChart || kontraktssum === 0) return [0, 'auto'];
+    const maxDelta = Math.max(totalKrevd, totalGodkjent, kontraktssum * 0.01);
+    const yMin = Math.max(0, kontraktssum - maxDelta * 0.5);
+    return [yMin, 'auto'];
+  }, [hasChart, kontraktssum, totalKrevd, totalGodkjent]);
+
   // Godkjenningsgrad
   const godkjenningsgrad = totalKrevd > 0
     ? Math.round((totalGodkjent / totalKrevd) * 100)
@@ -185,7 +193,7 @@ export function EconomicsChartTile({ cases, contract, totalKrevd, totalGodkjent 
                 tickLine={false}
                 axisLine={false}
                 width={50}
-                domain={[0, 'auto']}
+                domain={yDomain}
               />
               <Tooltip content={<CustomTooltip />} />
               {/* Layer 1 (back): krevd — yellow, highest values */}

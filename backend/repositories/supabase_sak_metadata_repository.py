@@ -126,6 +126,9 @@ class SupabaseSakMetadataRepository:
             cached_dager_godkjent=row.get("cached_dager_godkjent"),
             cached_hovedkategori=row.get("cached_hovedkategori"),
             cached_underkategori=row.get("cached_underkategori"),
+            # Forsering-specific cached fields
+            cached_forsering_paalopt=row.get("cached_forsering_paalopt"),
+            cached_forsering_maks=row.get("cached_forsering_maks"),
         )
 
     def _metadata_to_row(self, metadata: SakMetadata) -> dict:
@@ -151,6 +154,9 @@ class SupabaseSakMetadataRepository:
             "cached_dager_godkjent": metadata.cached_dager_godkjent,
             "cached_hovedkategori": metadata.cached_hovedkategori,
             "cached_underkategori": metadata.cached_underkategori,
+            # Forsering-specific cached fields
+            "cached_forsering_paalopt": metadata.cached_forsering_paalopt,
+            "cached_forsering_maks": metadata.cached_forsering_maks,
         }
 
     @with_retry()
@@ -188,6 +194,9 @@ class SupabaseSakMetadataRepository:
         cached_dager_godkjent: int | None = None,
         cached_hovedkategori: str | None = None,
         cached_underkategori: str | None = None,
+        # Forsering-specific cached fields
+        cached_forsering_paalopt: float | None = None,
+        cached_forsering_maks: float | None = None,
     ) -> None:
         """
         Update cached fields for a case.
@@ -215,6 +224,11 @@ class SupabaseSakMetadataRepository:
             updates["cached_hovedkategori"] = cached_hovedkategori
         if cached_underkategori is not None:
             updates["cached_underkategori"] = cached_underkategori
+        # Forsering-specific cached fields
+        if cached_forsering_paalopt is not None:
+            updates["cached_forsering_paalopt"] = cached_forsering_paalopt
+        if cached_forsering_maks is not None:
+            updates["cached_forsering_maks"] = cached_forsering_maks
 
         if updates:
             self.client.table(self.TABLE_NAME).update(updates).eq(

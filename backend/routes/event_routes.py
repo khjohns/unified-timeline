@@ -512,6 +512,9 @@ def submit_event():
             cached_dager_godkjent=new_state.frist.godkjent_dager,
             cached_hovedkategori=new_state.grunnlag.hovedkategori,
             cached_underkategori=underkategori,
+            # Forsering-specific cached fields
+            cached_forsering_paalopt=new_state.forsering_data.paalopte_kostnader if new_state.forsering_data else None,
+            cached_forsering_maks=new_state.forsering_data.maks_forseringskostnad if new_state.forsering_data else None,
         )
 
         logger.debug(f"Event persisted, version: {new_version}")
@@ -731,6 +734,9 @@ def submit_batch():
             cached_dager_godkjent=final_state.frist.godkjent_dager,
             cached_hovedkategori=final_state.grunnlag.hovedkategori,
             cached_underkategori=underkategori,
+            # Forsering-specific cached fields
+            cached_forsering_paalopt=final_state.forsering_data.paalopte_kostnader if final_state.forsering_data else None,
+            cached_forsering_maks=final_state.forsering_data.maks_forseringskostnad if final_state.forsering_data else None,
         )
 
         return jsonify(
@@ -804,6 +810,9 @@ def list_cases():
                         "cached_dager_godkjent": c.cached_dager_godkjent,
                         "cached_hovedkategori": c.cached_hovedkategori,
                         "cached_underkategori": c.cached_underkategori,
+                        # Forsering-specific cached fields
+                        "cached_forsering_paalopt": c.cached_forsering_paalopt,
+                        "cached_forsering_maks": c.cached_forsering_maks,
                     }
                     for c in cases
                 ]

@@ -1,5 +1,6 @@
 /**
  * DagmulktTile - Delay exposure: delay days x dagmulkt rate = total exposure.
+ * Also shows active forsering cost data when available.
  */
 
 import { BentoCard, BentoCtaCard } from './BentoCard';
@@ -14,9 +15,18 @@ function daysBetween(a: string, b: string): number {
 interface DagmulktTileProps {
   contract: ContractSettings | null;
   totalDagerGodkjent: number;
+  forseringPaalopt?: number;
+  forseringMaks?: number;
+  forseringCount?: number;
 }
 
-export function DagmulktTile({ contract, totalDagerGodkjent }: DagmulktTileProps) {
+export function DagmulktTile({
+  contract,
+  totalDagerGodkjent,
+  forseringPaalopt = 0,
+  forseringMaks = 0,
+  forseringCount = 0,
+}: DagmulktTileProps) {
   if (!contract) {
     return (
       <BentoCtaCard
@@ -49,6 +59,9 @@ export function DagmulktTile({ contract, totalDagerGodkjent }: DagmulktTileProps
     bgColor = 'bg-yellow-50 dark:bg-yellow-950/20';
   }
 
+  const hasForsering = forseringCount > 0 && forseringMaks > 0;
+  const forseringPct = hasForsering ? Math.min(100, (forseringPaalopt / forseringMaks) * 100) : 0;
+
   return (
     <BentoCard colSpan="col-span-6 lg:col-span-3" delay={100}>
       <div className={`p-4 h-full ${bgColor}`}>
@@ -75,6 +88,38 @@ export function DagmulktTile({ contract, totalDagerGodkjent }: DagmulktTileProps
             </p>
           </>
         )}
+
+        {/* Forsering section */}
+        <div className="mt-3 pt-3 border-t border-current/10">
+          <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-1">
+            Forsering
+          </p>
+          {hasForsering ? (
+            <>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xs font-bold font-mono tabular-nums text-pkt-text-body-default">
+                  {formatCurrencyCompact(forseringPaalopt)}
+                </span>
+                <span className="text-[10px] text-pkt-text-body-subtle">
+                  / {formatCurrencyCompact(forseringMaks)}
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div className="mt-1 h-1 rounded-full bg-current/10 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    forseringPct > 80 ? 'bg-red-500' : 'bg-blue-500'
+                  }`}
+                  style={{ width: `${forseringPct}%` }}
+                />
+              </div>
+            </>
+          ) : (
+            <p className="text-[10px] text-pkt-text-body-subtle">
+              Ingen aktiv forsering
+            </p>
+          )}
+        </div>
       </div>
     </BentoCard>
   );

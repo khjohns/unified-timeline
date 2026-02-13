@@ -95,6 +95,7 @@ class SakMetadataRepository:
         cached_title: str | None = None,
         cached_status: str | None = None,
         last_event_at: datetime | None = None,
+        **kwargs,
     ) -> None:
         """
         Update cached fields for a case.

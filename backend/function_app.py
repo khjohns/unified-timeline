@@ -154,6 +154,16 @@ if AZURE_FUNCTIONS_AVAILABLE:
                                 "last_event_at": c.last_event_at.isoformat()
                                 if c.last_event_at
                                 else None,
+                                # Reporting fields
+                                "cached_sum_krevd": c.cached_sum_krevd,
+                                "cached_sum_godkjent": c.cached_sum_godkjent,
+                                "cached_dager_krevd": c.cached_dager_krevd,
+                                "cached_dager_godkjent": c.cached_dager_godkjent,
+                                "cached_hovedkategori": c.cached_hovedkategori,
+                                "cached_underkategori": c.cached_underkategori,
+                                # Forsering-specific cached fields
+                                "cached_forsering_paalopt": c.cached_forsering_paalopt,
+                                "cached_forsering_maks": c.cached_forsering_maks,
                             }
                             for c in cases
                         ]
@@ -500,6 +510,9 @@ if AZURE_FUNCTIONS_AVAILABLE:
                     cached_dager_godkjent=new_state.frist.godkjent_dager,
                     cached_hovedkategori=new_state.grunnlag.hovedkategori,
                     cached_underkategori=underkategori,
+                    # Forsering-specific cached fields
+                    cached_forsering_paalopt=new_state.forsering_data.paalopte_kostnader if new_state.forsering_data else None,
+                    cached_forsering_maks=new_state.forsering_data.maks_forseringskostnad if new_state.forsering_data else None,
                 )
 
                 return create_response(
@@ -674,6 +687,9 @@ if AZURE_FUNCTIONS_AVAILABLE:
                     cached_dager_godkjent=final_state.frist.godkjent_dager,
                     cached_hovedkategori=final_state.grunnlag.hovedkategori,
                     cached_underkategori=underkategori,
+                    # Forsering-specific cached fields
+                    cached_forsering_paalopt=final_state.forsering_data.paalopte_kostnader if final_state.forsering_data else None,
+                    cached_forsering_maks=final_state.forsering_data.maks_forseringskostnad if final_state.forsering_data else None,
                 )
 
                 return create_response(

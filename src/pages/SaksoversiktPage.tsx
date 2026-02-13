@@ -73,7 +73,17 @@ function SaksoversiktContent() {
     const totalKrevd = allCases.reduce((sum, c) => sum + (c.cached_sum_krevd ?? 0), 0);
     const totalGodkjent = allCases.reduce((sum, c) => sum + (c.cached_sum_godkjent ?? 0), 0);
     const totalDagerGodkjent = allCases.reduce((sum, c) => sum + (c.cached_dager_godkjent ?? 0), 0);
-    return { totalKrevd, totalGodkjent, totalDagerGodkjent };
+
+    // Forsering KPI - aggregate from active forsering cases
+    const CLOSED = new Set(['OMFORENT', 'LUKKET', 'LUKKET_TRUKKET']);
+    const forseringCases = allCases.filter(
+      c => c.sakstype === 'forsering' && !CLOSED.has(c.cached_status ?? '')
+    );
+    const forseringPaalopt = forseringCases.reduce((sum, c) => sum + (c.cached_forsering_paalopt ?? 0), 0);
+    const forseringMaks = forseringCases.reduce((sum, c) => sum + (c.cached_forsering_maks ?? 0), 0);
+    const forseringCount = forseringCases.length;
+
+    return { totalKrevd, totalGodkjent, totalDagerGodkjent, forseringPaalopt, forseringMaks, forseringCount };
   }, [allCases]);
 
   // ========== Render ==========
@@ -120,6 +130,9 @@ function SaksoversiktContent() {
             <DagmulktTile
               contract={contract}
               totalDagerGodkjent={kpi.totalDagerGodkjent}
+              forseringPaalopt={kpi.forseringPaalopt}
+              forseringMaks={kpi.forseringMaks}
+              forseringCount={kpi.forseringCount}
             />
 
             {/* Row 1.5: Recent activity strip (12) */}

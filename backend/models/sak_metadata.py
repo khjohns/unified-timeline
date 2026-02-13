@@ -62,3 +62,11 @@ class SakMetadata(BaseModel):
     cached_underkategori: str | None = Field(
         default=None, description="Cached grunnlag.underkategori"
     )
+
+    # Forsering-specific cached fields
+    cached_forsering_paalopt: float | None = Field(
+        default=None, description="Cached forsering_data.paalopte_kostnader"
+    )
+    cached_forsering_maks: float | None = Field(
+        default=None, description="Cached forsering_data.maks_forseringskostnad"
+    )

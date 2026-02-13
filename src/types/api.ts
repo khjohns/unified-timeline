@@ -165,6 +165,9 @@ export interface CaseListItem {
   cached_dager_godkjent: number | null;
   cached_hovedkategori: string | null;
   cached_underkategori: string | null;
+  // Forsering-specific cached fields
+  cached_forsering_paalopt: number | null;
+  cached_forsering_maks: number | null;
 }
 
 export interface CaseListResponse {
