@@ -4,7 +4,7 @@
 
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { PlusIcon } from '@radix-ui/react-icons';
+import { PlusIcon, GearIcon } from '@radix-ui/react-icons';
 import { BentoCard } from './BentoCard';
 import type { ContractSettings } from '../../types/project';
 import type { CaseListItem } from '../../types/api';
@@ -78,15 +78,24 @@ export function ProjectIdentityTile({ projectName, contract, cases, userRole }: 
           <p className="text-xs text-pkt-text-body-subtle">NS 8407 Endringsregister</p>
         )}
 
-        {/* Create action */}
-        <div className="mt-2 pt-2 border-t border-pkt-border-subtle">
+        {/* Actions */}
+        <div className="mt-2 pt-2 border-t border-pkt-border-subtle flex gap-1">
           <Link
             to={userRole === 'BH' ? '/endringsordre/ny' : '/saker/ny'}
-            className="flex items-center justify-center gap-1.5 w-full px-3 py-1.5 text-xs font-medium text-pkt-text-action-active hover:bg-pkt-bg-subtle rounded-md transition-colors"
+            className="flex items-center justify-center gap-1.5 flex-1 px-3 py-1.5 text-xs font-medium text-pkt-text-action-active hover:bg-pkt-bg-subtle rounded-md transition-colors"
           >
             <PlusIcon className="w-3.5 h-3.5" />
             {userRole === 'BH' ? 'Ny endringsordre' : 'Nytt krav om endring'}
           </Link>
+          {userRole === 'BH' && (
+            <Link
+              to="/innstillinger"
+              className="flex items-center justify-center px-2 py-1.5 text-xs text-pkt-text-body-subtle hover:text-pkt-text-action-active hover:bg-pkt-bg-subtle rounded-md transition-colors"
+              title="Prosjektinnstillinger"
+            >
+              <GearIcon className="w-3.5 h-3.5" />
+            </Link>
+          )}
         </div>
       </div>
     </BentoCard>
