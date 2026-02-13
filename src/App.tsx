@@ -11,6 +11,7 @@ const SaksoversiktPage = lazy(() => import('./pages/SaksoversiktPage'));
 const CasePage = lazy(() => import('./pages/CasePage'));
 const ForseringPage = lazy(() => import('./pages/ForseringPage'));
 const EndringsordePage = lazy(() => import('./pages/EndringsordePage'));
+const OpprettEndringsordre = lazy(() => import('./pages/OpprettEndringsordre'));
 const FravikOversiktPage = lazy(() => import('./pages/FravikOversiktPage'));
 const FravikPage = lazy(() => import('./pages/FravikPage'));
 const FravikAnalysePage = lazy(() => import('./pages/FravikAnalysePage'));
@@ -34,6 +35,7 @@ const ProsjektInnstillingerPage = lazy(() => import('./pages/ProsjektInnstilling
  * - /saker/ny : Create new case page (for external deployments)
  * - /saker/:sakId : Case detail view (timeline + dashboard + actions)
  * - /forsering/:sakId : Forsering case view (§33.8)
+ * - /endringsordre/ny : Create new endringsordre (§31.3)
  * - /endringsordre/:sakId : Endringsordre case view (§31.3)
  * - /fravik : Fravik overview page (exemption applications)
  * - /fravik/:sakId : Fravik detail view (søknad + approval chain)
@@ -89,6 +91,14 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <ForseringPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/endringsordre/ny"
+            element={
+              <ProtectedRoute>
+                <OpprettEndringsordre />
               </ProtectedRoute>
             }
           />
