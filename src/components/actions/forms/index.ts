@@ -10,3 +10,6 @@ export type { SendGrunnlagFormProps } from './SendGrunnlagForm';
 
 export { WithdrawForm } from './WithdrawForm';
 export type { WithdrawFormProps } from './WithdrawForm';
+
+export { AcceptResponseForm } from './AcceptResponseForm';
+export type { AcceptResponseFormProps } from './AcceptResponseForm';
