@@ -60,7 +60,7 @@ export function SaksoversiktPage() {
 
 function SaksoversiktContent() {
   const navigate = useNavigate();
-  const { userRole } = useUserRole();
+  const { userRole, setUserRole } = useUserRole();
   const { activeProject } = useProject();
   const { contract } = useContractSettings();
   const [caseListExpanded, setCaseListExpanded] = useState(false);
@@ -96,6 +96,8 @@ function SaksoversiktContent() {
       <PageHeader
         title="Prosjektoversikt"
         subtitle={activeProject.name}
+        userRole={userRole}
+        onToggleRole={setUserRole}
         maxWidth="wide"
         menuActions={
           <>
