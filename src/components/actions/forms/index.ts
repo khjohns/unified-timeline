@@ -16,3 +16,6 @@ export type { AcceptResponseFormProps } from './AcceptResponseForm';
 
 export { RespondGrunnlagForm } from './RespondGrunnlagForm';
 export type { RespondGrunnlagFormProps } from './RespondGrunnlagForm';
+
+export { SendFristForm } from './SendFristForm';
+export type { SendFristFormProps } from './SendFristForm';
