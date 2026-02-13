@@ -48,6 +48,17 @@ export function ProjectIdentityTile({ projectName, contract, cases, userRole }: 
           <span className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-widest">
             {health.label}
           </span>
+          {pendingCount > 0 && (
+            <>
+              <span className="text-pkt-text-body-subtle text-[10px]">&middot;</span>
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-pkt-brand-yellow-1000 animate-pulse" />
+                <span className="text-[10px] font-medium text-pkt-text-body-default">
+                  {pendingCount} venter
+                </span>
+              </span>
+            </>
+          )}
         </div>
         <h2 className="text-base font-bold text-pkt-text-body-dark leading-tight mb-2 truncate" title={projectName}>
           {projectName}
@@ -65,17 +76,6 @@ export function ProjectIdentityTile({ projectName, contract, cases, userRole }: 
           </div>
         ) : (
           <p className="text-xs text-pkt-text-body-subtle">NS 8407 Endringsregister</p>
-        )}
-
-        {pendingCount > 0 && (
-          <div className="mt-2 pt-2 border-t border-pkt-border-subtle">
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-pkt-brand-yellow-1000 animate-pulse" />
-              <span className="text-[11px] font-medium text-pkt-text-body-default">
-                {pendingCount} venter på {userRole === 'BH' ? 'ditt svar' : 'svar fra BH'}
-              </span>
-            </div>
-          </div>
         )}
 
         {/* Create action */}
