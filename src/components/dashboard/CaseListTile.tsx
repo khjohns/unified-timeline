@@ -357,10 +357,10 @@ function CaseRow({
             <span
               className={`w-1.5 h-1.5 rounded-full shrink-0 ${getStatusDotColor(item.cached_status)}`}
             />
-            <span className={`font-mono text-xs font-semibold shrink-0 ${typeTag.className}`}>
+            <span className={`font-mono text-xs shrink-0 ${typeTag.className}`}>
               {formatSakId(item.sak_id, item.sakstype)}
             </span>
-            <p className="text-sm text-pkt-text-body-default truncate min-w-0">
+            <p className="text-sm font-medium text-pkt-text-body-dark truncate min-w-0">
               {item.cached_title || 'Uten tittel'}
             </p>
           </div>
@@ -403,10 +403,10 @@ function CaseRow({
           <span
             className={`w-1.5 h-1.5 rounded-full shrink-0 ${getStatusDotColor(item.cached_status)}`}
           />
-          <span className={`font-mono text-xs font-semibold shrink-0 ${typeTag.className}`}>
+          <span className={`font-mono text-xs shrink-0 ${typeTag.className}`}>
             {formatSakId(item.sak_id, item.sakstype)}
           </span>
-          <p className="text-sm text-pkt-text-body-default truncate min-w-0 flex-1">
+          <p className="text-sm font-medium text-pkt-text-body-dark truncate min-w-0 flex-1">
             {item.cached_title || 'Uten tittel'}
           </p>
           <span className="text-[11px] text-pkt-text-body-subtle shrink-0 hidden sm:inline">
