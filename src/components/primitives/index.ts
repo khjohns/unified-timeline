@@ -8,6 +8,7 @@
 export { Button, SubmitButton } from './Button';
 export { Card } from './Card';
 export { DashboardCard } from './DashboardCard';
+export { BentoDashboardCard } from './BentoDashboardCard';
 export { Modal } from './Modal';
 export { Tooltip } from './Tooltip';
 export { AlertDialog } from './AlertDialog';

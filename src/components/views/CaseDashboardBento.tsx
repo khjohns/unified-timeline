@@ -1,19 +1,25 @@
 /**
  * CaseDashboardBento Component
  *
- * Bento grid variant of CaseDashboard - renders the three tracks
- * side-by-side on desktop instead of stacked vertically.
+ * Bento grid variant of CaseDashboard with domain-aware card hierarchy:
+ *
+ * - Grunnlag as "master card" (§25.2): dark-blue top accent, visual weight.
+ *   This is the gate — without grunnlag, vederlag and frist are subsidiary.
+ *
+ * - Vederlag (§34) and Frist (§33) as "dependent cards":
+ *   Show subsidiary badge when grunnlag is rejected.
+ *   Dimmed when grunnlag hasn't been sent yet.
+ *
+ * - Compact icon-button actions with hover tooltips.
  *
  * Layout:
- * - Mobile: stacked (each track full-width)
- * - md: Grunnlag full-width, Vederlag + Frist side-by-side
- * - xl+: All three tracks side-by-side (4+4+4)
- *
- * TEST PAGE - For evaluating bento layout on CasePage.
+ * - Mobile: stacked
+ * - md: Grunnlag full-width, Vederlag + Frist side-by-side (6+6)
+ * - xl+: All three side-by-side (4+4+4)
  */
 
 import { ReactNode, useMemo, useState } from 'react';
-import { DashboardCard, InlineDataList, InlineDataListItem, Badge, Button } from '../primitives';
+import { BentoDashboardCard, InlineDataList, InlineDataListItem, Badge, Button } from '../primitives';
 import { CategoryLabel } from '../shared';
 import { InlineReviseVederlag } from '../actions/InlineReviseVederlag';
 import { InlineReviseFrist } from '../actions/InlineReviseFrist';
@@ -36,7 +42,7 @@ import { Pencil1Icon } from '@radix-ui/react-icons';
 import type { VederlagsMetode } from '../actions/shared';
 import type { FristVarselType } from '../../types/timeline';
 
-// ========== Types (same as CaseDashboard) ==========
+// ========== Types ==========
 
 interface InlineVederlagRevisionProps {
   sakId: string;
@@ -125,8 +131,12 @@ export function CaseDashboardBento({
 }: CaseDashboardBentoProps) {
   const krevdBelop = useMemo(() => getKrevdBelop(state), [state]);
 
+  // Subsidiary logic: grunnlag rejected → vederlag/frist treated subsidiarily
   const vederlagErSubsidiaer = state.vederlag.subsidiaer_godkjent_belop != null;
   const fristErSubsidiaer = state.frist.subsidiaer_godkjent_dager != null;
+
+  // Grunnlag not yet sent → dependent tracks are dimmed
+  const grunnlagIkkeSendt = state.grunnlag.status === 'ikke_relevant' || state.grunnlag.status === 'utkast';
 
   const grunnlagEntries = useMemo(() => transformGrunnlagHistorikk(grunnlagHistorikk), [grunnlagHistorikk]);
   const vederlagEntries = useMemo(() => transformVederlagHistorikk(vederlagHistorikk), [vederlagHistorikk]);
@@ -138,21 +148,64 @@ export function CaseDashboardBento({
   const [inlineReviseOpen, setInlineReviseOpen] = useState(false);
   const [inlineFristReviseOpen, setInlineFristReviseOpen] = useState(false);
 
+  // Build inline revision action for vederlag
+  const vederlagAction = useMemo(() => {
+    if (!inlineVederlagRevision) return vederlagActions;
+    return (
+      <>
+        {inlineVederlagRevision.canRevise && !inlineReviseOpen && (
+          <Button
+            variant={inlineVederlagRevision.showPrimaryVariant ? 'primary' : 'secondary'}
+            size="sm"
+            onClick={() => setInlineReviseOpen(true)}
+            className="!px-3 !py-1.5 !min-h-[28px] !text-xs"
+          >
+            <Pencil1Icon className="w-3.5 h-3.5 mr-1.5" />
+            Revider
+          </Button>
+        )}
+        {vederlagActions}
+      </>
+    );
+  }, [inlineVederlagRevision, inlineReviseOpen, vederlagActions]);
+
+  // Build inline revision action for frist
+  const fristAction = useMemo(() => {
+    if (!inlineFristRevision) return fristActions;
+    return (
+      <>
+        {inlineFristRevision.canRevise && !inlineFristReviseOpen && (
+          <Button
+            variant={inlineFristRevision.showPrimaryVariant ? 'primary' : 'secondary'}
+            size="sm"
+            onClick={() => setInlineFristReviseOpen(true)}
+            className="!px-3 !py-1.5 !min-h-[28px] !text-xs"
+          >
+            <Pencil1Icon className="w-3.5 h-3.5 mr-1.5" />
+            Revider
+          </Button>
+        )}
+        {fristActions}
+      </>
+    );
+  }, [inlineFristRevision, inlineFristReviseOpen, fristActions]);
+
   return (
     <section aria-labelledby="dashboard-heading">
       <h2 id="dashboard-heading" className="sr-only">
         Status Dashboard
       </h2>
 
-      {/* Bento grid: stacked → md: 1+2 → xl: 3 columns */}
       <div className="grid grid-cols-12 gap-2 sm:gap-4 items-start">
 
-        {/* ===== Grunnlag Card ===== */}
+        {/* ===== Grunnlag: Master Card ===== */}
         <div className="col-span-12 xl:col-span-4" data-onboarding="grunnlag-card">
-          <DashboardCard
+          <BentoDashboardCard
             title="Ansvarsgrunnlag"
+            hjemmel="§25.2"
+            role="master"
             headerBadge={
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {getStatusBadge(state.grunnlag.status)}
                 {state.grunnlag.grunnlag_varslet_i_tide === false && state.grunnlag.status !== 'trukket' && (
                   <Badge variant="warning" size="sm">§32.2</Badge>
@@ -160,7 +213,6 @@ export function CaseDashboardBento({
               </div>
             }
             action={grunnlagActions}
-            variant="default"
             className="animate-fade-in-up"
             collapsible
             historyCount={grunnlagEntries.length}
@@ -188,34 +240,19 @@ export function CaseDashboardBento({
               )}
             </InlineDataList>
             <SporHistory spor="grunnlag" entries={grunnlagEntries} events={events} sakState={state} externalOpen={grunnlagExpanded} />
-          </DashboardCard>
+          </BentoDashboardCard>
         </div>
 
-        {/* ===== Vederlag Card ===== */}
+        {/* ===== Vederlag: Dependent Card ===== */}
         <div className="col-span-12 md:col-span-6 xl:col-span-4" data-onboarding="vederlag-card">
-          <DashboardCard
+          <BentoDashboardCard
             title="Vederlag"
+            hjemmel="§34"
+            role="dependent"
+            isSubsidiary={vederlagErSubsidiaer}
+            isDimmed={grunnlagIkkeSendt}
             headerBadge={getStatusBadge(state.vederlag.status)}
-            action={
-              inlineVederlagRevision ? (
-                <>
-                  {inlineVederlagRevision.canRevise && !inlineReviseOpen && (
-                    <Button
-                      variant={inlineVederlagRevision.showPrimaryVariant ? 'primary' : 'secondary'}
-                      size="sm"
-                      onClick={() => setInlineReviseOpen(true)}
-                    >
-                      <Pencil1Icon className="w-4 h-4 mr-2" />
-                      Revider
-                    </Button>
-                  )}
-                  {vederlagActions}
-                </>
-              ) : (
-                vederlagActions
-              )
-            }
-            variant="default"
+            action={vederlagAction}
             className="animate-fade-in-up"
             style={{ animationDelay: '75ms' }}
             collapsible
@@ -262,34 +299,19 @@ export function CaseDashboardBento({
             )}
 
             <SporHistory spor="vederlag" entries={vederlagEntries} events={events} sakState={state} externalOpen={vederlagExpanded} />
-          </DashboardCard>
+          </BentoDashboardCard>
         </div>
 
-        {/* ===== Frist Card ===== */}
+        {/* ===== Frist: Dependent Card ===== */}
         <div className="col-span-12 md:col-span-6 xl:col-span-4" data-onboarding="frist-card">
-          <DashboardCard
+          <BentoDashboardCard
             title="Fristforlengelse"
+            hjemmel="§33"
+            role="dependent"
+            isSubsidiary={fristErSubsidiaer}
+            isDimmed={grunnlagIkkeSendt}
             headerBadge={getStatusBadge(state.frist.status)}
-            action={
-              inlineFristRevision ? (
-                <>
-                  {inlineFristRevision.canRevise && !inlineFristReviseOpen && (
-                    <Button
-                      variant={inlineFristRevision.showPrimaryVariant ? 'primary' : 'secondary'}
-                      size="sm"
-                      onClick={() => setInlineFristReviseOpen(true)}
-                    >
-                      <Pencil1Icon className="w-4 h-4 mr-2" />
-                      Revider
-                    </Button>
-                  )}
-                  {fristActions}
-                </>
-              ) : (
-                fristActions
-              )
-            }
-            variant="default"
+            action={fristAction}
             className="animate-fade-in-up"
             style={{ animationDelay: '150ms' }}
             collapsible
@@ -343,7 +365,7 @@ export function CaseDashboardBento({
             )}
 
             <SporHistory spor="frist" entries={fristEntries} events={events} sakState={state} externalOpen={fristExpanded} />
-          </DashboardCard>
+          </BentoDashboardCard>
         </div>
       </div>
     </section>
