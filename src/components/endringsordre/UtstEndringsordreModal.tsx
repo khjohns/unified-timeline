@@ -25,7 +25,6 @@ import { sakKeys, endringsordreKeys } from '../../queries';
 import { STALE_TIME } from '../../constants/queryConfig';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 
 // Primitives
 import {
@@ -54,8 +53,13 @@ import {
   type KandidatKOE,
 } from '../../api/endringsordre';
 
-// Types
-import type { VederlagsMetode, EOKonsekvenser } from '../../types/timeline';
+// Shared form schema, types, and constants
+import {
+  endringsordreFormSchema,
+  type EndringsordreFormData,
+  OPPGJORSFORM_OPTIONS,
+  formatCurrency,
+} from '../forms';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -67,68 +71,6 @@ interface UtstEndringsordreModalProps {
   sakId: string;
   preselectedKoeIds?: string[];
 }
-
-interface OppgjorsformOption {
-  value: VederlagsMetode;
-  label: string;
-  paragraf: string;
-  indeksregulering: 'full' | 'delvis' | 'ingen';
-  description: string;
-}
-
-const OPPGJORSFORM_OPTIONS: OppgjorsformOption[] = [
-  {
-    value: 'ENHETSPRISER',
-    label: 'Enhetspriser',
-    paragraf: '§34.3',
-    indeksregulering: 'full',
-    description: 'Kontraktens eller justerte enhetspriser. Gjenstand for indeksregulering.',
-  },
-  {
-    value: 'REGNINGSARBEID',
-    label: 'Regningsarbeid',
-    paragraf: '§30.2, §34.4',
-    indeksregulering: 'delvis',
-    description: 'Oppgjør etter medgått tid og materialer. Endelig beløp fastsettes ved sluttoppgjør.',
-  },
-  {
-    value: 'FASTPRIS_TILBUD',
-    label: 'Fastpris / Tilbud',
-    paragraf: '§34.2.1',
-    indeksregulering: 'ingen',
-    description: 'Entreprenørens tilbud. Fast beløp, ikke gjenstand for indeksregulering.',
-  },
-];
-
-// ============================================================================
-// ZOD SCHEMA
-// ============================================================================
-
-const utstEndringsordreSchema = z.object({
-  // Step 1: Grunnlag
-  eo_nummer: z.string().min(1, 'EO-nummer er påkrevd'),
-  tittel: z.string().min(3, 'Tittel må være minst 3 tegn').max(100, 'Tittel kan ikke være lengre enn 100 tegn'),
-  beskrivelse: z.string().min(1, 'Beskrivelse er påkrevd'),
-  // selectedKoeIds is handled via useState
-
-  // Step 2: Konsekvenser og oppgjør
-  konsekvenser_sha: z.boolean(),
-  konsekvenser_kvalitet: z.boolean(),
-  konsekvenser_fremdrift: z.boolean(),
-  konsekvenser_pris: z.boolean(),
-  konsekvenser_annet: z.boolean(),
-  konsekvens_beskrivelse: z.string().optional(),
-
-  // Step 4: Oppgjør
-  oppgjorsform: z.enum(['ENHETSPRISER', 'REGNINGSARBEID', 'FASTPRIS_TILBUD']).optional(),
-  kompensasjon_belop: z.number().min(0).optional().nullable(),
-  fradrag_belop: z.number().min(0).optional().nullable(),
-  er_estimat: z.boolean(),
-  frist_dager: z.number().min(0).optional().nullable(),
-  ny_sluttdato: z.string().optional(),
-});
-
-type UtstEndringsordreFormData = z.infer<typeof utstEndringsordreSchema>;
 
 // ============================================================================
 // HELPER COMPONENTS
@@ -147,11 +89,6 @@ function IndeksreguleringsInfo({ indeks }: { indeks: 'full' | 'delvis' | 'ingen'
   };
 
   return <Badge variant={variants[indeks]}>{labels[indeks]}</Badge>;
-}
-
-function formatCurrency(amount?: number | null): string {
-  if (amount === undefined || amount === null) return '-';
-  return `${amount.toLocaleString('nb-NO')} kr`;
 }
 
 // ============================================================================
@@ -200,8 +137,8 @@ export function UtstEndringsordreModal({
     trigger,
     clearErrors,
     setValue,
-  } = useForm<UtstEndringsordreFormData>({
-    resolver: zodResolver(utstEndringsordreSchema),
+  } = useForm<EndringsordreFormData>({
+    resolver: zodResolver(endringsordreFormSchema),
     mode: 'onTouched',
     defaultValues: {
       eo_nummer: '',
@@ -420,7 +357,7 @@ export function UtstEndringsordreModal({
   };
 
   // Submit handler
-  const onSubmit = (data: UtstEndringsordreFormData) => {
+  const onSubmit = (data: EndringsordreFormData) => {
     const request: OpprettEORequest = {
       eo_nummer: data.eo_nummer,
       tittel: data.tittel,
