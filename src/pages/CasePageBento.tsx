@@ -65,7 +65,7 @@ import {
 } from '../components/actions/forms';
 import { findForseringerForSak, type FindForseringerResponse } from '../api/forsering';
 import { findEOerForSak, type FindEOerResponse } from '../api/endringsordre';
-import type { SakState, TimelineEvent, EventType } from '../types/timeline';
+import type { TimelineEvent, EventType } from '../types/timeline';
 import type { DraftResponseData } from '../types/approval';
 import {
   PaperPlaneIcon,
