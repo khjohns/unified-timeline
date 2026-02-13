@@ -101,6 +101,9 @@ export function RecentActivityTile({ cases }: RecentActivityTileProps) {
               >
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${TYPE_DOT_COLORS[item.sakstype] ?? 'bg-pkt-grays-gray-400'}`} />
                 <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-medium text-pkt-text-body-dark truncate">
+                    {item.cached_title || 'Uten tittel'}
+                  </p>
                   <div className="flex items-baseline gap-1.5">
                     <span className="font-mono text-[11px] text-pkt-text-body-subtle shrink-0">
                       {formatSakIdShort(item.sak_id, item.sakstype)}
@@ -109,9 +112,6 @@ export function RecentActivityTile({ cases }: RecentActivityTileProps) {
                       {formatRelativeTime(item.last_event_at)}
                     </span>
                   </div>
-                  <p className="text-[11px] font-medium text-pkt-text-body-dark truncate">
-                    {item.cached_title || 'Uten tittel'}
-                  </p>
                 </div>
               </div>
             ))}
