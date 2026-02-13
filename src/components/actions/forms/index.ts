@@ -7,3 +7,6 @@
 
 export { SendGrunnlagForm } from './SendGrunnlagForm';
 export type { SendGrunnlagFormProps } from './SendGrunnlagForm';
+
+export { WithdrawForm } from './WithdrawForm';
+export type { WithdrawFormProps } from './WithdrawForm';
