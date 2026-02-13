@@ -1,15 +1,15 @@
 /**
- * CasePageBento - TEST PAGE
+ * CasePageBento - TEST PAGE (V2 - Organisk layout)
  *
  * Bento grid layout variant of CasePage for A/B comparison.
  * Route: /saker/:sakId/bento
  *
- * Key differences from CasePage:
- * - max-w-7xl (wider) instead of max-w-3xl
- * - Three tracks side-by-side on desktop (CaseDashboardBento)
- * - Related cases tile with navigation back to overview
- * - Metadata in bento card
- * - No background grid pattern (not needed with full-width layout)
+ * V2 enhancements over V1:
+ * 1. TrackNextStep: Kontekstuell neste-steg direkte på sporkortet (erstatter StatusAlert)
+ * 2. TrackStepper: Mini prosessflyt-indikator i hvert kort
+ * 3. CrossTrackActivity: Siste aktivitet på tvers av alle spor
+ * 4. DependencyIndicator: Visuell kobling mellom master/dependent kort
+ * 5. BentoHeaderMeta: Metadata integrert i header (parter, kategori, status)
  */
 
 import { useMemo, useCallback, useRef, Suspense, useEffect } from 'react';
@@ -27,7 +27,7 @@ import { useUserRole } from '../hooks/useUserRole';
 import { useApprovalWorkflow } from '../hooks/useApprovalWorkflow';
 import { useSubmitEvent } from '../hooks/useSubmitEvent';
 import { useCasePageModals } from '../hooks/useCasePageModals';
-import { CaseDashboardBento } from '../components/views/CaseDashboardBento';
+import { CaseDashboardBentoV2 } from '../components/views/CaseDashboardBentoV2';
 import {
   BentoGrunnlagActionButtons,
   BentoVederlagActionButtons,
@@ -41,8 +41,8 @@ import { formatCurrency } from '../utils/formatters';
 import { downloadApprovedPdf } from '../pdf/generator';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
-import { StatusAlert } from '../components/StatusAlert';
 import { MockToolbar } from '../components/MockToolbar';
+import { BentoHeaderMeta, BentoBreadcrumb, BentoSumIndicators } from '../components/bento';
 import {
   ApprovePakkeModal,
   SendResponsPakkeModal,
@@ -343,14 +343,13 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             </div>
           )}
 
-          <div className="col-span-12" data-onboarding="status-alert">
-            <StatusAlert
-              state={state}
-              userRole={userRole}
-              actions={actions}
-              harForseringssak={forseringData?.forseringer && forseringData.forseringer.length > 0}
-              harEndringsordre={endringsordreData?.endringsordrer && endringsordreData.endringsordrer.length > 0}
-            />
+          {/* [V2] Integrated metadata strip + sum indicators */}
+          <div className="col-span-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2" data-onboarding="status-alert">
+            <div className="space-y-1">
+              <BentoBreadcrumb prosjektNavn={state.prosjekt_navn} sakId={sakId} />
+              <BentoHeaderMeta state={state} />
+            </div>
+            <BentoSumIndicators sumKrevd={state.sum_krevd} sumGodkjent={state.sum_godkjent} />
           </div>
 
           {/* Approval alerts (full width) */}
@@ -394,10 +393,12 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             </div>
           )}
 
-          {/* Row 2: Three-track bento dashboard */}
+          {/* Row 2: Three-track bento dashboard (V2 with stepper + next-step + activity) */}
           <div className="col-span-12" data-onboarding="case-dashboard">
-            <CaseDashboardBento
+            <CaseDashboardBentoV2
               state={state}
+              userRole={userRole}
+              actions={actions}
               events={timelineEvents}
               grunnlagHistorikk={grunnlagHistorikk}
               vederlagHistorikk={vederlagHistorikk}
@@ -538,10 +539,11 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             </div>
           </BentoCard>
 
+          {/* [V2] Slimmer metadata tile - key metadata moved to header */}
           <BentoCard colSpan="col-span-12 lg:col-span-7" delay={250}>
             <div className="px-4 py-3" data-onboarding="metadata-section">
               <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
-                Metadata
+                Detaljer
               </p>
               <ComprehensiveMetadata state={state} sakId={sakId || ''} />
 
