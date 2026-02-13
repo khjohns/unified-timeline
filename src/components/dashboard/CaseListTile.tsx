@@ -11,7 +11,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Input,
 } from '../primitives';
@@ -190,6 +190,7 @@ function PillToggle<T extends string>({
         <button
           key={opt.key}
           onClick={() => onChange(opt.key)}
+          aria-pressed={value === opt.key}
           className={`px-2.5 py-1 text-xs font-medium rounded-full transition-colors ${
             value === opt.key
               ? 'bg-pkt-brand-dark-blue-1000 text-white'
@@ -328,26 +329,18 @@ function CaseListToolbar({
 function CaseRow({
   item,
   showExtendedColumns,
-  onClick,
+  to,
 }: {
   item: CaseListItem;
   showExtendedColumns: boolean;
-  onClick: () => void;
+  to: string;
 }) {
   const typeTag = getTypeTag(item.sakstype);
 
   return (
-    <div
-      className="px-4 py-2 hover:bg-pkt-bg-subtle/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pkt-brand-warm-blue-1000/30 transition-colors cursor-pointer border-t border-pkt-border-subtle/50 first:border-t-0"
-      role="link"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick();
-        }
-      }}
+    <Link
+      to={to}
+      className="block px-4 py-2 hover:bg-pkt-bg-subtle/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pkt-brand-warm-blue-1000/30 transition-colors border-t border-pkt-border-subtle/50 first:border-t-0 no-underline"
     >
       {showExtendedColumns ? (
         /* Expanded: full grid with all columns */
@@ -417,7 +410,7 @@ function CaseRow({
           </span>
         </div>
       )}
-    </div>
+    </Link>
   );
 }
 
@@ -432,8 +425,6 @@ interface CaseListTileProps {
 }
 
 export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: CaseListTileProps) {
-  const navigate = useNavigate();
-
   const [filter, setFilter] = useState<SakstypeFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [groupBy, setGroupBy] = useState<GroupBy>('status');
@@ -579,7 +570,7 @@ export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: Case
                         key={item.sak_id}
                         item={item}
                         showExtendedColumns
-                        onClick={() => navigate(getCaseRoute(item))}
+                        to={getCaseRoute(item)}
                       />
                     ))}
 
@@ -611,7 +602,7 @@ export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: Case
                   key={item.sak_id}
                   item={item}
                   showExtendedColumns={false}
-                  onClick={() => navigate(getCaseRoute(item))}
+                  to={getCaseRoute(item)}
                 />
               ))}
 

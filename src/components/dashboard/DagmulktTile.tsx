@@ -105,7 +105,14 @@ export function DagmulktTile({
                 </span>
               </div>
               {/* Progress bar */}
-              <div className="mt-1 h-1 rounded-full bg-current/10 overflow-hidden">
+              <div
+                className="mt-1 h-1 rounded-full bg-current/10 overflow-hidden"
+                role="progressbar"
+                aria-valuenow={Math.round(forseringPct)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Forsering påløpt"
+              >
                 <div
                   className={`h-full rounded-full transition-all ${
                     forseringPct > 80 ? 'bg-red-500' : 'bg-blue-500'

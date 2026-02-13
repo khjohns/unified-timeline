@@ -273,7 +273,14 @@ export function EconomicsChartTile({ cases, contract, totalKrevd, totalGodkjent 
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] text-pkt-text-body-subtle w-12">Krevd</span>
-                <div className="flex-1 h-1.5 bg-pkt-grays-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="flex-1 h-1.5 bg-pkt-grays-gray-100 dark:bg-white/10 rounded-full overflow-hidden"
+                  role="progressbar"
+                  aria-valuenow={krevdPct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label="Krevd andel av kontraktssum"
+                >
                   <div
                     className="h-full bg-pkt-brand-yellow-1000 rounded-full transition-all duration-700"
                     style={{ width: `${Math.min(krevdPct, 100)}%` }}
@@ -283,7 +290,14 @@ export function EconomicsChartTile({ cases, contract, totalKrevd, totalGodkjent 
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] text-pkt-text-body-subtle w-12">Godkjent</span>
-                <div className="flex-1 h-1.5 bg-pkt-grays-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="flex-1 h-1.5 bg-pkt-grays-gray-100 dark:bg-white/10 rounded-full overflow-hidden"
+                  role="progressbar"
+                  aria-valuenow={godkjentPct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label="Godkjent andel av kontraktssum"
+                >
                   <div
                     className="h-full bg-emerald-500 rounded-full transition-all duration-700"
                     style={{ width: `${Math.min(godkjentPct, 100)}%` }}

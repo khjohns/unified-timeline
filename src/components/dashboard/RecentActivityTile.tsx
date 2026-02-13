@@ -4,7 +4,7 @@
  */
 
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { BentoCard } from './BentoCard';
 import type { CaseListItem } from '../../types/api';
 
@@ -65,8 +65,6 @@ interface RecentActivityTileProps {
 }
 
 export function RecentActivityTile({ cases }: RecentActivityTileProps) {
-  const navigate = useNavigate();
-
   const recentCases = useMemo(() => {
     return [...cases]
       .filter(c => c.last_event_at)
@@ -86,18 +84,10 @@ export function RecentActivityTile({ cases }: RecentActivityTileProps) {
 
           <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
             {recentCases.map((item) => (
-              <div
+              <Link
                 key={item.sak_id}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-pointer hover:bg-pkt-bg-subtle/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pkt-brand-warm-blue-1000/30 transition-colors min-w-0"
-                role="link"
-                tabIndex={0}
-                onClick={() => navigate(getCaseRoute(item))}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    navigate(getCaseRoute(item));
-                  }
-                }}
+                to={getCaseRoute(item)}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-pkt-bg-subtle/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pkt-brand-warm-blue-1000/30 transition-colors min-w-0 no-underline"
               >
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${TYPE_DOT_COLORS[item.sakstype] ?? 'bg-pkt-grays-gray-400'}`} />
                 <div className="min-w-0 flex-1">
@@ -113,7 +103,7 @@ export function RecentActivityTile({ cases }: RecentActivityTileProps) {
                     </span>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
