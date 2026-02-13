@@ -7,3 +7,4 @@ export { TrackNextStep } from './TrackNextStep';
 export { CrossTrackActivity } from './CrossTrackActivity';
 export { TrackConnectorDots, DependencyIndicator, TrackFlowOverlay } from './TrackConnector';
 export { BentoHeaderMeta, BentoBreadcrumb, BentoSumIndicators } from './BentoPageHeader';
+export { CaseIdentityTile } from './CaseIdentityTile';
