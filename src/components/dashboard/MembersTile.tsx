@@ -2,6 +2,8 @@
  * MembersTile - Shows project members as avatar circles grouped by role.
  */
 
+import { Link } from 'react-router-dom';
+import { GearIcon } from '@radix-ui/react-icons';
 import { BentoCard } from './BentoCard';
 import type { ProjectMembership } from '../../types/membership';
 
@@ -38,7 +40,7 @@ export function MembersTile({ members }: MembersTileProps) {
   const overflow = members.length - MAX_SHOWN;
 
   return (
-    <BentoCard colSpan="col-span-12 md:col-span-3" delay={100}>
+    <BentoCard colSpan="col-span-12 sm:col-span-6 lg:col-span-5" delay={350}>
       <div className="p-5">
         <p className="text-xs font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
           Medlemmer
@@ -70,6 +72,17 @@ export function MembersTile({ members }: MembersTileProps) {
         <p className="text-xs text-pkt-text-body-subtle mt-3">
           {members.length} {members.length === 1 ? 'medlem' : 'medlemmer'}
         </p>
+
+        {/* Manage action */}
+        <div className="mt-2 pt-2 border-t border-pkt-border-subtle">
+          <Link
+            to="/medlemmer"
+            className="flex items-center justify-center gap-1.5 w-full px-3 py-1.5 text-xs font-medium text-pkt-text-action-active hover:bg-pkt-bg-subtle rounded-md transition-colors"
+          >
+            <GearIcon className="w-3.5 h-3.5" />
+            Administrer medlemmer
+          </Link>
+        </div>
       </div>
     </BentoCard>
   );

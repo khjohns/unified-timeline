@@ -18,12 +18,14 @@ import {
   ProjectIdentityTile,
   ProgressTile,
   DagmulktTile,
+  MembersTile,
   RecentActivityTile,
   CaseListTile,
   EconomicsChartTile,
   CategoryBreakdownTile,
 } from '../components/dashboard';
 import { useCaseListSuspense } from '../hooks/useCaseList';
+import { useProjectMembers } from '../hooks/useProjectMembers';
 import { useAuth } from '../context/AuthContext';
 import { useProject } from '../context/ProjectContext';
 import { useUserRole } from '../context/UserRoleContext';
@@ -66,6 +68,7 @@ function SaksoversiktContent() {
   // Data
   const { data } = useCaseListSuspense({});
   const allCases = data.cases;
+  const { data: members = [] } = useProjectMembers(activeProject.id);
 
   // ========== Computed ==========
 
@@ -159,8 +162,9 @@ function SaksoversiktContent() {
               totalGodkjent={kpi.totalGodkjent}
             />
 
-            {/* Row 3: Category breakdown */}
+            {/* Row 3: Category breakdown + Members */}
             <CategoryBreakdownTile cases={allCases} />
+            <MembersTile members={members} />
           </div>
         )}
       </main>
