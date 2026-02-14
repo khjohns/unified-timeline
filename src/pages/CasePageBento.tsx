@@ -34,8 +34,8 @@ import {
 import { Alert, Button, BentoDashboardCard, Badge, AlertDialog, DropdownMenuItem, useToast } from '../components/primitives';
 import { CategoryLabel } from '../components/shared';
 import { PageHeader } from '../components/PageHeader';
-import { formatCurrency, formatDateMedium } from '../utils/formatters';
-import { getVederlagsmetodeLabel } from '../constants/paymentMethods';
+import { formatCurrency, formatCurrencyCompact, formatDateShort } from '../utils/formatters';
+import { getVederlagsmetodeShortLabel } from '../constants/paymentMethods';
 import { getSporStatusStyle } from '../constants/statusStyles';
 import { downloadApprovedPdf } from '../pdf/generator';
 import { ForseringRelasjonBanner } from '../components/forsering';
@@ -515,6 +515,22 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
   const fristErSubsidiaer = state.frist.subsidiaer_godkjent_dager != null;
   const grunnlagIkkeSendt = state.grunnlag.status === 'ikke_relevant' || state.grunnlag.status === 'utkast';
 
+  // Godkjent amounts (respecting subsidiary state)
+  const godkjentBelop = vederlagErSubsidiaer
+    ? state.vederlag.subsidiaer_godkjent_belop
+    : state.vederlag.godkjent_belop;
+  const godkjentDager = fristErSubsidiaer
+    ? state.frist.subsidiaer_godkjent_dager
+    : state.frist.godkjent_dager;
+
+  // Godkjenningsgrad (approval rate) — like EconomicsChartTile
+  const vederlagGrad = krevdBelop && krevdBelop > 0 && godkjentBelop != null
+    ? Math.round((godkjentBelop / krevdBelop) * 100)
+    : null;
+  const fristGrad = state.frist.krevd_dager && state.frist.krevd_dager > 0 && godkjentDager != null
+    ? Math.round((godkjentDager / state.frist.krevd_dager) * 100)
+    : null;
+
   const grunnlagEntries = useMemo(() => transformGrunnlagHistorikk(grunnlagHistorikk), [grunnlagHistorikk]);
   const vederlagEntries = useMemo(() => transformVederlagHistorikk(vederlagHistorikk), [vederlagHistorikk]);
   const fristEntries = useMemo(() => transformFristHistorikk(fristHistorikk), [fristHistorikk]);
@@ -755,26 +771,39 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                   className="mb-2"
                 />
 
+                {/* Category — the legal identity of this case */}
                 {state.grunnlag.hovedkategori && (
-                  <div>
-                    <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">Kategori</p>
-                    <div className="mt-0.5">
-                      <CategoryLabel
-                        hovedkategori={state.grunnlag.hovedkategori}
-                        underkategori={Array.isArray(state.grunnlag.underkategori) ? state.grunnlag.underkategori[0] : state.grunnlag.underkategori}
-                      />
-                    </div>
-                  </div>
+                  <CategoryLabel
+                    hovedkategori={state.grunnlag.hovedkategori}
+                    underkategori={Array.isArray(state.grunnlag.underkategori) ? state.grunnlag.underkategori[0] : state.grunnlag.underkategori}
+                  />
                 )}
 
-                <div className="flex items-center gap-3 text-[11px] text-pkt-text-body-subtle">
-                  {state.grunnlag.dato_oppdaget && (
-                    <span>Oppdaget {formatDateMedium(state.grunnlag.dato_oppdaget)}</span>
-                  )}
-                  {state.grunnlag.grunnlag_varsel?.dato_sendt && (
-                    <span>Varslet {formatDateMedium(state.grunnlag.grunnlag_varsel.dato_sendt)}</span>
-                  )}
-                </div>
+                {/* Dates — ProgressTile label-value pattern */}
+                {(state.grunnlag.dato_oppdaget || state.grunnlag.grunnlag_varsel?.dato_sendt) && (
+                  <div className="mt-2 pt-2 border-t border-pkt-border-subtle space-y-1.5">
+                    {state.grunnlag.dato_oppdaget && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[11px] text-pkt-text-body-subtle">Oppdaget</span>
+                        <span className="text-xs font-mono text-pkt-text-body-default">
+                          {formatDateShort(state.grunnlag.dato_oppdaget)}
+                        </span>
+                      </div>
+                    )}
+                    {state.grunnlag.grunnlag_varsel?.dato_sendt && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[11px] text-pkt-text-body-subtle">Varslet</span>
+                        <span className={`text-xs font-mono ${
+                          state.grunnlag.grunnlag_varslet_i_tide === false
+                            ? 'font-semibold text-pkt-brand-red-1000'
+                            : 'text-pkt-text-body-default'
+                        }`}>
+                          {formatDateShort(state.grunnlag.grunnlag_varsel.dato_sendt)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <TrackNextStep
                   spor="grunnlag"
@@ -887,38 +916,77 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                   className="mb-2"
                 />
 
-                {krevdBelop != null ? (
+                {/* KPI row — EconomicsChartTile pattern */}
+                {krevdBelop != null && (
                   <div>
-                    <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">Krevd beløp</p>
-                    <p className="text-lg font-bold font-mono tabular-nums text-pkt-text-body-dark mt-0.5">
-                      {formatCurrency(krevdBelop)}
-                    </p>
+                    <div className="flex items-baseline gap-4">
+                      <div>
+                        <span className="text-[10px] text-pkt-text-body-subtle uppercase">Krevd</span>
+                        <p className="text-sm font-semibold font-mono tabular-nums text-pkt-text-body-dark">
+                          {formatCurrencyCompact(krevdBelop)}
+                        </p>
+                      </div>
+                      {godkjentBelop != null && (
+                        <div>
+                          <span className="text-[10px] text-pkt-text-body-subtle uppercase">
+                            {vederlagErSubsidiaer ? 'Subs.' : 'Godkjent'}
+                          </span>
+                          <p className="text-sm font-semibold font-mono tabular-nums text-pkt-brand-dark-green-1000">
+                            {formatCurrencyCompact(godkjentBelop)}
+                          </p>
+                        </div>
+                      )}
+                      {vederlagGrad != null && (
+                        <div className="ml-auto text-right">
+                          <span className="text-[10px] text-pkt-text-body-subtle uppercase">Grad</span>
+                          <p className={`text-sm font-bold font-mono tabular-nums ${
+                            vederlagGrad >= 70 ? 'text-pkt-brand-dark-green-1000' :
+                            vederlagGrad >= 40 ? 'text-pkt-brand-yellow-1000' :
+                            'text-pkt-brand-red-1000'
+                          }`}>
+                            {vederlagGrad}%
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    {vederlagGrad != null && (
+                      <div className="mt-1.5 h-1.5 bg-pkt-grays-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-pkt-brand-dark-green-1000 rounded-full transition-all duration-700"
+                          style={{ width: `${Math.min(vederlagGrad, 100)}%` }}
+                        />
+                      </div>
+                    )}
                   </div>
-                ) : null}
-
-                {vederlagErSubsidiaer ? (
-                  state.vederlag.subsidiaer_godkjent_belop != null && (
-                    <div>
-                      <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">Subs. godkjent</p>
-                      <p className="text-sm font-bold font-mono tabular-nums text-badge-success-text mt-0.5">
-                        {formatCurrency(state.vederlag.subsidiaer_godkjent_belop)}
-                      </p>
-                    </div>
-                  )
-                ) : (
-                  state.vederlag.godkjent_belop !== undefined && (
-                    <div>
-                      <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">Godkjent</p>
-                      <p className="text-sm font-bold font-mono tabular-nums text-badge-success-text mt-0.5">
-                        {formatCurrency(state.vederlag.godkjent_belop)}
-                      </p>
-                    </div>
-                  )
                 )}
 
-                {state.vederlag.metode && (
-                  <div className="text-[11px] text-pkt-text-body-subtle">
-                    {getVederlagsmetodeLabel(state.vederlag.metode)}
+                {/* Details below separator */}
+                {(state.vederlag.metode || state.vederlag.saerskilt_krav?.rigg_drift?.belop || state.vederlag.saerskilt_krav?.produktivitet?.belop) && (
+                  <div className="mt-2 pt-2 border-t border-pkt-border-subtle space-y-1.5">
+                    {state.vederlag.metode && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[11px] text-pkt-text-body-subtle">Metode</span>
+                        <span className="text-xs text-pkt-text-body-default">
+                          {getVederlagsmetodeShortLabel(state.vederlag.metode)}
+                        </span>
+                      </div>
+                    )}
+                    {state.vederlag.saerskilt_krav?.rigg_drift?.belop != null && state.vederlag.saerskilt_krav.rigg_drift.belop > 0 && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[11px] text-pkt-text-body-subtle">Rigg/drift</span>
+                        <span className="text-xs font-mono text-pkt-text-body-default">
+                          +{formatCurrencyCompact(state.vederlag.saerskilt_krav.rigg_drift.belop)}
+                        </span>
+                      </div>
+                    )}
+                    {state.vederlag.saerskilt_krav?.produktivitet?.belop != null && state.vederlag.saerskilt_krav.produktivitet.belop > 0 && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[11px] text-pkt-text-body-subtle">Produktivitet</span>
+                        <span className="text-xs font-mono text-pkt-text-body-default">
+                          +{formatCurrencyCompact(state.vederlag.saerskilt_krav.produktivitet.belop)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -981,33 +1049,80 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                   className="mb-2"
                 />
 
-                {state.frist.krevd_dager != null ? (
+                {/* KPI row — mirrors Vederlag pattern */}
+                {state.frist.krevd_dager != null && (
                   <div>
-                    <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">Krevd fristforlengelse</p>
-                    <p className="text-lg font-bold font-mono tabular-nums text-pkt-text-body-dark mt-0.5">
-                      {state.frist.krevd_dager} <span className="text-sm font-normal">dager</span>
-                    </p>
+                    <div className="flex items-baseline gap-4">
+                      <div>
+                        <span className="text-[10px] text-pkt-text-body-subtle uppercase">Krevd</span>
+                        <p className="text-sm font-semibold font-mono tabular-nums text-pkt-text-body-dark">
+                          {state.frist.krevd_dager}d
+                        </p>
+                      </div>
+                      {godkjentDager != null && (
+                        <div>
+                          <span className="text-[10px] text-pkt-text-body-subtle uppercase">
+                            {fristErSubsidiaer ? 'Subs.' : 'Godkjent'}
+                          </span>
+                          <p className="text-sm font-semibold font-mono tabular-nums text-pkt-brand-dark-green-1000">
+                            {godkjentDager}d
+                          </p>
+                        </div>
+                      )}
+                      {fristGrad != null && (
+                        <div className="ml-auto text-right">
+                          <span className="text-[10px] text-pkt-text-body-subtle uppercase">Grad</span>
+                          <p className={`text-sm font-bold font-mono tabular-nums ${
+                            fristGrad >= 70 ? 'text-pkt-brand-dark-green-1000' :
+                            fristGrad >= 40 ? 'text-pkt-brand-yellow-1000' :
+                            'text-pkt-brand-red-1000'
+                          }`}>
+                            {fristGrad}%
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    {fristGrad != null && (
+                      <div className="mt-1.5 h-1.5 bg-pkt-grays-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-pkt-brand-dark-green-1000 rounded-full transition-all duration-700"
+                          style={{ width: `${Math.min(fristGrad, 100)}%` }}
+                        />
+                      </div>
+                    )}
                   </div>
-                ) : null}
+                )}
 
-                {fristErSubsidiaer ? (
-                  state.frist.subsidiaer_godkjent_dager != null && (
-                    <div>
-                      <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">Subs. godkjent</p>
-                      <p className="text-sm font-bold font-mono tabular-nums text-badge-success-text mt-0.5">
-                        {state.frist.subsidiaer_godkjent_dager} <span className="text-xs font-normal">dager</span>
-                      </p>
-                    </div>
-                  )
-                ) : (
-                  state.frist.godkjent_dager != null && (
-                    <div>
-                      <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">Godkjent</p>
-                      <p className="text-sm font-bold font-mono tabular-nums text-badge-success-text mt-0.5">
-                        {state.frist.godkjent_dager} <span className="text-xs font-normal">dager</span>
-                      </p>
-                    </div>
-                  )
+                {/* Details below separator */}
+                {(state.frist.varsel_type || state.frist.frist_varsel?.dato_sendt || state.frist.spesifisert_varsel?.dato_sendt) && (
+                  <div className="mt-2 pt-2 border-t border-pkt-border-subtle space-y-1.5">
+                    {state.frist.varsel_type && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[11px] text-pkt-text-body-subtle">Type</span>
+                        <span className="text-xs text-pkt-text-body-default">
+                          {state.frist.varsel_type === 'varsel' ? 'Varsel' :
+                           state.frist.varsel_type === 'spesifisert' ? 'Spesifisert krav' :
+                           'Begrunnelse utsatt'}
+                        </span>
+                      </div>
+                    )}
+                    {state.frist.frist_varsel?.dato_sendt && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[11px] text-pkt-text-body-subtle">Varslet</span>
+                        <span className="text-xs font-mono text-pkt-text-body-default">
+                          {formatDateShort(state.frist.frist_varsel.dato_sendt)}
+                        </span>
+                      </div>
+                    )}
+                    {state.frist.spesifisert_varsel?.dato_sendt && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[11px] text-pkt-text-body-subtle">Spesifisert</span>
+                        <span className="text-xs font-mono text-pkt-text-body-default">
+                          {formatDateShort(state.frist.spesifisert_varsel.dato_sendt)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 <TrackNextStep
