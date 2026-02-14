@@ -1,11 +1,12 @@
 /**
- * CaseActivityStripTile - Thin horizontal strip showing the last event per track.
+ * CaseActivityCard - Compact vertical card showing the last event per track.
  *
- * Placed below CaseIdentityTile to give a quick overview of latest activity
- * across all three tracks (Grunnlag, Vederlag, Frist) without needing to
- * scan each track card individually.
+ * Placed in Row 1 next to CaseIdentityTile and Grunnlag card to give a quick
+ * overview of latest activity across all three tracks (Grunnlag, Vederlag, Frist).
  *
- * Uses BentoCard col-span-12 with compact padding for a thin strip look.
+ * Uses BentoCard with responsive col-span for the hierarchical bento layout.
+ *
+ * Also exports the old name CaseActivityStripTile as an alias for backwards compat.
  */
 
 import { useMemo } from 'react';
@@ -131,12 +132,12 @@ function formatRelativeTime(dateStr: string): string {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMin = Math.floor(diffMs / 60000);
-    if (diffMin < 1) return 'Nå';
+    if (diffMin < 1) return 'Na';
     if (diffMin < 60) return `${diffMin}m`;
     const diffH = Math.floor(diffMin / 60);
     if (diffH < 24) return `${diffH}t`;
     const diffD = Math.floor(diffH / 24);
-    if (diffD === 1) return 'I går';
+    if (diffD === 1) return 'I gar';
     if (diffD < 7) return `${diffD}d`;
     return date.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' });
   } catch {
@@ -154,14 +155,14 @@ interface TrackActivity {
   time: string;
 }
 
-interface CaseActivityStripTileProps {
+interface CaseActivityCardProps {
   events: TimelineEvent[];
   delay?: number;
 }
 
 // ========== Component ==========
 
-export function CaseActivityStripTile({ events, delay = 0 }: CaseActivityStripTileProps) {
+export function CaseActivityCard({ events, delay = 0 }: CaseActivityCardProps) {
   const trackActivities = useMemo(() => {
     const lastPerTrack = new Map<SporType, TrackActivity>();
 
@@ -207,15 +208,20 @@ export function CaseActivityStripTile({ events, delay = 0 }: CaseActivityStripTi
   const hasAnyActivity = items.some(i => i.activity !== null);
 
   return (
-    <BentoCard colSpan="col-span-12" delay={delay}>
-      <div className="py-2 px-3">
-        {/* Mobile: horizontal scroll */}
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide sm:gap-4">
+    <BentoCard colSpan="col-span-12 md:col-span-6 lg:col-span-3" delay={delay}>
+      <div className="p-3">
+        {/* Header */}
+        <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-2">
+          Siste aktivitet
+        </p>
+
+        {/* Vertical stack of track activities */}
+        <div className="flex flex-col gap-1.5">
           {hasAnyActivity ? (
             items.map(({ spor, label, activity }) => (
               <div
                 key={spor}
-                className="flex items-center gap-2 shrink-0 min-w-0 sm:flex-1 sm:shrink"
+                className="flex items-center gap-2 min-w-0"
               >
                 {/* Track dot */}
                 <div
@@ -225,7 +231,7 @@ export function CaseActivityStripTile({ events, delay = 0 }: CaseActivityStripTi
                   )}
                 />
                 {/* Text content */}
-                <div className="flex items-baseline gap-1.5 min-w-0">
+                <div className="flex items-baseline gap-1.5 min-w-0 flex-1">
                   <span className="text-[11px] font-medium text-pkt-text-body-default shrink-0">
                     {label}
                   </span>
@@ -234,7 +240,7 @@ export function CaseActivityStripTile({ events, delay = 0 }: CaseActivityStripTi
                       <span className="text-[11px] text-pkt-text-body-subtle truncate">
                         {activity.description}
                       </span>
-                      <span className="text-[10px] text-pkt-text-body-muted shrink-0">
+                      <span className="text-[10px] text-pkt-text-body-muted shrink-0 ml-auto">
                         {formatRelativeTime(activity.time)}
                       </span>
                     </>
@@ -250,7 +256,7 @@ export function CaseActivityStripTile({ events, delay = 0 }: CaseActivityStripTi
             <div className="flex items-center gap-2 py-0.5">
               <div className="w-1.5 h-1.5 rounded-full bg-pkt-grays-gray-300" />
               <span className="text-[11px] text-pkt-text-body-muted italic">
-                Ingen aktivitet ennå — venter på første hendelse
+                Ingen aktivitet enna — venter
               </span>
             </div>
           )}
@@ -259,3 +265,6 @@ export function CaseActivityStripTile({ events, delay = 0 }: CaseActivityStripTi
     </BentoCard>
   );
 }
+
+/** Backwards-compatible alias */
+export const CaseActivityStripTile = CaseActivityCard;

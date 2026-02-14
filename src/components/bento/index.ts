@@ -8,5 +8,5 @@ export { CrossTrackActivity } from './CrossTrackActivity';
 export { TrackConnectorDots, DependencyIndicator, TrackFlowOverlay } from './TrackConnector';
 export { BentoHeaderMeta, BentoBreadcrumb, BentoSumIndicators } from './BentoPageHeader';
 export { CaseIdentityTile } from './CaseIdentityTile';
-export { CaseActivityStripTile } from './CaseActivityStripTile';
+export { CaseActivityCard, CaseActivityStripTile } from './CaseActivityStripTile';
 export { TrackFormView } from './TrackFormView';

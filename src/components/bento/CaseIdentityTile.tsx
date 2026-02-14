@@ -21,7 +21,7 @@ export function CaseIdentityTile({ state, delay = 0 }: CaseIdentityTileProps) {
   const sakstypeStyle = getSakstypeStyle(state.sakstype ?? 'standard');
 
   return (
-    <BentoCard colSpan="col-span-12" delay={delay}>
+    <BentoCard colSpan="col-span-12 lg:col-span-5" delay={delay}>
       <div className="p-4">
         {/* Row 1: Case ID */}
         <p className="text-[11px] font-mono text-pkt-text-body-subtle tracking-wide">
