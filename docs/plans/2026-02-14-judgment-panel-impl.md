@@ -4,7 +4,7 @@
 
 **Goal:** Redesign RespondGrunnlagForm from tabbed layout to split-panel "Judgment Panel" with verdict cards, context sidebar, and progressive disclosure.
 
-**Architecture:** Two new leaf components (VerdictCards, ClaimContextPanel) plus a pure-function consequence callout helper. RespondGrunnlagForm is refactored to use a 12-column grid layout instead of tabs. No changes to Zod schema, submit logic, form backup, or event types.
+**Architecture:** Two new leaf components (VerdictCards, ClaimContextPanel) plus a pure-function consequence callout helper. A new `BentoRespondGrunnlag` component is created by copying RespondGrunnlagForm and applying the judgment panel layout. The original RespondGrunnlagForm is left unchanged. No changes to Zod schema, submit logic, form backup, or event types.
 
 **Tech Stack:** React 19, TypeScript, Tailwind CSS v4, react-hook-form, Radix UI (Tooltip), Vitest
 
@@ -673,12 +673,12 @@ git commit -m "feat: add ClaimContextPanel for judgment panel context sidebar"
 
 ---
 
-### Task 4: Update barrel exports
+### Task 4: Update barrel exports (leaf components only)
 
 **Files:**
 - Modify: `src/components/bento/index.ts`
 
-**Step 1: Add exports for new components**
+**Step 1: Add exports for new leaf components**
 
 Add these lines to `src/components/bento/index.ts`:
 
@@ -687,6 +687,8 @@ export { VerdictCards, type VerdictOption } from './VerdictCards';
 export { ClaimContextPanel } from './ClaimContextPanel';
 export { getConsequence } from './consequenceCallout';
 ```
+
+Note: `BentoRespondGrunnlag` export is added in Task 6 after it's created.
 
 **Step 2: Verify build**
 
@@ -702,46 +704,28 @@ git commit -m "feat: barrel exports for judgment panel components"
 
 ---
 
-### Task 5: Refactor RespondGrunnlagForm layout
+### Task 5: Create BentoRespondGrunnlag (new bento version)
 
-This is the main task. Replace tabs + alerts with split-panel grid + VerdictCards + ConsequenceCallout.
+This is the main task. Copy RespondGrunnlagForm to a new file and apply the judgment panel layout. The original is left unchanged.
 
 **Files:**
-- Modify: `src/components/actions/forms/RespondGrunnlagForm.tsx`
+- Copy from: `src/components/actions/forms/RespondGrunnlagForm.tsx` (720 lines, read-only reference)
+- Create: `src/components/bento/BentoRespondGrunnlag.tsx`
 
-**Key changes:**
-1. Remove `Tabs` import and `activeTab` state
-2. Remove `handleValidationError` tab-jumping logic (no tabs to jump to)
-3. Replace `SectionContainer` + `ExpandableText` for §32.2 with compact inline radio + Tooltip
-4. Replace `RadioGroup` for resultat with `VerdictCards` via `Controller`
-5. Replace 5-6 conditional `Alert` blocks with single `getConsequence()` + `Alert`
-6. Wrap form in `grid grid-cols-1 md:grid-cols-12 gap-6`, context left (col-5), response right (col-7)
-7. Add `ClaimContextPanel` in left column
-8. Move begrunnelse below verdict cards (no tab switch)
-9. Add new prop `grunnlagEntries` for context panel
-
-**Step 1: Read the current file carefully**
-
-Read: `src/components/actions/forms/RespondGrunnlagForm.tsx` (already done above — 720 lines)
-
-**Step 2: Refactor the component**
-
-Replace the entire `RespondGrunnlagForm` JSX and associated state.
-
-Detailed changes to make:
+**Approach:** Copy the entire RespondGrunnlagForm file, rename the component to `BentoRespondGrunnlag`, then apply these changes:
 
 **Remove these imports:**
-- `ExpandableText`, `RadioGroup`, `RadioItem`, `SectionContainer`, `Tabs` from primitives
+- `ExpandableText`, `SectionContainer`, `Tabs` from primitives
 - `KontraktsregelInline` from shared
 - `BH_GRUNNLAGSVAR_DESCRIPTIONS` from constants
 
 **Add these imports:**
 - `Tooltip` from primitives
-- `VerdictCards` and `type VerdictOption` from `../../bento/VerdictCards`
-- `ClaimContextPanel` from `../../bento/ClaimContextPanel`
-- `getConsequence` from `../../bento/consequenceCallout`
+- `VerdictCards` and `type VerdictOption` from './VerdictCards'
+- `ClaimContextPanel` from './ClaimContextPanel'
+- `getConsequence` from './consequenceCallout'
 - `InfoCircledIcon` from `@radix-ui/react-icons`
-- `type SporHistoryEntry` from `../../views/SporHistory`
+- `type SporHistoryEntry` from '../views/SporHistory'
 
 **Remove from component body:**
 - `activeTab` state and `tabs` constant
@@ -926,47 +910,44 @@ Expected: No type errors, existing tests pass
 **Step 4: Commit**
 
 ```bash
-git add src/components/actions/forms/RespondGrunnlagForm.tsx
-git commit -m "feat: refactor RespondGrunnlagForm to judgment panel layout"
+git add src/components/bento/BentoRespondGrunnlag.tsx
+git commit -m "feat: add BentoRespondGrunnlag with judgment panel layout"
 ```
 
 ---
 
-### Task 6: Wire grunnlagEntries into CasePageBento
+### Task 6: Wire BentoRespondGrunnlag into CasePageBento
 
 **Files:**
 - Modify: `src/pages/CasePageBento.tsx` (lines ~321-345, ~347-370)
+- Modify: `src/components/bento/index.ts`
 
-**Step 1: Add `grunnlagEntries` prop to RespondGrunnlagForm calls**
+**Step 1: Add barrel export**
 
-In `renderExpandedForm()`, add `grunnlagEntries={grunnlagEntries}` to both the `grunnlag:respond` and `grunnlag:updateResponse` cases.
+Add to `src/components/bento/index.ts`:
 
-Find these two blocks:
-
-```tsx
-case 'grunnlag:respond':
-  return (
-    <RespondGrunnlagForm
-      sakId={sakId}
-      grunnlagEventId={`grunnlag-${sakId}`}
-      grunnlagEvent={{...}}
-      ...
-    />
-  );
+```ts
+export { BentoRespondGrunnlag } from './BentoRespondGrunnlag';
 ```
 
-Add `grunnlagEntries={grunnlagEntries}` as a prop to each.
+**Step 2: Replace RespondGrunnlagForm with BentoRespondGrunnlag in CasePageBento**
 
-**Step 2: Verify no TypeScript errors**
+In `CasePageBento.tsx`, import `BentoRespondGrunnlag` from `../components/bento` and replace the `RespondGrunnlagForm` usage in the `grunnlag:respond` and `grunnlag:updateResponse` switch cases.
+
+Replace `RespondGrunnlagForm` with `BentoRespondGrunnlag` and add `grunnlagEntries={grunnlagEntries}` prop in both cases.
+
+The original `RespondGrunnlagForm` import can stay for any non-bento usage (e.g., if the old CasePage still uses it).
+
+**Step 3: Verify no TypeScript errors**
 
 Run: `npx tsc --noEmit --pretty 2>&1 | head -20`
 Expected: Clean
 
-**Step 3: Commit**
+**Step 4: Commit**
 
 ```bash
-git add src/pages/CasePageBento.tsx
-git commit -m "feat: wire grunnlagEntries into RespondGrunnlagForm for context panel"
+git add src/pages/CasePageBento.tsx src/components/bento/index.ts
+git commit -m "feat: wire BentoRespondGrunnlag into CasePageBento"
 ```
 
 ---
