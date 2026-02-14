@@ -572,21 +572,20 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
   }, [sakId, state.frist, userRole, actions.canUpdateFrist, modals.reviseFrist]);
 
   // Build inline revision actions for vederlag
-  const vederlagActionButtons = (
-    <BentoVederlagActionButtons
-      userRole={userRole}
-      actions={actions}
-      isForceMajeure={state.grunnlag.hovedkategori === 'FORCE_MAJEURE'}
-      onSendVederlag={() => handleExpandTrack('vederlag', 'send')}
-      onWithdrawVederlag={() => handleExpandTrack('vederlag', 'withdraw')}
-      onRespondVederlag={() => modals.respondVederlag.setOpen(true)}
-      onUpdateVederlagResponse={() => modals.updateVederlagResponse.setOpen(true)}
-      onAcceptVederlagResponse={() => handleExpandTrack('vederlag', 'accept')}
-    />
-  );
-
   const vederlagAction = useMemo(() => {
-    if (!inlineVederlagRevision) return vederlagActionButtons;
+    const buttons = (
+      <BentoVederlagActionButtons
+        userRole={userRole}
+        actions={actions}
+        isForceMajeure={state.grunnlag.hovedkategori === 'FORCE_MAJEURE'}
+        onSendVederlag={() => handleExpandTrack('vederlag', 'send')}
+        onWithdrawVederlag={() => handleExpandTrack('vederlag', 'withdraw')}
+        onRespondVederlag={() => modals.respondVederlag.setOpen(true)}
+        onUpdateVederlagResponse={() => modals.updateVederlagResponse.setOpen(true)}
+        onAcceptVederlagResponse={() => handleExpandTrack('vederlag', 'accept')}
+      />
+    );
+    if (!inlineVederlagRevision) return buttons;
     return (
       <>
         {inlineVederlagRevision.canRevise && !inlineReviseOpen && (
@@ -600,29 +599,28 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             Revider
           </Button>
         )}
-        {vederlagActionButtons}
+        {buttons}
       </>
     );
-  }, [inlineVederlagRevision, inlineReviseOpen, vederlagActionButtons]);
+  }, [inlineVederlagRevision, inlineReviseOpen, userRole, actions, state.grunnlag.hovedkategori, handleExpandTrack, modals.respondVederlag, modals.updateVederlagResponse]);
 
   // Build inline revision actions for frist
-  const fristActionButtons = (
-    <BentoFristActionButtons
-      userRole={userRole}
-      actions={actions}
-      fristState={state.frist}
-      onSendFrist={() => handleExpandTrack('frist', 'send')}
-      onReviseFrist={() => modals.reviseFrist.setOpen(true)}
-      onWithdrawFrist={() => handleExpandTrack('frist', 'withdraw')}
-      onSendForsering={() => modals.sendForsering.setOpen(true)}
-      onRespondFrist={() => modals.respondFrist.setOpen(true)}
-      onUpdateFristResponse={() => modals.updateFristResponse.setOpen(true)}
-      onAcceptFristResponse={() => handleExpandTrack('frist', 'accept')}
-    />
-  );
-
   const fristAction = useMemo(() => {
-    if (!inlineFristRevision) return fristActionButtons;
+    const buttons = (
+      <BentoFristActionButtons
+        userRole={userRole}
+        actions={actions}
+        fristState={state.frist}
+        onSendFrist={() => handleExpandTrack('frist', 'send')}
+        onReviseFrist={() => modals.reviseFrist.setOpen(true)}
+        onWithdrawFrist={() => handleExpandTrack('frist', 'withdraw')}
+        onSendForsering={() => modals.sendForsering.setOpen(true)}
+        onRespondFrist={() => modals.respondFrist.setOpen(true)}
+        onUpdateFristResponse={() => modals.updateFristResponse.setOpen(true)}
+        onAcceptFristResponse={() => handleExpandTrack('frist', 'accept')}
+      />
+    );
+    if (!inlineFristRevision) return buttons;
     return (
       <>
         {inlineFristRevision.canRevise && !inlineFristReviseOpen && (
@@ -636,10 +634,10 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             Revider
           </Button>
         )}
-        {fristActionButtons}
+        {buttons}
       </>
     );
-  }, [inlineFristRevision, inlineFristReviseOpen, fristActionButtons]);
+  }, [inlineFristRevision, inlineFristReviseOpen, userRole, actions, state.frist, handleExpandTrack, modals.reviseFrist, modals.sendForsering, modals.respondFrist, modals.updateFristResponse]);
 
   // ===== BENTO LAYOUT =====
   return (
