@@ -57,7 +57,6 @@ export function BimCard({ sakId, className }: BimCardProps) {
   const createLink = useCreateBimLink(sakId);
   const deleteLink = useDeleteBimLink(sakId);
   const [showAdd, setShowAdd] = useState(false);
-  const [hoveredChip, setHoveredChip] = useState<number | null>(null);
 
   const grouped = groupByFag(links);
   const availableFag = getAvailableFag(models, links);
@@ -134,14 +133,12 @@ export function BimCard({ sakId, className }: BimCardProps) {
           {[...grouped.entries()].map(([fag, fagLinks]) => {
             const first = fagLinks[0];
             return (
-              <div
+              <span
                 key={fag}
                 className={clsx(
-                  'inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full border transition-all',
+                  'group/chip inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full border transition-all',
                   getFagColor(fag),
                 )}
-                onMouseEnter={() => setHoveredChip(first.id)}
-                onMouseLeave={() => setHoveredChip(null)}
               >
                 <span>{fag}</span>
                 {first.model_name && (
@@ -149,18 +146,14 @@ export function BimCard({ sakId, className }: BimCardProps) {
                     {first.model_name}
                   </span>
                 )}
-                {hoveredChip === first.id && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(first.id);
-                    }}
-                    className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity"
-                  >
-                    <Cross2Icon className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
+                <button
+                  onClick={() => handleDelete(first.id)}
+                  className="ml-0.5 opacity-0 group-hover/chip:opacity-60 hover:!opacity-100 transition-opacity"
+                  aria-label={`Fjern ${fag}`}
+                >
+                  <Cross2Icon className="w-3 h-3" />
+                </button>
+              </span>
             );
           })}
         </div>
