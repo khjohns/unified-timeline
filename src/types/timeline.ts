@@ -1012,3 +1012,37 @@ export interface TimelineEntry {
   sammendrag: string;
   event_data?: EventData;  // Full submitted form data
 }
+
+// ============================================================
+// BIM Link Types
+// ============================================================
+
+/** Discipline codes matching Catenda model naming convention */
+export type BimFag = 'ARK' | 'RIB' | 'VVS' | 'LARK' | string;
+
+/** A link between a case and a BIM model/object */
+export interface BimLink {
+  id: number;
+  sak_id: string;
+  fag: BimFag;
+  model_id?: string;
+  model_name?: string;
+  object_id?: number;
+  object_global_id?: string;
+  object_name?: string;
+  object_ifc_type?: string;
+  linked_by: string;
+  linked_at: string;
+  kommentar?: string;
+}
+
+/** Cached Catenda model for the active project */
+export interface CatendaModel {
+  id: number;
+  prosjekt_id: string;
+  catenda_project_id: string;
+  model_id: string;
+  model_name: string;
+  fag?: string;
+  updated_at: string;
+}

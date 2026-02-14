@@ -9,6 +9,7 @@ export { TrackConnectorDots, DependencyIndicator, TrackFlowOverlay } from './Tra
 export { BentoHeaderMeta, BentoBreadcrumb, BentoSumIndicators } from './BentoPageHeader';
 export { CaseIdentityTile } from './CaseIdentityTile';
 export { CaseMasterCard } from './CaseMasterCard';
+export { BimCard } from './BimCard';
 export { CaseActivityCard, CaseActivityStripTile } from './CaseActivityStripTile';
 export { TrackFormView } from './TrackFormView';
 export { GrunnlagCard, VederlagCard, FristCard } from './track-cards';
