@@ -66,23 +66,36 @@ class CatendaClientBase:
         self.library_id: str | None = None
         self.test_topic_id: str | None = None
 
-        # Load retry configuration from settings
-        from core.config import settings
+        # Load retry configuration from settings (with fallback defaults
+        # so CatendaClient works in standalone scripts without pydantic_settings)
+        try:
+            from core.config import settings
+
+            _retry_default = settings.catenda_retry_enabled
+            _max_retries_default = settings.catenda_retry_max_attempts
+            _backoff_base = settings.catenda_retry_backoff_base
+            _backoff_max = settings.catenda_retry_backoff_max
+            _use_jitter = settings.catenda_retry_jitter
+            _timeout = settings.catenda_request_timeout
+        except (ImportError, ModuleNotFoundError):
+            logger.debug("core.config not available, using default retry settings")
+            _retry_default = True
+            _max_retries_default = 3
+            _backoff_base = 0.5
+            _backoff_max = 60.0
+            _use_jitter = True
+            _timeout = 30
 
         self._retry_enabled = (
-            retry_enabled
-            if retry_enabled is not None
-            else settings.catenda_retry_enabled
+            retry_enabled if retry_enabled is not None else _retry_default
         )
         self._max_retries = (
-            max_retries
-            if max_retries is not None
-            else settings.catenda_retry_max_attempts
+            max_retries if max_retries is not None else _max_retries_default
         )
-        self._backoff_base = settings.catenda_retry_backoff_base
-        self._backoff_max = settings.catenda_retry_backoff_max
-        self._use_jitter = settings.catenda_retry_jitter
-        self._timeout = settings.catenda_request_timeout
+        self._backoff_base = _backoff_base
+        self._backoff_max = _backoff_max
+        self._use_jitter = _use_jitter
+        self._timeout = _timeout
 
         # Create session with retry adapter for 5xx errors
         self._session = self._create_session()

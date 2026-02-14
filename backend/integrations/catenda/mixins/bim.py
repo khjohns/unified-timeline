@@ -3,6 +3,7 @@ Catenda BIM Mixin
 =================
 
 BIM object extraction methods for Catenda API client.
+Includes Model API methods for listing models, revisions, and IFC products.
 """
 
 import logging
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class BIMMixin:
-    """BIM object extraction methods."""
+    """BIM object extraction and Model API methods."""
 
     # Type hints for attributes from CatendaClientBase
     base_url: str
@@ -39,6 +40,214 @@ class BIMMixin:
         def get_viewpoint_selection(
             self: "CatendaClientBase", topic_id: str, viewpoint_id: str
         ) -> list[dict]: ...
+
+    # =========================================================================
+    # Model API — Models & Revisions
+    # =========================================================================
+
+    def list_models(
+        self: "CatendaClientBase", project_id: str
+    ) -> list[dict]:
+        """
+        List all models in a project.
+
+        Args:
+            project_id: Catenda v2 project ID
+
+        Returns:
+            List of model dicts with id, name, etc.
+        """
+        url = f"{self.base_url}/v2/projects/{project_id}/models"
+        response = self._safe_request("GET", url, "Feil ved henting av modeller")
+        if response is None:
+            return []
+        return response.json()
+
+    def list_revisions(
+        self: "CatendaClientBase",
+        project_id: str,
+        model_id: str | None = None,
+    ) -> list[dict]:
+        """
+        List model revisions, optionally filtered by model.
+
+        Args:
+            project_id: Catenda v2 project ID
+            model_id: Optional model ID to filter by
+
+        Returns:
+            List of revision dicts
+        """
+        url = f"{self.base_url}/v2/projects/{project_id}/revisions"
+        params = {}
+        if model_id:
+            params["model"] = model_id
+        response = self._safe_request(
+            "GET", url, "Feil ved henting av revisjoner", params=params
+        )
+        if response is None:
+            return []
+        return response.json()
+
+    # =========================================================================
+    # Model API — IFC Products
+    # =========================================================================
+
+    def list_ifc_products(
+        self: "CatendaClientBase",
+        project_id: str,
+        model_id: str | None = None,
+        revision_id: str | None = None,
+        ifc_type: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> list[dict]:
+        """
+        List IFC products (objects) in a project.
+
+        Args:
+            project_id: Catenda v2 project ID
+            model_id: Optional model filter
+            revision_id: Optional revision filter
+            ifc_type: Optional IFC type filter (e.g. "IfcWall")
+            page: Page number (1-indexed, default 1)
+            page_size: Number of items per page (default 100, max 1000)
+
+        Returns:
+            List of ifc-product dicts
+        """
+        url = f"{self.base_url}/v2/projects/{project_id}/ifc/products"
+        params: dict = {}
+        if model_id:
+            params["model"] = model_id
+        if revision_id:
+            params["revision"] = revision_id
+        if ifc_type:
+            params["ifcType"] = ifc_type
+        if page is not None:
+            params["page"] = page
+        if page_size is not None:
+            params["pageSize"] = page_size
+
+        response = self._safe_request(
+            "GET", url, "Feil ved henting av IFC-produkter", params=params
+        )
+        if response is None:
+            return []
+        return response.json()
+
+    def query_ifc_products(
+        self: "CatendaClientBase",
+        project_id: str,
+        query: dict | None = None,
+        fields: dict | None = None,
+        model_ids: list[str] | None = None,
+        revision_ids: list[str] | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> list[dict]:
+        """
+        Query IFC products with filtering and field selection.
+
+        Args:
+            project_id: Catenda v2 project ID
+            query: Query filter object (e.g. {"ifcType": {"$ifcType": "IfcWall"}})
+            fields: Field projection (e.g. {"attributes.Name": 1, "ifcType": 1})
+            model_ids: Filter by model IDs (latest revision)
+            revision_ids: Filter by specific revision IDs
+            page: Page number
+            page_size: Items per page
+
+        Returns:
+            List of ifc-product dicts
+        """
+        url = f"{self.base_url}/v2/projects/{project_id}/ifc/products"
+        params: dict = {}
+        if page is not None:
+            params["page"] = page
+        if page_size is not None:
+            params["pageSize"] = page_size
+
+        payload: dict = {}
+        if query:
+            payload["query"] = query
+        if fields:
+            payload["fields"] = fields
+        if model_ids:
+            payload["models"] = model_ids
+        if revision_ids:
+            payload["revisions"] = revision_ids
+
+        response = self._safe_request(
+            "POST",
+            url,
+            "Feil ved query av IFC-produkter",
+            params=params,
+            json=payload,
+        )
+        if response is None:
+            return []
+        return response.json()
+
+    def get_ifc_type_summary(
+        self: "CatendaClientBase",
+        project_id: str,
+        model_id: str | None = None,
+        revision_id: str | None = None,
+    ) -> dict:
+        """
+        Get summary of IFC types and instance counts.
+
+        Args:
+            project_id: Catenda v2 project ID
+            model_id: Optional model filter
+            revision_id: Optional revision filter
+
+        Returns:
+            Dict mapping IFC type names to counts, e.g. {"IfcWall": 577, "IfcSpace": 865}
+        """
+        url = f"{self.base_url}/v2/projects/{project_id}/ifc/products/ifctypes"
+        params: dict = {}
+        if model_id:
+            params["model"] = model_id
+        if revision_id:
+            params["revision"] = revision_id
+
+        response = self._safe_request(
+            "GET", url, "Feil ved henting av IFC type-oppsummering", params=params
+        )
+        if response is None:
+            return {}
+        return response.json()
+
+    def get_ifc_product(
+        self: "CatendaClientBase",
+        project_id: str,
+        object_id: int | str,
+        revision_id: str | None = None,
+    ) -> dict | None:
+        """
+        Get a single IFC product by objectId (full details incl. propertySets, quantitySets, materials).
+
+        Args:
+            project_id: Catenda v2 project ID
+            object_id: Numeric object ID from list response
+            revision_id: Optional revision filter
+
+        Returns:
+            Full ifc-product dict or None
+        """
+        url = f"{self.base_url}/v2/projects/{project_id}/ifc/products/{object_id}"
+        params: dict = {}
+        if revision_id:
+            params["revision"] = revision_id
+
+        response = self._safe_request(
+            "GET", url, f"Feil ved henting av produkt {object_id}", params=params
+        )
+        if response is None:
+            return None
+        return response.json()
 
     def get_bim_objects_for_topic(
         self: "CatendaClientBase", topic_id: str
