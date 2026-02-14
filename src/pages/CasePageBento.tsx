@@ -33,7 +33,7 @@ import { downloadApprovedPdf } from '../pdf/generator';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
 import { MockToolbar } from '../components/MockToolbar';
-import { BentoBreadcrumb, CaseMasterCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag } from '../components/bento';
+import { BentoBreadcrumb, CaseMasterCard, BimCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag } from '../components/bento';
 import {
   ApprovePakkeModal,
   SendResponsPakkeModal,
@@ -743,6 +743,11 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
               isGrunnlagFormExpanded={expandedTrack?.track === 'grunnlag'}
               className="animate-fade-in-up"
             />
+            {!expandedTrack && (
+              <div className="mt-2 sm:mt-3">
+                <BimCard sakId={sakId} className="animate-fade-in-up" />
+              </div>
+            )}
           </div>
 
           {/* Right column: Vederlag + Frist stacked */}

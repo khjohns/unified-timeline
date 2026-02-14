@@ -31,11 +31,15 @@ function getFagColor(fag: string): string {
 }
 
 /** Group BIM links by fag */
-function groupByFag(links: BimLink[]): Record<string, BimLink[]> {
-  const groups: Record<string, BimLink[]> = {};
+function groupByFag(links: BimLink[]): Map<string, BimLink[]> {
+  const groups = new Map<string, BimLink[]>();
   for (const link of links) {
-    if (!groups[link.fag]) groups[link.fag] = [];
-    groups[link.fag].push(link);
+    const existing = groups.get(link.fag);
+    if (existing) {
+      existing.push(link);
+    } else {
+      groups.set(link.fag, [link]);
+    }
   }
   return groups;
 }
@@ -61,11 +65,12 @@ export function BimCard({ sakId, className }: BimCardProps) {
   const handleAddFag = (fag: string) => {
     // Find models for this fag to include model info
     const fagModels = models.filter((m) => m.fag === fag);
-    if (fagModels.length === 1) {
+    const singleModel = fagModels.length === 1 ? fagModels[0] : undefined;
+    if (singleModel) {
       createLink.mutate({
         fag,
-        model_id: fagModels[0].model_id,
-        model_name: fagModels[0].model_name,
+        model_id: singleModel.model_id,
+        model_name: singleModel.model_name,
       });
     } else {
       // Multiple models or no models — link at fag level
@@ -126,35 +131,38 @@ export function BimCard({ sakId, className }: BimCardProps) {
       {/* Fag chips */}
       {links.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
-          {Object.entries(grouped).map(([fag, fagLinks]) => (
-            <div
-              key={fag}
-              className={clsx(
-                'inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full border transition-all',
-                getFagColor(fag),
-              )}
-              onMouseEnter={() => setHoveredChip(fagLinks[0].id)}
-              onMouseLeave={() => setHoveredChip(null)}
-            >
-              <span>{fag}</span>
-              {fagLinks[0].model_name && (
-                <span className="opacity-60 font-normal">
-                  {fagLinks[0].model_name}
-                </span>
-              )}
-              {hoveredChip === fagLinks[0].id && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(fagLinks[0].id);
-                  }}
-                  className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity"
-                >
-                  <Cross2Icon className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          ))}
+          {[...grouped.entries()].map(([fag, fagLinks]) => {
+            const first = fagLinks[0];
+            return (
+              <div
+                key={fag}
+                className={clsx(
+                  'inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full border transition-all',
+                  getFagColor(fag),
+                )}
+                onMouseEnter={() => setHoveredChip(first.id)}
+                onMouseLeave={() => setHoveredChip(null)}
+              >
+                <span>{fag}</span>
+                {first.model_name && (
+                  <span className="opacity-60 font-normal">
+                    {first.model_name}
+                  </span>
+                )}
+                {hoveredChip === first.id && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(first.id);
+                    }}
+                    className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity"
+                  >
+                    <Cross2Icon className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <p className="text-xs text-pkt-text-body-subtle italic">
