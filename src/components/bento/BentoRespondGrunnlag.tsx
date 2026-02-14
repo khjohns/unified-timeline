@@ -84,6 +84,8 @@ export interface BentoRespondGrunnlagProps {
   };
   sakState?: SakState;
   grunnlagEntries?: SporHistoryEntry[];
+  /** Hide context panel when rendered alongside MasterCard */
+  hideContextPanel?: boolean;
 }
 
 export function BentoRespondGrunnlag({
@@ -98,6 +100,7 @@ export function BentoRespondGrunnlag({
   lastResponseEvent,
   sakState,
   grunnlagEntries,
+  hideContextPanel = false,
 }: BentoRespondGrunnlagProps) {
   const isUpdateMode = !!lastResponseEvent;
 
@@ -363,18 +366,20 @@ export function BentoRespondGrunnlag({
           </div>
         )}
 
-        {/* ===== SPLIT PANEL GRID ===== */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-0 md:gap-6">
-          {/* Left: Claim context (col-5) */}
-          <div className="md:col-span-5">
-            <ClaimContextPanel
-              grunnlagEvent={grunnlagEvent ?? {}}
-              entries={grunnlagEntries ?? []}
-            />
-          </div>
+        {/* ===== LAYOUT: split panel or single column ===== */}
+        <div className={hideContextPanel ? '' : 'grid grid-cols-1 md:grid-cols-12 gap-0 md:gap-6'}>
+          {/* Left: Claim context (col-5) — hidden when MasterCard provides context */}
+          {!hideContextPanel && (
+            <div className="md:col-span-5">
+              <ClaimContextPanel
+                grunnlagEvent={grunnlagEvent ?? {}}
+                entries={grunnlagEntries ?? []}
+              />
+            </div>
+          )}
 
-          {/* Right: Response panel (col-7) */}
-          <div className="md:col-span-7 space-y-5">
+          {/* Response panel */}
+          <div className={hideContextPanel ? 'space-y-5' : 'md:col-span-7 space-y-5'}>
             {/* §32.2 Varselvurdering — compact inline */}
             {erEndringMed32_2 && (
               <div className="space-y-3">

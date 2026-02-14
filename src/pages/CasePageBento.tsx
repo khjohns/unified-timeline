@@ -333,6 +333,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
               dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,
             }}
             grunnlagEntries={grunnlagEntries}
+            hideContextPanel
             onSuccess={onSuccess}
             onCancel={onCancel}
             onCatendaWarning={onCatendaWarning}
@@ -358,6 +359,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             }}
             sakState={state}
             grunnlagEntries={grunnlagEntries}
+            hideContextPanel
             onSuccess={onSuccess}
             onCancel={onCancel}
             onCatendaWarning={onCatendaWarning}
@@ -723,9 +725,11 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
           {/* Left column: Master card */}
           <div
             className={
-              expandedTrack
-                ? 'col-span-12'
-                : 'col-span-12 md:col-span-6'
+              expandedTrack?.track === 'grunnlag'
+                ? 'col-span-12 md:col-span-5'
+                : expandedTrack
+                  ? 'col-span-12'
+                  : 'col-span-12 md:col-span-6'
             }
             data-onboarding="grunnlag-card"
           >
@@ -847,11 +851,12 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             </div>
           )}
 
-          {/* Expanded track form (full width) */}
+          {/* Expanded track form — grunnlag opens right (col-7), others full-width */}
           {expandedTrack && sakId && (() => {
             const meta = getTrackFormMeta(expandedTrack);
+            const isGrunnlagInline = expandedTrack.track === 'grunnlag';
             return (
-              <div className="col-span-12">
+              <div className={isGrunnlagInline ? 'col-span-12 md:col-span-7' : 'col-span-12'}>
                 <TrackFormView
                   trackName={meta.trackName}
                   actionTitle={meta.actionTitle}
