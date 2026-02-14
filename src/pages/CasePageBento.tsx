@@ -31,10 +31,10 @@ import {
   BentoVederlagActionButtons,
   BentoFristActionButtons,
 } from '../components/BentoTrackActionButtons';
-import { Alert, Button, BentoDashboardCard, InlineDataList, InlineDataListItem, Badge, AlertDialog, DropdownMenuItem, useToast } from '../components/primitives';
+import { Alert, Button, BentoDashboardCard, Badge, AlertDialog, DropdownMenuItem, useToast } from '../components/primitives';
 import { CategoryLabel } from '../components/shared';
 import { PageHeader } from '../components/PageHeader';
-import { formatCurrency, formatDays, formatDateMedium } from '../utils/formatters';
+import { formatCurrency, formatDateMedium } from '../utils/formatters';
 import { getVederlagsmetodeLabel } from '../constants/paymentMethods';
 import { getSporStatusStyle } from '../constants/statusStyles';
 import { downloadApprovedPdf } from '../pdf/generator';
@@ -756,25 +756,25 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                 />
 
                 {state.grunnlag.hovedkategori && (
-                  <div className="mb-2">
-                    <CategoryLabel
-                      hovedkategori={state.grunnlag.hovedkategori}
-                      underkategori={Array.isArray(state.grunnlag.underkategori) ? state.grunnlag.underkategori[0] : state.grunnlag.underkategori}
-                    />
+                  <div>
+                    <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">Kategori</p>
+                    <div className="mt-0.5">
+                      <CategoryLabel
+                        hovedkategori={state.grunnlag.hovedkategori}
+                        underkategori={Array.isArray(state.grunnlag.underkategori) ? state.grunnlag.underkategori[0] : state.grunnlag.underkategori}
+                      />
+                    </div>
                   </div>
                 )}
-                <InlineDataList stackOnMobile>
+
+                <div className="flex items-center gap-3 text-[11px] text-pkt-text-body-subtle">
                   {state.grunnlag.dato_oppdaget && (
-                    <InlineDataListItem label="Oppdaget">
-                      {formatDateMedium(state.grunnlag.dato_oppdaget)}
-                    </InlineDataListItem>
+                    <span>Oppdaget {formatDateMedium(state.grunnlag.dato_oppdaget)}</span>
                   )}
                   {state.grunnlag.grunnlag_varsel?.dato_sendt && (
-                    <InlineDataListItem label="Varslet">
-                      {formatDateMedium(state.grunnlag.grunnlag_varsel.dato_sendt)}
-                    </InlineDataListItem>
+                    <span>Varslet {formatDateMedium(state.grunnlag.grunnlag_varsel.dato_sendt)}</span>
                   )}
-                </InlineDataList>
+                </div>
 
                 <TrackNextStep
                   spor="grunnlag"
@@ -887,29 +887,40 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                   className="mb-2"
                 />
 
-                <InlineDataList stackOnMobile>
-                  {state.vederlag.metode && (
-                    <InlineDataListItem label="Metode">
-                      {getVederlagsmetodeLabel(state.vederlag.metode)}
-                    </InlineDataListItem>
-                  )}
-                  <InlineDataListItem label="Krevd" mono>
-                    {formatCurrency(krevdBelop)}
-                  </InlineDataListItem>
-                  {vederlagErSubsidiaer ? (
-                    state.vederlag.subsidiaer_godkjent_belop != null && (
-                      <InlineDataListItem label="Subs. godkjent" mono>
+                {krevdBelop != null ? (
+                  <div>
+                    <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">Krevd beløp</p>
+                    <p className="text-lg font-bold font-mono tabular-nums text-pkt-text-body-dark mt-0.5">
+                      {formatCurrency(krevdBelop)}
+                    </p>
+                  </div>
+                ) : null}
+
+                {vederlagErSubsidiaer ? (
+                  state.vederlag.subsidiaer_godkjent_belop != null && (
+                    <div>
+                      <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">Subs. godkjent</p>
+                      <p className="text-sm font-bold font-mono tabular-nums text-badge-success-text mt-0.5">
                         {formatCurrency(state.vederlag.subsidiaer_godkjent_belop)}
-                      </InlineDataListItem>
-                    )
-                  ) : (
-                    state.vederlag.godkjent_belop !== undefined && (
-                      <InlineDataListItem label="Godkjent" mono>
+                      </p>
+                    </div>
+                  )
+                ) : (
+                  state.vederlag.godkjent_belop !== undefined && (
+                    <div>
+                      <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">Godkjent</p>
+                      <p className="text-sm font-bold font-mono tabular-nums text-badge-success-text mt-0.5">
                         {formatCurrency(state.vederlag.godkjent_belop)}
-                      </InlineDataListItem>
-                    )
-                  )}
-                </InlineDataList>
+                      </p>
+                    </div>
+                  )
+                )}
+
+                {state.vederlag.metode && (
+                  <div className="text-[11px] text-pkt-text-body-subtle">
+                    {getVederlagsmetodeLabel(state.vederlag.metode)}
+                  </div>
+                )}
 
                 <TrackNextStep
                   spor="vederlag"
@@ -970,36 +981,34 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                   className="mb-2"
                 />
 
-                <InlineDataList stackOnMobile>
-                  {state.frist.frist_varsel?.dato_sendt && (
-                    <InlineDataListItem label="Varslet">
-                      {formatDateMedium(state.frist.frist_varsel.dato_sendt)}
-                    </InlineDataListItem>
-                  )}
-                  {state.frist.spesifisert_varsel?.dato_sendt && (
-                    <InlineDataListItem label="Spesifisert">
-                      {formatDateMedium(state.frist.spesifisert_varsel.dato_sendt)}
-                    </InlineDataListItem>
-                  )}
-                  {state.frist.krevd_dager !== undefined && (
-                    <InlineDataListItem label="Krevd" mono>
-                      {formatDays(state.frist.krevd_dager)}
-                    </InlineDataListItem>
-                  )}
-                  {fristErSubsidiaer ? (
-                    state.frist.subsidiaer_godkjent_dager != null && (
-                      <InlineDataListItem label="Subs. godkjent" mono>
-                        {formatDays(state.frist.subsidiaer_godkjent_dager)}
-                      </InlineDataListItem>
-                    )
-                  ) : (
-                    state.frist.godkjent_dager !== undefined && (
-                      <InlineDataListItem label="Godkjent" mono>
-                        {formatDays(state.frist.godkjent_dager)}
-                      </InlineDataListItem>
-                    )
-                  )}
-                </InlineDataList>
+                {state.frist.krevd_dager != null ? (
+                  <div>
+                    <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">Krevd fristforlengelse</p>
+                    <p className="text-lg font-bold font-mono tabular-nums text-pkt-text-body-dark mt-0.5">
+                      {state.frist.krevd_dager} <span className="text-sm font-normal">dager</span>
+                    </p>
+                  </div>
+                ) : null}
+
+                {fristErSubsidiaer ? (
+                  state.frist.subsidiaer_godkjent_dager != null && (
+                    <div>
+                      <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">Subs. godkjent</p>
+                      <p className="text-sm font-bold font-mono tabular-nums text-badge-success-text mt-0.5">
+                        {state.frist.subsidiaer_godkjent_dager} <span className="text-xs font-normal">dager</span>
+                      </p>
+                    </div>
+                  )
+                ) : (
+                  state.frist.godkjent_dager != null && (
+                    <div>
+                      <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">Godkjent</p>
+                      <p className="text-sm font-bold font-mono tabular-nums text-badge-success-text mt-0.5">
+                        {state.frist.godkjent_dager} <span className="text-xs font-normal">dager</span>
+                      </p>
+                    </div>
+                  )
+                )}
 
                 <TrackNextStep
                   spor="frist"
