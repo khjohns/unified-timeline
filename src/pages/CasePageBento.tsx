@@ -33,7 +33,7 @@ import { downloadApprovedPdf } from '../pdf/generator';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
 import { MockToolbar } from '../components/MockToolbar';
-import { BentoBreadcrumb, CaseIdentityTile, CaseActivityCard, TrackFormView, CrossTrackActivity, GrunnlagCard, VederlagCard, FristCard } from '../components/bento';
+import { BentoBreadcrumb, CaseMasterCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag } from '../components/bento';
 import {
   ApprovePakkeModal,
   SendResponsPakkeModal,
@@ -52,7 +52,6 @@ import {
   SendGrunnlagForm,
   SendVederlagForm,
   SendFristForm,
-  RespondGrunnlagForm,
   WithdrawForm,
   AcceptResponseForm,
 } from '../components/actions/forms';
@@ -287,6 +286,9 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     setExpandedTrack(null);
   }, []);
 
+  // Grunnlag entries needed by BentoRespondGrunnlag inside renderExpandedForm
+  const grunnlagEntries = useMemo(() => transformGrunnlagHistorikk(grunnlagHistorikk), [grunnlagHistorikk]);
+
   // ===== EXPANDED FORM RENDERER =====
   const renderExpandedForm = useCallback(() => {
     if (!expandedTrack || !sakId) return null;
@@ -320,7 +322,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
         );
       case 'grunnlag:respond':
         return (
-          <RespondGrunnlagForm
+          <BentoRespondGrunnlag
             sakId={sakId}
             grunnlagEventId={`grunnlag-${sakId}`}
             grunnlagEvent={{
@@ -330,6 +332,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
               dato_oppdaget: state.grunnlag.dato_oppdaget,
               dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,
             }}
+            grunnlagEntries={grunnlagEntries}
             onSuccess={onSuccess}
             onCancel={onCancel}
             onCatendaWarning={onCatendaWarning}
@@ -346,7 +349,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
         );
       case 'grunnlag:updateResponse':
         return (
-          <RespondGrunnlagForm
+          <BentoRespondGrunnlag
             sakId={sakId}
             grunnlagEventId={`grunnlag-${sakId}`}
             lastResponseEvent={{
@@ -354,6 +357,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
               resultat: state.grunnlag.bh_resultat || 'godkjent',
             }}
             sakState={state}
+            grunnlagEntries={grunnlagEntries}
             onSuccess={onSuccess}
             onCancel={onCancel}
             onCatendaWarning={onCatendaWarning}
@@ -469,7 +473,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       default:
         return null;
     }
-  }, [expandedTrack, sakId, state, grunnlagStatus, approvalWorkflow, modals.catendaWarning, handleCollapseTrack]);
+  }, [expandedTrack, sakId, state, grunnlagStatus, approvalWorkflow, modals.catendaWarning, handleCollapseTrack, grunnlagEntries]);
 
   // ===== TRACK FORM VIEW METADATA =====
   const getTrackFormMeta = useCallback((expanded: { track: string; action: string }) => {
@@ -516,7 +520,6 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     ? Math.round((godkjentDager / state.frist.krevd_dager) * 100)
     : null;
 
-  const grunnlagEntries = useMemo(() => transformGrunnlagHistorikk(grunnlagHistorikk), [grunnlagHistorikk]);
   const vederlagEntries = useMemo(() => transformVederlagHistorikk(vederlagHistorikk), [vederlagHistorikk]);
   const fristEntries = useMemo(() => transformFristHistorikk(fristHistorikk), [fristHistorikk]);
 
@@ -715,34 +718,92 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             <BentoBreadcrumb prosjektNavn={state.prosjekt_navn} sakId={sakId} />
           </div>
 
-          {/* ===== ROW 1: Context row — Identity + Grunnlag + Activity ===== */}
-          <CaseIdentityTile state={state} delay={0} />
+          {/* ===== TWO-COLUMN LAYOUT: Master (left) + Claims (right) ===== */}
 
-          {/* Grunnlag card (master) — in Row 1 next to Identity */}
-          {expandedTrack?.track !== 'grunnlag' && (
-            <div
-              className={
-                expandedTrack
-                  ? 'col-span-12 md:col-span-6'
-                  : 'col-span-12 md:col-span-6 lg:col-span-4'
-              }
-              data-onboarding="grunnlag-card"
-            >
-              <GrunnlagCard
-                state={state}
-                userRole={userRole}
-                actions={actions}
-                entries={grunnlagEntries}
-                primaryAction={grunnlagPrimaryAction}
-                secondaryActions={grunnlagSecondaryActions}
-                className="animate-fade-in-up"
-              />
+          {/* Left column: Master card */}
+          <div
+            className={
+              expandedTrack
+                ? 'col-span-12'
+                : 'col-span-12 md:col-span-6'
+            }
+            data-onboarding="grunnlag-card"
+          >
+            <CaseMasterCard
+              state={state}
+              userRole={userRole}
+              actions={actions}
+              grunnlagEntries={grunnlagEntries}
+              primaryAction={grunnlagPrimaryAction}
+              secondaryActions={grunnlagSecondaryActions}
+              isGrunnlagFormExpanded={expandedTrack?.track === 'grunnlag'}
+              className="animate-fade-in-up"
+            />
+          </div>
+
+          {/* Right column: Vederlag + Frist stacked */}
+          {!expandedTrack && (
+            <div className="col-span-12 md:col-span-6 flex flex-col gap-2 sm:gap-4">
+              <div data-onboarding="vederlag-card">
+                <VederlagCard
+                  state={state}
+                  krevdBelop={krevdBelop}
+                  godkjentBelop={godkjentBelop}
+                  vederlagGrad={vederlagGrad ?? undefined}
+                  isSubsidiary={vederlagErSubsidiaer}
+                  isDimmed={grunnlagIkkeSendt}
+                  userRole={userRole}
+                  actions={actions}
+                  entries={vederlagEntries}
+                  primaryAction={vederlagPrimaryAction}
+                  secondaryActions={vederlagSecondaryActions}
+                  className="animate-fade-in-up"
+                  style={{ animationDelay: '75ms' }}
+                />
+                {inlineVederlagRevision && inlineReviseOpen && (
+                  <InlineReviseVederlag
+                    sakId={inlineVederlagRevision.sakId}
+                    lastVederlagEvent={inlineVederlagRevision.lastVederlagEvent}
+                    currentVersion={inlineVederlagRevision.currentVersion}
+                    onOpenFullModal={() => {
+                      setInlineReviseOpen(false);
+                      inlineVederlagRevision.onOpenFullModal();
+                    }}
+                    onClose={() => setInlineReviseOpen(false)}
+                    onSuccess={() => setInlineReviseOpen(false)}
+                  />
+                )}
+              </div>
+              <div data-onboarding="frist-card">
+                <FristCard
+                  state={state}
+                  godkjentDager={godkjentDager ?? undefined}
+                  fristGrad={fristGrad ?? undefined}
+                  isSubsidiary={fristErSubsidiaer}
+                  isDimmed={grunnlagIkkeSendt}
+                  userRole={userRole}
+                  actions={actions}
+                  entries={fristEntries}
+                  primaryAction={fristPrimaryAction}
+                  secondaryActions={fristSecondaryActions}
+                  className="animate-fade-in-up"
+                  style={{ animationDelay: '150ms' }}
+                />
+                {inlineFristRevision && inlineFristReviseOpen && (
+                  <InlineReviseFrist
+                    sakId={inlineFristRevision.sakId}
+                    lastFristEvent={inlineFristRevision.lastFristEvent}
+                    originalVarselType={inlineFristRevision.originalVarselType}
+                    onOpenFullModal={() => {
+                      setInlineFristReviseOpen(false);
+                      inlineFristRevision.onOpenFullModal();
+                    }}
+                    onClose={() => setInlineFristReviseOpen(false)}
+                    onSuccess={() => setInlineFristReviseOpen(false)}
+                  />
+                )}
+              </div>
             </div>
-          )}
-
-          {/* Activity card — in Row 1, hides when Grunnlag is expanded */}
-          {expandedTrack?.track !== 'grunnlag' && (
-            <CaseActivityCard events={timelineEvents} delay={50} />
           )}
 
           {/* Approval alerts (full width) */}
@@ -804,87 +865,43 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             );
           })()}
 
-          {/* ===== ROW 2: Claims row — Vederlag + Frist ===== */}
-
-          {/* Vederlag card (dependent) */}
-          {expandedTrack?.track !== 'vederlag' && (
-            <div
-              className={
-                expandedTrack?.track === 'frist'
-                  ? 'col-span-12'
-                  : 'col-span-12 md:col-span-6'
-              }
-              data-onboarding="vederlag-card"
-            >
-              <VederlagCard
-                state={state}
-                krevdBelop={krevdBelop}
-                godkjentBelop={godkjentBelop}
-                vederlagGrad={vederlagGrad ?? undefined}
-                isSubsidiary={vederlagErSubsidiaer}
-                isDimmed={grunnlagIkkeSendt}
-                userRole={userRole}
-                actions={actions}
-                entries={vederlagEntries}
-                primaryAction={vederlagPrimaryAction}
-                secondaryActions={vederlagSecondaryActions}
-                className="animate-fade-in-up"
-                style={{ animationDelay: '75ms' }}
-              />
-              {inlineVederlagRevision && inlineReviseOpen && (
-                <InlineReviseVederlag
-                  sakId={inlineVederlagRevision.sakId}
-                  lastVederlagEvent={inlineVederlagRevision.lastVederlagEvent}
-                  currentVersion={inlineVederlagRevision.currentVersion}
-                  onOpenFullModal={() => {
-                    setInlineReviseOpen(false);
-                    inlineVederlagRevision.onOpenFullModal();
-                  }}
-                  onClose={() => setInlineReviseOpen(false)}
-                  onSuccess={() => setInlineReviseOpen(false)}
-                />
+          {/* Vederlag + Frist full-width when a form is expanded */}
+          {expandedTrack && (
+            <>
+              {expandedTrack.track !== 'vederlag' && (
+                <div className="col-span-12 md:col-span-6" data-onboarding="vederlag-card">
+                  <VederlagCard
+                    state={state}
+                    krevdBelop={krevdBelop}
+                    godkjentBelop={godkjentBelop}
+                    vederlagGrad={vederlagGrad ?? undefined}
+                    isSubsidiary={vederlagErSubsidiaer}
+                    isDimmed={grunnlagIkkeSendt}
+                    userRole={userRole}
+                    actions={actions}
+                    entries={vederlagEntries}
+                    primaryAction={vederlagPrimaryAction}
+                    secondaryActions={vederlagSecondaryActions}
+                  />
+                </div>
               )}
-            </div>
-          )}
-
-          {/* Frist card (dependent) */}
-          {expandedTrack?.track !== 'frist' && (
-            <div
-              className={
-                expandedTrack?.track === 'vederlag'
-                  ? 'col-span-12'
-                  : 'col-span-12 md:col-span-6'
-              }
-              data-onboarding="frist-card"
-            >
-              <FristCard
-                state={state}
-                godkjentDager={godkjentDager ?? undefined}
-                fristGrad={fristGrad ?? undefined}
-                isSubsidiary={fristErSubsidiaer}
-                isDimmed={grunnlagIkkeSendt}
-                userRole={userRole}
-                actions={actions}
-                entries={fristEntries}
-                primaryAction={fristPrimaryAction}
-                secondaryActions={fristSecondaryActions}
-                className="animate-fade-in-up"
-                style={{ animationDelay: '150ms' }}
-              />
-              {inlineFristRevision && inlineFristReviseOpen && (
-                <InlineReviseFrist
-                  sakId={inlineFristRevision.sakId}
-                  lastFristEvent={inlineFristRevision.lastFristEvent}
-                  originalVarselType={inlineFristRevision.originalVarselType}
-                  onOpenFullModal={() => {
-                    setInlineFristReviseOpen(false);
-                    inlineFristRevision.onOpenFullModal();
-                  }}
-                  onClose={() => setInlineFristReviseOpen(false)}
-                  onSuccess={() => setInlineFristReviseOpen(false)}
-                />
+              {expandedTrack.track !== 'frist' && (
+                <div className="col-span-12 md:col-span-6" data-onboarding="frist-card">
+                  <FristCard
+                    state={state}
+                    godkjentDager={godkjentDager ?? undefined}
+                    fristGrad={fristGrad ?? undefined}
+                    isSubsidiary={fristErSubsidiaer}
+                    isDimmed={grunnlagIkkeSendt}
+                    userRole={userRole}
+                    actions={actions}
+                    entries={fristEntries}
+                    primaryAction={fristPrimaryAction}
+                    secondaryActions={fristSecondaryActions}
+                  />
+                </div>
               )}
-            </div>
+            </>
           )}
 
           {/* Cross-track activity strip */}

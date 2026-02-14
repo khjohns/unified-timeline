@@ -16,3 +16,4 @@ export { GrunnlagCard, VederlagCard, FristCard } from './track-cards';
 export { VerdictCards, type VerdictOption } from './VerdictCards';
 export { ClaimContextPanel } from './ClaimContextPanel';
 export { getConsequence } from './consequenceCallout';
+export { BentoRespondGrunnlag } from './BentoRespondGrunnlag';
