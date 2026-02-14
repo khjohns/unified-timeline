@@ -11,7 +11,7 @@
  * - All track cards rendered directly in page grid (no CaseDashboardBentoV2 wrapper)
  */
 
-import { ReactNode, useMemo, useCallback, useRef, useState, Suspense, useEffect } from 'react';
+import { useMemo, useCallback, useRef, useState, Suspense, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { forseringKeys, endringsordreKeys } from '../queries';
@@ -26,22 +26,14 @@ import { useUserRole } from '../hooks/useUserRole';
 import { useApprovalWorkflow } from '../hooks/useApprovalWorkflow';
 import { useSubmitEvent } from '../hooks/useSubmitEvent';
 import { useCasePageModals } from '../hooks/useCasePageModals';
-import {
-  BentoGrunnlagActionButtons,
-  BentoVederlagActionButtons,
-  BentoFristActionButtons,
-} from '../components/BentoTrackActionButtons';
-import { Alert, Button, BentoDashboardCard, Badge, AlertDialog, DropdownMenuItem, useToast } from '../components/primitives';
-import { CategoryLabel } from '../components/shared';
+import { Alert, Button, AlertDialog, DropdownMenuItem, useToast } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
-import { formatCurrency, formatCurrencyCompact, formatDateShort } from '../utils/formatters';
-import { getVederlagsmetodeShortLabel } from '../constants/paymentMethods';
-import { getSporStatusStyle } from '../constants/statusStyles';
+import { formatCurrency } from '../utils/formatters';
 import { downloadApprovedPdf } from '../pdf/generator';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
 import { MockToolbar } from '../components/MockToolbar';
-import { BentoBreadcrumb, CaseIdentityTile, CaseActivityCard, TrackFormView, TrackStepper, TrackNextStep, CrossTrackActivity } from '../components/bento';
+import { BentoBreadcrumb, CaseIdentityTile, CaseActivityCard, TrackFormView, CrossTrackActivity, GrunnlagCard, VederlagCard, FristCard } from '../components/bento';
 import {
   ApprovePakkeModal,
   SendResponsPakkeModal,
@@ -65,18 +57,16 @@ import {
   AcceptResponseForm,
 } from '../components/actions/forms';
 import {
-  SporHistory,
   transformGrunnlagHistorikk,
   transformVederlagHistorikk,
   transformFristHistorikk,
 } from '../components/views/SporHistory';
 import { findForseringerForSak, type FindForseringerResponse } from '../api/forsering';
 import { findEOerForSak, type FindEOerResponse } from '../api/endringsordre';
-import type { TimelineEvent, EventType, SporStatus } from '../types/timeline';
+import type { TimelineEvent, EventType } from '../types/timeline';
 import type { DraftResponseData } from '../types/approval';
 import {
   PaperPlaneIcon,
-  Pencil1Icon,
   QuestionMarkCircledIcon,
 } from '@radix-ui/react-icons';
 import { OnboardingGuide, useOnboarding, casePageSteps } from '../components/onboarding';
@@ -88,12 +78,7 @@ import {
 } from '../components/PageStateHelpers';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
-// ========== Helpers (extracted from CaseDashboardBentoV2) ==========
-
-function getStatusBadge(status: SporStatus): ReactNode {
-  const { variant, label } = getSporStatusStyle(status);
-  return <Badge variant={variant}>{label}</Badge>;
-}
+// ========== Helpers ==========
 
 function getKrevdBelop(state: { vederlag: { metode?: string; kostnads_overslag?: number; belop_direkte?: number; saerskilt_krav?: { rigg_drift?: { belop?: number }; produktivitet?: { belop?: number } } | null } }): number | undefined {
   const v = state.vederlag;
@@ -535,9 +520,6 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
   const vederlagEntries = useMemo(() => transformVederlagHistorikk(vederlagHistorikk), [vederlagHistorikk]);
   const fristEntries = useMemo(() => transformFristHistorikk(fristHistorikk), [fristHistorikk]);
 
-  const [grunnlagExpanded, setGrunnlagExpanded] = useState(false);
-  const [vederlagExpanded, setVederlagExpanded] = useState(false);
-  const [fristExpanded, setFristExpanded] = useState(false);
   const [inlineReviseOpen, setInlineReviseOpen] = useState(false);
   const [inlineFristReviseOpen, setInlineFristReviseOpen] = useState(false);
 
@@ -587,73 +569,88 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     };
   }, [sakId, state.frist, userRole, actions.canUpdateFrist, modals.reviseFrist]);
 
-  // Build inline revision actions for vederlag
-  const vederlagAction = useMemo(() => {
-    const buttons = (
-      <BentoVederlagActionButtons
-        userRole={userRole}
-        actions={actions}
-        isForceMajeure={state.grunnlag.hovedkategori === 'FORCE_MAJEURE'}
-        onSendVederlag={() => handleExpandTrack('vederlag', 'send')}
-        onWithdrawVederlag={() => handleExpandTrack('vederlag', 'withdraw')}
-        onRespondVederlag={() => modals.respondVederlag.setOpen(true)}
-        onUpdateVederlagResponse={() => modals.updateVederlagResponse.setOpen(true)}
-        onAcceptVederlagResponse={() => handleExpandTrack('vederlag', 'accept')}
-      />
-    );
-    if (!inlineVederlagRevision) return buttons;
-    return (
-      <>
-        {inlineVederlagRevision.canRevise && !inlineReviseOpen && (
-          <Button
-            variant={inlineVederlagRevision.showPrimaryVariant ? 'primary' : 'secondary'}
-            size="sm"
-            onClick={() => setInlineReviseOpen(true)}
-            className="!px-3 !py-1.5 !min-h-[28px] !text-xs"
-          >
-            <Pencil1Icon className="w-3.5 h-3.5 mr-1.5" />
-            Revider
-          </Button>
-        )}
-        {buttons}
-      </>
-    );
-  }, [inlineVederlagRevision, inlineReviseOpen, userRole, actions, state.grunnlag.hovedkategori, handleExpandTrack, modals.respondVederlag, modals.updateVederlagResponse]);
+  // ===== PRIMARY/SECONDARY ACTIONS FOR TRACK CARDS =====
 
-  // Build inline revision actions for frist
-  const fristAction = useMemo(() => {
-    const buttons = (
-      <BentoFristActionButtons
-        userRole={userRole}
-        actions={actions}
-        fristState={state.frist}
-        onSendFrist={() => handleExpandTrack('frist', 'send')}
-        onReviseFrist={() => modals.reviseFrist.setOpen(true)}
-        onWithdrawFrist={() => handleExpandTrack('frist', 'withdraw')}
-        onSendForsering={() => modals.sendForsering.setOpen(true)}
-        onRespondFrist={() => modals.respondFrist.setOpen(true)}
-        onUpdateFristResponse={() => modals.updateFristResponse.setOpen(true)}
-        onAcceptFristResponse={() => handleExpandTrack('frist', 'accept')}
-      />
-    );
-    if (!inlineFristRevision) return buttons;
-    return (
-      <>
-        {inlineFristRevision.canRevise && !inlineFristReviseOpen && (
-          <Button
-            variant={inlineFristRevision.showPrimaryVariant ? 'primary' : 'secondary'}
-            size="sm"
-            onClick={() => setInlineFristReviseOpen(true)}
-            className="!px-3 !py-1.5 !min-h-[28px] !text-xs"
-          >
-            <Pencil1Icon className="w-3.5 h-3.5 mr-1.5" />
-            Revider
-          </Button>
-        )}
-        {buttons}
-      </>
-    );
-  }, [inlineFristRevision, inlineFristReviseOpen, userRole, actions, state.frist, handleExpandTrack, modals.reviseFrist, modals.sendForsering, modals.respondFrist, modals.updateFristResponse]);
+  const grunnlagPrimaryAction = useMemo(() => {
+    const g = state.grunnlag;
+    const isUpdatePrimary = g.bh_resultat && g.bh_resultat !== 'godkjent' && g.antall_versjoner - 1 === g.bh_respondert_versjon;
+    if (userRole === 'TE') {
+      if (actions.canSendGrunnlag) return { label: 'Varsle krav', onClick: () => handleExpandTrack('grunnlag', 'send') };
+      if (actions.canUpdateGrunnlag && isUpdatePrimary) return { label: 'Oppdater krav', onClick: () => handleExpandTrack('grunnlag', 'update') };
+    }
+    if (userRole === 'BH') {
+      if (actions.canRespondToGrunnlag) return { label: 'Svar på krav', onClick: () => handleExpandTrack('grunnlag', 'respond') };
+      if (actions.canIssueEO) return { label: 'Utsted EO', onClick: () => modals.utstEO.setOpen(true) };
+    }
+    return undefined;
+  }, [userRole, actions, state.grunnlag, handleExpandTrack, modals.utstEO]);
+
+  const grunnlagSecondaryActions = useMemo(() => {
+    const items: { label: string; onClick: () => void; variant?: 'default' | 'danger' }[] = [];
+    const g = state.grunnlag;
+    const isUpdatePrimary = g.bh_resultat && g.bh_resultat !== 'godkjent' && g.antall_versjoner - 1 === g.bh_respondert_versjon;
+    if (userRole === 'TE') {
+      if (actions.canUpdateGrunnlag && !isUpdatePrimary) items.push({ label: 'Oppdater', onClick: () => handleExpandTrack('grunnlag', 'update') });
+      if (actions.canAcceptGrunnlagResponse) items.push({ label: 'Godta svaret', onClick: () => handleExpandTrack('grunnlag', 'accept') });
+      if (actions.canWithdrawGrunnlag) items.push({ label: 'Trekk tilbake', onClick: () => handleExpandTrack('grunnlag', 'withdraw'), variant: 'danger' });
+    }
+    if (userRole === 'BH') {
+      if (actions.canUpdateGrunnlagResponse) items.push({ label: 'Endre svar', onClick: () => handleExpandTrack('grunnlag', 'updateResponse') });
+    }
+    return items;
+  }, [userRole, actions, state.grunnlag, handleExpandTrack]);
+
+  const vederlagPrimaryAction = useMemo(() => {
+    if (state.grunnlag.hovedkategori === 'FORCE_MAJEURE') return undefined;
+    if (userRole === 'TE') {
+      if (actions.canSendVederlag) return { label: 'Send krav', onClick: () => handleExpandTrack('vederlag', 'send') };
+      if (inlineVederlagRevision?.canRevise && inlineVederlagRevision.showPrimaryVariant) return { label: 'Revider', onClick: () => setInlineReviseOpen(true) };
+    }
+    if (userRole === 'BH') {
+      if (actions.canRespondToVederlag) return { label: 'Svar på krav', onClick: () => modals.respondVederlag.setOpen(true) };
+    }
+    return undefined;
+  }, [userRole, actions, state.grunnlag.hovedkategori, inlineVederlagRevision, handleExpandTrack, modals.respondVederlag]);
+
+  const vederlagSecondaryActions = useMemo(() => {
+    if (state.grunnlag.hovedkategori === 'FORCE_MAJEURE') return [];
+    const items: { label: string; onClick: () => void; variant?: 'default' | 'danger' }[] = [];
+    if (userRole === 'TE') {
+      if (inlineVederlagRevision?.canRevise && !inlineVederlagRevision.showPrimaryVariant) items.push({ label: 'Revider', onClick: () => setInlineReviseOpen(true) });
+      if (actions.canAcceptVederlagResponse) items.push({ label: 'Godta svaret', onClick: () => handleExpandTrack('vederlag', 'accept') });
+      if (actions.canWithdrawVederlag) items.push({ label: 'Trekk tilbake', onClick: () => handleExpandTrack('vederlag', 'withdraw'), variant: 'danger' });
+    }
+    if (userRole === 'BH') {
+      if (actions.canUpdateVederlagResponse) items.push({ label: 'Endre svar', onClick: () => modals.updateVederlagResponse.setOpen(true) });
+    }
+    return items;
+  }, [userRole, actions, state.grunnlag.hovedkategori, inlineVederlagRevision, handleExpandTrack, modals.updateVederlagResponse]);
+
+  const fristPrimaryAction = useMemo(() => {
+    if (userRole === 'TE') {
+      if (actions.canSendFrist) return { label: 'Send krav', onClick: () => handleExpandTrack('frist', 'send') };
+      if (actions.canUpdateFrist && state.frist.har_bh_foresporsel) return { label: 'Svar forespørsel', onClick: () => modals.reviseFrist.setOpen(true) };
+      if (inlineFristRevision?.canRevise && inlineFristRevision.showPrimaryVariant) return { label: 'Revider', onClick: () => setInlineFristReviseOpen(true) };
+    }
+    if (userRole === 'BH') {
+      if (actions.canRespondToFrist) return { label: 'Svar på krav', onClick: () => modals.respondFrist.setOpen(true) };
+    }
+    return undefined;
+  }, [userRole, actions, state.frist.har_bh_foresporsel, inlineFristRevision, handleExpandTrack, modals.reviseFrist, modals.respondFrist]);
+
+  const fristSecondaryActions = useMemo(() => {
+    const items: { label: string; onClick: () => void; variant?: 'default' | 'danger' }[] = [];
+    if (userRole === 'TE') {
+      if (inlineFristRevision?.canRevise && !inlineFristRevision.showPrimaryVariant) items.push({ label: 'Revider', onClick: () => setInlineFristReviseOpen(true) });
+      if (actions.canSendForsering) items.push({ label: 'Forsering (§33.8)', onClick: () => modals.sendForsering.setOpen(true) });
+      if (actions.canAcceptFristResponse) items.push({ label: 'Godta svaret', onClick: () => handleExpandTrack('frist', 'accept') });
+      if (actions.canWithdrawFrist) items.push({ label: 'Trekk tilbake', onClick: () => handleExpandTrack('frist', 'withdraw'), variant: 'danger' });
+    }
+    if (userRole === 'BH') {
+      if (actions.canUpdateFristResponse) items.push({ label: 'Endre svar', onClick: () => modals.updateFristResponse.setOpen(true) });
+    }
+    return items;
+  }, [userRole, actions, inlineFristRevision, handleExpandTrack, modals.sendForsering, modals.updateFristResponse]);
 
   // ===== BENTO LAYOUT =====
   return (
@@ -731,89 +728,15 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
               }
               data-onboarding="grunnlag-card"
             >
-              <BentoDashboardCard
-                title="Ansvarsgrunnlag"
-                hjemmel="§25.2"
-                role="master"
-                headerBadge={
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {getStatusBadge(state.grunnlag.status)}
-                    {state.grunnlag.grunnlag_varslet_i_tide === false && state.grunnlag.status !== 'trukket' && (
-                      <Badge variant="warning" size="sm">{'§32.2'}</Badge>
-                    )}
-                  </div>
-                }
-                action={
-                  <BentoGrunnlagActionButtons
-                    userRole={userRole}
-                    actions={actions}
-                    grunnlagState={state.grunnlag}
-                    onSendGrunnlag={() => handleExpandTrack('grunnlag', 'send')}
-                    onUpdateGrunnlag={() => handleExpandTrack('grunnlag', 'update')}
-                    onWithdrawGrunnlag={() => handleExpandTrack('grunnlag', 'withdraw')}
-                    onRespondGrunnlag={() => handleExpandTrack('grunnlag', 'respond')}
-                    onUpdateGrunnlagResponse={() => handleExpandTrack('grunnlag', 'updateResponse')}
-                    onAcceptGrunnlagResponse={() => handleExpandTrack('grunnlag', 'accept')}
-                    onUtstEO={() => modals.utstEO.setOpen(true)}
-                  />
-                }
+              <GrunnlagCard
+                state={state}
+                userRole={userRole}
+                actions={actions}
+                entries={grunnlagEntries}
+                primaryAction={grunnlagPrimaryAction}
+                secondaryActions={grunnlagSecondaryActions}
                 className="animate-fade-in-up"
-                collapsible
-                historyCount={grunnlagEntries.length}
-                isExpanded={grunnlagExpanded}
-                onExpandedChange={setGrunnlagExpanded}
-              >
-                <TrackStepper
-                  spor="grunnlag"
-                  status={state.grunnlag.status}
-                  hasBhResponse={!!state.grunnlag.bh_resultat}
-                  teAccepted={state.grunnlag.te_akseptert}
-                  className="mb-2"
-                />
-
-                {/* Category — the legal identity of this case */}
-                {state.grunnlag.hovedkategori && (
-                  <CategoryLabel
-                    hovedkategori={state.grunnlag.hovedkategori}
-                    underkategori={Array.isArray(state.grunnlag.underkategori) ? state.grunnlag.underkategori[0] : state.grunnlag.underkategori}
-                  />
-                )}
-
-                {/* Dates — ProgressTile label-value pattern */}
-                {(state.grunnlag.dato_oppdaget || state.grunnlag.grunnlag_varsel?.dato_sendt) && (
-                  <div className="mt-2 pt-2 border-t border-pkt-border-subtle space-y-1.5">
-                    {state.grunnlag.dato_oppdaget && (
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-[11px] text-pkt-text-body-subtle">Oppdaget</span>
-                        <span className="text-xs font-mono text-pkt-text-body-default">
-                          {formatDateShort(state.grunnlag.dato_oppdaget)}
-                        </span>
-                      </div>
-                    )}
-                    {state.grunnlag.grunnlag_varsel?.dato_sendt && (
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-[11px] text-pkt-text-body-subtle">Varslet</span>
-                        <span className={`text-xs font-mono ${
-                          state.grunnlag.grunnlag_varslet_i_tide === false
-                            ? 'font-semibold text-pkt-brand-red-1000'
-                            : 'text-pkt-text-body-default'
-                        }`}>
-                          {formatDateShort(state.grunnlag.grunnlag_varsel.dato_sendt)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <TrackNextStep
-                  spor="grunnlag"
-                  state={state}
-                  userRole={userRole}
-                  actions={actions}
-                />
-
-                <SporHistory spor="grunnlag" entries={grunnlagEntries} events={timelineEvents} sakState={state} externalOpen={grunnlagExpanded} />
-              </BentoDashboardCard>
+              />
             </div>
           )}
 
@@ -893,126 +816,34 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
               }
               data-onboarding="vederlag-card"
             >
-              <BentoDashboardCard
-                title="Vederlag"
-                hjemmel="§34"
-                role="dependent"
+              <VederlagCard
+                state={state}
+                krevdBelop={krevdBelop}
+                godkjentBelop={godkjentBelop}
+                vederlagGrad={vederlagGrad ?? undefined}
                 isSubsidiary={vederlagErSubsidiaer}
                 isDimmed={grunnlagIkkeSendt}
-                headerBadge={getStatusBadge(state.vederlag.status)}
-                action={vederlagAction}
+                userRole={userRole}
+                actions={actions}
+                entries={vederlagEntries}
+                primaryAction={vederlagPrimaryAction}
+                secondaryActions={vederlagSecondaryActions}
                 className="animate-fade-in-up"
                 style={{ animationDelay: '75ms' }}
-                collapsible
-                historyCount={vederlagEntries.length}
-                isExpanded={vederlagExpanded}
-                onExpandedChange={setVederlagExpanded}
-              >
-                <TrackStepper
-                  spor="vederlag"
-                  status={state.vederlag.status}
-                  hasBhResponse={!!state.vederlag.bh_resultat}
-                  teAccepted={state.vederlag.te_akseptert}
-                  className="mb-2"
+              />
+              {inlineVederlagRevision && inlineReviseOpen && (
+                <InlineReviseVederlag
+                  sakId={inlineVederlagRevision.sakId}
+                  lastVederlagEvent={inlineVederlagRevision.lastVederlagEvent}
+                  currentVersion={inlineVederlagRevision.currentVersion}
+                  onOpenFullModal={() => {
+                    setInlineReviseOpen(false);
+                    inlineVederlagRevision.onOpenFullModal();
+                  }}
+                  onClose={() => setInlineReviseOpen(false)}
+                  onSuccess={() => setInlineReviseOpen(false)}
                 />
-
-                {/* KPI row — EconomicsChartTile pattern */}
-                {krevdBelop != null && (
-                  <div>
-                    <div className="flex items-baseline gap-4">
-                      <div>
-                        <span className="text-[10px] text-pkt-text-body-subtle uppercase">Krevd</span>
-                        <p className="text-sm font-semibold font-mono tabular-nums text-pkt-text-body-dark">
-                          {formatCurrencyCompact(krevdBelop)}
-                        </p>
-                      </div>
-                      {godkjentBelop != null && (
-                        <div>
-                          <span className="text-[10px] text-pkt-text-body-subtle uppercase">
-                            {vederlagErSubsidiaer ? 'Subs.' : 'Godkjent'}
-                          </span>
-                          <p className="text-sm font-semibold font-mono tabular-nums text-pkt-brand-dark-green-1000">
-                            {formatCurrencyCompact(godkjentBelop)}
-                          </p>
-                        </div>
-                      )}
-                      {vederlagGrad != null && (
-                        <div className="ml-auto text-right">
-                          <span className="text-[10px] text-pkt-text-body-subtle uppercase">Grad</span>
-                          <p className={`text-sm font-bold font-mono tabular-nums ${
-                            vederlagGrad >= 70 ? 'text-pkt-brand-dark-green-1000' :
-                            vederlagGrad >= 40 ? 'text-pkt-brand-yellow-1000' :
-                            'text-pkt-brand-red-1000'
-                          }`}>
-                            {vederlagGrad}%
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    {vederlagGrad != null && (
-                      <div className="mt-1.5 h-1.5 bg-pkt-grays-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-pkt-brand-dark-green-1000 rounded-full transition-all duration-700"
-                          style={{ width: `${Math.min(vederlagGrad, 100)}%` }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Details below separator */}
-                {(state.vederlag.metode || state.vederlag.saerskilt_krav?.rigg_drift?.belop || state.vederlag.saerskilt_krav?.produktivitet?.belop) && (
-                  <div className="mt-2 pt-2 border-t border-pkt-border-subtle space-y-1.5">
-                    {state.vederlag.metode && (
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-[11px] text-pkt-text-body-subtle">Metode</span>
-                        <span className="text-xs text-pkt-text-body-default">
-                          {getVederlagsmetodeShortLabel(state.vederlag.metode)}
-                        </span>
-                      </div>
-                    )}
-                    {state.vederlag.saerskilt_krav?.rigg_drift?.belop != null && state.vederlag.saerskilt_krav.rigg_drift.belop > 0 && (
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-[11px] text-pkt-text-body-subtle">Rigg/drift</span>
-                        <span className="text-xs font-mono text-pkt-text-body-default">
-                          +{formatCurrencyCompact(state.vederlag.saerskilt_krav.rigg_drift.belop)}
-                        </span>
-                      </div>
-                    )}
-                    {state.vederlag.saerskilt_krav?.produktivitet?.belop != null && state.vederlag.saerskilt_krav.produktivitet.belop > 0 && (
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-[11px] text-pkt-text-body-subtle">Produktivitet</span>
-                        <span className="text-xs font-mono text-pkt-text-body-default">
-                          +{formatCurrencyCompact(state.vederlag.saerskilt_krav.produktivitet.belop)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <TrackNextStep
-                  spor="vederlag"
-                  state={state}
-                  userRole={userRole}
-                  actions={actions}
-                />
-
-                {inlineVederlagRevision && inlineReviseOpen && (
-                  <InlineReviseVederlag
-                    sakId={inlineVederlagRevision.sakId}
-                    lastVederlagEvent={inlineVederlagRevision.lastVederlagEvent}
-                    currentVersion={inlineVederlagRevision.currentVersion}
-                    onOpenFullModal={() => {
-                      setInlineReviseOpen(false);
-                      inlineVederlagRevision.onOpenFullModal();
-                    }}
-                    onClose={() => setInlineReviseOpen(false)}
-                    onSuccess={() => setInlineReviseOpen(false)}
-                  />
-                )}
-
-                <SporHistory spor="vederlag" entries={vederlagEntries} events={timelineEvents} sakState={state} externalOpen={vederlagExpanded} />
-              </BentoDashboardCard>
+              )}
             </div>
           )}
 
@@ -1026,128 +857,33 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
               }
               data-onboarding="frist-card"
             >
-              <BentoDashboardCard
-                title="Fristforlengelse"
-                hjemmel="§33"
-                role="dependent"
+              <FristCard
+                state={state}
+                godkjentDager={godkjentDager ?? undefined}
+                fristGrad={fristGrad ?? undefined}
                 isSubsidiary={fristErSubsidiaer}
                 isDimmed={grunnlagIkkeSendt}
-                headerBadge={getStatusBadge(state.frist.status)}
-                action={fristAction}
+                userRole={userRole}
+                actions={actions}
+                entries={fristEntries}
+                primaryAction={fristPrimaryAction}
+                secondaryActions={fristSecondaryActions}
                 className="animate-fade-in-up"
                 style={{ animationDelay: '150ms' }}
-                collapsible
-                historyCount={fristEntries.length}
-                isExpanded={fristExpanded}
-                onExpandedChange={setFristExpanded}
-              >
-                <TrackStepper
-                  spor="frist"
-                  status={state.frist.status}
-                  hasBhResponse={!!state.frist.bh_resultat}
-                  teAccepted={state.frist.te_akseptert}
-                  className="mb-2"
+              />
+              {inlineFristRevision && inlineFristReviseOpen && (
+                <InlineReviseFrist
+                  sakId={inlineFristRevision.sakId}
+                  lastFristEvent={inlineFristRevision.lastFristEvent}
+                  originalVarselType={inlineFristRevision.originalVarselType}
+                  onOpenFullModal={() => {
+                    setInlineFristReviseOpen(false);
+                    inlineFristRevision.onOpenFullModal();
+                  }}
+                  onClose={() => setInlineFristReviseOpen(false)}
+                  onSuccess={() => setInlineFristReviseOpen(false)}
                 />
-
-                {/* KPI row — mirrors Vederlag pattern */}
-                {state.frist.krevd_dager != null && (
-                  <div>
-                    <div className="flex items-baseline gap-4">
-                      <div>
-                        <span className="text-[10px] text-pkt-text-body-subtle uppercase">Krevd</span>
-                        <p className="text-sm font-semibold font-mono tabular-nums text-pkt-text-body-dark">
-                          {state.frist.krevd_dager}d
-                        </p>
-                      </div>
-                      {godkjentDager != null && (
-                        <div>
-                          <span className="text-[10px] text-pkt-text-body-subtle uppercase">
-                            {fristErSubsidiaer ? 'Subs.' : 'Godkjent'}
-                          </span>
-                          <p className="text-sm font-semibold font-mono tabular-nums text-pkt-brand-dark-green-1000">
-                            {godkjentDager}d
-                          </p>
-                        </div>
-                      )}
-                      {fristGrad != null && (
-                        <div className="ml-auto text-right">
-                          <span className="text-[10px] text-pkt-text-body-subtle uppercase">Grad</span>
-                          <p className={`text-sm font-bold font-mono tabular-nums ${
-                            fristGrad >= 70 ? 'text-pkt-brand-dark-green-1000' :
-                            fristGrad >= 40 ? 'text-pkt-brand-yellow-1000' :
-                            'text-pkt-brand-red-1000'
-                          }`}>
-                            {fristGrad}%
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    {fristGrad != null && (
-                      <div className="mt-1.5 h-1.5 bg-pkt-grays-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-pkt-brand-dark-green-1000 rounded-full transition-all duration-700"
-                          style={{ width: `${Math.min(fristGrad, 100)}%` }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Details below separator */}
-                {(state.frist.varsel_type || state.frist.frist_varsel?.dato_sendt || state.frist.spesifisert_varsel?.dato_sendt) && (
-                  <div className="mt-2 pt-2 border-t border-pkt-border-subtle space-y-1.5">
-                    {state.frist.varsel_type && (
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-[11px] text-pkt-text-body-subtle">Type</span>
-                        <span className="text-xs text-pkt-text-body-default">
-                          {state.frist.varsel_type === 'varsel' ? 'Varsel' :
-                           state.frist.varsel_type === 'spesifisert' ? 'Spesifisert krav' :
-                           'Begrunnelse utsatt'}
-                        </span>
-                      </div>
-                    )}
-                    {state.frist.frist_varsel?.dato_sendt && (
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-[11px] text-pkt-text-body-subtle">Varslet</span>
-                        <span className="text-xs font-mono text-pkt-text-body-default">
-                          {formatDateShort(state.frist.frist_varsel.dato_sendt)}
-                        </span>
-                      </div>
-                    )}
-                    {state.frist.spesifisert_varsel?.dato_sendt && (
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-[11px] text-pkt-text-body-subtle">Spesifisert</span>
-                        <span className="text-xs font-mono text-pkt-text-body-default">
-                          {formatDateShort(state.frist.spesifisert_varsel.dato_sendt)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <TrackNextStep
-                  spor="frist"
-                  state={state}
-                  userRole={userRole}
-                  actions={actions}
-                />
-
-                {inlineFristRevision && inlineFristReviseOpen && (
-                  <InlineReviseFrist
-                    sakId={inlineFristRevision.sakId}
-                    lastFristEvent={inlineFristRevision.lastFristEvent}
-                    originalVarselType={inlineFristRevision.originalVarselType}
-                    onOpenFullModal={() => {
-                      setInlineFristReviseOpen(false);
-                      inlineFristRevision.onOpenFullModal();
-                    }}
-                    onClose={() => setInlineFristReviseOpen(false)}
-                    onSuccess={() => setInlineFristReviseOpen(false)}
-                  />
-                )}
-
-                <SporHistory spor="frist" entries={fristEntries} events={timelineEvents} sakState={state} externalOpen={fristExpanded} />
-              </BentoDashboardCard>
+              )}
             </div>
           )}
 
