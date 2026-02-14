@@ -184,6 +184,7 @@ from paragraf.web import (
 )
 
 from routes.analytics_routes import analytics_bp
+from routes.bim_link_routes import bim_bp
 from routes.catenda_webhook_routes import webhook_bp  # Catenda-specific webhooks
 from routes.cloudevents_routes import cloudevents_bp
 from routes.endringsordre_routes import endringsordre_bp
@@ -218,6 +219,7 @@ app.register_blueprint(oauth_auto_consent_bp)
 app.register_blueprint(wellknown_bp)
 app.register_blueprint(projects_bp)
 app.register_blueprint(membership_bp)
+app.register_blueprint(bim_bp)
 
 # Register error handlers
 register_error_handlers(app)
