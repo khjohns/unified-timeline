@@ -733,13 +733,13 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             >
               <BentoDashboardCard
                 title="Ansvarsgrunnlag"
-                hjemmel="\u00a725.2"
+                hjemmel="§25.2"
                 role="master"
                 headerBadge={
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {getStatusBadge(state.grunnlag.status)}
                     {state.grunnlag.grunnlag_varslet_i_tide === false && state.grunnlag.status !== 'trukket' && (
-                      <Badge variant="warning" size="sm">{'\u00a732.2'}</Badge>
+                      <Badge variant="warning" size="sm">{'§32.2'}</Badge>
                     )}
                   </div>
                 }
@@ -895,7 +895,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             >
               <BentoDashboardCard
                 title="Vederlag"
-                hjemmel="\u00a734"
+                hjemmel="§34"
                 role="dependent"
                 isSubsidiary={vederlagErSubsidiaer}
                 isDimmed={grunnlagIkkeSendt}
@@ -1028,7 +1028,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             >
               <BentoDashboardCard
                 title="Fristforlengelse"
-                hjemmel="\u00a733"
+                hjemmel="§33"
                 role="dependent"
                 isSubsidiary={fristErSubsidiaer}
                 isDimmed={grunnlagIkkeSendt}
