@@ -860,8 +860,18 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
           {expandedTrack && sakId && (() => {
             const meta = getTrackFormMeta(expandedTrack);
             const isGrunnlagInline = expandedTrack.track === 'grunnlag';
+
+            // Grunnlag: render directly without TrackFormView header (MasterCard provides context)
+            if (isGrunnlagInline) {
+              return (
+                <div className="col-span-12 md:col-span-7">
+                  {renderExpandedForm()}
+                </div>
+              );
+            }
+
             return (
-              <div className={isGrunnlagInline ? 'col-span-12 md:col-span-7' : 'col-span-12'}>
+              <div className="col-span-12">
                 <TrackFormView
                   trackName={meta.trackName}
                   actionTitle={meta.actionTitle}
