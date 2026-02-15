@@ -8,6 +8,7 @@
 
 import { clsx } from 'clsx';
 import { CheckIcon, Cross2Icon, ExclamationTriangleIcon } from '@radix-ui/react-icons';
+import { InlineYesNo } from './InlineYesNo';
 import { Badge } from '../primitives';
 import { getOverordnetStatusStyle, getSakstypeStyle } from '../../constants/statusStyles';
 import {
@@ -229,39 +230,11 @@ export function CaseMasterCard({
             <div className={clsx(hasDates && 'mt-2 pt-2 border-t border-pkt-border-subtle', 'space-y-3')}>
               {/* Varslet i tide toggle */}
               {showVarsletToggle && onFormVarsletITideChange && (
-                <div className="flex justify-between items-center">
-                  <span className="text-[11px] text-pkt-text-body-subtle">Varslet i tide?</span>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => onFormVarsletITideChange(true)}
-                      className={clsx(
-                        'flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-medium transition-all cursor-pointer',
-                        formVarsletITide === true
-                          ? 'border-pkt-brand-dark-green-1000 bg-pkt-brand-dark-green-1000/5 text-pkt-brand-dark-green-1000'
-                          : 'border-pkt-border-default bg-pkt-bg-subtle text-pkt-text-body-default',
-                        formVarsletITide !== undefined && formVarsletITide !== true && 'opacity-50',
-                      )}
-                    >
-                      <CheckIcon className="w-3 h-3" />
-                      Ja
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onFormVarsletITideChange(false)}
-                      className={clsx(
-                        'flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-medium transition-all cursor-pointer',
-                        formVarsletITide === false
-                          ? 'border-pkt-brand-red-1000 bg-pkt-brand-red-1000/5 text-pkt-brand-red-1000'
-                          : 'border-pkt-border-default bg-pkt-bg-subtle text-pkt-text-body-default',
-                        formVarsletITide !== undefined && formVarsletITide !== false && 'opacity-50',
-                      )}
-                    >
-                      <Cross2Icon className="w-3 h-3" />
-                      Nei
-                    </button>
-                  </div>
-                </div>
+                <InlineYesNo
+                  label="Varslet i tide?"
+                  value={formVarsletITide}
+                  onChange={onFormVarsletITideChange}
+                />
               )}
 
               {/* Verdict cards */}
