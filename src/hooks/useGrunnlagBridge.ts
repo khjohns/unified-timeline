@@ -1,7 +1,11 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { differenceInDays } from 'date-fns';
 import type { GrunnlagResponsResultat, SakState } from '../types/timeline';
 import { getConsequence } from '../components/bento/consequenceCallout';
+import { useSubmitEvent } from './useSubmitEvent';
+import { useFormBackup } from './useFormBackup';
+import { useCatendaStatusHandler } from './useCatendaStatusHandler';
+import { useToast } from '../components/primitives';
 
 // ============================================================================
 // TYPES
@@ -9,6 +13,8 @@ import { getConsequence } from '../components/bento/consequenceCallout';
 
 export interface UseGrunnlagBridgeConfig {
   isOpen: boolean;
+  sakId: string;
+  grunnlagEventId: string;
   grunnlagEvent?: {
     hovedkategori?: string;
     underkategori?: string;
@@ -21,6 +27,16 @@ export interface UseGrunnlagBridgeConfig {
     resultat: GrunnlagResponsResultat;
   };
   sakState?: SakState;
+  // Callbacks
+  onSuccess: () => void;
+  onCatendaWarning?: () => void;
+  // Approval
+  approvalEnabled?: boolean;
+  onSaveDraft?: (draftData: {
+    resultat: string;
+    begrunnelse: string;
+    formData: Record<string, unknown>;
+  }) => void;
 }
 
 export interface GrunnlagEditState {
@@ -40,6 +56,37 @@ export interface GrunnlagEditState {
   // Computed display
   erPrekludert: boolean;
   consequence: { variant: 'success' | 'warning' | 'danger' | 'info'; text: string; snuoperasjonText?: string } | null;
+
+  // Card actions
+  onClose: () => void;
+  onSubmit: () => void;
+  onSaveDraft?: () => void;
+  isSubmitting: boolean;
+  canSubmit: boolean;
+  submitError: string | null;
+  submitLabel: string;
+  submitVariant: 'primary' | 'danger';
+  showTokenExpired: boolean;
+  onTokenExpiredClose: () => void;
+
+  // Context alerts
+  erPassiv: boolean;
+  dagerSidenVarsel: number;
+  isUpdateMode: boolean;
+  erSnuoperasjon: boolean;
+  snuoperasjon?: {
+    erSubsidiaertVederlag: boolean;
+    erSubsidiaertFrist: boolean;
+    visningsstatusVederlag?: string;
+    visningsstatusFrist?: string;
+  };
+
+  // Update mode context
+  updateContext?: {
+    forrigeResultat: GrunnlagResponsResultat;
+    forrigeBegrunnelse?: string;
+    harSubsidiaereSvar: boolean;
+  };
 }
 
 export interface VerdictOption {
@@ -50,24 +97,19 @@ export interface VerdictOption {
   colorScheme: 'green' | 'red' | 'gray';
 }
 
-export interface GrunnlagBridgeComputed {
-  erEndringMed32_2: boolean;
-  erPrekludert: boolean;
-  erPassiv: boolean;
-  dagerSidenVarsel: number;
-  erSnuoperasjon: boolean;
-  prinsipaltResultat: string | undefined;
-  consequence: { variant: 'success' | 'warning' | 'danger' | 'info'; text: string; snuoperasjonText?: string } | null;
-  dynamicPlaceholder: string;
+export interface GrunnlagEditorProps {
+  begrunnelse: string;
+  onBegrunnelseChange: (value: string) => void;
+  begrunnelseError?: string;
+  placeholder: string;
   autoBegrunnelse: string;
-  isUpdateMode: boolean;
+  onRegenerate: () => void;
+  showRegenerate: boolean;
 }
 
 export interface GrunnlagBridgeReturn {
   cardProps: GrunnlagEditState;
-  computed: GrunnlagBridgeComputed;
-  buildEventData: (params: { grunnlagEventId: string; begrunnelse: string }) => Record<string, unknown>;
-  validate: () => boolean;
+  editorProps: GrunnlagEditorProps;
 }
 
 // ============================================================================
@@ -75,16 +117,34 @@ export interface GrunnlagBridgeReturn {
 // ============================================================================
 
 export function useGrunnlagBridge(config: UseGrunnlagBridgeConfig): GrunnlagBridgeReturn {
-  const { isOpen, grunnlagEvent, lastResponseEvent, sakState } = config;
+  const {
+    isOpen,
+    sakId,
+    grunnlagEventId,
+    grunnlagEvent,
+    lastResponseEvent,
+    sakState,
+    onSuccess,
+    onCatendaWarning,
+    approvalEnabled = false,
+    onSaveDraft,
+  } = config;
 
   const isUpdateMode = !!lastResponseEvent;
+  const toast = useToast();
+  const { handleCatendaStatus } = useCatendaStatusHandler({ onWarning: onCatendaWarning });
 
-  // ========== STATE (consolidated per L1) ==========
+  // ========== TOKEN EXPIRED ==========
+  const [showTokenExpired, setShowTokenExpired] = useState(false);
+
+  // ========== STATE (consolidated per L1 — now includes begrunnelse) ==========
 
   interface FormState {
     varsletITide: boolean;
     resultat: string | undefined;
     resultatError: boolean;
+    begrunnelse: string;
+    begrunnelseValidationError: string | undefined;
   }
 
   const getDefaults = useCallback((): FormState => {
@@ -93,35 +153,111 @@ export function useGrunnlagBridge(config: UseGrunnlagBridgeConfig): GrunnlagBrid
         varsletITide: true,
         resultat: lastResponseEvent.resultat,
         resultatError: false,
+        begrunnelse: '',
+        begrunnelseValidationError: undefined,
       };
     }
     return {
       varsletITide: true,
       resultat: undefined,
       resultatError: false,
+      begrunnelse: '',
+      begrunnelseValidationError: undefined,
     };
   }, [isUpdateMode, lastResponseEvent]);
 
   const [formState, setFormState] = useState<FormState>(getDefaults);
 
-  // Reset when isOpen transitions to true (state-during-render pattern per L2)
+  // ========== BEGRUNNELSE TRACKING (L5 — declared early for reset block) ==========
+  const userHasEditedBegrunnelseRef = useRef(false);
+
+  // ========== FORM BACKUP ==========
+  const eventType = isUpdateMode ? 'respons_grunnlag_oppdatert' : 'respons_grunnlag';
+  const backupData = useMemo(
+    () => ({ begrunnelse: formState.begrunnelse }),
+    [formState.begrunnelse]
+  );
+  const begrunnelseIsDirty = formState.begrunnelse.length > 0;
+  const { clearBackup, getBackup } = useFormBackup(
+    sakId, eventType, backupData, begrunnelseIsDirty
+  );
+
+  // ========== RESET (state-during-render per L2) ==========
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  const restoredBackupRef = useRef(false);
+
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);
     if (isOpen) {
-      setFormState(getDefaults());
+      const defaults = getDefaults();
+      const backup = getBackup();
+      if (backup?.begrunnelse) {
+        setFormState({ ...defaults, begrunnelse: backup.begrunnelse });
+        restoredBackupRef.current = true;
+      } else {
+        setFormState(defaults);
+      }
+      setShowTokenExpired(false);
+      userHasEditedBegrunnelseRef.current = !!backup?.begrunnelse;
     }
   }
 
-  const { varsletITide, resultat, resultatError } = formState;
+  // Show toast after backup restore (can't toast during render)
+  useEffect(() => {
+    if (restoredBackupRef.current) {
+      restoredBackupRef.current = false;
+      toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
+    }
+  }, [isOpen, toast]);
 
-  // Individual setters for card controls
+  const { varsletITide, resultat, resultatError, begrunnelse, begrunnelseValidationError } = formState;
+
+  // ========== SUBMIT MUTATION ==========
+  const pendingToastId = useRef<string | null>(null);
+
+  const mutation = useSubmitEvent(sakId, {
+    onSuccess: (result) => {
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
+      clearBackup();
+      onSuccess();
+      toast.success(
+        isUpdateMode ? 'Svar oppdatert' : 'Svar sendt',
+        isUpdateMode
+          ? 'Din endring av svaret på ansvarsgrunnlaget er registrert.'
+          : 'Ditt svar på ansvarsgrunnlaget er registrert.'
+      );
+      handleCatendaStatus(result);
+    },
+    onError: (error) => {
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
+      if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
+        setShowTokenExpired(true);
+      }
+    },
+  });
+
+  // ========== INDIVIDUAL SETTERS ==========
   const handleVarsletITideChange = useCallback((v: boolean) => {
     setFormState(prev => ({ ...prev, varsletITide: v }));
   }, []);
 
   const handleResultatChange = useCallback((v: string) => {
     setFormState(prev => ({ ...prev, resultat: v, resultatError: false }));
+  }, []);
+
+  const handleBegrunnelseChange = useCallback((value: string) => {
+    userHasEditedBegrunnelseRef.current = true;
+    setFormState(prev => ({
+      ...prev,
+      begrunnelse: value,
+      begrunnelseValidationError: undefined,
+    }));
   }, []);
 
   // ========== DERIVED VALUES ==========
@@ -153,7 +289,7 @@ export function useGrunnlagBridge(config: UseGrunnlagBridgeConfig): GrunnlagBrid
   // Snuoperasjon detection (update mode)
   const forrigeResultat = lastResponseEvent?.resultat;
   const varAvvist = forrigeResultat === 'avslatt';
-  const harSubsidiaereSvar = sakState?.er_subsidiaert_vederlag || sakState?.er_subsidiaert_frist;
+  const harSubsidiaereSvar = !!(sakState?.er_subsidiaert_vederlag || sakState?.er_subsidiaert_frist);
 
   const erSnuoperasjon = useMemo(() => {
     if (!isUpdateMode || !varAvvist) return false;
@@ -181,7 +317,7 @@ export function useGrunnlagBridge(config: UseGrunnlagBridgeConfig): GrunnlagBrid
     varsletITide,
     erForceMajeure,
     erSnuoperasjon,
-    harSubsidiaereSvar: !!harSubsidiaereSvar,
+    harSubsidiaereSvar,
   }), [resultat, erEndringMed32_2, varsletITide, erForceMajeure, erSnuoperasjon, harSubsidiaereSvar]);
 
   // ========== DYNAMIC PLACEHOLDER ==========
@@ -204,41 +340,106 @@ export function useGrunnlagBridge(config: UseGrunnlagBridgeConfig): GrunnlagBrid
     return '';
   }, []);
 
-  // ========== BUILD EVENT DATA (L12) ==========
+  // Auto-populate begrunnelse when auto-begrunnelse changes (if not manually edited)
+  useEffect(() => {
+    if (autoBegrunnelse && !userHasEditedBegrunnelseRef.current) {
+      setFormState(prev => ({ ...prev, begrunnelse: autoBegrunnelse }));
+    }
+  }, [autoBegrunnelse]);
 
-  const buildEventData = useCallback((params: { grunnlagEventId: string; begrunnelse: string }): Record<string, unknown> => {
+  const handleRegenerate = useCallback(() => {
+    if (autoBegrunnelse) {
+      setFormState(prev => ({ ...prev, begrunnelse: autoBegrunnelse }));
+      userHasEditedBegrunnelseRef.current = false;
+    }
+  }, [autoBegrunnelse]);
+
+  // ========== BUILD EVENT DATA (L12 — internal) ==========
+
+  const buildEventData = useCallback((): Record<string, unknown> => {
     if (isUpdateMode && lastResponseEvent) {
       return {
         original_respons_id: lastResponseEvent.event_id,
         resultat,
-        begrunnelse: params.begrunnelse,
+        begrunnelse,
         dato_endret: new Date().toISOString().split('T')[0],
       };
     }
 
     return {
-      grunnlag_event_id: params.grunnlagEventId,
+      grunnlag_event_id: grunnlagEventId,
       resultat,
-      begrunnelse: params.begrunnelse,
+      begrunnelse,
       grunnlag_varslet_i_tide: erEndringMed32_2 ? varsletITide : undefined,
       dager_siden_varsel: dagerSidenVarsel > 0 ? dagerSidenVarsel : undefined,
     };
-  }, [isUpdateMode, lastResponseEvent, resultat, erEndringMed32_2, varsletITide, dagerSidenVarsel]);
+  }, [isUpdateMode, lastResponseEvent, resultat, begrunnelse, grunnlagEventId, erEndringMed32_2, varsletITide, dagerSidenVarsel]);
 
-  // ========== VALIDATE ==========
+  // ========== VALIDATE + SUBMIT ==========
 
-  const validate = useCallback((): boolean => {
+  const canSubmit = !!resultat && begrunnelse.length >= 10 && !mutation.isPending;
+
+  const handleSubmit = useCallback(() => {
+    // Validate resultat
     if (!resultat) {
       setFormState(prev => ({ ...prev, resultatError: true }));
-      return false;
+      return;
     }
-    return true;
-  }, [resultat]);
+    // Validate begrunnelse
+    if (begrunnelse.length < 10) {
+      setFormState(prev => ({
+        ...prev,
+        begrunnelseValidationError: 'Begrunnelse må være minst 10 tegn',
+      }));
+      return;
+    }
+
+    pendingToastId.current = toast.pending(
+      isUpdateMode ? 'Lagrer endringer...' : 'Sender svar...',
+      'Vennligst vent mens svaret behandles.'
+    );
+
+    mutation.mutate({
+      eventType,
+      data: buildEventData(),
+    });
+  }, [resultat, begrunnelse, isUpdateMode, eventType, buildEventData, mutation, toast]);
+
+  const handleSaveDraft = useCallback(() => {
+    if (!onSaveDraft || !resultat) return;
+    if (begrunnelse.length < 10) {
+      setFormState(prev => ({
+        ...prev,
+        begrunnelseValidationError: 'Begrunnelse må være minst 10 tegn',
+      }));
+      return;
+    }
+
+    onSaveDraft({
+      resultat,
+      begrunnelse,
+      formData: buildEventData(),
+    });
+
+    clearBackup();
+    onSuccess();
+    toast.success('Utkast lagret', 'Svaret på ansvarsgrunnlaget er lagret som utkast.');
+  }, [onSaveDraft, resultat, begrunnelse, buildEventData, clearBackup, onSuccess, toast]);
+
+  // ========== SUBMIT LABEL + VARIANT ==========
+  const submitLabel = useMemo(() => {
+    if (mutation.isPending) return 'Sender...';
+    if (isUpdateMode) return erSnuoperasjon ? 'Godkjenn ansvarsgrunnlag' : 'Lagre endring';
+    return 'Send svar';
+  }, [mutation.isPending, isUpdateMode, erSnuoperasjon]);
+
+  const submitVariant = (resultat === 'avslatt' || erPrekludert) ? 'danger' as const : 'primary' as const;
 
   // ========== RETURN ==========
 
   return {
     cardProps: {
+      // Existing controls
       varsletITide,
       onVarsletITideChange: handleVarsletITideChange,
       showVarsletToggle,
@@ -251,20 +452,48 @@ export function useGrunnlagBridge(config: UseGrunnlagBridgeConfig): GrunnlagBrid
 
       erPrekludert,
       consequence,
-    },
-    computed: {
-      erEndringMed32_2,
-      erPrekludert,
+
+      // Card actions
+      onClose: onSuccess,
+      onSubmit: handleSubmit,
+      onSaveDraft: approvalEnabled && onSaveDraft ? handleSaveDraft : undefined,
+      isSubmitting: mutation.isPending,
+      canSubmit,
+      submitError: mutation.isError
+        ? (mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod')
+        : null,
+      submitLabel,
+      submitVariant,
+      showTokenExpired,
+      onTokenExpiredClose: () => setShowTokenExpired(false),
+
+      // Context alerts
       erPassiv,
       dagerSidenVarsel,
-      erSnuoperasjon,
-      prinsipaltResultat: resultat,
-      consequence,
-      dynamicPlaceholder,
-      autoBegrunnelse,
       isUpdateMode,
+      erSnuoperasjon,
+      snuoperasjon: erSnuoperasjon && harSubsidiaereSvar ? {
+        erSubsidiaertVederlag: !!sakState?.er_subsidiaert_vederlag,
+        erSubsidiaertFrist: !!sakState?.er_subsidiaert_frist,
+        visningsstatusVederlag: sakState?.visningsstatus_vederlag,
+        visningsstatusFrist: sakState?.visningsstatus_frist,
+      } : undefined,
+
+      // Update mode context
+      updateContext: isUpdateMode && forrigeResultat ? {
+        forrigeResultat,
+        forrigeBegrunnelse: sakState?.grunnlag?.bh_begrunnelse,
+        harSubsidiaereSvar,
+      } : undefined,
     },
-    buildEventData,
-    validate,
+    editorProps: {
+      begrunnelse,
+      onBegrunnelseChange: handleBegrunnelseChange,
+      begrunnelseError: begrunnelseValidationError,
+      placeholder: dynamicPlaceholder,
+      autoBegrunnelse,
+      onRegenerate: handleRegenerate,
+      showRegenerate: !!autoBegrunnelse,
+    },
   };
 }

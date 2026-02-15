@@ -63,6 +63,16 @@ describe('FristCard interactive mode', () => {
     visSubsidiaertResultat: false,
     subsidiaertResultat: undefined,
     krevdDager: 10,
+    // Card actions
+    onClose: vi.fn(),
+    onSubmit: vi.fn(),
+    isSubmitting: false,
+    canSubmit: true,
+    submitError: null,
+    submitLabel: 'Send svar',
+    showTokenExpired: false,
+    onTokenExpiredClose: vi.fn(),
+    sendForesporselInfo: false,
   };
 
   it('shows InlineYesNo for varslet i tide when editState.showFristVarselOk', () => {

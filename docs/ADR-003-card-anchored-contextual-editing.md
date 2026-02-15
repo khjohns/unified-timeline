@@ -1,7 +1,7 @@
 # ADR-003: Card-Anchored Contextual Editing
 
-**Status:** Akseptert — Grunnlag og Frist implementert (PR #439)
-**Dato:** 2026-02-14 (opprinnelig), 2026-02-15 (oppdatert etter implementering)
+**Status:** Akseptert — Grunnlag og Frist implementert (PR #439, refaktorert)
+**Dato:** 2026-02-14 (opprinnelig), 2026-02-15 (refaktorert: bridge eier begrunnelse + submit)
 **Beslutningstagere:** Utviklingsteam
 **Kontekst:** UX-mønster for inline skjemaer i bento-layout
 
@@ -11,9 +11,10 @@
 
 Når bruker åpner et svarskjema i bento-layouten, flyttes valgkontroller
 (resultat, toggles, metodevalg) inn i det tilhørende kortet der konteksten
-allerede vises. Formpanelet reserveres for primæroppgaven: fritekst-begrunnelse
-og auto-generert begrunnelse. Resultat og konsekvenser vises også i kortet,
-ikke i formpanelet.
+allerede vises. Formpanelet reserveres utelukkende for skriving av begrunnelse.
+Alt annet — kontroller, kontekst-alerts, resultat, innsending og avslutning —
+lever i kortet. Bridge-hooken eier all form-state inkludert begrunnelse,
+submit-mutasjon og form backup.
 
 ---
 
@@ -49,37 +50,41 @@ Når et spor (grunnlag, vederlag, frist) går i redigeringsmodus:
 
 1. **Kortet transformeres** fra read-only til interaktivt. Valgkontroller
    vises inline der den relevante konteksten allerede finnes.
-2. **Kortet viser resultat og konsekvenser** — dynamisk beregnet resultat,
-   subsidiær-oppsummering og preklusjons-advarsler vises i kortet nær
-   kontrollene som styrer dem.
-3. **Formpanelet fokuserer** utelukkende på begrunnelse: auto-generert
-   tekst fra valg, rik tekst-editor, og submit/avbryt.
-4. **En dedikert bridge-hook** koordinerer state mellom kort og skjema.
+2. **Kortet eier hele flyten** — kontroller, kontekst-alerts, resultat,
+   preklusjons-advarsler, innsending (nederst) og avslutning (øverst).
+3. **Formpanelet er en ren skriveflade** — kun RichTextEditor for begrunnelse
+   med «Regenerer fra valg»-knapp. Ingen kontroller, ingen submit, ingen alerts.
+4. **Bridge-hooken eier all state** — inkludert begrunnelse, submit-mutasjon
+   (`useSubmitEvent`), form backup (`useFormBackup`) og token-håndtering.
 
 ```
 ┌─────────────────────────┐  ┌────────────────────────────────┐
 │  FRISTCARD (col-5)      │  │  FORMPANEL (col-7)             │
-│                         │  │                                │
-│  Krevd dager: 10d       │  │  ┌────────────────────────┐   │
-│  Varslet     13.feb     │  │  │                        │   │
-│  Spesifisert 20.feb     │  │  │  Byggherrens            │   │
-│                         │  │  │  begrunnelse            │   │
-│ ┌─ §33.4 Varsel ──────┐│  │  │                        │   │
-│ │ Varslet i tide?      ││  │  │  [Auto-generert tekst] │   │
-│ │ [✓ Ja] [✕ Nei]      ││  │  │                        │   │
-│ └──────────────────────┘│  │  │  [Rik tekst-editor]    │   │
-│ ┌─ §33.1 Vilkår ──────┐│  │  │                        │   │
-│ │ Vilkår oppfylt?      ││  │  └────────────────────────┘   │
-│ │ [✓ Ja] [✕ Nei]      ││  │  [Regenerer fra valg]         │
+│  Fristforlengelse  [✕]  │  │                                │
+│                         │  │  ┌────────────────────────┐   │
+│  Krevd dager: 10d       │  │  │                        │   │
+│  Varslet     13.feb     │  │  │  Byggherrens            │   │
+│  Spesifisert 20.feb     │  │  │  begrunnelse            │   │
+│                         │  │  │                        │   │
+│ ┌─ §33.4 Varsel ──────┐│  │  │  [Auto-generert tekst] │   │
+│ │ Varslet i tide?      ││  │  │                        │   │
+│ │ [✓ Ja] [✕ Nei]      ││  │  │  [Rik tekst-editor]    │   │
+│ └──────────────────────┘│  │  │                        │   │
+│ ┌─ §33.1 Vilkår ──────┐│  │  └────────────────────────┘   │
+│ │ Vilkår oppfylt?      ││  │  [Regenerer fra valg]         │
+│ │ [✓ Ja] [✕ Nei]      ││  │                                │
 │ └──────────────────────┘│  │                                │
-│ ┌─ §33.5 Beregning ───┐│  │  ─────────────────────────────│
-│ │ Godkjent: [__10_] d  ││  │    [Avbryt]  [Send svar]      │
+│ ┌─ §33.5 Beregning ───┐│  │                                │
+│ │ Godkjent: [__10_] d  ││  │                                │
 │ └──────────────────────┘│  │                                │
 │                         │  │                                │
 │ ┌ Resultat ────────────┐│  │                                │
 │ │ Godkjent – 10/10d    ││  │                                │
 │ │ ↳ Subsidiært: ...    ││  │                                │
 │ └──────────────────────┘│  │                                │
+│                         │  │                                │
+│  ─────────────────────  │  │                                │
+│  [Lagre utkast] [Send]  │  │                                │
 └─────────────────────────┘  └────────────────────────────────┘
 ```
 
@@ -88,94 +93,86 @@ Når et spor (grunnlag, vederlag, frist) går i redigeringsmodus:
 | # | Prinsipp | Forklaring |
 |---|----------|------------|
 | 1 | **Kontroller hører der konteksten er** | "Varslet i tide?" ved datoene. Verdiktkort ved grunnlaget. Metodevalg ved krevd beløp. |
-| 2 | **Redaktøren får all plass** | Primæroppgaven (begrunnelse) trenger konsentrasjon og skjermplass. |
-| 3 | **Kortet transformeres, ikke dupliseres** | Ingen kontekstpanel i skjemaet. Kortet selv blir interaktivt. |
-| 4 | **Resultat og konsekvenser i kortet** | Beregnet resultat, subsidiær-oppsummering og preklusjons-advarsler vises i kortet — nær kontrollene som styrer dem. Formpanelet viser kun begrunnelse. |
+| 2 | **Begrunnelse-feltet er kun det — fullt fokus på skriving** | Formpanelet er en ren skriveflade. Ingen kontroller, alerts, submit eller avbryt. |
+| 3 | **Kortet eier hele beslutningsflyten** | Kontroller, kontekst-alerts, resultat, innsending (nederst) og avslutning (øverst). Brukeren kan lukke umiddelbart uten å scrolle. |
+| 4 | **Bridge-hooken eier all state** | Begrunnelse, submit-mutasjon, form backup, token-håndtering og auto-begrunnelse — alt i bridge-hooken. Ingen domenekunnskap i form- eller kort-komponenter. |
 | 5 | **Auto-begrunnelse i formpanelet** | Begrunnelse auto-genereres fra kortets valg og fylles inn i editoren. Brukeren kan redigere fritt, eller klikke «Regenerer fra valg» for å oppdatere. |
-| 6 | **State løftes via dedikert bridge-hook** | Hvert spor har en egen hook (`useFristBridge`, `useVederlagBridge`) med domene-spesifikk logikk — ikke en generisk bridge. |
+| 6 | **Dedikert bridge-hook per spor** | Hvert spor har en egen hook (`useGrunnlagBridge`, `useFristBridge`, `useVederlagBridge`) med domene-spesifikk logikk — ikke en generisk bridge. |
 
-> **Endret fra opprinnelig forslag:** Prinsipp 4 sa opprinnelig "Konsekvenser
-> vises i formpanelet". Under implementering viste det seg at konsekvens-callouts
-> og subsidiær-oppsummering fungerer bedre i kortet, der brukeren allerede ser
-> valgene som driver resultatet. Formpanelet ble renere og mer fokusert.
+> **Endringshistorikk:**
+> - Prinsipp 4 sa opprinnelig "Konsekvenser vises i formpanelet" → endret til
+>   "Resultat og konsekvenser i kortet" etter implementering.
+> - Deretter refaktorert: bridge eier nå begrunnelse + submit + form backup.
+>   Formpanelet ble strippet til en ren RichTextEditor. Kortet fikk lukk øverst
+>   og send nederst. Prinsippene 2–4 oppdatert tilsvarende.
 
 ---
 
 ## Implementert arkitektur
 
-### Grunnlag (ad-hoc state)
+### Felles mønster: Bridge eier alt
 
-Grunnlag ble implementert først, før mønsteret var etablert. Bruker
-ad-hoc `useState` direkte i CasePageBento:
-
-```
-CasePageBento
-├── useState(formVarsletITide)      // boolean
-├── useState(formResultat)          // string
-├── useState(formResultatError)     // boolean
-├── CaseMasterCard(formVarsletITide, onFormVarsletITideChange, ...)
-└── BentoRespondGrunnlag(externalVarsletITide, externalResultat)
-```
-
-Fungerer fordi grunnlag bare har 2 kontroller. Bør refaktoreres til
-en `useGrunnlagBridge`-hook for konsistens, men er ikke kritisk.
-
-### Frist (dedikert bridge-hook) — referanseimplementering
-
-Frist er referanseimplementeringen for card-anchored editing.
-Hook-basert koordinering med konsolidert state:
+Begge spor (grunnlag og frist) følger samme arkitektur. Bridge-hooken
+eier all form-state, begrunnelse, submit-mutasjon, form backup og
+token-håndtering. Kortet viser kontroller + submit. Formpanelet er
+en ren skriveflade.
 
 ```
 CasePageBento
-├── useFristBridge(config)
-│   ├── FormState (single useState med alle 6 felter)
-│   ├── Visibility flags (computed fra varselType, tilstand)
-│   ├── Resultat-beregning (prinsipalt + subsidiært)
-│   └── Preklusjons-/reduksjonslogikk
+├── use[Spor]Bridge(config)
+│   ├── FormState (single useState inkl. begrunnelse)
+│   ├── useSubmitEvent (React Query mutation)
+│   ├── useFormBackup (localStorage-backup)
+│   ├── useCatendaStatusHandler
+│   ├── useToast (feedback)
+│   ├── Visibility flags, resultat-beregning, auto-begrunnelse
+│   └── handleSubmit / handleSaveDraft / canSubmit
 │
-├── FristCard(editState=fristBridge.cardProps)
-│   ├── InlineYesNo × N (varsling, vilkår)
-│   ├── InlineNumberInput (godkjent dager)
-│   ├── Preklusjons-advarsler (inline)
-│   └── Resultat-boks (prinsipalt + subsidiært)
+├── [Spor]Card(editState=bridge.cardProps)
+│   ├── [✕] Lukk-knapp (øverst — lukk uten å scrolle)
+│   ├── Kontroller (InlineYesNo, VerdictCards, etc.)
+│   ├── Kontekst-alerts (passivitet, snuoperasjon, preklusjon)
+│   ├── Resultat-boks
+│   ├── TokenExpiredAlert + submitError
+│   └── [Lagre utkast] [Send svar] (nederst)
 │
-└── BentoRespondFrist(external*=fristBridge.computed)
-    ├── Auto-begrunnelse (generateFristResponseBegrunnelse)
+└── BentoRespond[Spor](editorProps=bridge.editorProps)
     ├── RichTextEditor (begrunnelse)
-    ├── «Regenerer fra valg»-knapp
-    └── Submit/Avbryt footer
+    └── «Regenerer fra valg»-knapp
 ```
 
 **Nøkkel-kontrakter:**
 
 | Komponent | Mottar fra bridge | Ansvar |
 |-----------|-------------------|--------|
-| **FristCard** | `cardProps: FristEditState` — state + handlers + visibility flags + beregnet resultat | Viser kontroller, preklusjons-advarsler, resultat |
-| **BentoRespondFrist** | `computed.*` — resultat, preklusjonsinfo for auto-begrunnelse | Auto-begrunnelse, teksteditor, submit |
-| **CasePageBento** | Eier bridge, passer `cardProps` til kort og `computed` til form | Layout, expand/collapse, action-routing |
+| **Kortet** | `cardProps: [Spor]EditState` — state + setters + visibility + resultat + onSubmit/onClose | Hele beslutningsflyten: kontroller, alerts, resultat, submit |
+| **Formpanelet** | `editorProps: [Spor]EditorProps` — begrunnelse + onChange + error + placeholder | Kun skriving av begrunnelse |
+| **CasePageBento** | Eier bridge, passer `cardProps` til kort og `editorProps` til formpanel | Layout, expand/collapse, action-routing |
 
-**Computed vs raw — enveis dataflyt:**
+**cardProps vs editorProps — tydelig ansvarsgrense:**
 
-Bridge-hooken returnerer to distinkte kontrakter med forskjellig
-retning. Formpanelet skal aldri motta setters — det er en ren
-konsument av beregnede verdier:
+Bridge-hooken returnerer to distinkte kontrakter. Formpanelet mottar
+kun `editorProps` — ingen setters, ingen submit, ingen domenelogikk:
 
 ```
-useFristBridge returns {
-  cardProps: {              // → FristCard (read-write)
+use[Spor]Bridge returns {
+  cardProps: {              // → Kortet (read-write + actions)
     state + setters         //   Rå FormState + onChange-handlers
     visibility flags        //   Hva skal vises/skjules
     beregnet resultat       //   Computed fra state
+    onSubmit, onClose       //   Submit-mutasjon + lukk
+    isSubmitting, canSubmit //   Submit-tilstand
+    submitError, showToken  //   Feilhåndtering
+    kontekst-alerts         //   Passivitet, snuoperasjon, etc.
   },
-  computed: {               // → BentoRespondFrist (read-only)
-    prinsipaltResultat      //   For submit-disable + placeholder
-    autoBegrunnelse         //   Generert fra alle kortvalg
-    dynamicPlaceholder      //   Kontekstavhengig hint
-    sendForesporsel         //   For info-alert
-    godkjentDager           //   For utkast
-  },
-  buildEventData(params) {  // → BentoRespondFrist (submit)
-    // Bygger komplett event-payload fra bridge-state + begrunnelse
+  editorProps: {            // → Formpanelet (ren skriveflade)
+    begrunnelse             //   Teksten
+    onBegrunnelseChange     //   Eneste setter
+    begrunnelseError        //   Valideringsfeil
+    placeholder             //   Kontekstavhengig hint
+    autoBegrunnelse         //   For «Regenerer fra valg»
+    onRegenerate            //   Nullstill begrunnelse
+    showRegenerate          //   Vis knappen?
   }
 }
 ```
@@ -184,18 +181,21 @@ useFristBridge returns {
 
 ## Analyse per spor
 
-### Grunnlag (implementert — ad-hoc)
+### Grunnlag (implementert — bridge-hook)
 
-**Kort:** CaseMasterCard. **Form:** BentoRespondGrunnlag.
+**Kort:** CaseMasterCard. **Form:** BentoRespondGrunnlag. **Bridge:** useGrunnlagBridge.
 
-| Kontroll | Plassering |
-|----------|------------|
-| Varslet i tide? (§32.2) | **I kort** (InlineYesNo ved datoene) |
-| Resultat (Godkjent/Avslått/Frafalt) | **I kort** (VerdictCards under grunnlag) |
-| Begrunnelse | I formpanel (RichTextEditor) |
-
-Ingen bridge-hook — ad-hoc state i CasePageBento. Fungerer, men
-inkonsistent med frist-mønsteret.
+| Kontroll | Plassering | I kortet |
+|----------|------------|----------|
+| Varslet i tide? (§32.2) | **I kort** (InlineYesNo ved datoene) | §32.2 Varsling |
+| Resultat (Godkjent/Avslått/Frafalt) | **I kort** (VerdictCards) | Resultat-seksjon |
+| Konsekvens-callout | **I kort** | Under resultat |
+| Passivitets-advarsel (§32.3) | **I kort** | Kontekst-alert |
+| Snuoperasjon-advarsel | **I kort** | Kontekst-alert |
+| TokenExpiredAlert | **I kort** | Feilhåndtering |
+| Lukk-knapp [✕] | **I kort** (øverst) | Header |
+| Send svar / Lagre utkast | **I kort** (nederst) | Submit footer |
+| Begrunnelse | I formpanel (RichTextEditor) | — |
 
 ### Frist (implementert — bridge-hook)
 
@@ -203,6 +203,7 @@ inkonsistent med frist-mønsteret.
 
 | Kontroll | Plassering | Seksjon i kort |
 |----------|------------|----------------|
+| Lukk-knapp [✕] | **I kort** (øverst) | Header |
 | Frist-varsel i tide? (§33.4) | **I kort** (InlineYesNo) | §33.4 Varsel |
 | Spesifisert krav i tide? (§33.6.1) | **I kort** (InlineYesNo) | §33.6.1 Spesifisert krav |
 | Forespørsel-svar i tide? (§33.6.2) | **I kort** (InlineYesNo) | §33.6.2 Svar på forespørsel |
@@ -210,12 +211,16 @@ inkonsistent med frist-mønsteret.
 | Vilkår oppfylt? (§33.1) | **I kort** (InlineYesNo) | §33.1 Vilkår |
 | Godkjent dager (§33.5) | **I kort** (InlineNumberInput) | §33.5 Beregning |
 | Resultat + subsidiært | **I kort** (resultat-boks) | Resultat-seksjon |
-| Begrunnelse | I formpanel | Auto-generert + manuell |
+| Forespørsel-info alert | **I kort** | Kontekst-alert |
+| TokenExpiredAlert | **I kort** | Feilhåndtering |
+| Send svar / Lagre utkast | **I kort** (nederst) | Submit footer |
+| Begrunnelse | I formpanel (RichTextEditor) | — |
 
 **Kortets struktur i edit-modus:** Kontrollene er organisert i visuelt
 adskilte seksjoner med §-referanse-overskrifter og tooltip-info-ikoner.
 Preklusion vises som inline-advarsel under den aktuelle seksjonen.
-Subsidiær-badges vises per seksjon når relevant.
+Subsidiær-badges vises per seksjon når relevant. Lukk-knapp øverst
+lar brukeren avbryte uten å scrolle. Submit nederst etter resultat.
 
 ### Vederlag (ikke implementert)
 
@@ -404,47 +409,60 @@ og imports som siste steg etter at kontroller er flyttet:
 3. Fjern ubrukte imports
 4. Fjern tester som testet de fjernede prop-kombinasjonene
 
-### L11: Bridge-hook skiller computed (readonly) fra state (read-write)
+### L11: Bridge-hook skiller cardProps (read-write) fra editorProps (minimal)
 
 **Problem:** Det er fristende å sende hele bridge-state til begge
 komponenter. Men da kan formpanelet ved et uhell kalle setters som
 hører hjemme i kortet, og dataretningen blir uklar.
 
 **Løsning:** Bridge-hooken returnerer to distinkte kontrakter:
-- `cardProps` — rå state + setters + visibility flags (read-write)
-- `computed` / `formProps` — beregnede verdier, readonly
+- `cardProps` — rå state + setters + visibility flags + submit + close
+- `editorProps` — kun begrunnelse + onChange + error + placeholder
 
-Formpanelet mottar kun `computed.*`. Det skal aldri ha tilgang til
-`handleFristVarselOkChange` eller lignende setters.
-Se «Computed vs raw»-avsnittet under Implementert arkitektur.
+Formpanelet mottar kun `editorProps`. Det har ingen tilgang til
+kontroll-setters, submit-mutasjon eller domenelogikk.
 
-### L12: Formpanelet skal ikke bygge event-payload eller auto-begrunnelse
+### L12: Bridge-hooken eier submit, begrunnelse og form backup
 
-**Problem:** Etter at kontroller flyttes til kortet, sitter formpanelet
-igjen med 17+ individuelle props (`externalFristVarselOk`,
-`externalGodkjentDager`, `erPrekludert`, ...) som det bruker til to
-ting: (1) generere auto-begrunnelse, (2) bygge submit-payload. Begge
-oppgavene bruker data som bridge-hooken allerede eier. Resultatet er
-prop-eksplosjon i CasePageBento og at formpanelet leser `cardProps`-
-verdier i strid med L11.
+**Problem:** I den opprinnelige arkitekturen bygde formpanelet
+event-payload fra 17+ props og kalte submit-mutasjonen selv. Dette
+ga prop-eksplosjon i CasePageBento og at formpanelet måtte ha
+domenekunnskap om event-strukturen.
 
-**Løsning:** Bridge-hooken eier auto-begrunnelse og payload-bygging:
-- `computed.autoBegrunnelse` — generert i bridge fra alle valg
-- `computed.dynamicPlaceholder` — kontekstavhengig placeholder
-- `buildEventData({ fristKravId, begrunnelse })` — komplett event-data
+**Løsning:** Bridge-hooken eier hele flyten internt:
+- `useSubmitEvent` — React Query mutation i bridge
+- `useFormBackup` — localStorage-backup i bridge
+- `useToast` — feedback i bridge
+- `buildEventData()` — internt, aldri eksponert
+- `handleSubmit()` — validerer begrunnelse → bygger payload → muterer
 
-Formpanelet mottar `computed` + `buildEventData` som to props.
-Submit-handleren blir en one-liner:
+Formpanelet blir en 60-linjers ren RichTextEditor-komponent. Kortet
+kaller `cardProps.onSubmit()` som en one-liner.
+
+### L13: Test-wrappers for bridge-hooks med React Query + Context
+
+**Problem:** Når bridge-hooken kaller `useSubmitEvent()` og `useToast()`
+internt, trenger tester `QueryClientProvider` + `ToastProvider` wrappers.
+
+**Løsning:** Opprett en `createWrapper()` helper i testfilen:
 
 ```tsx
-mutation.mutate({
-  eventType: 'respons_frist',
-  data: buildEventData({ fristKravId, begrunnelse: data.begrunnelse }),
-});
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return ({ children }) => (
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>{children}</ToastProvider>
+    </QueryClientProvider>
+  );
+}
+
+// Bruk: renderHook(() => useFristBridge(config), { wrapper: createWrapper() })
 ```
 
-**Resultat:** Props redusert fra 26 til 9. Formpanelet er en ren
-begrunnelse-editor + submit-surface uten domenekunnskap.
+Dette er standard React-testpraksis for hooks som bruker kontekst.
+Ny `QueryClient` per test forhindrer state-lekkasje mellom tester.
 
 ---
 
@@ -517,9 +535,10 @@ den er distribuert på tre filer med tydelige ansvarsområder.
 
 ## Sjekkliste for neste spor (vederlag)
 
-Basert på lærdom fra frist-implementeringen:
+Basert på lærdom fra grunnlag- og frist-implementeringen:
 
-- [ ] Opprett `useVederlagBridge`-hook med konsolidert `FormState` (L1)
+- [ ] Opprett `useVederlagBridge`-hook med konsolidert `FormState` inkl. begrunnelse (L1, L12)
+- [ ] Bridge eier `useSubmitEvent`, `useFormBackup`, `useToast` internt (L12)
 - [ ] Bruk state-during-render for reset (L2), ikke useEffect+useRef
 - [ ] All resultat/konsekvens-logikk i kortet (L3), ikke formpanelet
 - [ ] Kompakt resultat-linje i kortet (L4), detaljert tekst i auto-begrunnelse
@@ -530,9 +549,9 @@ Basert på lærdom fra frist-implementeringen:
 - [ ] Ekspanderbare rigg/produktivitet-seksjoner for å håndtere tetthet
 - [ ] Flytt tester fra RespondVederlagModal.test → VederlagCard.test for flyttede kontroller (L9)
 - [ ] Rydd opp foreldede props/imports i BentoRespondVederlag etter flytting (L10)
-- [ ] `computed` til formpanel er readonly — ingen setters lekker (L11)
-- [ ] Auto-begrunnelse + `buildEventData` i bridge, ikke i formpanelet (L12)
-- [ ] Formpanel tar `computed` + `buildEventData` som props — ikke 17 individuelle
+- [ ] Formpanelet tar kun `editorProps` — ingen setters, submit eller domenelogikk (L11)
+- [ ] Lukk-knapp [✕] øverst i kortet, Send/Lagre nederst (prinsipp 3)
+- [ ] Opprett `createWrapper()` i testfil med QueryClient + ToastProvider (L13)
 - [ ] Test at klassiske modaler (RespondVederlagModal) fremdeles fungerer
 
 ---
@@ -543,15 +562,16 @@ Basert på lærdom fra frist-implementeringen:
 
 | Fil | Rolle |
 |-----|-------|
-| `src/hooks/useFristBridge.ts` | Bridge-hook for frist (referanseimplementering) |
-| `src/components/bento/BentoRespondFrist.tsx` | Formpanel for frist |
-| `src/components/bento/track-cards/FristCard.tsx` | Kort med interaktiv modus |
+| `src/hooks/useGrunnlagBridge.ts` | Bridge-hook for grunnlag |
+| `src/hooks/useFristBridge.ts` | Bridge-hook for frist |
+| `src/components/bento/BentoRespondGrunnlag.tsx` | Ren begrunnelse-editor for grunnlag (~60 linjer) |
+| `src/components/bento/BentoRespondFrist.tsx` | Ren begrunnelse-editor for frist (~60 linjer) |
+| `src/components/bento/CaseMasterCard.tsx` | Kort for grunnlag (kontroller + submit + lukk) |
+| `src/components/bento/track-cards/FristCard.tsx` | Kort for frist (kontroller + submit + lukk) |
 | `src/components/bento/InlineYesNo.tsx` | Delt ja/nei-toggle |
 | `src/components/bento/InlineNumberInput.tsx` | Delt tall-input |
-| `src/components/bento/CaseMasterCard.tsx` | Kort for grunnlag (ad-hoc interaktiv) |
-| `src/components/bento/BentoRespondGrunnlag.tsx` | Formpanel for grunnlag |
 | `src/components/bento/VerdictCards.tsx` | Delt verdikt-komponent |
-| `src/components/bento/consequenceCallout.ts` | Konsekvens-logikk (tilgjengelig) |
+| `src/components/bento/consequenceCallout.ts` | Konsekvens-logikk |
 | `src/pages/CasePageBento.tsx` | Koordinering og layout |
 
 ### Relaterte dokumenter

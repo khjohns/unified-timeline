@@ -1,9 +1,13 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import type { FristBeregningResultat, SubsidiaerTrigger } from '../types/timeline';
 import {
   generateFristResponseBegrunnelse,
   type FristResponseInput,
 } from '../utils/begrunnelseGenerator';
+import { useSubmitEvent } from './useSubmitEvent';
+import { useFormBackup } from './useFormBackup';
+import { useCatendaStatusHandler } from './useCatendaStatusHandler';
+import { useToast } from '../components/primitives';
 
 // ============================================================================
 // TYPES
@@ -11,6 +15,8 @@ import {
 
 export interface UseFristBridgeConfig {
   isOpen: boolean;
+  sakId: string;
+  fristKravId: string;
   krevdDager: number;
   varselType?: 'varsel' | 'spesifisert' | 'begrunnelse_utsatt';
   grunnlagStatus?: string;
@@ -29,6 +35,12 @@ export interface UseFristBridgeConfig {
     godkjent_dager?: number;
     begrunnelse?: string;
   };
+  // Callbacks
+  onSuccess: () => void;
+  onCatendaWarning?: () => void;
+  // Approval
+  approvalEnabled?: boolean;
+  onSaveDraft?: (draftData: Record<string, unknown>) => void;
 }
 
 export interface FristEditState {
@@ -69,32 +81,35 @@ export interface FristEditState {
   visSubsidiaertResultat: boolean;
   subsidiaertResultat: string | undefined;
   krevdDager: number;
+
+  // Card actions
+  onClose: () => void;
+  onSubmit: () => void;
+  onSaveDraft?: () => void;
+  isSubmitting: boolean;
+  canSubmit: boolean;
+  submitError: string | null;
+  submitLabel: string;
+  showTokenExpired: boolean;
+  onTokenExpiredClose: () => void;
+
+  // Context alert
+  sendForesporselInfo: boolean;
 }
 
-export interface FristBridgeComputed {
-  erPrekludert: boolean;
-  erRedusert: boolean;
-  erGrunnlagSubsidiaer: boolean;
-  erGrunnlagPrekludert: boolean;
-  erForesporselSvarForSent: boolean;
-  harTidligereVarselITide: boolean;
-  prinsipaltResultat: string | undefined;
-  subsidiaertResultat: string | undefined;
-  visSubsidiaertResultat: boolean;
-  visForsering: boolean;
-  avslatteDager: number;
-  sendForesporsel: boolean;
-  subsidiaerTriggers: SubsidiaerTrigger[];
+export interface FristEditorProps {
+  begrunnelse: string;
+  onBegrunnelseChange: (value: string) => void;
+  begrunnelseError?: string;
+  placeholder: string;
   autoBegrunnelse: string;
-  dynamicPlaceholder: string;
-  godkjentDager: number;
+  onRegenerate: () => void;
+  showRegenerate: boolean;
 }
 
 export interface FristBridgeReturn {
   cardProps: FristEditState;
-  computed: FristBridgeComputed;
-  buildEventData: (params: { fristKravId: string; begrunnelse: string }) => Record<string, unknown>;
-  validate: () => boolean;
+  editorProps: FristEditorProps;
 }
 
 // ============================================================================
@@ -142,15 +157,26 @@ function beregnSubsidiaertResultat(data: {
 export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn {
   const {
     isOpen,
+    sakId,
+    fristKravId,
     krevdDager,
     varselType,
     grunnlagStatus,
     grunnlagVarsletForSent,
     fristTilstand,
     lastResponseEvent,
+    onSuccess,
+    onCatendaWarning,
+    approvalEnabled = false,
+    onSaveDraft,
   } = config;
 
   const isUpdateMode = !!lastResponseEvent;
+  const toast = useToast();
+  const { handleCatendaStatus } = useCatendaStatusHandler({ onWarning: onCatendaWarning });
+
+  // ========== TOKEN EXPIRED ==========
+  const [showTokenExpired, setShowTokenExpired] = useState(false);
 
   // Derived: har tidligere varsel i tide
   const harTidligereFristVarsel = !!fristTilstand?.frist_varsel;
@@ -163,8 +189,7 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
   const erHelFristSubsidiaerPgaGrunnlag = grunnlagVarsletForSent === true;
   const erGrunnlagSubsidiaer = grunnlagStatus === 'avslatt' || erHelFristSubsidiaerPgaGrunnlag;
 
-  // ========== STATE ==========
-  // Default values: TE-favorable (matching RespondFristModal defaults)
+  // ========== STATE (now includes begrunnelse) ==========
   const getDefaults = useCallback(() => {
     if (isUpdateMode && lastResponseEvent && fristTilstand) {
       return {
@@ -174,6 +199,8 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
         vilkarOppfylt: fristTilstand.vilkar_oppfylt ?? true,
         sendForesporsel: false,
         godkjentDager: lastResponseEvent.godkjent_dager ?? krevdDager,
+        begrunnelse: '',
+        begrunnelseValidationError: undefined as string | undefined,
       };
     }
     return {
@@ -183,10 +210,12 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
       vilkarOppfylt: true,
       sendForesporsel: false,
       godkjentDager: krevdDager,
+      begrunnelse: '',
+      begrunnelseValidationError: undefined as string | undefined,
     };
   }, [isUpdateMode, lastResponseEvent, fristTilstand, krevdDager]);
 
-  // Consolidated form state (single setState avoids cascading-render lint error)
+  // Consolidated form state
   interface FormState {
     fristVarselOk: boolean;
     spesifisertKravOk: boolean;
@@ -194,22 +223,79 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
     vilkarOppfylt: boolean;
     sendForesporsel: boolean;
     godkjentDager: number;
+    begrunnelse: string;
+    begrunnelseValidationError: string | undefined;
   }
 
   const [formState, setFormState] = useState<FormState>(getDefaults);
 
-  // Reset when isOpen transitions to true (state-during-render pattern, per React docs)
+  // ========== FORM BACKUP ==========
+  const backupData = useMemo(
+    () => ({ begrunnelse: formState.begrunnelse }),
+    [formState.begrunnelse]
+  );
+  const begrunnelseIsDirty = formState.begrunnelse.length > 0;
+  const { clearBackup, getBackup } = useFormBackup(
+    sakId, 'respons_frist', backupData, begrunnelseIsDirty
+  );
+
+  // ========== RESET (state-during-render per L2) ==========
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  const restoredBackupRef = useRef(false);
+  const userHasEditedBegrunnelseRef = useRef(false);
+
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);
     if (isOpen) {
-      setFormState(getDefaults());
+      const defaults = getDefaults();
+      const backup = getBackup();
+      if (backup?.begrunnelse) {
+        setFormState({ ...defaults, begrunnelse: backup.begrunnelse });
+        restoredBackupRef.current = true;
+      } else {
+        setFormState(defaults);
+      }
+      setShowTokenExpired(false);
+      userHasEditedBegrunnelseRef.current = !!backup?.begrunnelse;
     }
   }
 
-  const { fristVarselOk, spesifisertKravOk, foresporselSvarOk, vilkarOppfylt, sendForesporsel, godkjentDager } = formState;
+  // Show toast after backup restore
+  useEffect(() => {
+    if (restoredBackupRef.current) {
+      restoredBackupRef.current = false;
+      toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
+    }
+  }, [isOpen, toast]);
 
-  // Individual setters for card controls
+  const { fristVarselOk, spesifisertKravOk, foresporselSvarOk, vilkarOppfylt, sendForesporsel, godkjentDager, begrunnelse, begrunnelseValidationError } = formState;
+
+  // ========== SUBMIT MUTATION ==========
+  const pendingToastId = useRef<string | null>(null);
+
+  const mutation = useSubmitEvent(sakId, {
+    onSuccess: (result) => {
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
+      clearBackup();
+      onSuccess();
+      toast.success('Svar sendt', 'Ditt svar på fristkravet er registrert.');
+      handleCatendaStatus(result);
+    },
+    onError: (error) => {
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
+      if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
+        setShowTokenExpired(true);
+      }
+    },
+  });
+
+  // ========== INDIVIDUAL SETTERS ==========
   const handleFristVarselOkChange = useCallback((v: boolean) => {
     setFormState(prev => ({ ...prev, fristVarselOk: v, ...(v === false ? { sendForesporsel: false } : {}) }));
   }, []);
@@ -219,13 +305,22 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
   const setSendForesporsel = useCallback((v: boolean) => setFormState(prev => ({ ...prev, sendForesporsel: v })), []);
   const setGodkjentDager = useCallback((v: number) => setFormState(prev => ({ ...prev, godkjentDager: v })), []);
 
+  // ========== BEGRUNNELSE TRACKING (L5) ==========
+  const handleBegrunnelseChange = useCallback((value: string) => {
+    userHasEditedBegrunnelseRef.current = true;
+    setFormState(prev => ({
+      ...prev,
+      begrunnelse: value,
+      begrunnelseValidationError: undefined,
+    }));
+  }, []);
+
   // ========== VISIBILITY FLAGS ==========
   const erBegrunnelseUtsatt = varselType === 'begrunnelse_utsatt';
 
   const showFristVarselOk = useMemo(() => {
     if (erBegrunnelseUtsatt) return false;
     if (varselType === 'varsel') return true;
-    // spesifisert: show if no prior varsel i tide (need both §33.4 + §33.6.1)
     if (varselType === 'spesifisert' && !harTidligereVarselITide && !erSvarPaForesporsel) return true;
     return false;
   }, [varselType, erBegrunnelseUtsatt, harTidligereVarselITide, erSvarPaForesporsel]);
@@ -234,7 +329,6 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
     if (erBegrunnelseUtsatt) return false;
     if (varselType !== 'spesifisert') return false;
     if (erSvarPaForesporsel) return false;
-    // Show when: prior varsel i tide (only §33.6.1 needed) OR no prior varsel (both needed)
     return true;
   }, [varselType, erBegrunnelseUtsatt, erSvarPaForesporsel]);
 
@@ -245,7 +339,6 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
 
   const showSendForesporsel = useMemo(() => {
     if (erBegrunnelseUtsatt) return false;
-    // Only for varsel type when fristVarselOk is true
     return varselType === 'varsel' && fristVarselOk === true;
   }, [varselType, erBegrunnelseUtsatt, fristVarselOk]);
 
@@ -288,14 +381,6 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
   );
 
   const visSubsidiaertResultat = prinsipaltResultat === 'avslatt';
-
-  const visForsering = useMemo(() => {
-    if (prinsipaltResultat === 'avslatt') return true;
-    if (prinsipaltResultat === 'delvis_godkjent' && godkjentDager < krevdDager) return true;
-    return false;
-  }, [prinsipaltResultat, godkjentDager, krevdDager]);
-
-  const avslatteDager = krevdDager - godkjentDager;
 
   const showGodkjentDager = !sendForesporsel;
 
@@ -344,43 +429,96 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
   ]);
 
   const dynamicPlaceholder = useMemo(() => {
-    if (!prinsipaltResultat) return 'Gjør valgene i kortet til venstre, deretter skriv begrunnelse...';
+    if (!prinsipaltResultat) return 'Gjør valgene i kortet, deretter skriv begrunnelse...';
     if (prinsipaltResultat === 'godkjent') return 'Begrunn din godkjenning av fristforlengelsen...';
     if (prinsipaltResultat === 'delvis_godkjent') return 'Forklar hvorfor du kun godkjenner deler av fristforlengelsen...';
     return 'Begrunn ditt avslag på fristforlengelsen...';
   }, [prinsipaltResultat]);
 
-  // ========== BUILD EVENT DATA ==========
-  const buildEventData = useCallback((params: { fristKravId: string; begrunnelse: string }): Record<string, unknown> => {
-    const effektiveGodkjentDager = prinsipaltResultat !== 'avslatt' ? godkjentDager : 0;
+  // Auto-populate begrunnelse when auto-begrunnelse changes (if not manually edited)
+  useEffect(() => {
+    if (autoBegrunnelse && !userHasEditedBegrunnelseRef.current) {
+      setFormState(prev => ({ ...prev, begrunnelse: autoBegrunnelse }));
+    }
+  }, [autoBegrunnelse]);
+
+  const handleRegenerate = useCallback(() => {
+    if (autoBegrunnelse) {
+      setFormState(prev => ({ ...prev, begrunnelse: autoBegrunnelse }));
+      userHasEditedBegrunnelseRef.current = false;
+    }
+  }, [autoBegrunnelse]);
+
+  // ========== BUILD EVENT DATA (internal) ==========
+  const buildEventData = useCallback((): Record<string, unknown> => {
+    const effectiveGodkjentDager = prinsipaltResultat !== 'avslatt' ? godkjentDager : 0;
     return {
-      frist_krav_id: params.fristKravId,
-      // Port 1: Preklusjon
+      frist_krav_id: fristKravId,
       frist_varsel_ok: fristVarselOk,
       spesifisert_krav_ok: spesifisertKravOk,
       foresporsel_svar_ok: foresporselSvarOk,
       send_foresporsel: sendForesporsel,
-      // Port 2: Vilkår
       vilkar_oppfylt: vilkarOppfylt,
-      // Port 3: Beregning
-      godkjent_dager: effektiveGodkjentDager,
-      // Port 4: Begrunnelse
-      begrunnelse: params.begrunnelse || autoBegrunnelse,
+      godkjent_dager: effectiveGodkjentDager,
+      begrunnelse: begrunnelse || autoBegrunnelse,
       auto_begrunnelse: autoBegrunnelse,
-      // Automatisk beregnet
       beregnings_resultat: prinsipaltResultat,
       krevd_dager: krevdDager,
-      // Subsidiært standpunkt
       subsidiaer_triggers: subsidiaerTriggers.length > 0 ? subsidiaerTriggers : undefined,
       subsidiaer_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
-      subsidiaer_godkjent_dager: visSubsidiaertResultat && subsidiaertResultat !== 'avslatt' ? effektiveGodkjentDager : undefined,
-      subsidiaer_begrunnelse: visSubsidiaertResultat ? (params.begrunnelse || autoBegrunnelse) : undefined,
+      subsidiaer_godkjent_dager: visSubsidiaertResultat && subsidiaertResultat !== 'avslatt' ? effectiveGodkjentDager : undefined,
+      subsidiaer_begrunnelse: visSubsidiaertResultat ? (begrunnelse || autoBegrunnelse) : undefined,
     };
   }, [
-    fristVarselOk, spesifisertKravOk, foresporselSvarOk, sendForesporsel,
-    vilkarOppfylt, godkjentDager, prinsipaltResultat, krevdDager,
+    fristKravId, fristVarselOk, spesifisertKravOk, foresporselSvarOk, sendForesporsel,
+    vilkarOppfylt, godkjentDager, begrunnelse, prinsipaltResultat, krevdDager,
     autoBegrunnelse, subsidiaerTriggers, visSubsidiaertResultat, subsidiaertResultat,
   ]);
+
+  // ========== VALIDATE + SUBMIT ==========
+  const canSubmit = !!prinsipaltResultat && begrunnelse.length >= 10 && !mutation.isPending;
+
+  const handleSubmit = useCallback(() => {
+    if (begrunnelse.length < 10) {
+      setFormState(prev => ({
+        ...prev,
+        begrunnelseValidationError: 'Begrunnelse må være minst 10 tegn',
+      }));
+      return;
+    }
+
+    pendingToastId.current = toast.pending(
+      'Sender svar...',
+      'Vennligst vent mens svaret behandles.'
+    );
+
+    mutation.mutate({
+      eventType: 'respons_frist',
+      data: buildEventData(),
+    });
+  }, [begrunnelse, buildEventData, mutation, toast]);
+
+  const handleSaveDraft = useCallback(() => {
+    if (!onSaveDraft) return;
+    if (begrunnelse.length < 10) {
+      setFormState(prev => ({
+        ...prev,
+        begrunnelseValidationError: 'Begrunnelse må være minst 10 tegn',
+      }));
+      return;
+    }
+
+    onSaveDraft({
+      dager: godkjentDager,
+      resultat: prinsipaltResultat,
+      begrunnelse: begrunnelse || autoBegrunnelse,
+    });
+    clearBackup();
+    onSuccess();
+    toast.success('Utkast lagret', 'Svaret på fristkravet er lagret som utkast.');
+  }, [onSaveDraft, godkjentDager, prinsipaltResultat, begrunnelse, autoBegrunnelse, clearBackup, onSuccess, toast]);
+
+  const submitLabel = mutation.isPending ? 'Sender...' : 'Send svar';
 
   // ========== RETURN ==========
   return {
@@ -418,29 +556,31 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
       visSubsidiaertResultat,
       subsidiaertResultat,
       krevdDager,
+
+      // Card actions
+      onClose: onSuccess,
+      onSubmit: handleSubmit,
+      onSaveDraft: approvalEnabled && onSaveDraft ? handleSaveDraft : undefined,
+      isSubmitting: mutation.isPending,
+      canSubmit,
+      submitError: mutation.isError
+        ? (mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod')
+        : null,
+      submitLabel,
+      showTokenExpired,
+      onTokenExpiredClose: () => setShowTokenExpired(false),
+
+      // Context alert
+      sendForesporselInfo: sendForesporsel,
     },
-    computed: {
-      erPrekludert,
-      erRedusert,
-      erGrunnlagSubsidiaer,
-      erGrunnlagPrekludert: erHelFristSubsidiaerPgaGrunnlag,
-      erForesporselSvarForSent,
-      harTidligereVarselITide,
-      prinsipaltResultat,
-      subsidiaertResultat,
-      visSubsidiaertResultat,
-      visForsering,
-      avslatteDager,
-      sendForesporsel,
-      subsidiaerTriggers,
+    editorProps: {
+      begrunnelse,
+      onBegrunnelseChange: handleBegrunnelseChange,
+      begrunnelseError: begrunnelseValidationError,
+      placeholder: dynamicPlaceholder,
       autoBegrunnelse,
-      dynamicPlaceholder,
-      godkjentDager,
-    },
-    buildEventData,
-    validate: () => {
-      // Basic validation: resultat must be defined
-      return prinsipaltResultat !== undefined;
+      onRegenerate: handleRegenerate,
+      showRegenerate: !!autoBegrunnelse,
     },
   };
 }

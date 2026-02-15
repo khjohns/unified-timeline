@@ -13,7 +13,7 @@
 import { clsx } from 'clsx';
 import { CheckIcon, Cross2Icon, ExclamationTriangleIcon } from '@radix-ui/react-icons';
 import { InlineYesNo } from './InlineYesNo';
-import { Alert, Badge } from '../primitives';
+import { Alert, Badge, Button } from '../primitives';
 import { getOverordnetStatusStyle, getSakstypeStyle } from '../../constants/statusStyles';
 import {
   getHovedkategori,
@@ -24,7 +24,9 @@ import { StatusDot } from './track-cards/StatusDot';
 import { TrackHistory } from './track-cards/TrackHistory';
 import { TrackCTA } from './track-cards/TrackCTA';
 import { VerdictCards } from './VerdictCards';
+import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import type { SakState } from '../../types/timeline';
+import type { GrunnlagResponsResultat } from '../../types/timeline';
 import type { AvailableActions } from '../../hooks/useActionPermissions';
 import type { SporHistoryEntry } from '../views/SporHistory';
 import type { GrunnlagEditState } from '../../hooks/useGrunnlagBridge';
@@ -153,7 +155,18 @@ export function CaseMasterCard({
             &sect;25.2
           </span>
         </div>
-        <StatusDot status={status} />
+        {editState ? (
+          <button
+            type="button"
+            onClick={editState.onClose}
+            className="p-1 rounded-sm text-pkt-text-body-subtle hover:text-pkt-text-body-default hover:bg-pkt-bg-subtle transition-colors"
+            aria-label="Lukk"
+          >
+            <Cross2Icon className="w-4 h-4" />
+          </button>
+        ) : (
+          <StatusDot status={status} />
+        )}
       </div>
 
       {isEmpty ? (
@@ -259,6 +272,93 @@ export function CaseMasterCard({
                   )}
                 </Alert>
               )}
+
+              {/* Update mode: current response banner */}
+              {editState.isUpdateMode && editState.updateContext && (
+                <div className="rounded-sm border border-pkt-border-subtle bg-pkt-bg-subtle p-2.5">
+                  <p className="text-[10px] font-medium text-pkt-text-body-muted uppercase tracking-wide mb-1.5">N&aring;v&aelig;rende svar</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-pkt-text-body-subtle">Resultat:</span>
+                    <Badge variant={editState.updateContext.forrigeResultat === 'avslatt' ? 'danger' : 'success'} size="sm">
+                      {({ godkjent: 'Godkjent', avslatt: 'Avsl\u00e5tt', frafalt: 'Frafalt (\u00a732.3 c)' } as Record<GrunnlagResponsResultat, string>)[editState.updateContext.forrigeResultat] ?? 'Ukjent'}
+                    </Badge>
+                  </div>
+                  {editState.updateContext.forrigeBegrunnelse && (
+                    <p className="text-[10px] text-pkt-text-body-muted italic mt-1 line-clamp-2">
+                      &laquo;{editState.updateContext.forrigeBegrunnelse}&raquo;
+                    </p>
+                  )}
+                  {editState.updateContext.harSubsidiaereSvar && editState.updateContext.forrigeResultat === 'avslatt' && (
+                    <p className="text-[10px] text-pkt-grays-gray-500 mt-1">
+                      Det finnes subsidi&aelig;re svar p&aring; vederlag og/eller frist.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Snuoperasjon alert (update mode) */}
+              {editState.isUpdateMode && editState.erSnuoperasjon && editState.snuoperasjon && (
+                <Alert variant="success" size="sm" title="Snuoperasjon: Subsidi&aelig;re svar blir prinsipale">
+                  <p>
+                    Ved &aring; godkjenne grunnlaget n&aring;, vil alle subsidi&aelig;re svar p&aring; vederlag og frist
+                    automatisk konverteres til <strong>prinsipale</strong> svar.
+                  </p>
+                  <ul className="list-disc pl-5 mt-2 text-xs">
+                    {editState.snuoperasjon.erSubsidiaertVederlag && (
+                      <li>Vederlag: &ldquo;{editState.snuoperasjon.visningsstatusVederlag}&rdquo; blir gjeldende uten forbehold</li>
+                    )}
+                    {editState.snuoperasjon.erSubsidiaertFrist && (
+                      <li>Frist: &ldquo;{editState.snuoperasjon.visningsstatusFrist}&rdquo; blir gjeldende uten forbehold</li>
+                    )}
+                  </ul>
+                </Alert>
+              )}
+
+              {/* Passivitetsvarsel (>10 dager) */}
+              {editState.erPassiv && (
+                <Alert variant="danger" size="sm" title="Passivitetsrisiko (&sect;32.3)">
+                  Du har brukt <strong>{editState.dagerSidenVarsel} dager</strong> p&aring; &aring; svare.
+                  Passivitet kan medf&oslash;re at forholdet anses som en endring.
+                </Alert>
+              )}
+
+              {/* Token expired */}
+              <TokenExpiredAlert open={editState.showTokenExpired} onClose={editState.onTokenExpiredClose} />
+
+              {/* Submit error */}
+              {editState.submitError && (
+                <Alert variant="danger" size="sm" title="Feil ved innsending">
+                  {editState.submitError}
+                </Alert>
+              )}
+
+              {/* Submit footer */}
+              <div className="border-t border-pkt-border-subtle pt-3 flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
+                <div>{/* spacer for alignment */}</div>
+                <div className="flex gap-2">
+                  {editState.onSaveDraft && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={editState.onSaveDraft}
+                      disabled={editState.isSubmitting}
+                    >
+                      Lagre utkast
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant={editState.submitVariant}
+                    size="sm"
+                    onClick={editState.onSubmit}
+                    disabled={!editState.canSubmit}
+                    data-testid="respond-grunnlag-submit"
+                  >
+                    {editState.submitLabel}
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
 

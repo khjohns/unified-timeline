@@ -301,6 +301,8 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
 
   const grunnlagBridge = useGrunnlagBridge({
     isOpen: isGrunnlagFormOpen,
+    sakId,
+    grunnlagEventId: `grunnlag-${sakId}`,
     grunnlagEvent: {
       hovedkategori: state.grunnlag.hovedkategori,
       underkategori: ukCode,
@@ -312,6 +314,17 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       ? { event_id: `grunnlag-response-${sakId}`, resultat: state.grunnlag.bh_resultat }
       : undefined,
     sakState: state,
+    onSuccess: handleCollapseTrack,
+    onCatendaWarning: () => modals.catendaWarning.setOpen(true),
+    approvalEnabled: approvalWorkflow.approvalEnabled,
+    onSaveDraft: (draftData) => {
+      approvalWorkflow.saveDraft({
+        sporType: 'grunnlag',
+        resultat: draftData.resultat as 'godkjent' | 'avslatt' | 'frafalt',
+        begrunnelse: draftData.begrunnelse,
+        formData: draftData.formData,
+      });
+    },
   });
 
   // ===== FRIST CARD-ANCHORED EDITING =====
@@ -320,6 +333,8 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
 
   const fristBridge = useFristBridge({
     isOpen: isFristFormOpen,
+    sakId,
+    fristKravId: `frist-${sakId}`,
     krevdDager: state.frist.krevd_dager ?? 0,
     varselType: state.frist.varsel_type,
     grunnlagStatus: grunnlagStatus as 'godkjent' | 'avslatt' | 'frafalt' | undefined,
@@ -328,6 +343,18 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     lastResponseEvent: expandedTrack?.action === 'updateResponse' && state.frist.bh_resultat
       ? { event_id: `frist-response-${sakId}`, resultat: state.frist.bh_resultat, godkjent_dager: state.frist.godkjent_dager }
       : undefined,
+    onSuccess: handleCollapseTrack,
+    onCatendaWarning: () => modals.catendaWarning.setOpen(true),
+    approvalEnabled: approvalWorkflow.approvalEnabled,
+    onSaveDraft: (draftData) => {
+      approvalWorkflow.saveDraft({
+        sporType: 'frist',
+        dager: draftData.dager as number,
+        resultat: draftData.resultat as 'godkjent' | 'delvis_godkjent' | 'avslatt',
+        begrunnelse: draftData.begrunnelse as string,
+        formData: draftData,
+      });
+    },
   });
 
   // ===== EXPANDED FORM RENDERER =====
@@ -362,53 +389,9 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
           />
         );
       case 'grunnlag:respond':
-        return (
-          <BentoRespondGrunnlag
-            sakId={sakId}
-            grunnlagEventId={`grunnlag-${sakId}`}
-            computed={grunnlagBridge.computed}
-            buildEventData={grunnlagBridge.buildEventData}
-            validate={grunnlagBridge.validate}
-            onSuccess={onSuccess}
-            onCancel={onCancel}
-            onCatendaWarning={onCatendaWarning}
-            approvalEnabled={approvalWorkflow.approvalEnabled}
-            onSaveDraft={(draftData) => {
-              approvalWorkflow.saveDraft({
-                sporType: 'grunnlag',
-                resultat: draftData.resultat as 'godkjent' | 'avslatt' | 'frafalt',
-                begrunnelse: draftData.begrunnelse,
-                formData: draftData.formData,
-              });
-            }}
-          />
-        );
       case 'grunnlag:updateResponse':
         return (
-          <BentoRespondGrunnlag
-            sakId={sakId}
-            grunnlagEventId={`grunnlag-${sakId}`}
-            computed={grunnlagBridge.computed}
-            buildEventData={grunnlagBridge.buildEventData}
-            validate={grunnlagBridge.validate}
-            lastResponseEvent={{
-              event_id: `grunnlag-response-${sakId}`,
-              resultat: state.grunnlag.bh_resultat || 'godkjent',
-            }}
-            sakState={state}
-            onSuccess={onSuccess}
-            onCancel={onCancel}
-            onCatendaWarning={onCatendaWarning}
-            approvalEnabled={approvalWorkflow.approvalEnabled}
-            onSaveDraft={(draftData) => {
-              approvalWorkflow.saveDraft({
-                sporType: 'grunnlag',
-                resultat: draftData.resultat as 'godkjent' | 'avslatt' | 'frafalt',
-                begrunnelse: draftData.begrunnelse,
-                formData: draftData.formData,
-              });
-            }}
-          />
+          <BentoRespondGrunnlag editorProps={grunnlagBridge.editorProps} />
         );
       case 'grunnlag:withdraw':
         return (
@@ -473,25 +456,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       case 'frist:respond':
       case 'frist:updateResponse':
         return (
-          <BentoRespondFrist
-            sakId={sakId}
-            fristKravId={`frist-${sakId}`}
-            computed={fristBridge.computed}
-            buildEventData={fristBridge.buildEventData}
-            onSuccess={onSuccess}
-            onCancel={onCancel}
-            onCatendaWarning={onCatendaWarning}
-            approvalEnabled={approvalWorkflow.approvalEnabled}
-            onSaveDraft={(draftData) => {
-              approvalWorkflow.saveDraft({
-                sporType: 'frist',
-                dager: draftData.dager as number,
-                resultat: draftData.resultat as 'godkjent' | 'delvis_godkjent' | 'avslatt',
-                begrunnelse: draftData.begrunnelse as string,
-                formData: draftData,
-              });
-            }}
-          />
+          <BentoRespondFrist editorProps={fristBridge.editorProps} />
         );
       case 'frist:send':
         return (
@@ -534,7 +499,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       default:
         return null;
     }
-  }, [expandedTrack, sakId, state, grunnlagStatus, approvalWorkflow, modals.catendaWarning, handleCollapseTrack, grunnlagEntries, grunnlagBridge, fristBridge]);
+  }, [expandedTrack, sakId, state, grunnlagStatus, approvalWorkflow, modals.catendaWarning, handleCollapseTrack, grunnlagBridge, fristBridge]);
 
   // ===== TRACK FORM VIEW METADATA =====
   const getTrackFormMeta = useCallback((expanded: { track: string; action: string }) => {
