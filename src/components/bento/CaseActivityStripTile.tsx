@@ -158,11 +158,13 @@ interface TrackActivity {
 interface CaseActivityCardProps {
   events: TimelineEvent[];
   delay?: number;
+  /** Override the default responsive col-span classes */
+  colSpan?: string;
 }
 
 // ========== Component ==========
 
-export function CaseActivityCard({ events, delay = 0 }: CaseActivityCardProps) {
+export function CaseActivityCard({ events, delay = 0, colSpan }: CaseActivityCardProps) {
   const trackActivities = useMemo(() => {
     const lastPerTrack = new Map<SporType, TrackActivity>();
 
@@ -208,7 +210,7 @@ export function CaseActivityCard({ events, delay = 0 }: CaseActivityCardProps) {
   const hasAnyActivity = items.some(i => i.activity !== null);
 
   return (
-    <BentoCard colSpan="col-span-12 md:col-span-6 lg:col-span-3" delay={delay}>
+    <BentoCard colSpan={colSpan ?? "col-span-12 md:col-span-6 lg:col-span-3"} delay={delay}>
       <div className="p-3">
         {/* Header */}
         <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-2">

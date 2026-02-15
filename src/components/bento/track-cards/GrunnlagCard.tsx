@@ -4,7 +4,6 @@ import type { SakState } from '../../../types/timeline';
 import type { AvailableActions } from '../../../hooks/useActionPermissions';
 import { CategoryLabel } from '../../shared/CategoryLabel';
 import { formatDateShort } from '../../../utils/formatters';
-import { getAccentBorderClass } from './trackCardUtils';
 import { StatusDot } from './StatusDot';
 import { TrackHistory } from './TrackHistory';
 import { TrackCTA } from './TrackCTA';
@@ -41,8 +40,7 @@ export function GrunnlagCard({
   return (
     <div
       className={clsx(
-        'bg-pkt-bg-card rounded-lg border-t-2 p-3',
-        getAccentBorderClass(status),
+        'bg-pkt-bg-card rounded-lg p-3',
         className,
       )}
       style={style}

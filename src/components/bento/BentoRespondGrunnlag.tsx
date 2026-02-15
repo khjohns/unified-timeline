@@ -16,20 +16,19 @@ import {
   DataListItem,
   FormField,
   RichTextEditor,
-  RadioGroup,
-  RadioItem,
   Tooltip,
   useToast,
 } from '../primitives';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { clsx } from 'clsx';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { useCatendaStatusHandler } from '../../hooks/useCatendaStatusHandler';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { InfoCircledIcon } from '@radix-ui/react-icons';
+import { CheckIcon, Cross2Icon, InfoCircledIcon } from '@radix-ui/react-icons';
 import type { GrunnlagResponsResultat, SakState } from '../../types/timeline';
 import {
   getBhGrunnlagssvarValues,
@@ -86,6 +85,10 @@ export interface BentoRespondGrunnlagProps {
   grunnlagEntries?: SporHistoryEntry[];
   /** Hide context panel when rendered alongside MasterCard */
   hideContextPanel?: boolean;
+  /** Externally controlled varslet i tide (from MasterCard) */
+  externalVarsletITide?: boolean;
+  /** Externally controlled resultat (from MasterCard) */
+  externalResultat?: string;
 }
 
 export function BentoRespondGrunnlag({
@@ -101,6 +104,8 @@ export function BentoRespondGrunnlag({
   sakState,
   grunnlagEntries,
   hideContextPanel = false,
+  externalVarsletITide,
+  externalResultat,
 }: BentoRespondGrunnlagProps) {
   const isUpdateMode = !!lastResponseEvent;
 
@@ -139,6 +144,7 @@ export function BentoRespondGrunnlag({
     reset,
     watch,
     control,
+    setValue,
   } = useForm<RespondGrunnlagFormData>({
     resolver: zodResolver(respondGrunnlagSchema),
     defaultValues: computedDefaultValues,
@@ -172,6 +178,19 @@ export function BentoRespondGrunnlag({
       reset(freshValues);
     }
   }, [hasBackup, isDirty, getBackup, reset, toast, freshValues]);
+
+  // Sync externally controlled values from MasterCard
+  useEffect(() => {
+    if (externalVarsletITide !== undefined) {
+      setValue('grunnlag_varslet_i_tide', externalVarsletITide);
+    }
+  }, [externalVarsletITide, setValue]);
+
+  useEffect(() => {
+    if (externalResultat !== undefined) {
+      setValue('resultat', externalResultat as RespondGrunnlagFormData['resultat']);
+    }
+  }, [externalResultat, setValue]);
 
   const handleReset = () => {
     clearBackup();
@@ -350,7 +369,7 @@ export function BentoRespondGrunnlag({
                 Ved å godkjenne grunnlaget nå, vil alle subsidiaere svar på vederlag og frist
                 automatisk konverteres til <strong>prinsipale</strong> svar.
               </p>
-              <ul className="list-disc pl-5 mt-2 text-sm">
+              <ul className="list-disc pl-5 mt-2 text-xs">
                 {sakState?.er_subsidiaert_vederlag && (
                   <li>
                     Vederlag: &ldquo;{sakState.visningsstatus_vederlag}&rdquo; blir gjeldende uten forbehold
@@ -378,169 +397,208 @@ export function BentoRespondGrunnlag({
             </div>
           )}
 
-          {/* Response panel */}
-          <div className={hideContextPanel ? 'space-y-5' : 'md:col-span-7 space-y-5'}>
-            {/* §32.2 Varselvurdering — compact inline */}
-            {erEndringMed32_2 && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-pkt-text-body-default">
-                    Varslet i tide? (§32.2)
-                  </span>
-                  <Tooltip
-                    content={
-                      <div className="max-w-sm text-xs space-y-2">
-                        <p><strong>§32.2</strong> – Entreprenørens varslingsplikt: Mottar totalentreprenøren pålegg uten endringsordre og mener det utgjør en endring, må han varsle byggherren skriftlig uten ugrunnet opphold.</p>
-                        <p><strong>§32.3</strong> – Byggherrens svarplikt: Mottar byggherren varsel etter §32.2, skal han besvare det uten ugrunnet opphold ved å (a) utstede endringsordre, (b) avslå kravet, eller (c) frafalle pålegget.</p>
-                        <p><strong>§5</strong> – Påberopelse: Byggherren må påberope at varselet er for sent skriftlig uten ugrunnet opphold.</p>
-                      </div>
-                    }
-                    side="right"
-                  >
-                    <button type="button" className="text-pkt-text-body-muted hover:text-pkt-text-body-default">
-                      <InfoCircledIcon className="w-4 h-4" />
-                    </button>
-                  </Tooltip>
-                </div>
+          {/* Response panel — scroll container with sticky footer */}
+          <div className={hideContextPanel ? 'max-h-[70vh] overflow-y-auto' : 'md:col-span-7 max-h-[70vh] overflow-y-auto'}>
+            <div className="space-y-5">
+              {/* Inline controls — only when NOT managed by MasterCard */}
+              {!hideContextPanel && (
+                <>
+                  {/* §32.2 Varselvurdering — compact inline toggle */}
+                  {erEndringMed32_2 && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-medium text-pkt-text-body-default">
+                        Varslet i tide?
+                      </span>
+                      <Tooltip
+                        content={
+                          <div className="max-w-sm text-xs space-y-2">
+                            <p><strong>§32.2</strong> – Entreprenørens varslingsplikt: Mottar totalentreprenøren pålegg uten endringsordre og mener det utgjør en endring, må han varsle byggherren skriftlig uten ugrunnet opphold.</p>
+                            <p><strong>§32.3</strong> – Byggherrens svarplikt: Mottar byggherren varsel etter §32.2, skal han besvare det uten ugrunnet opphold ved å (a) utstede endringsordre, (b) avslå kravet, eller (c) frafalle pålegget.</p>
+                            <p><strong>§5</strong> – Påberopelse: Byggherren må påberope at varselet er for sent skriftlig uten ugrunnet opphold.</p>
+                          </div>
+                        }
+                        side="right"
+                      >
+                        <button type="button" className="text-pkt-text-body-muted hover:text-pkt-text-body-default">
+                          <InfoCircledIcon className="w-3.5 h-3.5" />
+                        </button>
+                      </Tooltip>
+                      <Controller
+                        name="grunnlag_varslet_i_tide"
+                        control={control}
+                        render={({ field }) => (
+                          <div className="flex gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => field.onChange(true)}
+                              className={clsx(
+                                'flex items-center gap-1 px-2.5 py-1 rounded-md border text-xs font-medium transition-all cursor-pointer',
+                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pkt-border-focus',
+                                field.value === true
+                                  ? 'border-pkt-brand-dark-green-1000 bg-pkt-brand-dark-green-1000/5 text-pkt-brand-dark-green-1000'
+                                  : 'border-pkt-border-default bg-pkt-bg-subtle text-pkt-text-body-default',
+                                field.value !== undefined && field.value !== true && 'opacity-50',
+                              )}
+                            >
+                              <CheckIcon className="w-3.5 h-3.5" />
+                              Ja
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => field.onChange(false)}
+                              className={clsx(
+                                'flex items-center gap-1 px-2.5 py-1 rounded-md border text-xs font-medium transition-all cursor-pointer',
+                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pkt-border-focus',
+                                field.value === false
+                                  ? 'border-pkt-brand-red-1000 bg-pkt-brand-red-1000/5 text-pkt-brand-red-1000'
+                                  : 'border-pkt-border-default bg-pkt-bg-subtle text-pkt-text-body-default',
+                                field.value !== undefined && field.value !== false && 'opacity-50',
+                              )}
+                            >
+                              <Cross2Icon className="w-3.5 h-3.5" />
+                              Nei
+                            </button>
+                          </div>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {/* Verdict cards */}
+                  <div>
+                    <p className="text-xs font-medium text-pkt-text-body-default mb-2">
+                      {erGrunnlagPrekludert ? 'Ditt svar (subsidiært)' : 'Ditt svar'}
+                    </p>
+                    <Controller
+                      name="resultat"
+                      control={control}
+                      render={({ field }) => (
+                        <VerdictCards
+                          value={field.value}
+                          onChange={field.onChange}
+                          error={!!errors.resultat}
+                          options={verdictOptions}
+                        />
+                      )}
+                    />
+                    {errors.resultat && (
+                      <p className="text-xs text-pkt-brand-red-1000 mt-1">{errors.resultat.message}</p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Passivitetsvarsel (>10 dager) */}
+              {erPassiv && (
+                <Alert variant="danger" size="sm" title="Passivitetsrisiko (§32.3)">
+                  Du har brukt <strong>{dagerSidenVarsel} dager</strong> på å svare.
+                  Passivitet kan medføre at forholdet anses som en endring.
+                </Alert>
+              )}
+
+              {/* Validation error when resultat is managed by MasterCard */}
+              {hideContextPanel && errors.resultat && (
+                <Alert variant="danger" size="sm">
+                  Velg resultat i kortet til venstre
+                </Alert>
+              )}
+
+              {/* Consequence callout — single dynamic alert */}
+              {consequence && (
+                <Alert variant={consequence.variant} size="sm">
+                  {consequence.text}
+                  {consequence.snuoperasjonText && (
+                    <p className="mt-2 font-medium">{consequence.snuoperasjonText}</p>
+                  )}
+                </Alert>
+              )}
+
+              {/* Begrunnelse — always visible, no tab switch */}
+              <FormField
+                label="Byggherrens begrunnelse"
+                required
+                error={errors.begrunnelse?.message}
+              >
                 <Controller
-                  name="grunnlag_varslet_i_tide"
+                  name="begrunnelse"
                   control={control}
                   render={({ field }) => (
-                    <RadioGroup
-                      value={field.value === undefined ? undefined : field.value ? 'ja' : 'nei'}
-                      onValueChange={(val: string) => field.onChange(val === 'ja')}
-                    >
-                      <RadioItem value="ja" label="Ja — varslet uten ugrunnet opphold" />
-                      <RadioItem value="nei" label="Nei — varslet for sent (preklusjon)" />
-                    </RadioGroup>
+                    <RichTextEditor
+                      id="begrunnelse"
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      minHeight={280}
+                      fullWidth
+                      error={!!errors.begrunnelse}
+                      placeholder={dynamicPlaceholder}
+                    />
                   )}
                 />
-              </div>
-            )}
+              </FormField>
 
-            {/* Passivitetsvarsel (>10 dager) */}
-            {erPassiv && (
-              <Alert variant="danger" size="sm" title="Passivitetsrisiko (§32.3)">
-                Du har brukt <strong>{dagerSidenVarsel} dager</strong> på å svare.
-                Passivitet kan medføre at forholdet anses som en endring.
-              </Alert>
-            )}
-
-            {/* Verdict cards */}
-            <div>
-              <p className="text-sm font-medium text-pkt-text-body-default mb-2">
-                {erGrunnlagPrekludert ? 'Ditt svar (subsidiært)' : 'Ditt svar'}
-              </p>
-              <Controller
-                name="resultat"
-                control={control}
-                render={({ field }) => (
-                  <VerdictCards
-                    value={field.value}
-                    onChange={field.onChange}
-                    error={!!errors.resultat}
-                    options={verdictOptions}
-                  />
-                )}
-              />
-              {errors.resultat && (
-                <p className="text-sm text-pkt-brand-red-1000 mt-1">{errors.resultat.message}</p>
+              {/* Error */}
+              {mutation.isError && (
+                <Alert variant="danger" title="Feil ved innsending">
+                  {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
+                </Alert>
               )}
             </div>
 
-            {/* Consequence callout — single dynamic alert */}
-            {consequence && (
-              <Alert variant={consequence.variant} size="sm">
-                {consequence.text}
-                {consequence.snuoperasjonText && (
-                  <p className="mt-2 font-medium">{consequence.snuoperasjonText}</p>
-                )}
-              </Alert>
-            )}
+            {/* Footer — sticky at bottom of scroll container */}
+            <div className="sticky bottom-0 bg-pkt-bg-subtle pt-1">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 pt-4 pb-1 border-t-2 border-pkt-border-subtle">
+                {/* Left: Tilbakestill (update mode only) */}
+                <div>
+                  {isUpdateMode && isDirty && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleReset}
+                      disabled={isSubmitting}
+                    >
+                      Tilbakestill
+                    </Button>
+                  )}
+                </div>
 
-            {/* Begrunnelse — always visible, no tab switch */}
-            <FormField
-              label="Byggherrens begrunnelse"
-              required
-              error={errors.begrunnelse?.message}
-            >
-              <Controller
-                name="begrunnelse"
-                control={control}
-                render={({ field }) => (
-                  <RichTextEditor
-                    id="begrunnelse"
-                    value={field.value ?? ''}
-                    onChange={field.onChange}
-                    minHeight={280}
-                    fullWidth
-                    error={!!errors.begrunnelse}
-                    placeholder={dynamicPlaceholder}
-                  />
-                )}
-              />
-            </FormField>
-
-            {/* Error */}
-            {mutation.isError && (
-              <Alert variant="danger" title="Feil ved innsending">
-                {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
-              </Alert>
-            )}
-
-            {/* Footer */}
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 pt-6 border-t-2 border-pkt-border-subtle">
-              {/* Left: Tilbakestill (update mode only) */}
-              <div>
-                {isUpdateMode && isDirty && (
+                {/* Right: Avbryt + Submit */}
+                <div className="flex flex-col-reverse sm:flex-row gap-3">
                   <Button
                     type="button"
                     variant="ghost"
-                    size="sm"
-                    onClick={handleReset}
+                    onClick={onCancel}
                     disabled={isSubmitting}
-                  >
-                    Tilbakestill
-                  </Button>
-                )}
-              </div>
-
-              {/* Right: Avbryt + Submit */}
-              <div className="flex flex-col-reverse sm:flex-row gap-3">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={onCancel}
-                  disabled={isSubmitting}
-                  className="w-full sm:w-auto"
-                >
-                  Avbryt
-                </Button>
-
-                {approvalEnabled ? (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    loading={isSubmitting}
                     className="w-full sm:w-auto"
-                    onClick={handleSubmit(handleSaveDraft)}
-                    data-testid="respond-grunnlag-submit"
                   >
-                    Lagre utkast
+                    Avbryt
                   </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    variant={selectedResultat === 'avslatt' || erGrunnlagPrekludert ? 'danger' : 'primary'}
-                    loading={isSubmitting}
-                    className="w-full sm:w-auto"
-                    data-testid="respond-grunnlag-submit"
-                  >
-                    {isUpdateMode
-                      ? (erSnuoperasjon ? 'Godkjenn ansvarsgrunnlag' : 'Lagre endring')
-                      : 'Send svar'}
-                  </Button>
-                )}
+
+                  {approvalEnabled ? (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      loading={isSubmitting}
+                      className="w-full sm:w-auto"
+                      onClick={handleSubmit(handleSaveDraft)}
+                      data-testid="respond-grunnlag-submit"
+                    >
+                      Lagre utkast
+                    </Button>
+                  ) : (
+                    <Button
+                      type="submit"
+                      variant={selectedResultat === 'avslatt' || erGrunnlagPrekludert ? 'danger' : 'primary'}
+                      loading={isSubmitting}
+                      className="w-full sm:w-auto"
+                      data-testid="respond-grunnlag-submit"
+                    >
+                      {isUpdateMode
+                        ? (erSnuoperasjon ? 'Godkjenn ansvarsgrunnlag' : 'Lagre endring')
+                        : 'Send svar'}
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

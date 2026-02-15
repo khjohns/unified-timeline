@@ -15,44 +15,73 @@ Samme komposisjonsmodell som SaksoversiktPage: alt er tiles i et flat 12-kolonne
 
 ## Sidelayout
 
-### Normal-modus
+### Designprinsipp: Semantisk hierarki
+
+Grunnlag er ikke et "spor" på linje med Vederlag og Frist. Grunnlag er *hjemmelen* —
+den juridiske begrunnelsen (§25.2) som Vederlag og Frist henger på. Layouten
+reflekterer dette ved å løfte Grunnlag opp til kontekst-nivå.
+
+### Normal-modus (v2 — hierarkisk layout)
 
 ```
 Row 0: ← Tilbake til saksoversikt                          (breadcrumb, ikke tile)
 
-Row 1: CaseIdentityTile                                    (col-12)
-       KOE-2024-042
-       Grunnforhold avviker fra beskrivelse
-       ● Pågår   │   Veidekke (TE) → Oslobygg (BH)   │   Endring
-       Krevd: 1 200 000 kr · 45 dager     Godkjent: 800 000 kr · 30 dager
+Row 1: CaseIdentityTile(5)  GrunnlagTile(4)  ActivityCard(3)
+       KOE-2024-042          §25.2 Endring     ⚡ Siste
+       Grunnforhold...        ● Godkjent        · Grunnlag 2t
+       Veidekke → Oslo        Stepper           · Vederlag 3d
+       Krevd/Godkjent         [Handling]        · Frist venter
 
-Row 2: CaseActivityStripTile                                (col-12)
-       ⚡ Grunnlag godkjent · 2t    Vederlag sendt · 3d    Frist · vent
-
-Row 3: TrackTile(grunnlag)  TrackTile(vederlag)  TrackTile(frist)   (3 × col-4)
-       Hver med: stepper, status, sammendrag, [▾ Historikk], [Handling]
+Row 2: VederlagTile(6)                    FristTile(6)
+       §34 · Krav sendt                    §33 · Venter
+       Stepper                             Stepper
+       1 200 000 kr                        45 dager
+       [Send krav]                         [Send krav]
 ```
 
-### Utvidet-modus (skjema åpent)
+Grunnlag + Identity + Aktivitet danner en "kontekst-rad" — alt du trenger for å forstå saken.
+Vederlag + Frist er "krav-raden" — de to tingene som kreves.
+Ingen dependency-piler nødvendig — hierarkiet er visuelt tydelig.
+
+### Utvidet-modus (skjema åpent, f.eks. Vederlag)
 
 ```
-Row 3: TrackTile i skjema-modus                             (col-12)
+Row 1: CaseIdentityTile(5)  GrunnlagTile(4)  ActivityCard(3)     (uendret)
+
+Row 2: VederlagTile i skjema-modus                                (col-12)
        Fullt skjema rendret inline
-                                        [Avbryt] [Send →]
+                                              [Avbryt] [Send →]
 
-Row 4: TrackTile(nabo1)         TrackTile(nabo2)            (col-6 + col-6)
-       Uendret innhold
+Row 3: FristTile                                                  (col-12)
+```
+
+Ved Grunnlag expand:
+```
+Row 1: CaseIdentityTile(5)  GrunnlagTile i skjema-modus(7)       (identity + utvidet)
+
+Row 1b: ActivityCard(12) -- eller skjules midlertidig
+
+Row 2: VederlagTile(6)                    FristTile(6)            (uendret)
 ```
 
 ### Mobil (< md)
 
 - Alle tiles stacker `col-span-12`
-- ActivityStrip: horisontal scroll
-- Utvidet: skjemakort øverst, de to andre under
+- Rekkefølge: Identity → Grunnlag → Aktivitet → Vederlag → Frist
+- Utvidet: skjemakort der det er, resten under
 
 ### Forsering/EO-bannere
 
 Beholdes som tynne varsler over CaseIdentityTile ved behov (uendret).
+
+### Kortstil — "bento-stil"
+
+Sporkortene skal ha visuell stil som matcher saksoversikt-tiles:
+- Store tall (beløp, dager) prominent med mono font
+- Status-badge visuelt fremtredende
+- Stepper som visuelt element
+- Mindre tekst, mer visuelt hierarki
+- Ikke InlineDataList-skjema-stil
 
 ## Utvid-i-kort-mønsteret
 
@@ -88,7 +117,7 @@ RespondVederlag og RespondFrist beholder modal fordi de er komplekse (4-port wiz
 | Komponent | Ansvar |
 |-----------|--------|
 | `CaseIdentityTile` | Saks-ID, tittel, status, parter, beløp/frist |
-| `CaseActivityStripTile` | Siste hendelse per spor med relativ tid |
+| `CaseActivityCard` | Siste hendelse per spor, kompakt kort (ikke stripe) |
 | `TrackTile` | Generisk sporkort (stepper, status, sammendrag, historikk, handlinger) |
 | `TrackFormView` | Wrapper som rendrer skjema inne i utvidet kort |
 
@@ -98,7 +127,7 @@ RespondVederlag og RespondFrist beholder modal fordi de er komplekse (4-port wiz
 |-------------|----------|
 | `BentoCard` | Wrapper for alle tiles (uendret) |
 | `BentoDashboardCard` | Basis for TrackTile (rolle, dim, subsidiary) |
-| `TrackStepper`, `TrackNextStep`, `DependencyIndicator` | Fra V2, brukes i TrackTile |
+| `TrackStepper`, `TrackNextStep` | Fra V2, brukes i TrackTile (DependencyIndicator fjernes) |
 | Skjemainnhold fra modaler | Extraheres - Modal-wrapper erstattes med TrackFormView |
 
 ### Skjema-ekstraksjon

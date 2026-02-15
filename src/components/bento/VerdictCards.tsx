@@ -44,9 +44,9 @@ export function VerdictCards({ value, onChange, options, error }: VerdictCardsPr
     <div
       data-verdict-cards
       className={clsx(
-        'grid gap-3',
+        'grid gap-2',
         options.length === 2 ? 'grid-cols-2' : 'grid-cols-3',
-        error && !hasSelection && 'ring-2 ring-pkt-brand-red-1000/30 rounded-lg p-1',
+        error && !hasSelection && 'ring-2 ring-pkt-brand-red-1000/30 rounded-md p-1',
       )}
     >
       {options.map((option) => {
@@ -62,9 +62,9 @@ export function VerdictCards({ value, onChange, options, error }: VerdictCardsPr
             data-selected={isSelected ? 'true' : 'false'}
             onClick={() => onChange(option.value)}
             className={clsx(
-              'flex flex-col items-start p-4 rounded-lg border-2 text-left',
+              'flex items-center gap-2 px-3 py-2 rounded-md border text-left',
               'transition-all duration-150 cursor-pointer',
-              'hover:scale-[1.01] hover:shadow-sm',
+              'hover:shadow-sm',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pkt-border-focus',
               isSelected
                 ? colors.selected
@@ -72,13 +72,15 @@ export function VerdictCards({ value, onChange, options, error }: VerdictCardsPr
               hasSelection && !isSelected && 'opacity-50',
             )}
           >
-            <Icon className={clsx('w-5 h-5 mb-2', isSelected ? colors.icon : 'text-pkt-text-body-muted')} />
-            <span className={clsx('text-sm font-semibold', isSelected ? 'text-pkt-text-body-dark' : 'text-pkt-text-body-default')}>
-              {option.label}
-            </span>
-            <span className="text-[11px] text-pkt-text-body-subtle mt-1 leading-tight">
-              {option.description}
-            </span>
+            <Icon className={clsx('w-4 h-4 shrink-0', isSelected ? colors.icon : 'text-pkt-text-body-muted')} />
+            <div className="min-w-0">
+              <span className={clsx('text-xs font-semibold', isSelected ? 'text-pkt-text-body-dark' : 'text-pkt-text-body-default')}>
+                {option.label}
+              </span>
+              <span className="block text-[10px] text-pkt-text-body-subtle leading-tight truncate">
+                {option.description}
+              </span>
+            </div>
           </button>
         );
       })}

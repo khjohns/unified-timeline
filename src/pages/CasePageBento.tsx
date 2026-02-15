@@ -33,7 +33,7 @@ import { downloadApprovedPdf } from '../pdf/generator';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
 import { MockToolbar } from '../components/MockToolbar';
-import { BentoBreadcrumb, CaseMasterCard, BimCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag } from '../components/bento';
+import { BentoBreadcrumb, CaseMasterCard, BimCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag, type VerdictOption } from '../components/bento';
 import {
   ApprovePakkeModal,
   SendResponsPakkeModal,
@@ -289,6 +289,59 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
   // Grunnlag entries needed by BentoRespondGrunnlag inside renderExpandedForm
   const grunnlagEntries = useMemo(() => transformGrunnlagHistorikk(grunnlagHistorikk), [grunnlagHistorikk]);
 
+  // ===== INLINE FORM CONTROLS (varslet + verdict) for MasterCard =====
+  const [formVarsletITide, setFormVarsletITide] = useState<boolean | undefined>(true);
+  const [formResultat, setFormResultat] = useState<string | undefined>();
+  const [formResultatError, setFormResultatError] = useState(false);
+
+  // Reset inline form state when grunnlag form opens/closes
+  const isGrunnlagFormOpen = expandedTrack?.track === 'grunnlag' &&
+    (expandedTrack.action === 'respond' || expandedTrack.action === 'updateResponse');
+
+  useEffect(() => {
+    if (isGrunnlagFormOpen) {
+      setFormVarsletITide(true);
+      setFormResultat(
+        expandedTrack?.action === 'updateResponse'
+          ? (state.grunnlag.bh_resultat || undefined)
+          : undefined,
+      );
+      setFormResultatError(false);
+    }
+  }, [isGrunnlagFormOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Clear error when resultat is selected
+  useEffect(() => {
+    if (formResultat) setFormResultatError(false);
+  }, [formResultat]);
+
+  // Verdict options for MasterCard
+  const grunnlagVerdictOptions = useMemo((): VerdictOption[] | undefined => {
+    if (!isGrunnlagFormOpen) return undefined;
+    const ukCode = Array.isArray(state.grunnlag.underkategori)
+      ? state.grunnlag.underkategori[0]
+      : state.grunnlag.underkategori;
+    const erPaalegg = state.grunnlag.hovedkategori === 'ENDRING' &&
+      (ukCode === 'IRREG' || ukCode === 'VALGRETT');
+    const opts: VerdictOption[] = [
+      { value: 'godkjent', label: 'Godkjent', description: 'Grunnlag anerkjent', icon: 'check', colorScheme: 'green' },
+      { value: 'avslatt', label: 'Avslått', description: 'Grunnlag avvist', icon: 'cross', colorScheme: 'red' },
+    ];
+    if (erPaalegg) {
+      opts.push({ value: 'frafalt', label: 'Frafalt', description: 'Pålegget frafalles', icon: 'undo', colorScheme: 'gray' });
+    }
+    return opts;
+  }, [isGrunnlagFormOpen, state.grunnlag.hovedkategori, state.grunnlag.underkategori]);
+
+  // Whether to show varslet toggle (ENDRING except EO)
+  const showVarsletToggle = useMemo(() => {
+    if (!isGrunnlagFormOpen) return false;
+    const ukCode = Array.isArray(state.grunnlag.underkategori)
+      ? state.grunnlag.underkategori[0]
+      : state.grunnlag.underkategori;
+    return state.grunnlag.hovedkategori === 'ENDRING' && ukCode !== 'EO';
+  }, [isGrunnlagFormOpen, state.grunnlag.hovedkategori, state.grunnlag.underkategori]);
+
   // ===== EXPANDED FORM RENDERER =====
   const renderExpandedForm = useCallback(() => {
     if (!expandedTrack || !sakId) return null;
@@ -334,6 +387,8 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             }}
             grunnlagEntries={grunnlagEntries}
             hideContextPanel
+            externalVarsletITide={formVarsletITide}
+            externalResultat={formResultat}
             onSuccess={onSuccess}
             onCancel={onCancel}
             onCatendaWarning={onCatendaWarning}
@@ -360,6 +415,8 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             sakState={state}
             grunnlagEntries={grunnlagEntries}
             hideContextPanel
+            externalVarsletITide={formVarsletITide}
+            externalResultat={formResultat}
             onSuccess={onSuccess}
             onCancel={onCancel}
             onCatendaWarning={onCatendaWarning}
@@ -475,7 +532,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       default:
         return null;
     }
-  }, [expandedTrack, sakId, state, grunnlagStatus, approvalWorkflow, modals.catendaWarning, handleCollapseTrack, grunnlagEntries]);
+  }, [expandedTrack, sakId, state, grunnlagStatus, approvalWorkflow, modals.catendaWarning, handleCollapseTrack, grunnlagEntries, formVarsletITide, formResultat]);
 
   // ===== TRACK FORM VIEW METADATA =====
   const getTrackFormMeta = useCallback((expanded: { track: string; action: string }) => {
@@ -741,6 +798,13 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
               primaryAction={grunnlagPrimaryAction}
               secondaryActions={grunnlagSecondaryActions}
               isGrunnlagFormExpanded={expandedTrack?.track === 'grunnlag'}
+              formVarsletITide={formVarsletITide}
+              onFormVarsletITideChange={setFormVarsletITide}
+              formResultat={formResultat}
+              onFormResultatChange={setFormResultat}
+              formResultatError={formResultatError}
+              verdictOptions={grunnlagVerdictOptions}
+              showVarsletToggle={showVarsletToggle}
               className="animate-fade-in-up"
             />
             {!expandedTrack && (
