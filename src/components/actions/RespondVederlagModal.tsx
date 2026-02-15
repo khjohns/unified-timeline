@@ -66,19 +66,34 @@ import {
   type VederlagsMetode,
 } from '../../constants';
 import { differenceInDays } from 'date-fns';
-import type { SubsidiaerTrigger } from '../../types/timeline';
+// SubsidiaerTrigger type now handled internally by vederlagDomain
 import {
   generateVederlagResponseBegrunnelse,
   type VederlagResponseInput,
 } from '../../utils/begrunnelseGenerator';
 import { getResultatLabel } from '../../utils/formatters';
+import {
+  type BelopVurdering,
+  beregnGodkjentBelop as domainBeregnGodkjentBelop,
+  getVurderingBadge as domainGetVurderingBadge,
+  beregnPrinsipaltResultat as domainBeregnPrinsipaltResultat,
+  beregnSubsidiaertResultat as domainBeregnSubsidiaertResultat,
+  beregnTotaler,
+  beregnSubsidiaerTriggers,
+  har34_1_2Preklusjon,
+  erHelVederlagSubsidiaerPgaGrunnlag as domainErHelVederlagSubsidiaerPgaGrunnlag,
+  harPreklusjonsSteg as domainHarPreklusjonsSteg,
+  kanHoldeTilbake as domainKanHoldeTilbake,
+  maSvarePaJustering as domainMaSvarePaJustering,
+  buildEventData,
+  type VederlagDomainConfig,
+} from '../../domain/vederlagDomain';
 
 // ============================================================================
 // TYPES & INTERFACES
 // ============================================================================
 
-// Vurdering options for beløp
-type BelopVurdering = 'godkjent' | 'delvis' | 'avslatt';
+// BelopVurdering imported from vederlagDomain
 
 // Særskilt krav item structure (§34.1.3)
 interface SaerskiltKravItem {
@@ -201,54 +216,15 @@ type RespondVederlagFormData = z.infer<typeof respondVederlagSchema>;
 // HELPER FUNCTIONS
 // ============================================================================
 
-/**
- * Get status badge variant and label for a vurdering
- * Centralizes the repeated badge logic used throughout the component
- */
-function getVurderingBadge(
-  vurdering: BelopVurdering | undefined,
-  prekludert?: boolean
-): { variant: 'success' | 'warning' | 'danger'; label: string } {
-  if (prekludert) {
-    return { variant: 'danger', label: 'Prekludert' };
-  }
-  switch (vurdering) {
-    case 'godkjent':
-      return { variant: 'success', label: 'Godkjent' };
-    case 'delvis':
-      return { variant: 'warning', label: 'Delvis' };
-    case 'avslatt':
-    default:
-      return { variant: 'danger', label: 'Avvist' };
-  }
-}
+// getVurderingBadge and beregnGodkjentBelop: delegated to vederlagDomain
+const getVurderingBadge = domainGetVurderingBadge;
+const beregnGodkjentBelop = domainBeregnGodkjentBelop;
 
-/**
- * Calculate approved amount for a krav based on vurdering
- */
-function beregnGodkjentBelop(
-  vurdering: BelopVurdering | undefined,
-  krevdBelop: number,
-  delvisGodkjentBelop: number | undefined,
-  prekludert?: boolean
-): number {
-  if (prekludert) return 0;
-  switch (vurdering) {
-    case 'godkjent':
-      return krevdBelop;
-    case 'delvis':
-      return delvisGodkjentBelop ?? 0;
-    default:
-      return 0;
-  }
-}
+// beregnPrinsipaltResultat and beregnSubsidiaertResultat: delegated to vederlagDomain
+// Thin wrappers kept for backward compatibility with component's usage pattern.
 
-/**
- * Calculate principal result based on wizard inputs (respects preclusion)
- * Following NS 8407 logic from Datasett_varslingsregler_8407.py
- */
 function beregnPrinsipaltResultat(
-  data: Partial<RespondVederlagFormData>,
+  _data: Partial<RespondVederlagFormData>,
   computed: {
     totalKrevdInklPrekludert: number;
     totalGodkjent: number;
@@ -256,58 +232,21 @@ function beregnPrinsipaltResultat(
     holdTilbake: boolean;
   }
 ): string {
-  // 1. Tilbakeholdelse (§30.2) has priority
-  if (computed.holdTilbake) {
-    return 'hold_tilbake';
-  }
-
-  // 2. Calculate approval percentage (relative to total claimed, not just eligible)
-  const godkjentProsent =
-    computed.totalKrevdInklPrekludert > 0 ? computed.totalGodkjent / computed.totalKrevdInklPrekludert : 0;
-
-  // 3. Total rejection - if nothing is approved principally (regardless of reason)
-  if (computed.totalGodkjent === 0) {
-    return 'avslatt';
-  }
-
-  // 4. Full approval
-  if (godkjentProsent >= 0.99 && !computed.harMetodeendring) {
-    return 'godkjent';
-  }
-
-  // 5. Method change or partial approval
-  return 'delvis_godkjent';
+  return domainBeregnPrinsipaltResultat(computed);
 }
 
-/**
- * Calculate subsidiary result (ignores preclusion, evaluates all amounts)
- * Used when særskilte krav are precluded but BH still evaluates subsidiarily
- */
 function beregnSubsidiaertResultat(
-  data: Partial<RespondVederlagFormData>,
+  _data: Partial<RespondVederlagFormData>,
   computed: {
     totalKrevdInklPrekludert: number;
     totalGodkjentInklPrekludert: number;
     harMetodeendring: boolean;
   }
 ): string {
-  const godkjentProsent =
-    computed.totalKrevdInklPrekludert > 0
-      ? computed.totalGodkjentInklPrekludert / computed.totalKrevdInklPrekludert
-      : 0;
-
-  // Total rejection
-  if (godkjentProsent === 0 && data.hovedkrav_vurdering === 'avslatt') {
-    return 'avslatt';
-  }
-
-  // Full approval
-  if (godkjentProsent >= 0.99 && !computed.harMetodeendring) {
-    return 'godkjent';
-  }
-
-  // Method change or partial approval
-  return 'delvis_godkjent';
+  return domainBeregnSubsidiaertResultat({
+    ...computed,
+    hovedkravVurdering: (_data.hovedkrav_vurdering as BelopVurdering) ?? 'godkjent',
+  });
 }
 
 
@@ -349,19 +288,29 @@ export function RespondVederlagModal({
   const harProduktivitetKrav = (vederlagEvent?.saerskilt_krav?.produktivitet?.belop ?? 0) > 0;
   const harSaerskiltKrav = harRiggKrav || harProduktivitetKrav;
 
-  // §34.1.2 preklusjon gjelder KUN for SVIKT/ANDRE kategorier
-  // IKKE for ENDRING med §32.2-preklusjon - da er hele vederlagskravet automatisk subsidiært
-  const har34_1_2_Preklusjon = hovedkategori === 'SVIKT' || hovedkategori === 'ANDRE';
+  // Domain config for vederlagDomain functions
+  const domainConfig: VederlagDomainConfig = useMemo(() => ({
+    metode: vederlagEvent?.metode,
+    hovedkravBelop: vederlagEvent?.metode === 'REGNINGSARBEID'
+      ? (vederlagEvent?.kostnads_overslag ?? 0)
+      : (vederlagEvent?.belop_direkte ?? 0),
+    riggBelop: vederlagEvent?.saerskilt_krav?.rigg_drift?.belop,
+    produktivitetBelop: vederlagEvent?.saerskilt_krav?.produktivitet?.belop,
+    harRiggKrav,
+    harProduktivitetKrav,
+    kreverJustertEp: vederlagEvent?.krever_justert_ep ?? false,
+    kostnadsOverslag: vederlagEvent?.kostnads_overslag,
+    hovedkategori,
+    grunnlagVarsletForSent: grunnlagVarsletForSent ?? false,
+    grunnlagStatus,
+  }), [vederlagEvent, harRiggKrav, harProduktivitetKrav, hovedkategori, grunnlagVarsletForSent, grunnlagStatus]);
 
-  // §32.2: Når BH har påberopt at grunnlagsvarselet kom for sent (ENDRING-kategori),
-  // er hele vederlagskravet automatisk subsidiært - ikke bare varslingen.
-  // BH tar da stilling til beløpet subsidiært (for tilfellet at preklusjonen ikke holder).
-  const erHelVederlagSubsidiaerPgaGrunnlag =
-    hovedkategori === 'ENDRING' && grunnlagVarsletForSent === true;
+  // Preclusion checks — delegated to vederlagDomain
+  const har34_1_2_Preklusjon = har34_1_2Preklusjon(domainConfig);
+  const erHelVederlagSubsidiaerPgaGrunnlag = domainErHelVederlagSubsidiaerPgaGrunnlag(domainConfig);
 
-  // Calculate total ports (5 with preklusjon-steg, 4 without)
-  // Preklusjon-steg vises når: harSaerskiltKrav ELLER har34_1_2_Preklusjon
-  const harPreklusjonsSteg = harSaerskiltKrav || har34_1_2_Preklusjon;
+  // Calculate total ports (4 with preklusjon-steg, 3 without)
+  const harPreklusjonsSteg = domainHarPreklusjonsSteg(domainConfig);
   const startPort = 1;
   const totalPorts = harPreklusjonsSteg ? 4 : 3;
 
@@ -496,16 +445,10 @@ export function RespondVederlagModal({
   // Watch all form values for conditional rendering and calculations
   const formValues = watch();
 
-  // Derived state
-  // Vederlag behandles subsidiært når:
-  // 1. Grunnlag er avslått av BH (grunnlagStatus === 'avslatt'), ELLER
-  // 2. Grunnlag er prekludert pga §32.2 (erHelVederlagSubsidiaerPgaGrunnlag)
-  // Se: backend/models/sak_state.py for fullstendig beregning.
+  // Derived state — delegated to vederlagDomain
   const erSubsidiaer = grunnlagStatus === 'avslatt' || erHelVederlagSubsidiaerPgaGrunnlag;
-  const kanHoldeTilbake =
-    vederlagEvent?.metode === 'REGNINGSARBEID' && !vederlagEvent?.kostnads_overslag;
-  const maSvarePaJustering =
-    vederlagEvent?.metode === 'ENHETSPRISER' && vederlagEvent?.krever_justert_ep;
+  const kanHoldeTilbake = domainKanHoldeTilbake(domainConfig);
+  const maSvarePaJustering = domainMaSvarePaJustering(domainConfig);
   const erFastprisTilbud = vederlagEvent?.metode === 'FASTPRIS_TILBUD';
 
   // Get amounts for display
@@ -541,107 +484,38 @@ export function RespondVederlagModal({
     : 0;
   const bhSvarpliktAdvarsel = dagerSidenKrav > 5;
 
-  // Check if hovedkrav is precluded (§34.1.2 - kun SVIKT/ANDRE)
+  // Preclusion checks — delegated to vederlagDomain
   const hovedkravPrekludert = har34_1_2_Preklusjon && formValues.hovedkrav_varslet_i_tide === false;
-
-  // Check if særskilte krav are precluded
   const riggPrekludert = harRiggKrav && formValues.rigg_varslet_i_tide === false;
   const produktivitetPrekludert =
     harProduktivitetKrav && formValues.produktivitet_varslet_i_tide === false;
 
-  // Calculate totals for automatic result (both principal and subsidiary)
+  // Calculate totals — delegated to vederlagDomain.beregnTotaler
   const computed = useMemo(() => {
-    // Principal totals (respects preclusion)
-    const totalKrevd =
-      (hovedkravBelop || 0) +
-      (harRiggKrav && !riggPrekludert ? riggBelop || 0 : 0) +
-      (harProduktivitetKrav && !produktivitetPrekludert ? produktivitetBelop || 0 : 0);
-
-    // Total krevd including precluded (for subsidiary calculation)
-    const totalKrevdInklPrekludert =
-      (hovedkravBelop || 0) +
-      (harRiggKrav ? riggBelop || 0 : 0) +
-      (harProduktivitetKrav ? produktivitetBelop || 0 : 0);
-
-    // Principal godkjent (respects preclusion)
-    let totalGodkjent = 0;
-
-    // Hovedkrav (kun hvis ikke prekludert per §34.1.2 - prinsipalt)
-    if (!hovedkravPrekludert) {
-      if (formValues.hovedkrav_vurdering === 'godkjent') {
-        totalGodkjent += hovedkravBelop || 0;
-      } else if (formValues.hovedkrav_vurdering === 'delvis') {
-        totalGodkjent += formValues.hovedkrav_godkjent_belop || 0;
-      }
-    }
-
-    // Rigg (kun hvis ikke prekludert - prinsipalt)
-    if (harRiggKrav && !riggPrekludert) {
-      if (formValues.rigg_vurdering === 'godkjent') {
-        totalGodkjent += riggBelop || 0;
-      } else if (formValues.rigg_vurdering === 'delvis') {
-        totalGodkjent += formValues.rigg_godkjent_belop || 0;
-      }
-    }
-
-    // Produktivitet (kun hvis ikke prekludert - prinsipalt)
-    if (harProduktivitetKrav && !produktivitetPrekludert) {
-      if (formValues.produktivitet_vurdering === 'godkjent') {
-        totalGodkjent += produktivitetBelop || 0;
-      } else if (formValues.produktivitet_vurdering === 'delvis') {
-        totalGodkjent += formValues.produktivitet_godkjent_belop || 0;
-      }
-    }
-
-    // Subsidiary godkjent (includes precluded krav evaluations)
-    let totalGodkjentInklPrekludert = totalGodkjent;
-
-    // Add precluded hovedkrav (subsidiært - §34.1.2)
-    if (hovedkravPrekludert) {
-      if (formValues.hovedkrav_vurdering === 'godkjent') {
-        totalGodkjentInklPrekludert += hovedkravBelop || 0;
-      } else if (formValues.hovedkrav_vurdering === 'delvis') {
-        totalGodkjentInklPrekludert += formValues.hovedkrav_godkjent_belop || 0;
-      }
-    }
-
-    // Add precluded rigg (subsidiært)
-    if (harRiggKrav && riggPrekludert) {
-      if (formValues.rigg_vurdering === 'godkjent') {
-        totalGodkjentInklPrekludert += riggBelop || 0;
-      } else if (formValues.rigg_vurdering === 'delvis') {
-        totalGodkjentInklPrekludert += formValues.rigg_godkjent_belop || 0;
-      }
-    }
-
-    // Add precluded produktivitet (subsidiært)
-    if (harProduktivitetKrav && produktivitetPrekludert) {
-      if (formValues.produktivitet_vurdering === 'godkjent') {
-        totalGodkjentInklPrekludert += produktivitetBelop || 0;
-      } else if (formValues.produktivitet_vurdering === 'delvis') {
-        totalGodkjentInklPrekludert += formValues.produktivitet_godkjent_belop || 0;
-      }
-    }
-
-    return {
-      totalKrevd,
-      totalGodkjent,
-      totalKrevdInklPrekludert,
-      totalGodkjentInklPrekludert,
-      harMetodeendring: !formValues.aksepterer_metode,
-      holdTilbake: formValues.hold_tilbake === true,
-      harPrekludertKrav: hovedkravPrekludert || riggPrekludert || produktivitetPrekludert,
+    const formState = {
+      hovedkravVarsletITide: formValues.hovedkrav_varslet_i_tide ?? true,
+      riggVarsletITide: formValues.rigg_varslet_i_tide ?? true,
+      produktivitetVarsletITide: formValues.produktivitet_varslet_i_tide ?? true,
+      akseptererMetode: formValues.aksepterer_metode,
+      oensketMetode: formValues.oensket_metode,
+      epJusteringVarsletITide: formValues.ep_justering_varslet_i_tide,
+      epJusteringAkseptert: formValues.ep_justering_akseptert,
+      holdTilbake: formValues.hold_tilbake ?? false,
+      hovedkravVurdering: (formValues.hovedkrav_vurdering as BelopVurdering) ?? 'godkjent',
+      hovedkravGodkjentBelop: formValues.hovedkrav_godkjent_belop,
+      riggVurdering: formValues.rigg_vurdering as BelopVurdering | undefined,
+      riggGodkjentBelop: formValues.rigg_godkjent_belop,
+      produktivitetVurdering: formValues.produktivitet_vurdering as BelopVurdering | undefined,
+      produktivitetGodkjentBelop: formValues.produktivitet_godkjent_belop,
+      begrunnelse: formValues.begrunnelse ?? '',
     };
-  }, [
-    formValues,
-    hovedkravBelop,
-    riggBelop,
-    produktivitetBelop,
-    harRiggKrav,
-    harProduktivitetKrav,
-    riggPrekludert,
-    produktivitetPrekludert,
-  ]);
+    const preklusjon = { hovedkrav: hovedkravPrekludert, rigg: riggPrekludert, produktivitet: produktivitetPrekludert };
+    const totaler = beregnTotaler(formState, domainConfig, preklusjon);
+    return {
+      ...totaler,
+      holdTilbake: formValues.hold_tilbake === true,
+    };
+  }, [formValues, domainConfig, hovedkravPrekludert, riggPrekludert, produktivitetPrekludert]);
 
   // Calculate automatic results (principal and subsidiary)
   const prinsipaltResultat = useMemo(
@@ -892,144 +766,52 @@ export function RespondVederlagModal({
       'Vennligst vent mens svaret behandles.'
     );
 
-    // Beregn subsidiære triggere basert på Port 1 og 2 valg
-    const triggers: SubsidiaerTrigger[] = [];
-    if (hovedkravPrekludert) triggers.push('preklusjon_hovedkrav');
-    if (riggPrekludert) triggers.push('preklusjon_rigg');
-    if (produktivitetPrekludert) triggers.push('preklusjon_produktivitet');
-    // §34.3.3: EP-justering begrenset hvis TE varslet for sent - TE får bare det BH "måtte forstå"
-    if (vederlagEvent?.krever_justert_ep && data.ep_justering_varslet_i_tide === false) {
-      triggers.push('reduksjon_ep_justering');
-    }
-    if (!data.aksepterer_metode) triggers.push('metode_avslatt');
+    // Map form data → domain form state
+    const formState = {
+      hovedkravVarsletITide: data.hovedkrav_varslet_i_tide ?? true,
+      riggVarsletITide: data.rigg_varslet_i_tide ?? true,
+      produktivitetVarsletITide: data.produktivitet_varslet_i_tide ?? true,
+      akseptererMetode: data.aksepterer_metode,
+      oensketMetode: data.oensket_metode,
+      epJusteringVarsletITide: data.ep_justering_varslet_i_tide,
+      epJusteringAkseptert: data.ep_justering_akseptert,
+      holdTilbake: data.hold_tilbake ?? false,
+      hovedkravVurdering: (data.hovedkrav_vurdering as BelopVurdering) ?? 'godkjent',
+      hovedkravGodkjentBelop: data.hovedkrav_godkjent_belop,
+      riggVurdering: data.rigg_vurdering as BelopVurdering | undefined,
+      riggGodkjentBelop: data.rigg_godkjent_belop,
+      produktivitetVurdering: data.produktivitet_vurdering as BelopVurdering | undefined,
+      produktivitetGodkjentBelop: data.produktivitet_godkjent_belop,
+      begrunnelse: data.begrunnelse ?? '',
+    };
 
-    // Bruk brukerens begrunnelse direkte (pre-populert med auto-generert, evt. redigert)
-    const begrunnelseTekst = data.begrunnelse || autoBegrunnelse;
+    // Compute triggers via domain
+    const preklusjon = { hovedkrav: hovedkravPrekludert, rigg: riggPrekludert, produktivitet: produktivitetPrekludert };
+    const triggers = beregnSubsidiaerTriggers(formState, domainConfig, preklusjon);
 
-    // Calculate beløp values
-    const hovedkravGodkjentBelop =
-      data.hovedkrav_vurdering === 'godkjent'
-        ? hovedkravBelop
-        : data.hovedkrav_vurdering === 'delvis'
-          ? data.hovedkrav_godkjent_belop
-          : 0;
+    // Build event data via domain
+    const eventPayload = buildEventData(
+      formState,
+      domainConfig,
+      {
+        har34_1_2_Preklusjon,
+        prinsipaltResultat: prinsipaltResultat as 'godkjent' | 'delvis_godkjent' | 'avslatt' | 'hold_tilbake',
+        subsidiaertResultat: subsidiaertResultat as 'godkjent' | 'delvis_godkjent' | 'avslatt' | 'hold_tilbake',
+        visSubsidiaertResultat,
+        totalGodkjent: computed.totalGodkjent,
+        totalKrevdInklPrekludert: computed.totalKrevdInklPrekludert,
+        totalGodkjentInklPrekludert: computed.totalGodkjentInklPrekludert,
+      },
+      {
+        vederlagKravId,
+        lastResponseEventId: lastResponseEvent?.event_id,
+        isUpdateMode,
+      },
+      autoBegrunnelse,
+      triggers,
+    );
 
-    const riggGodkjentBelop =
-      data.rigg_vurdering === 'godkjent'
-        ? riggBelop
-        : data.rigg_vurdering === 'delvis'
-          ? data.rigg_godkjent_belop
-          : 0;
-
-    const produktivitetGodkjentBelop =
-      data.produktivitet_vurdering === 'godkjent'
-        ? produktivitetBelop
-        : data.produktivitet_vurdering === 'delvis'
-          ? data.produktivitet_godkjent_belop
-          : 0;
-
-    if (isUpdateMode && lastResponseEvent) {
-      // UPDATE MODE: Send respons_vederlag_oppdatert
-      mutation.mutate({
-        eventType: 'respons_vederlag_oppdatert',
-        data: {
-          // Link to original response
-          original_respons_id: lastResponseEvent.event_id,
-          dato_endret: new Date().toISOString().split('T')[0],
-
-          // Begrunnelse (same as new response)
-          begrunnelse: begrunnelseTekst,
-
-          // Port 1: Preklusjon
-          hovedkrav_varslet_i_tide: har34_1_2_Preklusjon ? data.hovedkrav_varslet_i_tide : undefined,
-          rigg_varslet_i_tide: data.rigg_varslet_i_tide,
-          produktivitet_varslet_i_tide: data.produktivitet_varslet_i_tide,
-
-          // Port 2: Beregningsmetode
-          aksepterer_metode: data.aksepterer_metode,
-          oensket_metode: data.oensket_metode,
-          ep_justering_varslet_i_tide: data.ep_justering_varslet_i_tide,
-          ep_justering_akseptert: data.ep_justering_akseptert,
-          hold_tilbake: data.hold_tilbake,
-
-          // Port 3: Beløp
-          hovedkrav_vurdering: data.hovedkrav_vurdering,
-          hovedkrav_godkjent_belop: hovedkravGodkjentBelop,
-          rigg_vurdering: data.rigg_vurdering,
-          rigg_godkjent_belop: riggGodkjentBelop,
-          produktivitet_vurdering: data.produktivitet_vurdering,
-          produktivitet_godkjent_belop: produktivitetGodkjentBelop,
-
-          // Begrunnelse-detaljer
-          auto_begrunnelse: autoBegrunnelse,
-          vurdering_begrunnelse: begrunnelseTekst,
-
-          // Automatisk beregnet (prinsipalt)
-          beregnings_resultat: prinsipaltResultat,
-          total_godkjent_belop: computed.totalGodkjent,
-          // Bruk totalKrevdInklPrekludert - representerer hva TE faktisk krevde
-          total_krevd_belop: computed.totalKrevdInklPrekludert,
-
-          // Subsidiært standpunkt (kun når relevant)
-          subsidiaer_triggers: triggers.length > 0 ? triggers : undefined,
-          subsidiaer_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
-          subsidiaer_godkjent_belop: visSubsidiaertResultat
-            ? computed.totalGodkjentInklPrekludert
-            : undefined,
-          subsidiaer_begrunnelse: visSubsidiaertResultat
-            ? begrunnelseTekst
-            : undefined,
-        },
-      });
-    } else {
-      // NEW RESPONSE MODE: Send respons_vederlag
-      mutation.mutate({
-        eventType: 'respons_vederlag',
-        data: {
-          vederlag_krav_id: vederlagKravId,
-
-          // Port 1: Preklusjon
-          hovedkrav_varslet_i_tide: har34_1_2_Preklusjon ? data.hovedkrav_varslet_i_tide : undefined,
-          rigg_varslet_i_tide: data.rigg_varslet_i_tide,
-          produktivitet_varslet_i_tide: data.produktivitet_varslet_i_tide,
-
-          // Port 2: Beregningsmetode
-          aksepterer_metode: data.aksepterer_metode,
-          oensket_metode: data.oensket_metode,
-          ep_justering_varslet_i_tide: data.ep_justering_varslet_i_tide,
-          ep_justering_akseptert: data.ep_justering_akseptert,
-          hold_tilbake: data.hold_tilbake,
-
-          // Port 3: Beløp
-          hovedkrav_vurdering: data.hovedkrav_vurdering,
-          hovedkrav_godkjent_belop: hovedkravGodkjentBelop,
-          rigg_vurdering: data.rigg_vurdering,
-          rigg_godkjent_belop: riggGodkjentBelop,
-          produktivitet_vurdering: data.produktivitet_vurdering,
-          produktivitet_godkjent_belop: produktivitetGodkjentBelop,
-
-          // Port 4: Oppsummering
-          begrunnelse: begrunnelseTekst,
-          auto_begrunnelse: autoBegrunnelse,
-
-          // Automatisk beregnet (prinsipalt)
-          beregnings_resultat: prinsipaltResultat,
-          total_godkjent_belop: computed.totalGodkjent,
-          // Bruk totalKrevdInklPrekludert - representerer hva TE faktisk krevde
-          total_krevd_belop: computed.totalKrevdInklPrekludert,
-
-          // Subsidiært standpunkt (kun når relevant)
-          subsidiaer_triggers: triggers.length > 0 ? triggers : undefined,
-          subsidiaer_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
-          subsidiaer_godkjent_belop: visSubsidiaertResultat
-            ? computed.totalGodkjentInklPrekludert
-            : undefined,
-          subsidiaer_begrunnelse: visSubsidiaertResultat
-            ? begrunnelseTekst
-            : undefined,
-        },
-      });
-    }
+    mutation.mutate(eventPayload as { eventType: import('../../types/timeline').EventType; data: Record<string, any> });
   };
 
   // Handler for saving as draft (approval workflow)
