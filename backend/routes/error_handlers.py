@@ -5,6 +5,7 @@ Centralized Flask error handlers.
 """
 
 from flask import Flask, g, jsonify, request
+from werkzeug.exceptions import HTTPException
 
 try:
     from lib.monitoring.audit import audit
@@ -63,6 +64,8 @@ def register_error_handlers(app: Flask) -> None:
     @app.errorhandler(Exception)
     def handle_unexpected_error(e):
         """Catch-all handler for unhandled exceptions."""
+        if isinstance(e, HTTPException):
+            return e
         app.logger.error(f"Unhandled Exception: {str(e)}", exc_info=True)
         return jsonify(
             {

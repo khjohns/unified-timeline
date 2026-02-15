@@ -1020,6 +1020,14 @@ export interface TimelineEntry {
 /** Discipline codes matching Catenda model naming convention */
 export type BimFag = 'ARK' | 'RIB' | 'VVS' | 'LARK' | string;
 
+/** IFC property/quantity data stored with BIM link */
+export interface BimProperties {
+  attributes?: Record<string, string>;
+  propertySets?: Record<string, Record<string, string | number | boolean>>;
+  quantitySets?: Record<string, Record<string, string>>;
+  materials?: string[];
+}
+
 /** A link between a case and a BIM model/object */
 export interface BimLink {
   id: number;
@@ -1031,6 +1039,7 @@ export interface BimLink {
   object_global_id?: string;
   object_name?: string;
   object_ifc_type?: string;
+  properties?: BimProperties;
   linked_by: string;
   linked_at: string;
   kommentar?: string;

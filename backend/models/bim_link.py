@@ -4,6 +4,8 @@ BIM Link models — Pydantic v2 models for BIM-to-case linking.
 
 from datetime import UTC, datetime
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -19,6 +21,7 @@ class BimLink(BaseModel):
     object_global_id: str | None = None
     object_name: str | None = None
     object_ifc_type: str | None = None
+    properties: dict[str, Any] | None = None  # IFC property sets, quantities, materials
     linked_by: str
     linked_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     kommentar: str | None = None
