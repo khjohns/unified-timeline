@@ -1,11 +1,11 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { differenceInDays } from 'date-fns';
 import type { GrunnlagResponsResultat, SakState } from '../types/timeline';
 import { getConsequence } from '../components/bento/consequenceCallout';
 import { useSubmitEvent } from './useSubmitEvent';
 import { useFormBackup } from './useFormBackup';
 import { useCatendaStatusHandler } from './useCatendaStatusHandler';
 import { useToast } from '../components/primitives';
+import * as grunnlagDomain from '../domain/grunnlagDomain';
 
 // ============================================================================
 // TYPES
@@ -51,7 +51,7 @@ export interface GrunnlagEditState {
   resultatError: boolean;
 
   // Verdict options
-  verdictOptions: VerdictOption[];
+  verdictOptions: grunnlagDomain.VerdictOption[];
 
   // Computed display
   erPrekludert: boolean;
@@ -89,13 +89,7 @@ export interface GrunnlagEditState {
   };
 }
 
-export interface VerdictOption {
-  value: string;
-  label: string;
-  description: string;
-  icon: 'check' | 'cross' | 'undo';
-  colorScheme: 'green' | 'red' | 'gray';
-}
+export type { VerdictOption } from '../domain/grunnlagDomain';
 
 export interface GrunnlagEditorProps {
   begrunnelse: string;
@@ -137,36 +131,24 @@ export function useGrunnlagBridge(config: UseGrunnlagBridgeConfig): GrunnlagBrid
   // ========== TOKEN EXPIRED ==========
   const [showTokenExpired, setShowTokenExpired] = useState(false);
 
-  // ========== STATE (consolidated per L1 — now includes begrunnelse) ==========
+  // ========== DERIVED CONFIG (for domain functions) ==========
+  const forrigeResultat = lastResponseEvent?.resultat;
+  const harSubsidiaereSvar = !!(sakState?.er_subsidiaert_vederlag || sakState?.er_subsidiaert_frist);
 
-  interface FormState {
-    varsletITide: boolean;
-    resultat: string | undefined;
-    resultatError: boolean;
-    begrunnelse: string;
-    begrunnelseValidationError: string | undefined;
-  }
+  const domainConfig = useMemo((): grunnlagDomain.GrunnlagDomainConfig => ({
+    grunnlagEvent,
+    isUpdateMode,
+    forrigeResultat,
+    harSubsidiaereSvar,
+  }), [grunnlagEvent, isUpdateMode, forrigeResultat, harSubsidiaereSvar]);
 
-  const getDefaults = useCallback((): FormState => {
-    if (isUpdateMode && lastResponseEvent) {
-      return {
-        varsletITide: true,
-        resultat: lastResponseEvent.resultat,
-        resultatError: false,
-        begrunnelse: '',
-        begrunnelseValidationError: undefined,
-      };
-    }
-    return {
-      varsletITide: true,
-      resultat: undefined,
-      resultatError: false,
-      begrunnelse: '',
-      begrunnelseValidationError: undefined,
-    };
-  }, [isUpdateMode, lastResponseEvent]);
+  // ========== STATE ==========
+  const getDefaults = useCallback(
+    () => grunnlagDomain.getDefaults({ isUpdateMode, lastResponseEvent }),
+    [isUpdateMode, lastResponseEvent],
+  );
 
-  const [formState, setFormState] = useState<FormState>(getDefaults);
+  const [formState, setFormState] = useState<grunnlagDomain.GrunnlagFormState>(getDefaults);
 
   // ========== BEGRUNNELSE TRACKING (L5 — declared early for reset block) ==========
   const userHasEditedBegrunnelseRef = useRef(false);
@@ -211,6 +193,36 @@ export function useGrunnlagBridge(config: UseGrunnlagBridgeConfig): GrunnlagBrid
   }, [isOpen, toast]);
 
   const { varsletITide, resultat, resultatError, begrunnelse, begrunnelseValidationError } = formState;
+
+  // ========== DOMAIN COMPUTATIONS (pure TypeScript) ==========
+  const isEndring = grunnlagDomain.erEndringMed32_2(grunnlagEvent);
+  const isPrekludert = grunnlagDomain.erPrekludert(formState, domainConfig);
+  const passivitet = useMemo(
+    () => grunnlagDomain.beregnPassivitet(grunnlagEvent),
+    [grunnlagEvent],
+  );
+  const isSnuoperasjon = grunnlagDomain.erSnuoperasjon(formState, domainConfig);
+  const verdictOptions = useMemo(
+    () => grunnlagDomain.getVerdictOptions(domainConfig),
+    [domainConfig],
+  );
+  const dynamicPlaceholder = useMemo(
+    () => grunnlagDomain.getDynamicPlaceholder(resultat, isPrekludert),
+    [resultat, isPrekludert],
+  );
+
+  const isForceMajeure = grunnlagDomain.erForceMajeure(grunnlagEvent);
+  const showVarsletToggle = isEndring;
+
+  // ========== CONSEQUENCE (uses existing consequenceCallout.ts) ==========
+  const consequence = useMemo(() => getConsequence({
+    resultat,
+    erEndringMed32_2: isEndring,
+    varsletITide,
+    erForceMajeure: isForceMajeure,
+    erSnuoperasjon: isSnuoperasjon,
+    harSubsidiaereSvar,
+  }), [resultat, isEndring, varsletITide, isForceMajeure, isSnuoperasjon, harSubsidiaereSvar]);
 
   // ========== SUBMIT MUTATION ==========
   const pendingToastId = useRef<string | null>(null);
@@ -260,83 +272,8 @@ export function useGrunnlagBridge(config: UseGrunnlagBridgeConfig): GrunnlagBrid
     }));
   }, []);
 
-  // ========== DERIVED VALUES ==========
-
-  const erEndringMed32_2 = useMemo(() => {
-    return grunnlagEvent?.hovedkategori === 'ENDRING' &&
-      grunnlagEvent?.underkategori !== 'EO';
-  }, [grunnlagEvent?.hovedkategori, grunnlagEvent?.underkategori]);
-
-  const erPaalegg = useMemo(() => {
-    return grunnlagEvent?.hovedkategori === 'ENDRING' &&
-      (grunnlagEvent?.underkategori === 'IRREG' || grunnlagEvent?.underkategori === 'VALGRETT');
-  }, [grunnlagEvent?.hovedkategori, grunnlagEvent?.underkategori]);
-
-  const erForceMajeure = grunnlagEvent?.hovedkategori === 'FORCE_MAJEURE';
-
-  const erPrekludert = erEndringMed32_2 && varsletITide === false;
-
-  // BH passivity (§32.3)
-  const dagerSidenVarsel = grunnlagEvent?.dato_varslet
-    ? differenceInDays(new Date(), new Date(grunnlagEvent.dato_varslet))
-    : 0;
-
-  const erPassiv = erEndringMed32_2 && dagerSidenVarsel > 10;
-
-  // Show varslet toggle: ENDRING except EO
-  const showVarsletToggle = erEndringMed32_2;
-
-  // Snuoperasjon detection (update mode)
-  const forrigeResultat = lastResponseEvent?.resultat;
-  const varAvvist = forrigeResultat === 'avslatt';
-  const harSubsidiaereSvar = !!(sakState?.er_subsidiaert_vederlag || sakState?.er_subsidiaert_frist);
-
-  const erSnuoperasjon = useMemo(() => {
-    if (!isUpdateMode || !varAvvist) return false;
-    return resultat === 'godkjent';
-  }, [isUpdateMode, varAvvist, resultat]);
-
-  // ========== VERDICT OPTIONS ==========
-
-  const verdictOptions = useMemo((): VerdictOption[] => {
-    const opts: VerdictOption[] = [
-      { value: 'godkjent', label: 'Godkjent', description: 'Grunnlag anerkjent', icon: 'check', colorScheme: 'green' },
-      { value: 'avslatt', label: 'Avslått', description: 'Grunnlag avvist', icon: 'cross', colorScheme: 'red' },
-    ];
-    if (erPaalegg) {
-      opts.push({ value: 'frafalt', label: 'Frafalt', description: 'Pålegget frafalles', icon: 'undo', colorScheme: 'gray' });
-    }
-    return opts;
-  }, [erPaalegg]);
-
-  // ========== CONSEQUENCE (L3 — in card, not form) ==========
-
-  const consequence = useMemo(() => getConsequence({
-    resultat,
-    erEndringMed32_2,
-    varsletITide,
-    erForceMajeure,
-    erSnuoperasjon,
-    harSubsidiaereSvar,
-  }), [resultat, erEndringMed32_2, varsletITide, erForceMajeure, erSnuoperasjon, harSubsidiaereSvar]);
-
-  // ========== DYNAMIC PLACEHOLDER ==========
-
-  const dynamicPlaceholder = useMemo(() => {
-    if (!resultat) return 'Velg resultat i kortet til venstre, deretter skriv begrunnelse...';
-    if (erPrekludert && resultat === 'godkjent') return 'Begrunn din preklusjonsinnsigelse og din subsidiære godkjenning...';
-    if (erPrekludert && resultat === 'avslatt') return 'Begrunn din preklusjonsinnsigelse og ditt subsidiære avslag...';
-    if (resultat === 'godkjent') return 'Begrunn din vurdering av ansvarsgrunnlaget...';
-    if (resultat === 'avslatt') return 'Forklar hvorfor forholdet ikke gir grunnlag for krav...';
-    if (resultat === 'frafalt') return 'Begrunn hvorfor pålegget frafalles...';
-    return 'Begrunn din vurdering...';
-  }, [resultat, erPrekludert]);
-
   // ========== AUTO-BEGRUNNELSE (L5 — placeholder ready) ==========
-
   const autoBegrunnelse = useMemo(() => {
-    // Grunnlag has simpler reasoning than frist — auto-begrunnelse is a stub
-    // ready for future implementation. The bridge owns the slot per L5.
     return '';
   }, []);
 
@@ -354,38 +291,14 @@ export function useGrunnlagBridge(config: UseGrunnlagBridgeConfig): GrunnlagBrid
     }
   }, [autoBegrunnelse]);
 
-  // ========== BUILD EVENT DATA (L12 — internal) ==========
-
-  const buildEventData = useCallback((): Record<string, unknown> => {
-    if (isUpdateMode && lastResponseEvent) {
-      return {
-        original_respons_id: lastResponseEvent.event_id,
-        resultat,
-        begrunnelse,
-        dato_endret: new Date().toISOString().split('T')[0],
-      };
-    }
-
-    return {
-      grunnlag_event_id: grunnlagEventId,
-      resultat,
-      begrunnelse,
-      grunnlag_varslet_i_tide: erEndringMed32_2 ? varsletITide : undefined,
-      dager_siden_varsel: dagerSidenVarsel > 0 ? dagerSidenVarsel : undefined,
-    };
-  }, [isUpdateMode, lastResponseEvent, resultat, begrunnelse, grunnlagEventId, erEndringMed32_2, varsletITide, dagerSidenVarsel]);
-
   // ========== VALIDATE + SUBMIT ==========
-
   const canSubmit = !!resultat && begrunnelse.length >= 10 && !mutation.isPending;
 
   const handleSubmit = useCallback(() => {
-    // Validate resultat
     if (!resultat) {
       setFormState(prev => ({ ...prev, resultatError: true }));
       return;
     }
-    // Validate begrunnelse
     if (begrunnelse.length < 10) {
       setFormState(prev => ({
         ...prev,
@@ -399,11 +312,13 @@ export function useGrunnlagBridge(config: UseGrunnlagBridgeConfig): GrunnlagBrid
       'Vennligst vent mens svaret behandles.'
     );
 
-    mutation.mutate({
-      eventType,
-      data: buildEventData(),
+    const eventData = grunnlagDomain.buildEventData(formState, {
+      ...domainConfig,
+      grunnlagEventId,
+      lastResponseEventId: lastResponseEvent?.event_id,
     });
-  }, [resultat, begrunnelse, isUpdateMode, eventType, buildEventData, mutation, toast]);
+    mutation.mutate({ eventType, data: eventData });
+  }, [resultat, begrunnelse, isUpdateMode, eventType, formState, domainConfig, grunnlagEventId, lastResponseEvent, mutation, toast]);
 
   const handleSaveDraft = useCallback(() => {
     if (!onSaveDraft || !resultat) return;
@@ -415,31 +330,30 @@ export function useGrunnlagBridge(config: UseGrunnlagBridgeConfig): GrunnlagBrid
       return;
     }
 
-    onSaveDraft({
-      resultat,
-      begrunnelse,
-      formData: buildEventData(),
+    const eventData = grunnlagDomain.buildEventData(formState, {
+      ...domainConfig,
+      grunnlagEventId,
+      lastResponseEventId: lastResponseEvent?.event_id,
     });
+    onSaveDraft({ resultat, begrunnelse, formData: eventData });
 
     clearBackup();
     onSuccess();
     toast.success('Utkast lagret', 'Svaret på ansvarsgrunnlaget er lagret som utkast.');
-  }, [onSaveDraft, resultat, begrunnelse, buildEventData, clearBackup, onSuccess, toast]);
+  }, [onSaveDraft, resultat, begrunnelse, formState, domainConfig, grunnlagEventId, lastResponseEvent, clearBackup, onSuccess, toast]);
 
   // ========== SUBMIT LABEL + VARIANT ==========
   const submitLabel = useMemo(() => {
     if (mutation.isPending) return 'Sender...';
-    if (isUpdateMode) return erSnuoperasjon ? 'Godkjenn ansvarsgrunnlag' : 'Lagre endring';
+    if (isUpdateMode) return isSnuoperasjon ? 'Godkjenn ansvarsgrunnlag' : 'Lagre endring';
     return 'Send svar';
-  }, [mutation.isPending, isUpdateMode, erSnuoperasjon]);
+  }, [mutation.isPending, isUpdateMode, isSnuoperasjon]);
 
-  const submitVariant = (resultat === 'avslatt' || erPrekludert) ? 'danger' as const : 'primary' as const;
+  const submitVariant = (resultat === 'avslatt' || isPrekludert) ? 'danger' as const : 'primary' as const;
 
   // ========== RETURN ==========
-
   return {
     cardProps: {
-      // Existing controls
       varsletITide,
       onVarsletITideChange: handleVarsletITideChange,
       showVarsletToggle,
@@ -450,7 +364,7 @@ export function useGrunnlagBridge(config: UseGrunnlagBridgeConfig): GrunnlagBrid
 
       verdictOptions,
 
-      erPrekludert,
+      erPrekludert: isPrekludert,
       consequence,
 
       // Card actions
@@ -468,11 +382,11 @@ export function useGrunnlagBridge(config: UseGrunnlagBridgeConfig): GrunnlagBrid
       onTokenExpiredClose: () => setShowTokenExpired(false),
 
       // Context alerts
-      erPassiv,
-      dagerSidenVarsel,
+      erPassiv: passivitet.erPassiv,
+      dagerSidenVarsel: passivitet.dagerSidenVarsel,
       isUpdateMode,
-      erSnuoperasjon,
-      snuoperasjon: erSnuoperasjon && harSubsidiaereSvar ? {
+      erSnuoperasjon: isSnuoperasjon,
+      snuoperasjon: isSnuoperasjon && harSubsidiaereSvar ? {
         erSubsidiaertVederlag: !!sakState?.er_subsidiaert_vederlag,
         erSubsidiaertFrist: !!sakState?.er_subsidiaert_frist,
         visningsstatusVederlag: sakState?.visningsstatus_vederlag,
