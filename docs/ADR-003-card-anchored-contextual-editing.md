@@ -1,7 +1,7 @@
 # ADR-003: Card-Anchored Contextual Editing
 
-**Status:** Akseptert — Grunnlag og Frist implementert (PR #439, refaktorert)
-**Dato:** 2026-02-14 (opprinnelig), 2026-02-15 (refaktorert: bridge eier begrunnelse + submit)
+**Status:** Akseptert — Grunnlag og Frist implementert, domenelag-ekstraksjon planlagt
+**Dato:** 2026-02-14 (opprinnelig), 2026-02-15 (refaktorert + domenelag-beslutning)
 **Beslutningstagere:** Utviklingsteam
 **Kontekst:** UX-mønster for inline skjemaer i bento-layout
 
@@ -110,36 +110,58 @@ Når et spor (grunnlag, vederlag, frist) går i redigeringsmodus:
 
 ## Implementert arkitektur
 
-### Felles mønster: Bridge eier alt
+### Tre lag: Domene → Bridge → Komponent
 
-Begge spor (grunnlag og frist) følger samme arkitektur. Bridge-hooken
-eier all form-state, begrunnelse, submit-mutasjon, form backup og
-token-håndtering. Kortet viser kontroller + submit. Formpanelet er
-en ren skriveflade.
+Arkitekturen har tre lag. Domenelogikk (NS 8407-regler) er ren
+TypeScript uten React-avhengigheter. Bridge-hooken er en tynn
+React-adapter som kobler domenelogikk til state, mutation og feedback.
+Komponentene er rene renderere.
 
 ```
-CasePageBento
-├── use[Spor]Bridge(config)
-│   ├── FormState (single useState inkl. begrunnelse)
-│   ├── useSubmitEvent (React Query mutation)
-│   ├── useFormBackup (localStorage-backup)
-│   ├── useCatendaStatusHandler
-│   ├── useToast (feedback)
-│   ├── Visibility flags, resultat-beregning, auto-begrunnelse
-│   └── handleSubmit / handleSaveDraft / canSubmit
-│
-├── [Spor]Card(editState=bridge.cardProps)
-│   ├── [✕] Lukk-knapp (øverst — lukk uten å scrolle)
-│   ├── Kontroller (InlineYesNo, VerdictCards, etc.)
-│   ├── Kontekst-alerts (passivitet, snuoperasjon, preklusjon)
-│   ├── Resultat-boks
-│   ├── TokenExpiredAlert + submitError
-│   └── [Lagre utkast] [Send svar] (nederst)
-│
-└── BentoRespond[Spor](editorProps=bridge.editorProps)
-    ├── RichTextEditor (begrunnelse)
-    └── «Regenerer fra valg»-knapp
+┌──────────────────────────────────────────────────────────┐
+│  src/domain/                                             │
+│  Ren TypeScript — ingen React-avhengigheter              │
+│                                                          │
+│  fristDomain.ts                grunnlagDomain.ts         │
+│  ├── beregnPreklusjon()        ├── erEndringMed32_2()    │
+│  ├── beregnReduksjon()         ├── erPrekludert()        │
+│  ├── beregnResultat()          ├── beregnPassivitet()    │
+│  ├── beregnSubsidiaert()       ├── getVerdictOptions()   │
+│  ├── beregnVisibility()        ├── beregnConsequence()   │
+│  ├── beregnSubsidiaerTriggers()├── buildEventData()      │
+│  └── buildEventData()          └── getDefaults()         │
+│                                                          │
+│  Testbar med vanlige unit-tester — ingen wrappers.       │
+└────────────────────┬─────────────────────────────────────┘
+                     │ importeres av
+┌────────────────────▼─────────────────────────────────────┐
+│  src/hooks/use[Spor]Bridge.ts                            │
+│  Tynn React-adapter (~200 linjer)                        │
+│                                                          │
+│  ├── useState(FormState)        // UI-state              │
+│  ├── domain.beregnResultat()    // kaller domene         │
+│  ├── domain.beregnVisibility()  // kaller domene         │
+│  ├── useSubmitEvent()           // React Query mutation   │
+│  ├── useFormBackup()            // localStorage           │
+│  ├── useToast()                 // feedback               │
+│  └── returns { cardProps, editorProps }                   │
+└────────────────────┬─────────────────────────────────────┘
+                     │ props
+┌────────────────────▼─────────────────────────────────────┐
+│  Komponenter (rene renderere)                            │
+│                                                          │
+│  [Spor]Card(cardProps)          BentoRespond[Spor]       │
+│  ├── [✕] Lukk (øverst)         (editorProps)             │
+│  ├── Kontroller                 ├── RichTextEditor       │
+│  ├── Alerts                     └── «Regenerer»-knapp    │
+│  ├── Resultat                                            │
+│  └── [Send] (nederst)                                    │
+└──────────────────────────────────────────────────────────┘
 ```
+
+**Eksisterende filer som allerede følger dette mønsteret:**
+- `src/utils/begrunnelseGenerator.ts` (1 453 linjer, 0 React) — ren domenelogikk
+- `src/components/bento/consequenceCallout.ts` (197 linjer, 0 React) — ren domenelogikk
 
 **Nøkkel-kontrakter:**
 
@@ -464,6 +486,98 @@ function createWrapper() {
 Dette er standard React-testpraksis for hooks som bruker kontekst.
 Ny `QueryClient` per test forhindrer state-lekkasje mellom tester.
 
+### L14: Skille domenelogikk fra React-hooks — «god hook»-problemet
+
+**Problem:** Bridge-hookene blander fire distinkte ansvarsområder i
+én funksjon: NS 8407 forretningsregler, React state management,
+infrastruktur (mutation, toast, backup) og presentasjonslogikk
+(placeholder, labels). ~120–200 linjer ren domenelogikk er innkapslet
+i `useMemo`/`useCallback` og kan kun testes via `renderHook` med
+provider-wrappers.
+
+| Ansvar | Eksempel | Endres når... |
+|--------|----------|---------------|
+| NS 8407 regler | Preklusjon, subsidiært, resultatberegning | Kontraktstolkning endres |
+| React state | `useState`, `useCallback`, reset-logikk | React-patterns endres |
+| Infrastruktur | `useSubmitEvent`, `useFormBackup`, `useToast` | API/libs endres |
+| Presentasjon | Visibility flags, dynamicPlaceholder | UX endres |
+
+**Løsning:** Trekk ut ren domenelogikk til `src/domain/[spor]Domain.ts`:
+
+```ts
+// src/domain/fristDomain.ts — ren TypeScript, ingen React
+
+export interface FristFormState {
+  fristVarselOk: boolean;
+  spesifisertKravOk: boolean;
+  vilkarOppfylt: boolean;
+  sendForesporsel: boolean;
+  godkjentDager: number;
+  // ...
+}
+
+export function beregnPreklusjon(state: FristFormState, config: FristConfig): boolean {
+  if (config.erSvarPaForesporsel && !state.foresporselSvarOk) return true;
+  if (config.varselType === 'varsel') return !state.fristVarselOk;
+  // ...
+}
+
+export function beregnResultat(state: FristFormState, config: FristConfig): FristBeregningResultat {
+  // Ren forretningslogikk — ingen useMemo, ingen React
+}
+
+export function beregnVisibility(config: FristConfig): FristVisibilityFlags {
+  // Hva skal vises basert på varselType, tilstand, etc.
+}
+
+export function buildEventData(state: FristFormState, config: FristConfig): Record<string, unknown> {
+  // Komplett event-payload — ingen useCallback
+}
+```
+
+Bridge-hooken blir da en tynn adapter:
+
+```ts
+// useFristBridge.ts — ~200 linjer
+import * as fristDomain from '../domain/fristDomain';
+
+export function useFristBridge(config) {
+  const [formState, setFormState] = useState(fristDomain.getDefaults(config));
+  const resultat = fristDomain.beregnResultat(formState, config);
+  const visibility = fristDomain.beregnVisibility(config);
+  // ... useSubmitEvent, useFormBackup, useToast ...
+}
+```
+
+**Gevinst:**
+- NS 8407-regler testbare med vanlige unit-tester (ingen wrappers)
+- Domenet synlig i én fil — lesbart for jurister og nye utviklere
+- Bridge-hooks halveres i størrelse (~500 → ~200 linjer)
+- Vederlag skalerer: `vederlagDomain.ts` kan ha 300+ linjer uten
+  at bridge-hooken vokser tilsvarende
+
+### L15: Domene-tester før bridge-tester
+
+**Problem:** Når domenelogikk lever i hooks, testes forretningsregler
+og React-wiring i samme test-suite. Når en domeneregel feiler, er det
+uklart om feilen er i regelen eller i React-integrasjonen.
+
+**Løsning:** To test-nivåer:
+
+```
+src/domain/__tests__/fristDomain.test.ts     ← rene unit-tester
+  beregnPreklusjon({ varselType: 'varsel', fristVarselOk: false }) → true
+  beregnResultat({ erPrekludert: true }) → 'avslatt'
+  buildEventData({ ... }) → { frist_krav_id: ..., resultat: ... }
+
+src/hooks/__tests__/useFristBridge.test.ts    ← integrasjonstester
+  renderHook + wrapper → tester at state-endring → riktig cardProps
+  tester reset-ved-isOpen, backup-restore, submit-flow
+```
+
+Domene-testene er raske, krever ingen providers, og dokumenterer
+NS 8407-reglene eksplisitt. Bridge-testene fokuserer på React-wiring.
+
 ---
 
 ## Konsekvenser
@@ -537,21 +651,32 @@ den er distribuert på tre filer med tydelige ansvarsområder.
 
 Basert på lærdom fra grunnlag- og frist-implementeringen:
 
-- [ ] Opprett `useVederlagBridge`-hook med konsolidert `FormState` inkl. begrunnelse (L1, L12)
+**Domenelag (L14):**
+- [ ] Opprett `src/domain/vederlagDomain.ts` med ren NS 8407-logikk
+- [ ] Skriv `src/domain/__tests__/vederlagDomain.test.ts` først (L15)
+- [ ] Resultatberegning, visibility, event-data som rene funksjoner
+
+**Bridge-hook:**
+- [ ] Opprett `useVederlagBridge`-hook som tynn adapter over domenelag
 - [ ] Bridge eier `useSubmitEvent`, `useFormBackup`, `useToast` internt (L12)
-- [ ] Bruk state-during-render for reset (L2), ikke useEffect+useRef
-- [ ] All resultat/konsekvens-logikk i kortet (L3), ikke formpanelet
-- [ ] Kompakt resultat-linje i kortet (L4), detaljert tekst i auto-begrunnelse
+- [ ] Konsolidert `FormState` inkl. begrunnelse (L1, L12)
+- [ ] State-during-render for reset (L2), ikke useEffect+useRef
 - [ ] Auto-begrunnelse med `userHasEditedRef` og «Regenerer»-knapp (L5)
-- [ ] `editState?: VederlagEditState | null`-prop til VederlagCard (L6)
+
+**Kort (VederlagCard):**
+- [ ] `editState?: VederlagEditState | null`-prop (L6)
+- [ ] Lukk-knapp [✕] øverst, Send/Lagre nederst (prinsipp 3)
+- [ ] All resultat/konsekvens-logikk i kortet (L3), ikke formpanelet
+- [ ] Kompakt resultat-linje (L4), detaljert tekst i auto-begrunnelse
 - [ ] Seksjonerte kontroller med §-overskrifter per underkrav (L7)
-- [ ] CSS grid order for aktiv kort-posisjonering (L8)
 - [ ] Ekspanderbare rigg/produktivitet-seksjoner for å håndtere tetthet
-- [ ] Flytt tester fra RespondVederlagModal.test → VederlagCard.test for flyttede kontroller (L9)
-- [ ] Rydd opp foreldede props/imports i BentoRespondVederlag etter flytting (L10)
-- [ ] Formpanelet tar kun `editorProps` — ingen setters, submit eller domenelogikk (L11)
-- [ ] Lukk-knapp [✕] øverst i kortet, Send/Lagre nederst (prinsipp 3)
-- [ ] Opprett `createWrapper()` i testfil med QueryClient + ToastProvider (L13)
+- [ ] CSS grid order for aktiv kort-posisjonering (L8)
+
+**Formpanel + tester:**
+- [ ] Formpanelet tar kun `editorProps` — ingen setters/submit/domene (L11)
+- [ ] Flytt tester fra RespondVederlagModal.test → VederlagCard.test (L9)
+- [ ] Rydd opp foreldede props/imports i BentoRespondVederlag (L10)
+- [ ] Opprett `createWrapper()` i bridge-testfil (L13)
 - [ ] Test at klassiske modaler (RespondVederlagModal) fremdeles fungerer
 
 ---
@@ -560,19 +685,19 @@ Basert på lærdom fra grunnlag- og frist-implementeringen:
 
 ### Implementerte filer
 
-| Fil | Rolle |
-|-----|-------|
-| `src/hooks/useGrunnlagBridge.ts` | Bridge-hook for grunnlag |
-| `src/hooks/useFristBridge.ts` | Bridge-hook for frist |
-| `src/components/bento/BentoRespondGrunnlag.tsx` | Ren begrunnelse-editor for grunnlag (~60 linjer) |
-| `src/components/bento/BentoRespondFrist.tsx` | Ren begrunnelse-editor for frist (~60 linjer) |
-| `src/components/bento/CaseMasterCard.tsx` | Kort for grunnlag (kontroller + submit + lukk) |
-| `src/components/bento/track-cards/FristCard.tsx` | Kort for frist (kontroller + submit + lukk) |
-| `src/components/bento/InlineYesNo.tsx` | Delt ja/nei-toggle |
-| `src/components/bento/InlineNumberInput.tsx` | Delt tall-input |
-| `src/components/bento/VerdictCards.tsx` | Delt verdikt-komponent |
-| `src/components/bento/consequenceCallout.ts` | Konsekvens-logikk |
-| `src/pages/CasePageBento.tsx` | Koordinering og layout |
+| Fil | Rolle | Lag |
+|-----|-------|----|
+| `src/domain/fristDomain.ts` | NS 8407 frist-regler (planlagt) | Domene |
+| `src/domain/grunnlagDomain.ts` | NS 8407 grunnlag-regler (planlagt) | Domene |
+| `src/utils/begrunnelseGenerator.ts` | Auto-begrunnelse (allerede ren) | Domene |
+| `src/components/bento/consequenceCallout.ts` | Konsekvens-logikk (allerede ren) | Domene |
+| `src/hooks/useGrunnlagBridge.ts` | Bridge-hook for grunnlag | Bridge |
+| `src/hooks/useFristBridge.ts` | Bridge-hook for frist | Bridge |
+| `src/components/bento/CaseMasterCard.tsx` | Kort for grunnlag (kontroller + submit + lukk) | Komponent |
+| `src/components/bento/track-cards/FristCard.tsx` | Kort for frist (kontroller + submit + lukk) | Komponent |
+| `src/components/bento/BentoRespondGrunnlag.tsx` | Ren begrunnelse-editor for grunnlag (~60 linjer) | Komponent |
+| `src/components/bento/BentoRespondFrist.tsx` | Ren begrunnelse-editor for frist (~60 linjer) | Komponent |
+| `src/pages/CasePageBento.tsx` | Koordinering og layout | Komponent |
 
 ### Relaterte dokumenter
 
