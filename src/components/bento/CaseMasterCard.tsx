@@ -4,12 +4,16 @@
  * Combines CaseIdentityTile (case ID, title, parties, status) with
  * GrunnlagCard (category, dates, BH response) into a single master card
  * that anchors Row 1 of the bento grid.
+ *
+ * When editState is provided (from useGrunnlagBridge), the card transforms
+ * to interactive mode with inline controls (varslet-i-tide toggle, verdict cards)
+ * and displays consequence callouts — per ADR-003 L3, L6.
  */
 
 import { clsx } from 'clsx';
 import { CheckIcon, Cross2Icon, ExclamationTriangleIcon } from '@radix-ui/react-icons';
 import { InlineYesNo } from './InlineYesNo';
-import { Badge } from '../primitives';
+import { Alert, Badge } from '../primitives';
 import { getOverordnetStatusStyle, getSakstypeStyle } from '../../constants/statusStyles';
 import {
   getHovedkategori,
@@ -19,10 +23,11 @@ import { formatDateShort } from '../../utils/formatters';
 import { StatusDot } from './track-cards/StatusDot';
 import { TrackHistory } from './track-cards/TrackHistory';
 import { TrackCTA } from './track-cards/TrackCTA';
-import { VerdictCards, type VerdictOption } from './VerdictCards';
+import { VerdictCards } from './VerdictCards';
 import type { SakState } from '../../types/timeline';
 import type { AvailableActions } from '../../hooks/useActionPermissions';
 import type { SporHistoryEntry } from '../views/SporHistory';
+import type { GrunnlagEditState } from '../../hooks/useGrunnlagBridge';
 
 interface CaseMasterCardProps {
   state: SakState;
@@ -31,15 +36,8 @@ interface CaseMasterCardProps {
   grunnlagEntries: SporHistoryEntry[];
   primaryAction?: { label: string; onClick: () => void };
   secondaryActions?: { label: string; onClick: () => void; variant?: 'default' | 'danger' }[];
-  isGrunnlagFormExpanded?: boolean;
-  /** Inline form controls when grunnlag form is expanded */
-  formVarsletITide?: boolean;
-  onFormVarsletITideChange?: (value: boolean) => void;
-  formResultat?: string;
-  onFormResultatChange?: (value: string) => void;
-  formResultatError?: boolean;
-  verdictOptions?: VerdictOption[];
-  showVarsletToggle?: boolean;
+  /** Bridge-provided edit state bag (L6). Null = read-only mode. */
+  editState?: GrunnlagEditState | null;
   className?: string;
 }
 
@@ -89,14 +87,7 @@ export function CaseMasterCard({
   grunnlagEntries,
   primaryAction,
   secondaryActions,
-  isGrunnlagFormExpanded,
-  formVarsletITide,
-  onFormVarsletITideChange,
-  formResultat,
-  onFormResultatChange,
-  formResultatError,
-  verdictOptions,
-  showVarsletToggle,
+  editState,
   className,
 }: CaseMasterCardProps) {
   const g = state.grunnlag;
@@ -115,6 +106,7 @@ export function CaseMasterCard({
     <div
       className={clsx(
         'bg-pkt-bg-card rounded-lg p-4',
+        editState && 'ring-2 ring-pkt-brand-warm-blue-1000/30',
         className,
       )}
     >
@@ -225,37 +217,53 @@ export function CaseMasterCard({
             </div>
           )}
 
-          {/* Inline form controls when grunnlag form is expanded */}
-          {isGrunnlagFormExpanded && (showVarsletToggle || verdictOptions) && (
+          {/* Inline controls when in edit mode (bridge-provided editState, L6) */}
+          {editState && (
             <div className={clsx(hasDates && 'mt-2 pt-2 border-t border-pkt-border-subtle', 'space-y-3')}>
-              {/* Varslet i tide toggle */}
-              {showVarsletToggle && onFormVarsletITideChange && (
+              {/* §32.2 Varslet i tide toggle */}
+              {editState.showVarsletToggle && (
                 <InlineYesNo
                   label="Varslet i tide?"
-                  value={formVarsletITide}
-                  onChange={onFormVarsletITideChange}
+                  value={editState.varsletITide}
+                  onChange={editState.onVarsletITideChange}
                 />
               )}
 
-              {/* Verdict cards */}
-              {verdictOptions && onFormResultatChange && (
-                <div>
-                  <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-1.5">
-                    Ditt svar
-                  </p>
-                  <VerdictCards
-                    value={formResultat}
-                    onChange={onFormResultatChange}
-                    error={formResultatError}
-                    options={verdictOptions}
-                  />
+              {/* Preklusjons-advarsel */}
+              {editState.erPrekludert && (
+                <div className="text-[10px] text-pkt-brand-red-1000 bg-pkt-brand-red-1000/5 border border-pkt-brand-red-1000/20 rounded-sm px-2 py-1.5">
+                  <span className="font-semibold">Preklusjon (§32.2).</span>{' '}
+                  Varselet ble sendt for sent. Standpunktet gjelder prinsipalt. Ditt svar nedenfor gjelder subsidiært.
                 </div>
+              )}
+
+              {/* Verdict cards */}
+              <div>
+                <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-1.5">
+                  {editState.erPrekludert ? 'Ditt svar (subsidiært)' : 'Ditt svar'}
+                </p>
+                <VerdictCards
+                  value={editState.resultat}
+                  onChange={editState.onResultatChange}
+                  error={editState.resultatError}
+                  options={editState.verdictOptions}
+                />
+              </div>
+
+              {/* Consequence callout — in card per L3 */}
+              {editState.consequence && (
+                <Alert variant={editState.consequence.variant} size="sm">
+                  {editState.consequence.text}
+                  {editState.consequence.snuoperasjonText && (
+                    <p className="mt-2 font-medium">{editState.consequence.snuoperasjonText}</p>
+                  )}
+                </Alert>
               )}
             </div>
           )}
 
-          {/* BH assessment section — below divider */}
-          {!isGrunnlagFormExpanded && hasBhResponse && (
+          {/* BH assessment section — below divider (read-only mode only) */}
+          {!editState && hasBhResponse && (
             <div className={clsx(hasDates && 'mt-2 pt-2 border-t border-pkt-border-subtle', 'space-y-1')}>
               {/* Varslet i tide — only shown when BH has assessed it */}
               {g.grunnlag_varslet_i_tide != null && (
@@ -304,8 +312,8 @@ export function CaseMasterCard({
       {/* History */}
       <TrackHistory entries={grunnlagEntries} />
 
-      {/* CTA strip */}
-      {!isGrunnlagFormExpanded && (
+      {/* CTA strip — hidden when in edit mode */}
+      {!editState && (
         <TrackCTA
           spor="grunnlag"
           status={status}
