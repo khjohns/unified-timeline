@@ -92,6 +92,8 @@ interface CaseDashboardBentoV2Props {
   fristHistorikk?: FristHistorikkEntry[];
   inlineVederlagRevision?: InlineVederlagRevisionProps;
   inlineFristRevision?: InlineFristRevisionProps;
+  /** When set, the expanded track's card is hidden and remaining cards use col-span-6 */
+  expandedTrack?: 'grunnlag' | 'vederlag' | 'frist';
 }
 
 // ========== Helpers ==========
@@ -132,6 +134,7 @@ export function CaseDashboardBentoV2({
   fristHistorikk = [],
   inlineVederlagRevision,
   inlineFristRevision,
+  expandedTrack,
 }: CaseDashboardBentoV2Props) {
   const krevdBelop = useMemo(() => getKrevdBelop(state), [state]);
 
@@ -207,7 +210,8 @@ export function CaseDashboardBentoV2({
       <div className="grid grid-cols-12 gap-2 sm:gap-4 items-start relative">
 
         {/* ===== Grunnlag: Master Card ===== */}
-        <div className="col-span-12 xl:col-span-4" data-onboarding="grunnlag-card">
+        {expandedTrack !== 'grunnlag' && (
+        <div className={expandedTrack ? 'col-span-12 md:col-span-6' : 'col-span-12 xl:col-span-4'} data-onboarding="grunnlag-card">
           <BentoDashboardCard
             title="Ansvarsgrunnlag"
             hjemmel="§25.2"
@@ -268,9 +272,11 @@ export function CaseDashboardBentoV2({
             <SporHistory spor="grunnlag" entries={grunnlagEntries} events={events} sakState={state} externalOpen={grunnlagExpanded} />
           </BentoDashboardCard>
         </div>
+        )}
 
         {/* ===== Vederlag: Dependent Card ===== */}
-        <div className="col-span-12 md:col-span-6 xl:col-span-4" data-onboarding="vederlag-card">
+        {expandedTrack !== 'vederlag' && (
+        <div className={expandedTrack ? 'col-span-12 md:col-span-6' : 'col-span-12 md:col-span-6 xl:col-span-4'} data-onboarding="vederlag-card">
           {/* [NEW] Dependency indicator */}
           <DependencyIndicator grunnlagActive={grunnlagActive} />
 
@@ -347,9 +353,11 @@ export function CaseDashboardBentoV2({
             <SporHistory spor="vederlag" entries={vederlagEntries} events={events} sakState={state} externalOpen={vederlagExpanded} />
           </BentoDashboardCard>
         </div>
+        )}
 
         {/* ===== Frist: Dependent Card ===== */}
-        <div className="col-span-12 md:col-span-6 xl:col-span-4" data-onboarding="frist-card">
+        {expandedTrack !== 'frist' && (
+        <div className={expandedTrack ? 'col-span-12 md:col-span-6' : 'col-span-12 md:col-span-6 xl:col-span-4'} data-onboarding="frist-card">
           {/* [NEW] Dependency indicator */}
           <DependencyIndicator grunnlagActive={grunnlagActive} />
 
@@ -433,6 +441,7 @@ export function CaseDashboardBentoV2({
             <SporHistory spor="frist" entries={fristEntries} events={events} sakState={state} externalOpen={fristExpanded} />
           </BentoDashboardCard>
         </div>
+        )}
       </div>
 
       {/* [NEW] Cross-track activity strip below cards */}

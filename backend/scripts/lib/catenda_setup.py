@@ -5,6 +5,7 @@ Shared utilities for scripts that interact with the Catenda API.
 Reduces duplication across test_full_flow.py, catenda_menu.py, and similar scripts.
 """
 
+import os
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
@@ -13,6 +14,21 @@ from dotenv import load_dotenv
 
 if TYPE_CHECKING:
     from integrations.catenda import CatendaClient
+
+
+def _get_setting(key: str, default: str = "") -> str:
+    """
+    Read a config value, trying core.config.settings first, falling back to os.environ.
+
+    This allows scripts to work both with and without pydantic_settings installed.
+    """
+    try:
+        from core.config import settings
+
+        return getattr(settings, key, "") or ""
+    except (ImportError, ModuleNotFoundError):
+        # Map setting names to env var names (uppercase)
+        return os.environ.get(key.upper(), default)
 
 
 def setup_script_path() -> Path:
@@ -58,31 +74,35 @@ def create_authenticated_client(
             print("Could not authenticate")
             sys.exit(1)
     """
-    from core.config import settings
     from integrations.catenda import CatendaClient
 
-    if not settings.catenda_client_id:
+    client_id = _get_setting("catenda_client_id")
+    client_secret = _get_setting("catenda_client_secret")
+    access_token = _get_setting("catenda_access_token")
+    topic_board_id = _get_setting("catenda_topic_board_id")
+
+    if not client_id:
         print_fail("CATENDA_CLIENT_ID mangler i .env")
         print_info("Kjor: python scripts/setup_authentication.py")
         return None
 
     client = CatendaClient(
-        client_id=settings.catenda_client_id,
-        client_secret=settings.catenda_client_secret,
+        client_id=client_id,
+        client_secret=client_secret or None,
     )
 
     # Set topic board if configured
-    if settings.catenda_topic_board_id:
-        client.topic_board_id = settings.catenda_topic_board_id
+    if topic_board_id:
+        client.topic_board_id = topic_board_id
 
     # Try access token first
-    if use_access_token and settings.catenda_access_token:
+    if use_access_token and access_token:
         print_info("Bruker lagret access token fra .env")
-        client.set_access_token(settings.catenda_access_token)
+        client.set_access_token(access_token)
         return client
 
     # Try client credentials authentication
-    if authenticate_if_needed and settings.catenda_client_secret:
+    if authenticate_if_needed and client_secret:
         print_info("Autentiserer med Client Credentials...")
         if not client.authenticate():
             print_fail("Autentisering feilet")
@@ -158,8 +178,6 @@ def select_project(client: "CatendaClient") -> str | None:
     Returns:
         Selected project ID, or None if selection failed/cancelled
     """
-    from core.config import settings
-
     print_info("Henter tilgjengelige prosjekter...")
     projects = client.list_projects()
 
@@ -167,7 +185,7 @@ def select_project(client: "CatendaClient") -> str | None:
         print_fail("Fant ingen prosjekter")
         return None
 
-    current_project_id = settings.catenda_project_id
+    current_project_id = _get_setting("catenda_project_id")
 
     print_ok(f"Fant {len(projects)} prosjekt(er):")
     for i, project in enumerate(projects, 1):

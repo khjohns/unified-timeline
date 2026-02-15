@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from core.unit_of_work import TrackingUnitOfWork
     from integrations.catenda import CatendaClient
     from repositories import EventRepository, SakMetadataRepository
+    from repositories.bim_link_repository import BimLinkRepository
     from repositories.membership_repository import SupabaseMembershipRepository
     from repositories.project_repository import SupabaseProjectRepository
     from services.catenda_service import CatendaService
@@ -74,6 +75,7 @@ class Container:
     _metadata_repo: Optional["SakMetadataRepository"] = field(default=None, repr=False)
     _project_repo: Optional["SupabaseProjectRepository"] = field(default=None, repr=False)
     _membership_repo: Optional["SupabaseMembershipRepository"] = field(default=None, repr=False)
+    _bim_link_repo: Optional["BimLinkRepository"] = field(default=None, repr=False)
     _timeline_service: Optional["TimelineService"] = field(default=None, repr=False)
     _catenda_service: Optional["CatendaService"] = field(default=None, repr=False)
     _catenda_client: Optional["CatendaClient"] = field(default=None, repr=False)
@@ -134,6 +136,15 @@ class Container:
 
             self._membership_repo = SupabaseMembershipRepository()
         return self._membership_repo
+
+    @property
+    def bim_link_repository(self) -> "BimLinkRepository":
+        """Lazy-load BimLinkRepository."""
+        if self._bim_link_repo is None:
+            from repositories.bim_link_repository import BimLinkRepository
+
+            self._bim_link_repo = BimLinkRepository()
+        return self._bim_link_repo
 
     # -------------------------------------------------------------------------
     # Services
@@ -250,6 +261,7 @@ class Container:
         self._metadata_repo = None
         self._project_repo = None
         self._membership_repo = None
+        self._bim_link_repo = None
         self._timeline_service = None
         self._catenda_service = None
         self._catenda_client = None
