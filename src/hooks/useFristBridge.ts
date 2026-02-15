@@ -62,6 +62,9 @@ export interface FristEditState {
   erSvarPaForesporsel: boolean;
   erGrunnlagSubsidiaer: boolean;
   beregningsResultat: string | undefined;
+  visSubsidiaertResultat: boolean;
+  subsidiaertResultat: string | undefined;
+  krevdDager: number;
 }
 
 export interface FristBridgeReturn {
@@ -336,6 +339,9 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
       erSvarPaForesporsel,
       erGrunnlagSubsidiaer,
       beregningsResultat: prinsipaltResultat,
+      visSubsidiaertResultat,
+      subsidiaertResultat,
+      krevdDager,
     },
     formProps: {
       externalSelections: {

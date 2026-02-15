@@ -272,19 +272,37 @@ export function FristCard({
 
                 {/* ── Resultat ── */}
                 {editState.beregningsResultat && (
-                  <div className="bg-pkt-bg-subtle/50 rounded-md border border-pkt-border-default px-2.5 py-2 text-[11px]">
-                    <span className="font-semibold">Resultat: </span>
-                    <span className={
-                      editState.beregningsResultat === 'godkjent' ? 'text-pkt-brand-dark-green-1000 font-semibold'
-                        : editState.beregningsResultat === 'avslatt' ? 'text-pkt-brand-red-1000 font-semibold'
-                          : 'text-pkt-brand-yellow-1000 font-semibold'
-                    }>
-                      {getResultatLabel(editState.beregningsResultat)}
-                    </span>
-                    {!editState.sendForesporsel && krevd > 0 && (
-                      <span className="text-pkt-text-body-muted ml-1">
-                        – {editState.godkjentDager} av {krevd} dager ({pct}%)
+                  <div className="bg-pkt-bg-subtle/50 rounded-md border border-pkt-border-default px-2.5 py-2 text-[11px] space-y-1">
+                    <div>
+                      <span className="font-semibold">Resultat: </span>
+                      <span className={
+                        editState.beregningsResultat === 'godkjent' ? 'text-pkt-brand-dark-green-1000 font-semibold'
+                          : editState.beregningsResultat === 'avslatt' ? 'text-pkt-brand-red-1000 font-semibold'
+                            : 'text-pkt-brand-yellow-1000 font-semibold'
+                      }>
+                        {getResultatLabel(editState.beregningsResultat)}
                       </span>
+                      {!editState.sendForesporsel && krevd > 0 && (
+                        <span className="text-pkt-text-body-muted ml-1">
+                          – {editState.godkjentDager} av {krevd} dager ({pct}%)
+                        </span>
+                      )}
+                    </div>
+                    {editState.visSubsidiaertResultat && editState.subsidiaertResultat && (
+                      <div className="text-pkt-text-body-subtle">
+                        <span className="text-pkt-text-body-muted">↳ Subsidiært: </span>
+                        <span className="font-medium">
+                          {getResultatLabel(editState.subsidiaertResultat)}
+                        </span>
+                        {editState.subsidiaertResultat !== 'avslatt' && (
+                          <span className="font-mono tabular-nums ml-1">
+                            ({editState.godkjentDager} av {editState.krevdDager} dager)
+                          </span>
+                        )}
+                        {editState.erPrekludert && (
+                          <span className="ml-1">dersom kravet hadde vært varslet i tide</span>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}

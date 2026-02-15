@@ -30,30 +30,10 @@ describe('BentoRespondFrist', () => {
     expect(screen.getByText(/begrunnelse/i)).toBeInTheDocument();
   });
 
-  it('shows forsering warning when rejecting days', () => {
-    renderWithProviders(
-      <BentoRespondFrist {...defaultProps} externalResultat="avslatt" visForsering avslatteDager={10} />
-    );
-    expect(screen.getByText(/§33.8 Forsering-risiko/)).toBeInTheDocument();
-  });
-
   it('shows submit and cancel buttons', () => {
     renderWithProviders(<BentoRespondFrist {...defaultProps} />);
     expect(screen.getByText('Send svar')).toBeInTheDocument();
     expect(screen.getByText('Avbryt')).toBeInTheDocument();
-  });
-
-  it('shows subsidiary summary when visSubsidiaertResultat', () => {
-    renderWithProviders(
-      <BentoRespondFrist
-        {...defaultProps}
-        externalResultat="avslatt"
-        visSubsidiaertResultat
-        subsidiaertResultat="godkjent"
-        externalGodkjentDager={10}
-      />
-    );
-    expect(screen.getByText(/↳ Subsidiært/)).toBeInTheDocument();
   });
 
   it('shows draft button when approvalEnabled', () => {

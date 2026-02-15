@@ -60,6 +60,9 @@ describe('FristCard interactive mode', () => {
     erSvarPaForesporsel: false,
     erGrunnlagSubsidiaer: false,
     beregningsResultat: 'godkjent',
+    visSubsidiaertResultat: false,
+    subsidiaertResultat: undefined,
+    krevdDager: 10,
   };
 
   it('shows InlineYesNo for varslet i tide when editState.showFristVarselOk', () => {

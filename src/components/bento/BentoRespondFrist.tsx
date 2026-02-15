@@ -22,13 +22,11 @@ import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { useCatendaStatusHandler } from '../../hooks/useCatendaStatusHandler';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
-import { getFristConsequence } from './consequenceCallout';
-import { getResultatLabel } from '../../utils/formatters';
 import {
   generateFristResponseBegrunnelse,
   type FristResponseInput,
 } from '../../utils/begrunnelseGenerator';
-import type { SubsidiaerTrigger, FristBeregningResultat } from '../../types/timeline';
+import type { SubsidiaerTrigger } from '../../types/timeline';
 
 // ============================================================================
 // SCHEMA
@@ -64,8 +62,6 @@ export interface BentoRespondFristProps {
   erGrunnlagPrekludert?: boolean;
   erForesporselSvarForSent?: boolean;
   harTidligereVarselITide?: boolean;
-  visForsering?: boolean;
-  avslatteDager?: number;
   subsidiaerTriggers?: SubsidiaerTrigger[];
   subsidiaertResultat?: string;
   visSubsidiaertResultat?: boolean;
@@ -100,8 +96,6 @@ export function BentoRespondFrist({
   erGrunnlagPrekludert,
   erForesporselSvarForSent,
   harTidligereVarselITide,
-  visForsering,
-  avslatteDager = 0,
   subsidiaerTriggers = [],
   subsidiaertResultat,
   visSubsidiaertResultat,
@@ -174,15 +168,6 @@ export function BentoRespondFrist({
       }
     },
   });
-
-  // Consequence callout
-  const consequence = useMemo(() => getFristConsequence({
-    resultat: externalResultat,
-    godkjentDager: externalGodkjentDager,
-    krevdDager,
-    erPrekludert,
-    erSubsidiaer: erGrunnlagSubsidiaer,
-  }), [externalResultat, externalGodkjentDager, krevdDager, erPrekludert, erGrunnlagSubsidiaer]);
 
   // Dynamic placeholder
   const dynamicPlaceholder = useMemo(() => {
@@ -305,40 +290,6 @@ export function BentoRespondFrist({
       <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Consequence callout */}
-        {consequence && (
-          <Alert variant={consequence.variant} size="sm">
-            {consequence.text}
-          </Alert>
-        )}
-
-        {/* §33.8 Forsering warning */}
-        {visForsering && avslatteDager > 0 && (
-          <Alert variant="warning" size="sm" title="§33.8 Forsering-risiko">
-            Du avslår <strong>{avslatteDager} dager</strong> som entreprenøren mener å ha krav på.
-            Dersom avslaget er uberettiget, kan entreprenøren velge å anse det som et{' '}
-            <strong>pålegg om forsering</strong>.
-          </Alert>
-        )}
-
-        {/* Subsidiary summary */}
-        {visSubsidiaertResultat && subsidiaertResultat && (
-          <div className="text-xs text-pkt-text-body-subtle bg-pkt-bg-card rounded-md px-3 py-2 border border-pkt-border-default">
-            <span className="text-pkt-text-body-muted">↳ Subsidiært: </span>
-            <span className="font-medium">
-              {getResultatLabel(subsidiaertResultat as FristBeregningResultat)}
-            </span>
-            {subsidiaertResultat !== 'avslatt' && externalGodkjentDager != null && (
-              <span className="font-mono tabular-nums ml-1">
-                ({externalGodkjentDager} av {krevdDager} dager)
-              </span>
-            )}
-            {erPrekludert && (
-              <span className="ml-1">dersom kravet hadde vært varslet i tide</span>
-            )}
-          </div>
-        )}
-
         {/* Send forespørsel info */}
         {sendForesporsel && (
           <Alert variant="info" size="sm">
@@ -363,6 +314,7 @@ export function BentoRespondFrist({
                   field.onChange(value);
                   markBegrunnelseAsEdited();
                 }}
+                className="text-xs"
                 minHeight={200}
                 fullWidth
                 error={!!errors.begrunnelse}
