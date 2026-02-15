@@ -483,6 +483,38 @@ begrunnelse-editor + submit-surface uten domenekunnskap.
 
 ---
 
+## Vurderte alternativer
+
+### Forkastet: Splitte fristkortet i varsel-kort (§33.4) + krav-kort (§33.6.1)
+
+**Hypotese:** Fristkortet har 6 kontroller — for mye for ett kort.
+Splitting i to kort (ett per paragrafområde) ville gi 2–3 kontroller
+per kort og enklere bridge-hooks.
+
+**Avvist fordi:**
+
+1. **Kausal kobling.** Varselvurderingen (§33.4) bestemmer direkte om
+   kravet er prekludert, redusert (§33.6.1) eller om forespørsel
+   kreves (§33.6.2). To kort = to separate interaksjoner der BH mister
+   årsak→virkning-feedbacken som gjør bento-mønsteret verdifullt.
+2. **Subsidiært standpunkt krysser begge kort.** Subsidiær-badge på
+   sporet gjelder hele frist-vurderingen. Splitting gjør det uklart
+   hvilket kort som eier det subsidiære standpunktet.
+3. **BH tenker i spor, ikke paragrafer.** Én samlet frist-vurdering
+   matcher brukerens mentale modell bedre enn to oppstykket steg.
+4. **Auto-begrunnelse trenger data fra begge.** Bridge-hooken måtte
+   likevel koordinere state mellom to kort, og gevinsten i enklere
+   per-hook forsvinner.
+
+**Kompleksitetsmåling bekrefter dette:** Bento-tilnærmingen (bridge +
+formpanel + kort) har 1 101 linjer vs modalens 1 926 (-43%), med
+tilnærmet likt antall hooks (31 vs 29). Kompleksiteten er ikke høyere —
+den er distribuert på tre filer med tydelige ansvarsområder.
+
+**Riktig granulering er sporet, ikke paragrafen.**
+
+---
+
 ## Sjekkliste for neste spor (vederlag)
 
 Basert på lærdom fra frist-implementeringen:
