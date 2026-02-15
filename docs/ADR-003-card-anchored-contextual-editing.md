@@ -154,6 +154,29 @@ CasePageBento
 | **BentoRespondFrist** | `computed.*` — resultat, preklusjonsinfo for auto-begrunnelse | Auto-begrunnelse, teksteditor, submit |
 | **CasePageBento** | Eier bridge, passer `cardProps` til kort og `computed` til form | Layout, expand/collapse, action-routing |
 
+**Computed vs raw — enveis dataflyt:**
+
+Bridge-hooken returnerer to distinkte kontrakter med forskjellig
+retning. Formpanelet skal aldri motta setters — det er en ren
+konsument av beregnede verdier:
+
+```
+useFristBridge returns {
+  cardProps: {              // → FristCard (read-write)
+    state + setters         //   Rå FormState + onChange-handlers
+    visibility flags        //   Hva skal vises/skjules
+    beregnet resultat       //   Computed fra state
+  },
+  computed: {               // → BentoRespondFrist (read-only)
+    resultat, godkjentDager //   For auto-begrunnelse
+    erPrekludert, ...       //   For konsekvenstekst
+  },
+  formProps: {              // → BentoRespondFrist (read-only)
+    externalSelections      //   Speiling av kortets valg
+  }
+}
+```
+
 ---
 
 ## Analyse per spor
@@ -352,6 +375,46 @@ fast.
 **Løsning:** Bruk CSS `order`-property på grid-children for å
 reposisjonere aktivt kort+form til toppen dynamisk.
 
+### L9: Tester må flyttes sammen med kontrollene
+
+**Problem:** Da konsekvens-callout, forsering-advarsel og subsidiær-
+oppsummering ble flyttet fra BentoRespondFrist til FristCard, ble
+tilhørende tester slettet fra `BentoRespondFrist.test.tsx` — men de
+må gjenskapes i `FristCard.test.tsx`. Uten bevisst testmigrasjon
+mister man testdekning uten å oppdage det.
+
+**Løsning:** Behandle testflytting som et eget steg: for hver kontroll
+som flyttes fra form til kort, flytt (eller skriv ny) tilhørende test
+i samme commit. Sjekk at total testantall ikke synker.
+
+### L10: Rydd opp foreldede props og imports i formpanelet
+
+**Problem:** Etter at kontroller flyttes til kortet, ligger gamle
+props (`visForsering`, `avslatteDager`) og imports (`getFristConsequence`,
+`getResultatLabel`) igjen i formpanelet. TypeScript fanger ikke
+ubrukte optional props, og ubrukte imports fanges bare av linter.
+
+**Løsning:** Gjør en eksplisitt opprydding av formpanelets interface
+og imports som siste steg etter at kontroller er flyttet:
+1. Fjern props fra interface-definisjonen
+2. Fjern tilhørende destructuring i komponentfunksjonen
+3. Fjern ubrukte imports
+4. Fjern tester som testet de fjernede prop-kombinasjonene
+
+### L11: Bridge-hook skiller computed (readonly) fra state (read-write)
+
+**Problem:** Det er fristende å sende hele bridge-state til begge
+komponenter. Men da kan formpanelet ved et uhell kalle setters som
+hører hjemme i kortet, og dataretningen blir uklar.
+
+**Løsning:** Bridge-hooken returnerer to distinkte kontrakter:
+- `cardProps` — rå state + setters + visibility flags (read-write)
+- `computed` / `formProps` — beregnede verdier, readonly
+
+Formpanelet mottar kun `computed.*` og `formProps.*`. Det skal aldri
+ha tilgang til `handleFristVarselOkChange` eller lignende setters.
+Se «Computed vs raw»-avsnittet under Implementert arkitektur.
+
 ---
 
 ## Konsekvenser
@@ -402,6 +465,9 @@ Basert på lærdom fra frist-implementeringen:
 - [ ] Seksjonerte kontroller med §-overskrifter per underkrav (L7)
 - [ ] CSS grid order for aktiv kort-posisjonering (L8)
 - [ ] Ekspanderbare rigg/produktivitet-seksjoner for å håndtere tetthet
+- [ ] Flytt tester fra RespondVederlagModal.test → VederlagCard.test for flyttede kontroller (L9)
+- [ ] Rydd opp foreldede props/imports i BentoRespondVederlag etter flytting (L10)
+- [ ] `computed`/`formProps` til formpanel er readonly — ingen setters lekker (L11)
 - [ ] Test at klassiske modaler (RespondVederlagModal) fremdeles fungerer
 
 ---
