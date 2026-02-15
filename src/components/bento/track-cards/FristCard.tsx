@@ -116,9 +116,17 @@ export function FristCard({
             )}
             {(hasVarselOnly || (hasDays && f.frist_varsel?.dato_sendt)) && (
               <div className="flex justify-between items-baseline">
-                <span className="text-[11px] text-pkt-text-body-subtle">Varslet</span>
+                <span className="text-[11px] text-pkt-text-body-subtle">Varslet §33.4</span>
                 <span className="text-xs font-mono text-pkt-text-body-default">
                   {formatDateShort(f.frist_varsel!.dato_sendt)}
+                </span>
+              </div>
+            )}
+            {f.spesifisert_varsel?.dato_sendt && (
+              <div className="flex justify-between items-baseline">
+                <span className="text-[11px] text-pkt-text-body-subtle">Krav §33.6.1</span>
+                <span className="text-xs font-mono text-pkt-text-body-default">
+                  {formatDateShort(f.spesifisert_varsel.dato_sendt)}
                 </span>
               </div>
             )}
