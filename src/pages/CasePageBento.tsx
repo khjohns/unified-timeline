@@ -514,25 +514,8 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
           <BentoRespondFrist
             sakId={sakId}
             fristKravId={`frist-${sakId}`}
-            krevdDager={state.frist.krevd_dager ?? 0}
-            varselType={state.frist.varsel_type}
-            externalFristVarselOk={fristBridge.cardProps.fristVarselOk}
-            externalSpesifisertKravOk={fristBridge.cardProps.spesifisertKravOk}
-            externalForesporselSvarOk={fristBridge.cardProps.foresporselSvarOk}
-            externalVilkarOppfylt={fristBridge.cardProps.vilkarOppfylt}
-            externalGodkjentDager={fristBridge.cardProps.godkjentDager}
-            externalResultat={fristBridge.computed.prinsipaltResultat}
-            externalSendForesporsel={fristBridge.cardProps.sendForesporsel}
-            erPrekludert={fristBridge.computed.erPrekludert}
-            erRedusert={fristBridge.computed.erRedusert}
-            erGrunnlagSubsidiaer={fristBridge.computed.erGrunnlagSubsidiaer}
-            erGrunnlagPrekludert={fristBridge.computed.erGrunnlagPrekludert}
-            erForesporselSvarForSent={fristBridge.computed.erForesporselSvarForSent}
-            harTidligereVarselITide={fristBridge.computed.harTidligereVarselITide}
-            subsidiaerTriggers={fristBridge.computed.subsidiaerTriggers}
-            subsidiaertResultat={fristBridge.computed.subsidiaertResultat}
-            visSubsidiaertResultat={fristBridge.computed.visSubsidiaertResultat}
-            sendForesporsel={fristBridge.computed.sendForesporsel}
+            computed={fristBridge.computed}
+            buildEventData={fristBridge.buildEventData}
             onSuccess={onSuccess}
             onCancel={onCancel}
             onCatendaWarning={onCatendaWarning}

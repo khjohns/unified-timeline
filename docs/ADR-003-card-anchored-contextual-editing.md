@@ -168,11 +168,14 @@ useFristBridge returns {
     beregnet resultat       //   Computed fra state
   },
   computed: {               // → BentoRespondFrist (read-only)
-    resultat, godkjentDager //   For auto-begrunnelse
-    erPrekludert, ...       //   For konsekvenstekst
+    prinsipaltResultat      //   For submit-disable + placeholder
+    autoBegrunnelse         //   Generert fra alle kortvalg
+    dynamicPlaceholder      //   Kontekstavhengig hint
+    sendForesporsel         //   For info-alert
+    godkjentDager           //   For utkast
   },
-  formProps: {              // → BentoRespondFrist (read-only)
-    externalSelections      //   Speiling av kortets valg
+  buildEventData(params) {  // → BentoRespondFrist (submit)
+    // Bygger komplett event-payload fra bridge-state + begrunnelse
   }
 }
 ```
@@ -411,9 +414,37 @@ hører hjemme i kortet, og dataretningen blir uklar.
 - `cardProps` — rå state + setters + visibility flags (read-write)
 - `computed` / `formProps` — beregnede verdier, readonly
 
-Formpanelet mottar kun `computed.*` og `formProps.*`. Det skal aldri
-ha tilgang til `handleFristVarselOkChange` eller lignende setters.
+Formpanelet mottar kun `computed.*`. Det skal aldri ha tilgang til
+`handleFristVarselOkChange` eller lignende setters.
 Se «Computed vs raw»-avsnittet under Implementert arkitektur.
+
+### L12: Formpanelet skal ikke bygge event-payload eller auto-begrunnelse
+
+**Problem:** Etter at kontroller flyttes til kortet, sitter formpanelet
+igjen med 17+ individuelle props (`externalFristVarselOk`,
+`externalGodkjentDager`, `erPrekludert`, ...) som det bruker til to
+ting: (1) generere auto-begrunnelse, (2) bygge submit-payload. Begge
+oppgavene bruker data som bridge-hooken allerede eier. Resultatet er
+prop-eksplosjon i CasePageBento og at formpanelet leser `cardProps`-
+verdier i strid med L11.
+
+**Løsning:** Bridge-hooken eier auto-begrunnelse og payload-bygging:
+- `computed.autoBegrunnelse` — generert i bridge fra alle valg
+- `computed.dynamicPlaceholder` — kontekstavhengig placeholder
+- `buildEventData({ fristKravId, begrunnelse })` — komplett event-data
+
+Formpanelet mottar `computed` + `buildEventData` som to props.
+Submit-handleren blir en one-liner:
+
+```tsx
+mutation.mutate({
+  eventType: 'respons_frist',
+  data: buildEventData({ fristKravId, begrunnelse: data.begrunnelse }),
+});
+```
+
+**Resultat:** Props redusert fra 26 til 9. Formpanelet er en ren
+begrunnelse-editor + submit-surface uten domenekunnskap.
 
 ---
 
@@ -467,7 +498,9 @@ Basert på lærdom fra frist-implementeringen:
 - [ ] Ekspanderbare rigg/produktivitet-seksjoner for å håndtere tetthet
 - [ ] Flytt tester fra RespondVederlagModal.test → VederlagCard.test for flyttede kontroller (L9)
 - [ ] Rydd opp foreldede props/imports i BentoRespondVederlag etter flytting (L10)
-- [ ] `computed`/`formProps` til formpanel er readonly — ingen setters lekker (L11)
+- [ ] `computed` til formpanel er readonly — ingen setters lekker (L11)
+- [ ] Auto-begrunnelse + `buildEventData` i bridge, ikke i formpanelet (L12)
+- [ ] Formpanel tar `computed` + `buildEventData` som props — ikke 17 individuelle
 - [ ] Test at klassiske modaler (RespondVederlagModal) fremdeles fungerer
 
 ---
