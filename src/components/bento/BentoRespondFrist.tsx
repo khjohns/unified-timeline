@@ -3,11 +3,13 @@
  *
  * Form panel for card-anchored frist response.
  * Renders to the right of FristCard in interactive mode.
- * Controls (varsling, vilkår, dager) live in FristCard — this panel
- * shows consequence callout, forsering warning, begrunnelse, and submit.
+ *
+ * This panel is a pure begrunnelse editor + submit surface.
+ * All controls (varsling, vilkår, dager) and results live in FristCard.
+ * Auto-begrunnelse and event payload are built by useFristBridge.
  */
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,11 +24,7 @@ import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { useCatendaStatusHandler } from '../../hooks/useCatendaStatusHandler';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
-import {
-  generateFristResponseBegrunnelse,
-  type FristResponseInput,
-} from '../../utils/begrunnelseGenerator';
-import type { SubsidiaerTrigger } from '../../types/timeline';
+import type { FristBridgeComputed } from '../../hooks/useFristBridge';
 
 // ============================================================================
 // SCHEMA
@@ -45,27 +43,9 @@ type BentoFristFormData = z.infer<typeof bentoFristSchema>;
 export interface BentoRespondFristProps {
   sakId: string;
   fristKravId: string;
-  krevdDager?: number;
-  varselType?: 'varsel' | 'spesifisert' | 'begrunnelse_utsatt';
-  // External state from bridge hook
-  externalFristVarselOk?: boolean;
-  externalSpesifisertKravOk?: boolean;
-  externalForesporselSvarOk?: boolean;
-  externalVilkarOppfylt?: boolean;
-  externalGodkjentDager?: number;
-  externalResultat?: string;
-  externalSendForesporsel?: boolean;
-  // Computed from bridge
-  erPrekludert?: boolean;
-  erRedusert?: boolean;
-  erGrunnlagSubsidiaer?: boolean;
-  erGrunnlagPrekludert?: boolean;
-  erForesporselSvarForSent?: boolean;
-  harTidligereVarselITide?: boolean;
-  subsidiaerTriggers?: SubsidiaerTrigger[];
-  subsidiaertResultat?: string;
-  visSubsidiaertResultat?: boolean;
-  sendForesporsel?: boolean;
+  // Bridge (readonly computed + event builder)
+  computed: FristBridgeComputed;
+  buildEventData: (params: { fristKravId: string; begrunnelse: string }) => Record<string, unknown>;
   // Callbacks
   onSuccess: () => void;
   onCancel: () => void;
@@ -81,25 +61,8 @@ export interface BentoRespondFristProps {
 export function BentoRespondFrist({
   sakId,
   fristKravId,
-  krevdDager = 0,
-  varselType,
-  externalFristVarselOk,
-  externalSpesifisertKravOk,
-  externalForesporselSvarOk,
-  externalVilkarOppfylt,
-  externalGodkjentDager,
-  externalResultat,
-  externalSendForesporsel,
-  erPrekludert,
-  erRedusert,
-  erGrunnlagSubsidiaer,
-  erGrunnlagPrekludert,
-  erForesporselSvarForSent,
-  harTidligereVarselITide,
-  subsidiaerTriggers = [],
-  subsidiaertResultat,
-  visSubsidiaertResultat,
-  sendForesporsel,
+  computed,
+  buildEventData,
   onSuccess,
   onCancel,
   onCatendaWarning,
@@ -169,115 +132,46 @@ export function BentoRespondFrist({
     },
   });
 
-  // Dynamic placeholder
-  const dynamicPlaceholder = useMemo(() => {
-    if (!externalResultat) return 'Gjør valgene i kortet til venstre, deretter skriv begrunnelse...';
-    if (externalResultat === 'godkjent') return 'Begrunn din godkjenning av fristforlengelsen...';
-    if (externalResultat === 'delvis_godkjent') return 'Forklar hvorfor du kun godkjenner deler av fristforlengelsen...';
-    return 'Begrunn ditt avslag på fristforlengelsen...';
-  }, [externalResultat]);
-
-  // Auto-begrunnelse from card selections
-  const autoBegrunnelse = useMemo(() => {
-    if (!externalResultat) return '';
-    const input: FristResponseInput = {
-      varselType,
-      krevdDager,
-      fristVarselOk: externalFristVarselOk,
-      spesifisertKravOk: externalSpesifisertKravOk,
-      foresporselSvarOk: externalForesporselSvarOk,
-      sendForesporsel: externalSendForesporsel,
-      vilkarOppfylt: externalVilkarOppfylt ?? true,
-      godkjentDager: externalGodkjentDager ?? 0,
-      erPrekludert: erPrekludert ?? false,
-      erForesporselSvarForSent,
-      erRedusert_33_6_1: erRedusert,
-      harTidligereVarselITide,
-      erGrunnlagSubsidiaer,
-      erGrunnlagPrekludert,
-      prinsipaltResultat: externalResultat,
-      subsidiaertResultat,
-      visSubsidiaertResultat: visSubsidiaertResultat ?? false,
-    };
-    return generateFristResponseBegrunnelse(input, { useTokens: true });
-  }, [
-    varselType, krevdDager, externalFristVarselOk, externalSpesifisertKravOk,
-    externalForesporselSvarOk, externalSendForesporsel, externalVilkarOppfylt,
-    externalGodkjentDager, externalResultat, erPrekludert, erForesporselSvarForSent,
-    erRedusert, harTidligereVarselITide, erGrunnlagSubsidiaer, erGrunnlagPrekludert,
-    subsidiaertResultat, visSubsidiaertResultat,
-  ]);
-
   // Track manual edits to begrunnelse
   const userHasEditedBegrunnelseRef = useRef(false);
 
   // Auto-populate begrunnelse when auto-begrunnelse changes (if not manually edited)
   useEffect(() => {
-    if (autoBegrunnelse && !userHasEditedBegrunnelseRef.current) {
-      formSetValue('begrunnelse', autoBegrunnelse);
+    if (computed.autoBegrunnelse && !userHasEditedBegrunnelseRef.current) {
+      formSetValue('begrunnelse', computed.autoBegrunnelse);
     }
-  }, [autoBegrunnelse, formSetValue]);
+  }, [computed.autoBegrunnelse, formSetValue]);
 
   const markBegrunnelseAsEdited = useCallback(() => {
     userHasEditedBegrunnelseRef.current = true;
   }, []);
 
   const handleRegenerBegrunnelse = useCallback(() => {
-    if (autoBegrunnelse) {
-      formSetValue('begrunnelse', autoBegrunnelse, { shouldDirty: true });
+    if (computed.autoBegrunnelse) {
+      formSetValue('begrunnelse', computed.autoBegrunnelse, { shouldDirty: true });
       userHasEditedBegrunnelseRef.current = false;
     }
-  }, [autoBegrunnelse, formSetValue]);
+  }, [computed.autoBegrunnelse, formSetValue]);
 
-  // Submit handler
+  // Submit handler — bridge builds the full event payload
   const onSubmit = (data: BentoFristFormData) => {
     pendingToastId.current = toast.pending(
       'Sender svar...',
       'Vennligst vent mens svaret behandles.'
     );
 
-    const godkjentDager = externalResultat !== 'avslatt' ? (externalGodkjentDager ?? 0) : 0;
-
     mutation.mutate({
       eventType: 'respons_frist',
-      data: {
-        frist_krav_id: fristKravId,
-
-        // Port 1: Preklusjon
-        frist_varsel_ok: externalFristVarselOk,
-        spesifisert_krav_ok: externalSpesifisertKravOk,
-        foresporsel_svar_ok: externalForesporselSvarOk,
-        send_foresporsel: externalSendForesporsel,
-
-        // Port 2: Vilkår
-        vilkar_oppfylt: externalVilkarOppfylt,
-
-        // Port 3: Beregning
-        godkjent_dager: godkjentDager,
-
-        // Port 4: Oppsummering
-        begrunnelse: data.begrunnelse || autoBegrunnelse,
-        auto_begrunnelse: autoBegrunnelse,
-
-        // Automatisk beregnet
-        beregnings_resultat: externalResultat,
-        krevd_dager: krevdDager,
-
-        // Subsidiært standpunkt
-        subsidiaer_triggers: subsidiaerTriggers.length > 0 ? subsidiaerTriggers : undefined,
-        subsidiaer_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
-        subsidiaer_godkjent_dager: visSubsidiaertResultat && subsidiaertResultat !== 'avslatt' ? (externalGodkjentDager ?? 0) : undefined,
-        subsidiaer_begrunnelse: visSubsidiaertResultat ? data.begrunnelse : undefined,
-      },
+      data: buildEventData({ fristKravId, begrunnelse: data.begrunnelse }),
     });
   };
 
   const handleSaveDraft = (data: BentoFristFormData) => {
     if (!onSaveDraft) return;
     onSaveDraft({
-      dager: externalGodkjentDager ?? 0,
-      resultat: externalResultat,
-      begrunnelse: data.begrunnelse || autoBegrunnelse,
+      dager: computed.godkjentDager,
+      resultat: computed.prinsipaltResultat,
+      begrunnelse: data.begrunnelse || computed.autoBegrunnelse,
     });
     clearBackup();
     reset();
@@ -291,7 +185,7 @@ export function BentoRespondFrist({
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Send forespørsel info */}
-        {sendForesporsel && (
+        {computed.sendForesporsel && (
           <Alert variant="info" size="sm">
             Du sender forespørsel om spesifisering (§33.6.2). TE må svare med et spesifisert krav.
           </Alert>
@@ -318,11 +212,11 @@ export function BentoRespondFrist({
                 minHeight={200}
                 fullWidth
                 error={!!errors.begrunnelse}
-                placeholder={dynamicPlaceholder}
+                placeholder={computed.dynamicPlaceholder}
               />
             )}
           />
-          {autoBegrunnelse && (
+          {computed.autoBegrunnelse && (
             <div className="flex justify-end mt-1">
               <Button
                 type="button"
@@ -370,7 +264,7 @@ export function BentoRespondFrist({
               type="submit"
               variant="primary"
               size="sm"
-              disabled={isSubmitting || !externalResultat}
+              disabled={isSubmitting || !computed.prinsipaltResultat}
             >
               {isSubmitting ? 'Sender...' : 'Send svar'}
             </Button>

@@ -1,5 +1,9 @@
 import { useState, useMemo, useCallback } from 'react';
 import type { FristBeregningResultat, SubsidiaerTrigger } from '../types/timeline';
+import {
+  generateFristResponseBegrunnelse,
+  type FristResponseInput,
+} from '../utils/begrunnelseGenerator';
 
 // ============================================================================
 // TYPES
@@ -67,27 +71,29 @@ export interface FristEditState {
   krevdDager: number;
 }
 
+export interface FristBridgeComputed {
+  erPrekludert: boolean;
+  erRedusert: boolean;
+  erGrunnlagSubsidiaer: boolean;
+  erGrunnlagPrekludert: boolean;
+  erForesporselSvarForSent: boolean;
+  harTidligereVarselITide: boolean;
+  prinsipaltResultat: string | undefined;
+  subsidiaertResultat: string | undefined;
+  visSubsidiaertResultat: boolean;
+  visForsering: boolean;
+  avslatteDager: number;
+  sendForesporsel: boolean;
+  subsidiaerTriggers: SubsidiaerTrigger[];
+  autoBegrunnelse: string;
+  dynamicPlaceholder: string;
+  godkjentDager: number;
+}
+
 export interface FristBridgeReturn {
   cardProps: FristEditState;
-  formProps: {
-    externalSelections: Record<string, unknown>;
-    begrunnelseDefaults: { placeholder: string };
-  };
-  computed: {
-    erPrekludert: boolean;
-    erRedusert: boolean;
-    erGrunnlagSubsidiaer: boolean;
-    erGrunnlagPrekludert: boolean;
-    erForesporselSvarForSent: boolean;
-    harTidligereVarselITide: boolean;
-    prinsipaltResultat: string | undefined;
-    subsidiaertResultat: string | undefined;
-    visSubsidiaertResultat: boolean;
-    visForsering: boolean;
-    avslatteDager: number;
-    sendForesporsel: boolean;
-    subsidiaerTriggers: SubsidiaerTrigger[];
-  };
+  computed: FristBridgeComputed;
+  buildEventData: (params: { fristKravId: string; begrunnelse: string }) => Record<string, unknown>;
   validate: () => boolean;
 }
 
@@ -306,6 +312,76 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
     return triggers;
   }, [erGrunnlagSubsidiaer, erPrekludert, harHindring]);
 
+  // ========== AUTO-BEGRUNNELSE ==========
+  const autoBegrunnelse = useMemo(() => {
+    if (!prinsipaltResultat) return '';
+    const input: FristResponseInput = {
+      varselType,
+      krevdDager,
+      fristVarselOk,
+      spesifisertKravOk,
+      foresporselSvarOk,
+      sendForesporsel,
+      vilkarOppfylt,
+      godkjentDager,
+      erPrekludert,
+      erForesporselSvarForSent,
+      erRedusert_33_6_1: erRedusert,
+      harTidligereVarselITide,
+      erGrunnlagSubsidiaer,
+      erGrunnlagPrekludert: erHelFristSubsidiaerPgaGrunnlag,
+      prinsipaltResultat,
+      subsidiaertResultat,
+      visSubsidiaertResultat,
+    };
+    return generateFristResponseBegrunnelse(input, { useTokens: true });
+  }, [
+    varselType, krevdDager, fristVarselOk, spesifisertKravOk,
+    foresporselSvarOk, sendForesporsel, vilkarOppfylt, godkjentDager,
+    prinsipaltResultat, erPrekludert, erForesporselSvarForSent,
+    erRedusert, harTidligereVarselITide, erGrunnlagSubsidiaer,
+    erHelFristSubsidiaerPgaGrunnlag, subsidiaertResultat, visSubsidiaertResultat,
+  ]);
+
+  const dynamicPlaceholder = useMemo(() => {
+    if (!prinsipaltResultat) return 'Gjør valgene i kortet til venstre, deretter skriv begrunnelse...';
+    if (prinsipaltResultat === 'godkjent') return 'Begrunn din godkjenning av fristforlengelsen...';
+    if (prinsipaltResultat === 'delvis_godkjent') return 'Forklar hvorfor du kun godkjenner deler av fristforlengelsen...';
+    return 'Begrunn ditt avslag på fristforlengelsen...';
+  }, [prinsipaltResultat]);
+
+  // ========== BUILD EVENT DATA ==========
+  const buildEventData = useCallback((params: { fristKravId: string; begrunnelse: string }): Record<string, unknown> => {
+    const effektiveGodkjentDager = prinsipaltResultat !== 'avslatt' ? godkjentDager : 0;
+    return {
+      frist_krav_id: params.fristKravId,
+      // Port 1: Preklusjon
+      frist_varsel_ok: fristVarselOk,
+      spesifisert_krav_ok: spesifisertKravOk,
+      foresporsel_svar_ok: foresporselSvarOk,
+      send_foresporsel: sendForesporsel,
+      // Port 2: Vilkår
+      vilkar_oppfylt: vilkarOppfylt,
+      // Port 3: Beregning
+      godkjent_dager: effektiveGodkjentDager,
+      // Port 4: Begrunnelse
+      begrunnelse: params.begrunnelse || autoBegrunnelse,
+      auto_begrunnelse: autoBegrunnelse,
+      // Automatisk beregnet
+      beregnings_resultat: prinsipaltResultat,
+      krevd_dager: krevdDager,
+      // Subsidiært standpunkt
+      subsidiaer_triggers: subsidiaerTriggers.length > 0 ? subsidiaerTriggers : undefined,
+      subsidiaer_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
+      subsidiaer_godkjent_dager: visSubsidiaertResultat && subsidiaertResultat !== 'avslatt' ? effektiveGodkjentDager : undefined,
+      subsidiaer_begrunnelse: visSubsidiaertResultat ? (params.begrunnelse || autoBegrunnelse) : undefined,
+    };
+  }, [
+    fristVarselOk, spesifisertKravOk, foresporselSvarOk, sendForesporsel,
+    vilkarOppfylt, godkjentDager, prinsipaltResultat, krevdDager,
+    autoBegrunnelse, subsidiaerTriggers, visSubsidiaertResultat, subsidiaertResultat,
+  ]);
+
   // ========== RETURN ==========
   return {
     cardProps: {
@@ -343,19 +419,6 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
       subsidiaertResultat,
       krevdDager,
     },
-    formProps: {
-      externalSelections: {
-        frist_varsel_ok: fristVarselOk,
-        spesifisert_krav_ok: spesifisertKravOk,
-        foresporsel_svar_ok: foresporselSvarOk,
-        vilkar_oppfylt: vilkarOppfylt,
-        godkjent_dager: godkjentDager,
-        send_foresporsel: sendForesporsel,
-      },
-      begrunnelseDefaults: {
-        placeholder: 'Begrunn ditt svar på fristforlengelseskravet...',
-      },
-    },
     computed: {
       erPrekludert,
       erRedusert,
@@ -370,7 +433,11 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
       avslatteDager,
       sendForesporsel,
       subsidiaerTriggers,
+      autoBegrunnelse,
+      dynamicPlaceholder,
+      godkjentDager,
     },
+    buildEventData,
     validate: () => {
       // Basic validation: resultat must be defined
       return prinsipaltResultat !== undefined;
