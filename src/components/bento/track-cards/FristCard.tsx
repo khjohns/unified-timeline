@@ -1,15 +1,16 @@
 import { clsx } from 'clsx';
-import { CheckIcon } from '@radix-ui/react-icons';
+import { CheckIcon, Cross2Icon } from '@radix-ui/react-icons';
 import type { SakState } from '../../../types/timeline';
 import type { AvailableActions } from '../../../hooks/useActionPermissions';
 import { formatDateShort } from '../../../utils/formatters';
-import { Tooltip } from '../../primitives';
+import { Alert, Button, Tooltip } from '../../primitives';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import { getGradColor, isResolved } from './trackCardUtils';
 import { getResultatLabel } from '../../../utils/formatters';
 import { StatusDot } from './StatusDot';
 import { TrackHistory } from './TrackHistory';
 import { TrackCTA } from './TrackCTA';
+import { TokenExpiredAlert } from '../../alerts/TokenExpiredAlert';
 import type { SporHistoryEntry } from '../../views/SporHistory';
 import { InlineYesNo } from '../InlineYesNo';
 import { InlineNumberInput } from '../InlineNumberInput';
@@ -97,7 +98,18 @@ export function FristCard({
             </span>
           )}
         </div>
-        <StatusDot status={status} />
+        {editState ? (
+          <button
+            type="button"
+            onClick={editState.onClose}
+            className="p-1 rounded-sm text-pkt-text-body-subtle hover:text-pkt-text-body-default hover:bg-pkt-bg-subtle transition-colors"
+            aria-label="Lukk"
+          >
+            <Cross2Icon className="w-4 h-4" />
+          </button>
+        ) : (
+          <StatusDot status={status} />
+        )}
       </div>
 
       {isEmpty ? (
@@ -314,6 +326,50 @@ export function FristCard({
                     )}
                   </div>
                 )}
+
+                {/* Forespørsel info alert */}
+                {editState.sendForesporselInfo && (
+                  <Alert variant="info" size="sm">
+                    Du sender forespørsel om spesifisering (&sect;33.6.2). TE m&aring; svare med et spesifisert krav.
+                  </Alert>
+                )}
+
+                {/* Token expired */}
+                <TokenExpiredAlert open={editState.showTokenExpired} onClose={editState.onTokenExpiredClose} />
+
+                {/* Submit error */}
+                {editState.submitError && (
+                  <Alert variant="danger" size="sm" title="Feil ved innsending">
+                    {editState.submitError}
+                  </Alert>
+                )}
+
+                {/* Submit footer */}
+                <div className="border-t border-pkt-border-subtle pt-3 flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
+                  <div>{/* spacer */}</div>
+                  <div className="flex gap-2">
+                    {editState.onSaveDraft && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={editState.onSaveDraft}
+                        disabled={editState.isSubmitting}
+                      >
+                        Lagre utkast
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={editState.onSubmit}
+                      disabled={!editState.canSubmit}
+                    >
+                      {editState.submitLabel}
+                    </Button>
+                  </div>
+                </div>
               </div>
             );
           })()}

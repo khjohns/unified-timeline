@@ -33,7 +33,8 @@ import { downloadApprovedPdf } from '../pdf/generator';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
 import { MockToolbar } from '../components/MockToolbar';
-import { BentoBreadcrumb, CaseMasterCard, BimCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag, BentoRespondFrist, type VerdictOption } from '../components/bento';
+import { BentoBreadcrumb, CaseMasterCard, BimCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag, BentoRespondFrist } from '../components/bento';
+import { useGrunnlagBridge } from '../hooks/useGrunnlagBridge';
 import { useFristBridge } from '../hooks/useFristBridge';
 import {
   ApprovePakkeModal,
@@ -290,58 +291,41 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
   // Grunnlag entries needed by BentoRespondGrunnlag inside renderExpandedForm
   const grunnlagEntries = useMemo(() => transformGrunnlagHistorikk(grunnlagHistorikk), [grunnlagHistorikk]);
 
-  // ===== INLINE FORM CONTROLS (varslet + verdict) for MasterCard =====
-  const [formVarsletITide, setFormVarsletITide] = useState<boolean | undefined>(true);
-  const [formResultat, setFormResultat] = useState<string | undefined>();
-  const [formResultatError, setFormResultatError] = useState(false);
-
-  // Reset inline form state when grunnlag form opens/closes
+  // ===== GRUNNLAG CARD-ANCHORED EDITING =====
   const isGrunnlagFormOpen = expandedTrack?.track === 'grunnlag' &&
     (expandedTrack.action === 'respond' || expandedTrack.action === 'updateResponse');
 
-  useEffect(() => {
-    if (isGrunnlagFormOpen) {
-      setFormVarsletITide(true);
-      setFormResultat(
-        expandedTrack?.action === 'updateResponse'
-          ? (state.grunnlag.bh_resultat || undefined)
-          : undefined,
-      );
-      setFormResultatError(false);
-    }
-  }, [isGrunnlagFormOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ukCode = Array.isArray(state.grunnlag.underkategori)
+    ? state.grunnlag.underkategori[0]
+    : state.grunnlag.underkategori;
 
-  // Clear error when resultat is selected
-  useEffect(() => {
-    if (formResultat) setFormResultatError(false);
-  }, [formResultat]);
-
-  // Verdict options for MasterCard
-  const grunnlagVerdictOptions = useMemo((): VerdictOption[] | undefined => {
-    if (!isGrunnlagFormOpen) return undefined;
-    const ukCode = Array.isArray(state.grunnlag.underkategori)
-      ? state.grunnlag.underkategori[0]
-      : state.grunnlag.underkategori;
-    const erPaalegg = state.grunnlag.hovedkategori === 'ENDRING' &&
-      (ukCode === 'IRREG' || ukCode === 'VALGRETT');
-    const opts: VerdictOption[] = [
-      { value: 'godkjent', label: 'Godkjent', description: 'Grunnlag anerkjent', icon: 'check', colorScheme: 'green' },
-      { value: 'avslatt', label: 'Avslått', description: 'Grunnlag avvist', icon: 'cross', colorScheme: 'red' },
-    ];
-    if (erPaalegg) {
-      opts.push({ value: 'frafalt', label: 'Frafalt', description: 'Pålegget frafalles', icon: 'undo', colorScheme: 'gray' });
-    }
-    return opts;
-  }, [isGrunnlagFormOpen, state.grunnlag.hovedkategori, state.grunnlag.underkategori]);
-
-  // Whether to show varslet toggle (ENDRING except EO)
-  const showVarsletToggle = useMemo(() => {
-    if (!isGrunnlagFormOpen) return false;
-    const ukCode = Array.isArray(state.grunnlag.underkategori)
-      ? state.grunnlag.underkategori[0]
-      : state.grunnlag.underkategori;
-    return state.grunnlag.hovedkategori === 'ENDRING' && ukCode !== 'EO';
-  }, [isGrunnlagFormOpen, state.grunnlag.hovedkategori, state.grunnlag.underkategori]);
+  const grunnlagBridge = useGrunnlagBridge({
+    isOpen: isGrunnlagFormOpen,
+    sakId,
+    grunnlagEventId: `grunnlag-${sakId}`,
+    grunnlagEvent: {
+      hovedkategori: state.grunnlag.hovedkategori,
+      underkategori: ukCode,
+      beskrivelse: state.grunnlag.beskrivelse,
+      dato_oppdaget: state.grunnlag.dato_oppdaget,
+      dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,
+    },
+    lastResponseEvent: expandedTrack?.action === 'updateResponse' && state.grunnlag.bh_resultat
+      ? { event_id: `grunnlag-response-${sakId}`, resultat: state.grunnlag.bh_resultat }
+      : undefined,
+    sakState: state,
+    onSuccess: handleCollapseTrack,
+    onCatendaWarning: () => modals.catendaWarning.setOpen(true),
+    approvalEnabled: approvalWorkflow.approvalEnabled,
+    onSaveDraft: (draftData) => {
+      approvalWorkflow.saveDraft({
+        sporType: 'grunnlag',
+        resultat: draftData.resultat as 'godkjent' | 'avslatt' | 'frafalt',
+        begrunnelse: draftData.begrunnelse,
+        formData: draftData.formData,
+      });
+    },
+  });
 
   // ===== FRIST CARD-ANCHORED EDITING =====
   const isFristFormOpen = expandedTrack?.track === 'frist' &&
@@ -349,6 +333,8 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
 
   const fristBridge = useFristBridge({
     isOpen: isFristFormOpen,
+    sakId,
+    fristKravId: `frist-${sakId}`,
     krevdDager: state.frist.krevd_dager ?? 0,
     varselType: state.frist.varsel_type,
     grunnlagStatus: grunnlagStatus as 'godkjent' | 'avslatt' | 'frafalt' | undefined,
@@ -357,6 +343,18 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     lastResponseEvent: expandedTrack?.action === 'updateResponse' && state.frist.bh_resultat
       ? { event_id: `frist-response-${sakId}`, resultat: state.frist.bh_resultat, godkjent_dager: state.frist.godkjent_dager }
       : undefined,
+    onSuccess: handleCollapseTrack,
+    onCatendaWarning: () => modals.catendaWarning.setOpen(true),
+    approvalEnabled: approvalWorkflow.approvalEnabled,
+    onSaveDraft: (draftData) => {
+      approvalWorkflow.saveDraft({
+        sporType: 'frist',
+        dager: draftData.dager as number,
+        resultat: draftData.resultat as 'godkjent' | 'delvis_godkjent' | 'avslatt',
+        begrunnelse: draftData.begrunnelse as string,
+        formData: draftData,
+      });
+    },
   });
 
   // ===== EXPANDED FORM RENDERER =====
@@ -391,62 +389,9 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
           />
         );
       case 'grunnlag:respond':
-        return (
-          <BentoRespondGrunnlag
-            sakId={sakId}
-            grunnlagEventId={`grunnlag-${sakId}`}
-            grunnlagEvent={{
-              hovedkategori: state.grunnlag.hovedkategori,
-              underkategori: Array.isArray(state.grunnlag.underkategori) ? state.grunnlag.underkategori[0] : state.grunnlag.underkategori,
-              beskrivelse: state.grunnlag.beskrivelse,
-              dato_oppdaget: state.grunnlag.dato_oppdaget,
-              dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,
-            }}
-            grunnlagEntries={grunnlagEntries}
-            hideContextPanel
-            externalVarsletITide={formVarsletITide}
-            externalResultat={formResultat}
-            onSuccess={onSuccess}
-            onCancel={onCancel}
-            onCatendaWarning={onCatendaWarning}
-            approvalEnabled={approvalWorkflow.approvalEnabled}
-            onSaveDraft={(draftData) => {
-              approvalWorkflow.saveDraft({
-                sporType: 'grunnlag',
-                resultat: draftData.resultat as 'godkjent' | 'avslatt' | 'frafalt',
-                begrunnelse: draftData.begrunnelse,
-                formData: draftData.formData,
-              });
-            }}
-          />
-        );
       case 'grunnlag:updateResponse':
         return (
-          <BentoRespondGrunnlag
-            sakId={sakId}
-            grunnlagEventId={`grunnlag-${sakId}`}
-            lastResponseEvent={{
-              event_id: `grunnlag-response-${sakId}`,
-              resultat: state.grunnlag.bh_resultat || 'godkjent',
-            }}
-            sakState={state}
-            grunnlagEntries={grunnlagEntries}
-            hideContextPanel
-            externalVarsletITide={formVarsletITide}
-            externalResultat={formResultat}
-            onSuccess={onSuccess}
-            onCancel={onCancel}
-            onCatendaWarning={onCatendaWarning}
-            approvalEnabled={approvalWorkflow.approvalEnabled}
-            onSaveDraft={(draftData) => {
-              approvalWorkflow.saveDraft({
-                sporType: 'grunnlag',
-                resultat: draftData.resultat as 'godkjent' | 'avslatt' | 'frafalt',
-                begrunnelse: draftData.begrunnelse,
-                formData: draftData.formData,
-              });
-            }}
-          />
+          <BentoRespondGrunnlag editorProps={grunnlagBridge.editorProps} />
         );
       case 'grunnlag:withdraw':
         return (
@@ -511,25 +456,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       case 'frist:respond':
       case 'frist:updateResponse':
         return (
-          <BentoRespondFrist
-            sakId={sakId}
-            fristKravId={`frist-${sakId}`}
-            computed={fristBridge.computed}
-            buildEventData={fristBridge.buildEventData}
-            onSuccess={onSuccess}
-            onCancel={onCancel}
-            onCatendaWarning={onCatendaWarning}
-            approvalEnabled={approvalWorkflow.approvalEnabled}
-            onSaveDraft={(draftData) => {
-              approvalWorkflow.saveDraft({
-                sporType: 'frist',
-                dager: draftData.dager as number,
-                resultat: draftData.resultat as 'godkjent' | 'delvis_godkjent' | 'avslatt',
-                begrunnelse: draftData.begrunnelse as string,
-                formData: draftData,
-              });
-            }}
-          />
+          <BentoRespondFrist editorProps={fristBridge.editorProps} />
         );
       case 'frist:send':
         return (
@@ -572,7 +499,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       default:
         return null;
     }
-  }, [expandedTrack, sakId, state, grunnlagStatus, approvalWorkflow, modals.catendaWarning, handleCollapseTrack, grunnlagEntries, formVarsletITide, formResultat, fristBridge]);
+  }, [expandedTrack, sakId, state, grunnlagStatus, approvalWorkflow, modals.catendaWarning, handleCollapseTrack, grunnlagBridge, fristBridge]);
 
   // ===== TRACK FORM VIEW METADATA =====
   const getTrackFormMeta = useCallback((expanded: { track: string; action: string }) => {
@@ -839,14 +766,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
               grunnlagEntries={grunnlagEntries}
               primaryAction={grunnlagPrimaryAction}
               secondaryActions={grunnlagSecondaryActions}
-              isGrunnlagFormExpanded={expandedTrack?.track === 'grunnlag'}
-              formVarsletITide={formVarsletITide}
-              onFormVarsletITideChange={setFormVarsletITide}
-              formResultat={formResultat}
-              onFormResultatChange={setFormResultat}
-              formResultatError={formResultatError}
-              verdictOptions={grunnlagVerdictOptions}
-              showVarsletToggle={showVarsletToggle}
+              editState={isGrunnlagFormOpen ? grunnlagBridge.cardProps : null}
               className="animate-fade-in-up"
             />
             {!expandedTrack && (
