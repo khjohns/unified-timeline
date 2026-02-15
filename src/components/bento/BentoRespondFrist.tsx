@@ -7,7 +7,7 @@
  * shows consequence callout, forsering warning, begrunnelse, and submit.
  */
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,6 +24,10 @@ import { useCatendaStatusHandler } from '../../hooks/useCatendaStatusHandler';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { getFristConsequence } from './consequenceCallout';
 import { getResultatLabel } from '../../utils/formatters';
+import {
+  generateFristResponseBegrunnelse,
+  type FristResponseInput,
+} from '../../utils/begrunnelseGenerator';
 import type { SubsidiaerTrigger, FristBeregningResultat } from '../../types/timeline';
 
 // ============================================================================
@@ -57,6 +61,9 @@ export interface BentoRespondFristProps {
   erPrekludert?: boolean;
   erRedusert?: boolean;
   erGrunnlagSubsidiaer?: boolean;
+  erGrunnlagPrekludert?: boolean;
+  erForesporselSvarForSent?: boolean;
+  harTidligereVarselITide?: boolean;
   visForsering?: boolean;
   avslatteDager?: number;
   subsidiaerTriggers?: SubsidiaerTrigger[];
@@ -90,6 +97,9 @@ export function BentoRespondFrist({
   erPrekludert,
   erRedusert,
   erGrunnlagSubsidiaer,
+  erGrunnlagPrekludert,
+  erForesporselSvarForSent,
+  harTidligereVarselITide,
   visForsering,
   avslatteDager = 0,
   subsidiaerTriggers = [],
@@ -112,6 +122,7 @@ export function BentoRespondFrist({
     reset,
     watch,
     control,
+    setValue: formSetValue,
   } = useForm<BentoFristFormData>({
     resolver: zodResolver(bentoFristSchema),
     defaultValues: {
@@ -181,6 +192,58 @@ export function BentoRespondFrist({
     return 'Begrunn ditt avslag på fristforlengelsen...';
   }, [externalResultat]);
 
+  // Auto-begrunnelse from card selections
+  const autoBegrunnelse = useMemo(() => {
+    if (!externalResultat) return '';
+    const input: FristResponseInput = {
+      varselType,
+      krevdDager,
+      fristVarselOk: externalFristVarselOk,
+      spesifisertKravOk: externalSpesifisertKravOk,
+      foresporselSvarOk: externalForesporselSvarOk,
+      sendForesporsel: externalSendForesporsel,
+      vilkarOppfylt: externalVilkarOppfylt ?? true,
+      godkjentDager: externalGodkjentDager ?? 0,
+      erPrekludert: erPrekludert ?? false,
+      erForesporselSvarForSent,
+      erRedusert_33_6_1: erRedusert,
+      harTidligereVarselITide,
+      erGrunnlagSubsidiaer,
+      erGrunnlagPrekludert,
+      prinsipaltResultat: externalResultat,
+      subsidiaertResultat,
+      visSubsidiaertResultat: visSubsidiaertResultat ?? false,
+    };
+    return generateFristResponseBegrunnelse(input, { useTokens: true });
+  }, [
+    varselType, krevdDager, externalFristVarselOk, externalSpesifisertKravOk,
+    externalForesporselSvarOk, externalSendForesporsel, externalVilkarOppfylt,
+    externalGodkjentDager, externalResultat, erPrekludert, erForesporselSvarForSent,
+    erRedusert, harTidligereVarselITide, erGrunnlagSubsidiaer, erGrunnlagPrekludert,
+    subsidiaertResultat, visSubsidiaertResultat,
+  ]);
+
+  // Track manual edits to begrunnelse
+  const userHasEditedBegrunnelseRef = useRef(false);
+
+  // Auto-populate begrunnelse when auto-begrunnelse changes (if not manually edited)
+  useEffect(() => {
+    if (autoBegrunnelse && !userHasEditedBegrunnelseRef.current) {
+      formSetValue('begrunnelse', autoBegrunnelse);
+    }
+  }, [autoBegrunnelse, formSetValue]);
+
+  const markBegrunnelseAsEdited = useCallback(() => {
+    userHasEditedBegrunnelseRef.current = true;
+  }, []);
+
+  const handleRegenerBegrunnelse = useCallback(() => {
+    if (autoBegrunnelse) {
+      formSetValue('begrunnelse', autoBegrunnelse, { shouldDirty: true });
+      userHasEditedBegrunnelseRef.current = false;
+    }
+  }, [autoBegrunnelse, formSetValue]);
+
   // Submit handler
   const onSubmit = (data: BentoFristFormData) => {
     pendingToastId.current = toast.pending(
@@ -208,8 +271,8 @@ export function BentoRespondFrist({
         godkjent_dager: godkjentDager,
 
         // Port 4: Oppsummering
-        begrunnelse: data.begrunnelse,
-        auto_begrunnelse: data.begrunnelse,
+        begrunnelse: data.begrunnelse || autoBegrunnelse,
+        auto_begrunnelse: autoBegrunnelse,
 
         // Automatisk beregnet
         beregnings_resultat: externalResultat,
@@ -229,7 +292,7 @@ export function BentoRespondFrist({
     onSaveDraft({
       dager: externalGodkjentDager ?? 0,
       resultat: externalResultat,
-      begrunnelse: data.begrunnelse,
+      begrunnelse: data.begrunnelse || autoBegrunnelse,
     });
     clearBackup();
     reset();
@@ -296,7 +359,10 @@ export function BentoRespondFrist({
               <RichTextEditor
                 id="frist-begrunnelse"
                 value={field.value ?? ''}
-                onChange={field.onChange}
+                onChange={(value) => {
+                  field.onChange(value);
+                  markBegrunnelseAsEdited();
+                }}
                 minHeight={200}
                 fullWidth
                 error={!!errors.begrunnelse}
@@ -304,6 +370,18 @@ export function BentoRespondFrist({
               />
             )}
           />
+          {autoBegrunnelse && (
+            <div className="flex justify-end mt-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleRegenerBegrunnelse}
+              >
+                Regenerer fra valg
+              </Button>
+            </div>
+          )}
         </FormField>
 
         {/* Error */}

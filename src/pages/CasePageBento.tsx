@@ -526,6 +526,9 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             erPrekludert={fristBridge.computed.erPrekludert}
             erRedusert={fristBridge.computed.erRedusert}
             erGrunnlagSubsidiaer={fristBridge.computed.erGrunnlagSubsidiaer}
+            erGrunnlagPrekludert={fristBridge.computed.erGrunnlagPrekludert}
+            erForesporselSvarForSent={fristBridge.computed.erForesporselSvarForSent}
+            harTidligereVarselITide={fristBridge.computed.harTidligereVarselITide}
             visForsering={fristBridge.computed.visForsering}
             avslatteDager={fristBridge.computed.avslatteDager}
             subsidiaerTriggers={fristBridge.computed.subsidiaerTriggers}

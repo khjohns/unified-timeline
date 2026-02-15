@@ -263,8 +263,6 @@ export function FristCard({
                       onChange={editState.onGodkjentDagerChange}
                       suffix="d"
                       min={0}
-                      referenceLabel="Krevd"
-                      referenceValue={`${krevd}d`}
                       helperText={krevd > 0 && editState.godkjentDager !== krevd
                         ? `Differanse: ${diff}d (${pct}% godkjent)`
                         : undefined}
@@ -272,110 +270,22 @@ export function FristCard({
                   </div>
                 )}
 
-                {/* ── Oppsummering ── */}
+                {/* ── Resultat ── */}
                 {editState.beregningsResultat && (
-                  <div className="bg-pkt-bg-subtle/50 rounded-md border border-pkt-border-default text-[11px]">
-                    <div className="px-2.5 py-1.5 font-semibold text-pkt-text-body-default text-[11px] uppercase tracking-wide border-b border-pkt-border-subtle">
-                      Oppsummering
-                    </div>
-
-                    <div className="px-2.5 py-2 space-y-2">
-                      {editState.erGrunnlagSubsidiaer && (
-                        <div>
-                          <span className="font-medium text-pkt-text-body-default">Ansvarsgrunnlag</span>
-                          <p className="text-pkt-text-body-subtle">Grunnlagskravet er avslått. Fristkravet behandles subsidiært.</p>
-                        </div>
-                      )}
-
-                      {editState.showFristVarselOk && (
-                        <div>
-                          <span className="font-medium text-pkt-text-body-default">Foreløpig varsel (§33.4)</span>
-                          <p className="text-pkt-text-body-subtle">
-                            {editState.sendForesporsel
-                              ? 'Byggherren etterspør spesifisert krav. Avventer respons fra entreprenøren.'
-                              : editState.erPrekludert
-                                ? 'Foreløpig varsel ble ikke sendt uten ugrunnet opphold. Kravet tapes.'
-                                : 'Varslet uten ugrunnet opphold.'}
-                          </p>
-                        </div>
-                      )}
-
-                      {editState.showForesporselSvarOk && (
-                        <div>
-                          <span className="font-medium text-pkt-text-body-default">Svar på forespørsel (§33.6.2)</span>
-                          <p className="text-pkt-text-body-subtle">
-                            {editState.foresporselSvarOk
-                              ? 'Svaret kom i tide.'
-                              : 'Svar på forespørsel kom ikke uten ugrunnet opphold. Kravet tapes.'}
-                          </p>
-                        </div>
-                      )}
-
-                      {editState.showSpesifisertKravOk && (
-                        <div>
-                          <span className="font-medium text-pkt-text-body-default">
-                            Krav om fristforlengelse (§33.6.1){editState.erPrekludert && editState.spesifisertKravOk === false ? ' – subsidiært' : ''}
-                          </span>
-                          <p className="text-pkt-text-body-subtle">
-                            {editState.spesifisertKravOk
-                              ? editState.erSvarPaForesporsel
-                                ? 'Svaret på forespørselen kom i tide. Byggherren kan ikke påberope §33.6.1.'
-                                : 'Kravet ble fremsatt uten ugrunnet opphold.'
-                              : editState.erPrekludert
-                                ? 'Subsidiært: Kravet ble ikke fremsatt uten ugrunnet opphold. Fristforlengelsen reduseres til det byggherren måtte forstå.'
-                                : 'Kravet ble ikke fremsatt uten ugrunnet opphold. Fristforlengelsen reduseres til det byggherren måtte forstå.'}
-                          </p>
-                        </div>
-                      )}
-
-                      <div>
-                        <span className="font-medium text-pkt-text-body-default">
-                          Vilkår for fristforlengelse (§33.1){editState.port2ErSubsidiaer ? ' – subsidiært' : ''}
-                        </span>
-                        <p className="text-pkt-text-body-subtle">
-                          {editState.vilkarOppfylt
-                            ? editState.port2ErSubsidiaer
-                              ? 'Subsidiært: Fremdriften ble hindret av forholdet. Vilkårene i §33.1 er oppfylt.'
-                              : 'Byggherren erkjenner at fremdriften ble hindret av forholdet. Vilkårene i §33.1 er oppfylt.'
-                            : editState.port2ErSubsidiaer
-                              ? 'Subsidiært: Fremdriften ble ikke hindret av forholdet. Vilkårene i §33.1 er ikke oppfylt.'
-                              : 'Fremdriften ble ikke hindret av forholdet. Vilkårene i §33.1 er ikke oppfylt.'}
-                        </p>
-                      </div>
-
-                      {editState.showGodkjentDager && !editState.sendForesporsel && (
-                        <div>
-                          <span className="font-medium text-pkt-text-body-default">
-                            Beregning av fristforlengelse (§33.5){editState.port3ErSubsidiaer ? ' – subsidiært' : ''}
-                          </span>
-                          <p className="text-pkt-text-body-subtle">
-                            {editState.port3ErSubsidiaer ? 'Subsidiært: ' : 'Fristforlengelsen skal svare til virkningen på fremdriften. '}
-                            {editState.godkjentDager >= krevd
-                              ? `Byggherren godkjenner de krevde ${krevd} dagene.`
-                              : editState.godkjentDager > 0
-                                ? `Entreprenøren krever ${krevd} dager. Byggherren godkjenner ${editState.godkjentDager} dager.`
-                                : `Entreprenøren krever ${krevd} dager. Byggherren godkjenner ingen dager.`}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Resultat */}
-                    <div className="px-2.5 py-2 border-t border-pkt-border-subtle">
-                      <span className="font-semibold">Resultat: </span>
-                      <span className={
-                        editState.beregningsResultat === 'godkjent' ? 'text-pkt-brand-dark-green-1000 font-semibold'
-                          : editState.beregningsResultat === 'avslatt' ? 'text-pkt-brand-red-1000 font-semibold'
-                            : 'text-pkt-brand-yellow-1000 font-semibold'
-                      }>
-                        {getResultatLabel(editState.beregningsResultat)}
+                  <div className="bg-pkt-bg-subtle/50 rounded-md border border-pkt-border-default px-2.5 py-2 text-[11px]">
+                    <span className="font-semibold">Resultat: </span>
+                    <span className={
+                      editState.beregningsResultat === 'godkjent' ? 'text-pkt-brand-dark-green-1000 font-semibold'
+                        : editState.beregningsResultat === 'avslatt' ? 'text-pkt-brand-red-1000 font-semibold'
+                          : 'text-pkt-brand-yellow-1000 font-semibold'
+                    }>
+                      {getResultatLabel(editState.beregningsResultat)}
+                    </span>
+                    {!editState.sendForesporsel && krevd > 0 && (
+                      <span className="text-pkt-text-body-muted ml-1">
+                        – {editState.godkjentDager} av {krevd} dager ({pct}%)
                       </span>
-                      {!editState.sendForesporsel && krevd > 0 && (
-                        <span className="text-pkt-text-body-muted ml-1">
-                          – {editState.godkjentDager} av {krevd} dager ({pct}%)
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
                 )}
               </div>

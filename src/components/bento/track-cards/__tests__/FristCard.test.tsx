@@ -101,15 +101,15 @@ describe('FristCard interactive mode', () => {
     expect(screen.getByText(/Ble kravet fremsatt i tide/)).toBeInTheDocument();
   });
 
-  it('shows Oppsummering when beregningsResultat is set', () => {
+  it('shows Resultat line when beregningsResultat is set', () => {
     render(<FristCard state={baseState} entries={[]} userRole="BH" actions={noopActions} editState={editState} />);
-    expect(screen.getByText('Oppsummering')).toBeInTheDocument();
+    expect(screen.getByText('Resultat:')).toBeInTheDocument();
     expect(screen.getByText('Godkjent')).toBeInTheDocument();
   });
 
-  it('hides Oppsummering when beregningsResultat is undefined', () => {
+  it('hides Resultat line when beregningsResultat is undefined', () => {
     render(<FristCard state={baseState} entries={[]} userRole="BH" actions={noopActions} editState={{ ...editState, beregningsResultat: undefined }} />);
-    expect(screen.queryByText('Oppsummering')).not.toBeInTheDocument();
+    expect(screen.queryByText('Resultat:')).not.toBeInTheDocument();
   });
 
   it('shows Preklusjon callout when fristVarselOk is false', () => {

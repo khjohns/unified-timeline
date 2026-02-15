@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import type { FristBeregningResultat, SubsidiaerTrigger } from '../types/timeline';
 
 // ============================================================================
@@ -74,6 +74,9 @@ export interface FristBridgeReturn {
     erPrekludert: boolean;
     erRedusert: boolean;
     erGrunnlagSubsidiaer: boolean;
+    erGrunnlagPrekludert: boolean;
+    erForesporselSvarForSent: boolean;
+    harTidligereVarselITide: boolean;
     prinsipaltResultat: string | undefined;
     subsidiaertResultat: string | undefined;
     visSubsidiaertResultat: boolean;
@@ -174,35 +177,38 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
     };
   }, [isUpdateMode, lastResponseEvent, fristTilstand, krevdDager]);
 
-  const initialDefaults = getDefaults();
-  const [fristVarselOk, setFristVarselOk] = useState(initialDefaults.fristVarselOk);
-  const [spesifisertKravOk, setSpesifisertKravOk] = useState(initialDefaults.spesifisertKravOk);
-  const [foresporselSvarOk, setForesporselSvarOk] = useState(initialDefaults.foresporselSvarOk);
-  const [vilkarOppfylt, setVilkarOppfylt] = useState(initialDefaults.vilkarOppfylt);
-  const [sendForesporsel, setSendForesporsel] = useState(initialDefaults.sendForesporsel);
-  const [godkjentDager, setGodkjentDager] = useState(initialDefaults.godkjentDager);
+  // Consolidated form state (single setState avoids cascading-render lint error)
+  interface FormState {
+    fristVarselOk: boolean;
+    spesifisertKravOk: boolean;
+    foresporselSvarOk: boolean;
+    vilkarOppfylt: boolean;
+    sendForesporsel: boolean;
+    godkjentDager: number;
+  }
 
-  // Reset when isOpen transitions to true
-  const prevIsOpen = useRef(isOpen);
-  useEffect(() => {
-    if (isOpen && !prevIsOpen.current) {
-      const defaults = getDefaults();
-      setFristVarselOk(defaults.fristVarselOk);
-      setSpesifisertKravOk(defaults.spesifisertKravOk);
-      setForesporselSvarOk(defaults.foresporselSvarOk);
-      setVilkarOppfylt(defaults.vilkarOppfylt);
-      setSendForesporsel(defaults.sendForesporsel);
-      setGodkjentDager(defaults.godkjentDager);
-    }
-    prevIsOpen.current = isOpen;
-  }, [isOpen, getDefaults]);
+  const [formState, setFormState] = useState<FormState>(getDefaults);
 
-  // Reset sendForesporsel when fristVarselOk becomes false
-  useEffect(() => {
-    if (fristVarselOk === false && sendForesporsel === true) {
-      setSendForesporsel(false);
+  // Reset when isOpen transitions to true (state-during-render pattern, per React docs)
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (isOpen) {
+      setFormState(getDefaults());
     }
-  }, [fristVarselOk, sendForesporsel]);
+  }
+
+  const { fristVarselOk, spesifisertKravOk, foresporselSvarOk, vilkarOppfylt, sendForesporsel, godkjentDager } = formState;
+
+  // Individual setters for card controls
+  const handleFristVarselOkChange = useCallback((v: boolean) => {
+    setFormState(prev => ({ ...prev, fristVarselOk: v, ...(v === false ? { sendForesporsel: false } : {}) }));
+  }, []);
+  const setSpesifisertKravOk = useCallback((v: boolean) => setFormState(prev => ({ ...prev, spesifisertKravOk: v })), []);
+  const setForesporselSvarOk = useCallback((v: boolean) => setFormState(prev => ({ ...prev, foresporselSvarOk: v })), []);
+  const setVilkarOppfylt = useCallback((v: boolean) => setFormState(prev => ({ ...prev, vilkarOppfylt: v })), []);
+  const setSendForesporsel = useCallback((v: boolean) => setFormState(prev => ({ ...prev, sendForesporsel: v })), []);
+  const setGodkjentDager = useCallback((v: number) => setFormState(prev => ({ ...prev, godkjentDager: v })), []);
 
   // ========== VISIBILITY FLAGS ==========
   const erBegrunnelseUtsatt = varselType === 'begrunnelse_utsatt';
@@ -301,7 +307,7 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
   return {
     cardProps: {
       fristVarselOk,
-      onFristVarselOkChange: setFristVarselOk,
+      onFristVarselOkChange: handleFristVarselOkChange,
       showFristVarselOk,
 
       spesifisertKravOk,
@@ -348,6 +354,9 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
       erPrekludert,
       erRedusert,
       erGrunnlagSubsidiaer,
+      erGrunnlagPrekludert: erHelFristSubsidiaerPgaGrunnlag,
+      erForesporselSvarForSent,
+      harTidligereVarselITide,
       prinsipaltResultat,
       subsidiaertResultat,
       visSubsidiaertResultat,
