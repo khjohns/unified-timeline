@@ -16,7 +16,7 @@ export function StatusDot({ status, className }: StatusDotProps) {
   const label = getStatusLabel(status);
 
   return (
-    <div className={clsx('flex items-center gap-1.5', className)}>
+    <div className={clsx('flex items-center gap-1', className)}>
       <div
         className={clsx(
           'w-2 h-2 rounded-full shrink-0',

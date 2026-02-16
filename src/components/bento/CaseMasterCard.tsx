@@ -147,7 +147,7 @@ export function CaseMasterCard({
 
       {/* ===== Grunnlag section ===== */}
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-baseline gap-1.5">
+        <div className="flex items-baseline gap-1">
           <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
             Ansvarsgrunnlag
           </span>
@@ -173,38 +173,39 @@ export function CaseMasterCard({
         <p className="text-bento-body text-pkt-text-body-muted italic">Ingen data enn&aring;</p>
       ) : (
         <>
-          {/* Category: type + hjemmel + what it entitles */}
+          {/* Category: type + hjemmel + underkategori on one row */}
           {categoryInfo && (
             <div className="mb-2">
-              <p className="text-bento-caption font-semibold text-pkt-text-body-default uppercase tracking-wide">
-                {categoryInfo.line1}
-                {categoryInfo.line1Hjemmel && (
-                  <span className="text-pkt-text-body-muted font-normal ml-1.5">
-                    &middot; {categoryInfo.line1Hjemmel}
+              <div className="flex justify-between items-baseline gap-2">
+                <p className="text-bento-caption font-semibold text-pkt-text-body-default uppercase tracking-wide">
+                  {categoryInfo.line1}
+                  {categoryInfo.line1Hjemmel && (
+                    <span className="text-pkt-text-body-muted font-normal ml-1.5">
+                      &middot; {categoryInfo.line1Hjemmel}
+                    </span>
+                  )}
+                </p>
+                {categoryInfo.line2 && (
+                  <span className="text-bento-body font-medium text-bento-krevd text-right shrink-0">
+                    {categoryInfo.line2}
                   </span>
                 )}
-              </p>
-              {categoryInfo.line2 && (
-                <p className="text-sm text-pkt-text-body-default mt-0.5">
-                  {categoryInfo.line2}
-                </p>
-              )}
+              </div>
               {/* What this entitles */}
               <p className="text-bento-label text-pkt-text-body-muted mt-1">
-                Gir krav p&aring;:
                 {categoryInfo.entitles.vederlag && (
-                  <> Vederlag ({categoryInfo.entitles.vederlag})</>
+                  <>Vederlagsjustering etter {categoryInfo.entitles.vederlag}</>
                 )}
-                {categoryInfo.entitles.vederlag && <> &middot; </>}
-                Frist ({categoryInfo.entitles.frist})
+                {categoryInfo.entitles.vederlag && <>&ensp;&ensp;</>}
+                Fristforlengelse etter {categoryInfo.entitles.frist}
               </p>
             </div>
           )}
 
           {/* Beskrivelse */}
           {g.beskrivelse && (
-            <p className="text-sm text-pkt-text-body-default italic mb-2 line-clamp-4">
-              &laquo;{g.beskrivelse}&raquo;
+            <p className="text-bento-body text-pkt-text-body-default italic mb-2 line-clamp-4">
+              {g.beskrivelse}
             </p>
           )}
 
@@ -382,26 +383,20 @@ export function CaseMasterCard({
               )}
 
               {/* BH resultat */}
-              <div className="flex justify-between items-baseline">
-                <span className="text-bento-caption text-pkt-text-body-subtle">BH resultat</span>
-                <span
-                  className={clsx(
-                    'text-bento-kpi font-semibold flex items-center gap-1',
-                    g.bh_resultat === 'godkjent' && 'text-pkt-brand-dark-green-1000',
-                    g.bh_resultat === 'avslatt' && 'text-pkt-brand-red-1000',
-                    g.bh_resultat === 'frafalt' && 'text-pkt-text-body-muted',
-                  )}
+              <div className="flex justify-between items-center">
+                <span className="text-bento-caption text-pkt-text-body-subtle">Byggherrens vurdering</span>
+                <Badge
+                  variant={g.bh_resultat === 'godkjent' ? 'success' : g.bh_resultat === 'avslatt' ? 'danger' : 'neutral'}
+                  size="sm"
                 >
                   {g.bh_resultat === 'godkjent' ? 'Godkjent' : g.bh_resultat === 'avslatt' ? 'Avsl\u00e5tt' : 'Frafalt'}
-                  {g.bh_resultat === 'godkjent' && <CheckIcon className="w-4 h-4" />}
-                  {g.bh_resultat === 'avslatt' && <Cross2Icon className="w-4 h-4" />}
-                </span>
+                </Badge>
               </div>
 
               {/* BH begrunnelse */}
               {g.bh_begrunnelse && (
                 <p className="text-bento-caption text-pkt-text-body-muted italic line-clamp-4 mt-0.5">
-                  &laquo;{g.bh_begrunnelse}&raquo;
+                  {g.bh_begrunnelse}
                 </p>
               )}
             </div>

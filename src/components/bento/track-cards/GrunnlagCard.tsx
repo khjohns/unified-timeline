@@ -47,7 +47,7 @@ export function GrunnlagCard({
     >
       {/* Header: label + hjemmel + status dot */}
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-baseline gap-1.5">
+        <div className="flex items-baseline gap-1">
           <span className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">
             Ansvarsgrunnlag
           </span>

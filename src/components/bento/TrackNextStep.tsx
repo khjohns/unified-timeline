@@ -69,7 +69,7 @@ export function TrackNextStep({ spor, state, userRole, actions, className }: Tra
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-start gap-1.5">
+      <div className="flex items-start gap-1">
         <ArrowRightIcon className="w-3.5 h-3.5 mt-0.5 shrink-0 opacity-70" />
         <div className="min-w-0">
           <p className="font-medium leading-tight">{hint.title}</p>

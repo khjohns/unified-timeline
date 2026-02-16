@@ -42,7 +42,7 @@ export function CaseIdentityTile({ state, delay = 0 }: CaseIdentityTileProps) {
           {(state.byggherre || state.entreprenor) && (
             <>
               <span className="text-pkt-grays-gray-300">&middot;</span>
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1">
                 {state.byggherre && (
                   <span className="font-medium text-pkt-text-body-default">{state.byggherre}</span>
                 )}

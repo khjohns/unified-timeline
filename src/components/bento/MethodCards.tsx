@@ -38,7 +38,7 @@ export function MethodCards({ teMetode, bhMetode, onChange }: MethodCardsProps) 
 
   return (
     <div className="space-y-1.5">
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="grid grid-cols-3 gap-1">
         {METHODS.map((method) => {
           const isTe = method.value === teMetode;
           const isBh = method.value === bhMetode;

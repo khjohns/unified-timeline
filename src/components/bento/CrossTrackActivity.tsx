@@ -188,7 +188,7 @@ export function CrossTrackActivity({
           </p>
 
           {/* Entries */}
-          <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-3 flex-1">
+          <div className="flex flex-col sm:flex-row gap-1 sm:gap-3 flex-1">
             {recentEntries.map((entry) => (
               <div
                 key={entry.id}
@@ -201,7 +201,7 @@ export function CrossTrackActivity({
                   {getEntryIcon(entry.endringType, entry.aktorRolle)}
                 </span>
                 {/* Text */}
-                <div className="min-w-0 flex items-baseline gap-1.5">
+                <div className="min-w-0 flex items-baseline gap-1">
                   <span className="text-[11px] font-medium text-pkt-text-body-default truncate">
                     {entry.sporLabel}
                   </span>

@@ -111,7 +111,7 @@ export function BimCard({ sakId, className }: BimCardProps) {
 
       {/* Add dropdown */}
       {showAdd && (
-        <div className="flex flex-wrap gap-1.5 mb-2 p-2 bg-pkt-bg-subtle rounded-md">
+        <div className="flex flex-wrap gap-1 mb-2 p-2 bg-pkt-bg-subtle rounded-md">
           {availableFag.map((fag) => (
             <button
               key={fag}
@@ -131,7 +131,7 @@ export function BimCard({ sakId, className }: BimCardProps) {
       {/* Fag chips */}
       {links.length > 0 ? (
         <div className="space-y-1.5">
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1">
             {[...grouped.entries()].map(([fag, fagLinks]) => {
               const first = fagLinks[0] as BimLink | undefined;
               if (!first) return null;
@@ -244,7 +244,7 @@ function BimLinkDetail({
           {link.properties && <BimPropertiesView properties={link.properties} />}
 
           {/* Meta: who + when + GlobalId */}
-          <div className="flex items-center gap-1.5 text-[10px] text-pkt-text-body-subtle">
+          <div className="flex items-center gap-1 text-[10px] text-pkt-text-body-subtle">
             <span>{link.linked_by} &middot; {formatLinkedDate(link.linked_at)}</span>
             {link.object_global_id && (
               <span className="font-mono opacity-50 truncate" title={link.object_global_id}>

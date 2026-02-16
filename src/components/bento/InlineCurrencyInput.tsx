@@ -67,7 +67,7 @@ export function InlineCurrencyInput({
         )}>
           {erPrekludert ? 'Subsidiært godkjent' : label}
         </span>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <div className="flex items-center gap-0.5">
             <span className="text-bento-label text-pkt-text-body-muted font-mono">kr</span>
             <input

@@ -66,7 +66,7 @@ export function VederlagCard({
         )}
         style={style}
       >
-        <div className="flex items-baseline gap-1.5">
+        <div className="flex items-baseline gap-1">
           <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
             Vederlag
           </span>
@@ -88,7 +88,7 @@ export function VederlagCard({
     >
       {/* Header */}
       <div className={clsx('flex items-center justify-between mb-2', editState && 'bg-bento-vederlag -mx-3 -mt-3 px-3 pt-3 pb-2 rounded-t-lg')}>
-        <div className="flex items-baseline gap-1.5">
+        <div className="flex items-baseline gap-1">
           <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
             Vederlag
           </span>
@@ -217,7 +217,7 @@ export function VederlagCard({
 
               {/* Resultat box */}
               {editState.prinsipaltResultat && (
-                <div className="bg-pkt-bg-subtle/50 rounded-md border border-pkt-border-default px-2.5 py-2 text-bento-caption space-y-1">
+                <div className="bg-pkt-bg-subtle/50 rounded-sm border border-pkt-border-default px-2.5 py-2 text-bento-caption space-y-1">
                   <div>
                     <span className="font-semibold">Resultat: </span>
                     <span className={

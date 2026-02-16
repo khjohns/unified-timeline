@@ -218,7 +218,7 @@ export function CaseActivityCard({ events, delay = 0, colSpan }: CaseActivityCar
         </p>
 
         {/* Vertical stack of track activities */}
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1">
           {hasAnyActivity ? (
             items.map(({ spor, label, activity }) => (
               <div
@@ -233,7 +233,7 @@ export function CaseActivityCard({ events, delay = 0, colSpan }: CaseActivityCar
                   )}
                 />
                 {/* Text content */}
-                <div className="flex items-baseline gap-1.5 min-w-0 flex-1">
+                <div className="flex items-baseline gap-1 min-w-0 flex-1">
                   <span className="text-[11px] font-medium text-pkt-text-body-default shrink-0">
                     {label}
                   </span>

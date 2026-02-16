@@ -65,7 +65,7 @@ export function FristCard({
         )}
         style={style}
       >
-        <div className="flex items-baseline gap-1.5">
+        <div className="flex items-baseline gap-1">
           <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
             Fristforlengelse
           </span>
@@ -87,7 +87,7 @@ export function FristCard({
     >
       {/* Header */}
       <div className={clsx('flex items-center justify-between mb-2', editState && 'bg-bento-frist -mx-3 -mt-3 px-3 pt-3 pb-2 rounded-t-lg')}>
-        <div className="flex items-baseline gap-1.5">
+        <div className="flex items-baseline gap-1">
           <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
             Fristforlengelse
           </span>
@@ -163,7 +163,7 @@ export function FristCard({
               </span>
             );
             const sectionHeader = (title: string, paragraf: string, tooltip: string, badge?: React.ReactNode) => (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 <span className="text-bento-label font-semibold text-pkt-text-body-default uppercase tracking-wide">
                   {title}
                 </span>
@@ -292,7 +292,7 @@ export function FristCard({
 
                 {/* ── Resultat ── */}
                 {editState.beregningsResultat && (
-                  <div className="bg-pkt-bg-subtle/50 rounded-md border border-pkt-border-default px-2.5 py-2 text-bento-caption space-y-1">
+                  <div className="bg-pkt-bg-subtle/50 rounded-sm border border-pkt-border-default px-2.5 py-2 text-bento-caption space-y-1">
                     <div>
                       <span className="font-semibold">Resultat: </span>
                       <span className={
@@ -345,9 +345,9 @@ export function FristCard({
                 )}
 
                 {/* Submit footer */}
-                <div className="border-t border-pkt-border-subtle pt-3 flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
+                <div className="border-t border-pkt-border-subtle pt-3 flex flex-col-reverse sm:flex-row sm:justify-between gap-1">
                   <div>{/* spacer */}</div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
                     {editState.onSaveDraft && (
                       <Button
                         type="button"

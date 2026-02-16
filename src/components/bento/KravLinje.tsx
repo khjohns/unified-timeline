@@ -34,7 +34,7 @@ export function KravLinje({ editState }: KravLinjeProps) {
   return (
     <div className="space-y-1.5">
       {/* Section header */}
-      <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-center gap-1 flex-wrap">
         <span className="text-bento-label font-semibold text-pkt-text-body-default uppercase tracking-wide">
           {label}
         </span>

@@ -42,7 +42,7 @@ export function BentoHeaderMeta({ state, className }: BentoPageHeaderMetaProps) 
     >
       {/* Kontraktsparter */}
       {hasParter && (
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           {state.byggherre && (
             <span className="font-medium text-pkt-text-body-default">{state.byggherre}</span>
           )}
@@ -92,7 +92,7 @@ export function BentoBreadcrumb({
   sakId: string;
 }) {
   return (
-    <div className="flex items-center gap-1.5 text-[11px] text-pkt-text-body-muted">
+    <div className="flex items-center gap-1 text-[11px] text-pkt-text-body-muted">
       {prosjektNavn && (
         <>
           <span>{prosjektNavn}</span>
