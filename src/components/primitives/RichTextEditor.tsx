@@ -399,7 +399,8 @@ export function RichTextEditor({
         className={clsx(
           'rich-editor-content',
           'px-3 py-3 bg-pkt-bg-default',
-          'text-pkt-text-body-default'
+          'text-pkt-text-body-default',
+          'flex-1'
         )}
         style={{ minHeight }}
       />

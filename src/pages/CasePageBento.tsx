@@ -821,7 +821,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
           {/* ===== CARD-ANCHORED FORM (top of page when open) ===== */}
           {isFristFormOpen && (
             <div ref={cardAnchoredRef} className="col-span-12 grid grid-cols-12 gap-2 sm:gap-4 scroll-mt-4">
-              <div ref={fristCardRef} className="col-span-12 md:col-span-5 md:order-2 md:self-start">
+              <div ref={fristCardRef} className="col-span-12 md:col-span-5 md:order-2">
                 <FristCard
                   state={state}
                   godkjentDager={godkjentDager ?? undefined}
@@ -833,7 +833,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                   editState={fristBridge.cardProps}
                 />
               </div>
-              <div className="col-span-12 md:col-span-7 md:order-1">
+              <div className="col-span-12 md:col-span-7 md:order-1 flex flex-col">
                 {renderExpandedForm()}
               </div>
             </div>
@@ -841,7 +841,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
 
           {isVederlagFormOpen && (
             <div ref={cardAnchoredRef} className="col-span-12 grid grid-cols-12 gap-2 sm:gap-4 scroll-mt-4">
-              <div ref={vederlagCardRef} className="col-span-12 md:col-span-5 md:order-2 md:self-start">
+              <div ref={vederlagCardRef} className="col-span-12 md:col-span-5 md:order-2">
                 <VederlagCard
                   state={state}
                   krevdBelop={krevdBelop}
@@ -854,7 +854,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                   editState={vederlagBridge.cardProps}
                 />
               </div>
-              <div className="col-span-12 md:col-span-7 md:order-1">
+              <div className="col-span-12 md:col-span-7 md:order-1 flex flex-col">
                 {renderExpandedForm()}
               </div>
             </div>

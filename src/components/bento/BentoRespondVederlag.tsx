@@ -27,7 +27,7 @@ export interface BentoRespondVederlagProps {
 
 export function BentoRespondVederlag({ editorProps }: BentoRespondVederlagProps) {
   return (
-    <div className="bg-pkt-bg-card rounded-lg p-3 max-h-[70vh] overflow-y-auto">
+    <div className="bg-pkt-bg-card rounded-lg p-3 h-full flex flex-col">
       <div className="mb-2">
         <span className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">
           Byggherrens begrunnelse
@@ -37,7 +37,7 @@ export function BentoRespondVederlag({ editorProps }: BentoRespondVederlagProps)
         id="vederlag-begrunnelse"
         value={editorProps.begrunnelse}
         onChange={editorProps.onBegrunnelseChange}
-        className="text-xs"
+        className="text-xs flex-1 flex flex-col"
         minHeight={200}
         fullWidth
         error={!!editorProps.begrunnelseError}
