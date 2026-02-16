@@ -42,7 +42,7 @@ export function getStatusLabel(status: SporStatus): string {
 /** Approval grade color: >=70% green, 40-69% amber, <40% red */
 export function getGradColor(grad: number): string {
   if (grad >= 70) return 'text-pkt-brand-dark-green-1000';
-  if (grad >= 40) return 'text-pkt-brand-yellow-1000';
+  if (grad >= 40) return 'text-bento-krevd';
   return 'text-pkt-brand-red-1000';
 }
 

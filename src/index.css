@@ -269,6 +269,11 @@
     --bento-text-body: 12px;    /* Data values, body text, CTA */
     --bento-text-kpi: 14px;     /* KPI hero numbers */
 
+    /* Bento color tokens — card surfaces and KPI contrast */
+    --bento-surface-frist: #fef9ef;       /* Subtle amber wash for FristCard */
+    --bento-surface-vederlag: #f0fdf4;    /* Subtle mint wash for VederlagCard */
+    --bento-kpi-krevd: #b45309;           /* Amber-700: 5.5:1 on white (WCAG AA) */
+
     /* ============================================
        BORDER RADIUS
        Bruk Tailwind-klasser: rounded-lg (kort), rounded-sm (badges), rounded-full (pills)
@@ -435,6 +440,11 @@
 @utility text-bento-body    { font-size: var(--bento-text-body); }
 @utility text-bento-kpi     { font-size: var(--bento-text-kpi); }
 
+/* Bento color utilities */
+@utility bg-bento-frist     { background-color: var(--bento-surface-frist); }
+@utility bg-bento-vederlag  { background-color: var(--bento-surface-vederlag); }
+@utility text-bento-krevd   { color: var(--bento-kpi-krevd); }
+
 /* ============================================
    DARK MODE THEME OVERRIDES
    Applied when .dark class is on <html>
@@ -533,6 +543,11 @@
   --color-pkt-status-connected: #4ade80;  /* Green-400 - vibrant on dark bg */
   --color-pkt-status-disconnected: #f87171;  /* Red-400 - vibrant on dark bg */
   --color-pkt-status-neutral: #9ca3af;  /* Gray-400 - visible on dark bg */
+
+  /* Bento color tokens — dark mode */
+  --bento-surface-frist: #2a2840;       /* Dark + warm amber undertone */
+  --bento-surface-vederlag: #232e3a;    /* Dark + cool mint undertone */
+  --bento-kpi-krevd: #fbbf24;           /* Bright gold — good on dark bg */
 
   /* Legacy aliases - dark mode */
   --color-oslo-blue: #8ab4ff;

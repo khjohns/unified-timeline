@@ -48,6 +48,8 @@ export function TrackCTA({
 
   const resolved = isResolved(status);
 
+  const sporBg = spor === 'frist' ? 'bg-bento-frist' : spor === 'vederlag' ? 'bg-bento-vederlag' : 'bg-pkt-bg-subtle/50';
+
   // Determine primary CTA display
   let ctaText: string;
   let ctaClickable: boolean;
@@ -79,7 +81,7 @@ export function TrackCTA({
       className={clsx(
         'mt-2 pt-2 border-t border-pkt-border-subtle',
         'flex items-center justify-between',
-        'bg-pkt-bg-subtle/50 -mx-3 -mb-3 px-3 py-2 rounded-b-lg',
+        sporBg, '-mx-3 -mb-3 px-3 py-2 rounded-b-lg',
         className,
       )}
     >

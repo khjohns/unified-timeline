@@ -80,14 +80,14 @@ export function VederlagCard({
   return (
     <div
       className={clsx(
-        'bg-pkt-bg-card rounded-lg p-3',
-        editState && 'ring-2 ring-pkt-brand-warm-blue-1000/30',
+        'rounded-lg p-3',
+        editState ? 'bg-pkt-bg-card ring-2 ring-pkt-brand-warm-blue-1000/30' : 'bg-bento-vederlag',
         className,
       )}
       style={style}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
+      <div className={clsx('flex items-center justify-between mb-2', editState && 'bg-bento-vederlag -mx-3 -mt-3 px-3 pt-3 pb-2 rounded-t-lg')}>
         <div className="flex items-baseline gap-1.5">
           <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
             Vederlag
@@ -292,7 +292,7 @@ export function VederlagCard({
               <div className="flex items-end gap-4">
                 <div>
                   <span className="text-bento-label text-pkt-text-body-subtle uppercase tracking-wide">Krevd</span>
-                  <p className="text-bento-kpi font-semibold font-mono tabular-nums text-pkt-brand-yellow-1000 leading-tight">
+                  <p className="text-bento-kpi font-semibold font-mono tabular-nums text-bento-krevd leading-tight">
                     {formatCurrencyCompact(krevdBelop)}
                   </p>
                 </div>
