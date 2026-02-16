@@ -28,7 +28,7 @@ export interface BentoRespondGrunnlagProps {
 
 export function BentoRespondGrunnlag({ editorProps }: BentoRespondGrunnlagProps) {
   return (
-    <div className="bg-pkt-bg-subtle rounded-lg p-4 max-h-[70vh] overflow-y-auto">
+    <div className="bg-pkt-bg-subtle rounded-lg p-3 md:p-4 max-h-[70vh] overflow-y-auto">
       <FormField
         label="Byggherrens begrunnelse"
         required

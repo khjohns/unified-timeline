@@ -979,7 +979,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             if (isFristInline) {
               return (
                 <>
-                  <div ref={fristCardRef} className="col-span-12 md:col-span-5 md:order-2">
+                  <div ref={fristCardRef} className="col-span-12 md:col-span-5 md:order-2 md:self-start">
                     <FristCard
                       state={state}
                       godkjentDager={godkjentDager ?? undefined}
@@ -998,11 +998,12 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
               );
             }
 
-            // Vederlag card-anchored: VederlagCard (col-5, left) + Form (col-7, right)
+            // Vederlag card-anchored: VederlagCard (col-5, right on desktop) + Form (col-7, left on desktop)
+            // DOM order: card first for correct mobile stacking (L15), CSS order for desktop layout
             if (isVederlagFormOpen) {
               return (
                 <>
-                  <div ref={vederlagCardRef} className="col-span-12 md:col-span-5">
+                  <div ref={vederlagCardRef} className="col-span-12 md:col-span-5 md:order-2 md:self-start">
                     <VederlagCard
                       state={state}
                       krevdBelop={krevdBelop}
@@ -1015,7 +1016,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                       editState={vederlagBridge.cardProps}
                     />
                   </div>
-                  <div className="col-span-12 md:col-span-7">
+                  <div className="col-span-12 md:col-span-7 md:order-1">
                     {renderExpandedForm()}
                   </div>
                 </>
