@@ -1,7 +1,7 @@
 /**
  * CrossTrackActivity - Siste aktivitet på tvers av alle tre spor.
  *
- * Viser de 3 siste hendelsene (events) uavhengig av spor,
+ * Viser de 5 siste hendelsene (events) uavhengig av spor,
  * som en kompakt horisontal stripe. Gir umiddelbar kontekst
  * om hva som sist skjedde i saken uten å ekspandere noe.
  */
@@ -19,7 +19,7 @@ import type { GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntr
 import { formatCurrency, formatDays } from '../../utils/formatters';
 import type { SporType } from '../../types/timeline';
 
-const MAX_ITEMS = 3;
+const MAX_ITEMS = 5;
 
 interface UnifiedEntry {
   id: string;
@@ -178,21 +178,21 @@ export function CrossTrackActivity({
     <div className={clsx('rounded-lg bg-pkt-bg-card border border-pkt-border-subtle overflow-hidden', className)}>
       <div className="px-4 py-2.5">
         {/* Mobile: label above, items stack. Desktop: horizontal */}
-        <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-2 sm:hidden">
+        <p className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-2 sm:hidden">
           Siste aktivitet
         </p>
 
-        <div className="sm:flex sm:items-center sm:gap-4">
-          <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide shrink-0 hidden sm:block">
+        <div className="sm:flex sm:items-start sm:gap-4">
+          <p className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide shrink-0 hidden sm:block pt-1">
             Siste aktivitet
           </p>
 
           {/* Entries */}
-          <div className="flex flex-col sm:flex-row gap-1 sm:gap-3 flex-1">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1 sm:gap-x-3 sm:gap-y-1 flex-1">
             {recentEntries.map((entry) => (
               <div
                 key={entry.id}
-                className="flex items-center gap-2 px-2 py-1 rounded-md min-w-0"
+                className="flex items-center gap-1.5 px-2 py-1 rounded-md min-w-0"
               >
                 {/* Spor dot */}
                 <div className={clsx('w-1.5 h-1.5 rounded-full shrink-0', SPOR_DOT_COLORS[entry.spor])} />
@@ -201,17 +201,26 @@ export function CrossTrackActivity({
                   {getEntryIcon(entry.endringType, entry.aktorRolle)}
                 </span>
                 {/* Text */}
-                <div className="min-w-0 flex items-baseline gap-1">
-                  <span className="text-[11px] font-medium text-pkt-text-body-default truncate">
-                    {entry.sporLabel}
-                  </span>
-                  <span className="text-[11px] text-pkt-text-body-subtle truncate">
-                    {entry.sammendrag}
-                  </span>
-                  <span className="text-[10px] text-pkt-text-body-muted shrink-0">
-                    {formatRelativeTime(entry.tidsstempel)}
-                  </span>
-                </div>
+                <span className="text-bento-caption font-medium text-pkt-text-body-default shrink-0">
+                  {entry.sporLabel}
+                </span>
+                <span className="text-bento-caption text-pkt-text-body-subtle truncate">
+                  {entry.sammendrag}
+                </span>
+                {/* TE/BH badge */}
+                <span
+                  className={clsx(
+                    'text-bento-micro font-medium uppercase shrink-0 px-1 py-0.5 rounded-sm',
+                    entry.aktorRolle === 'BH'
+                      ? 'bg-pkt-brand-warm-blue-1000/10 text-pkt-brand-warm-blue-1000'
+                      : 'bg-pkt-grays-gray-100 text-pkt-text-body-subtle',
+                  )}
+                >
+                  {entry.aktorRolle}
+                </span>
+                <span className="text-bento-label text-pkt-text-body-muted shrink-0">
+                  {formatRelativeTime(entry.tidsstempel)}
+                </span>
               </div>
             ))}
           </div>
