@@ -1,7 +1,7 @@
 # ADR-003: Card-Anchored Contextual Editing
 
-**Status:** Akseptert — Grunnlag og Frist implementert, domenelag-ekstraksjon planlagt
-**Dato:** 2026-02-14 (opprinnelig), 2026-02-15 (refaktorert + domenelag-beslutning)
+**Status:** Akseptert — Alle tre spor implementert (Grunnlag, Frist, Vederlag), domenelag-ekstraksjon planlagt
+**Dato:** 2026-02-14 (opprinnelig), 2026-02-15 (refaktorert + domenelag-beslutning), 2026-02-16 (vederlag implementert)
 **Beslutningstagere:** Utviklingsteam
 **Kontekst:** UX-mønster for inline skjemaer i bento-layout
 
@@ -58,34 +58,38 @@ Når et spor (grunnlag, vederlag, frist) går i redigeringsmodus:
    (`useSubmitEvent`), form backup (`useFormBackup`) og token-håndtering.
 
 ```
-┌─────────────────────────┐  ┌────────────────────────────────┐
-│  FRISTCARD (col-5)      │  │  FORMPANEL (col-7)             │
-│  Fristforlengelse  [✕]  │  │                                │
-│                         │  │  ┌────────────────────────┐   │
-│  Krevd dager: 10d       │  │  │                        │   │
-│  Varslet     13.feb     │  │  │  Byggherrens            │   │
-│  Spesifisert 20.feb     │  │  │  begrunnelse            │   │
-│                         │  │  │                        │   │
-│ ┌─ §33.4 Varsel ──────┐│  │  │  [Auto-generert tekst] │   │
-│ │ Varslet i tide?      ││  │  │                        │   │
-│ │ [✓ Ja] [✕ Nei]      ││  │  │  [Rik tekst-editor]    │   │
-│ └──────────────────────┘│  │  │                        │   │
-│ ┌─ §33.1 Vilkår ──────┐│  │  └────────────────────────┘   │
-│ │ Vilkår oppfylt?      ││  │  [Regenerer fra valg]         │
-│ │ [✓ Ja] [✕ Nei]      ││  │                                │
-│ └──────────────────────┘│  │                                │
-│ ┌─ §33.5 Beregning ───┐│  │                                │
-│ │ Godkjent: [__10_] d  ││  │                                │
-│ └──────────────────────┘│  │                                │
-│                         │  │                                │
-│ ┌ Resultat ────────────┐│  │                                │
-│ │ Godkjent – 10/10d    ││  │                                │
-│ │ ↳ Subsidiært: ...    ││  │                                │
-│ └──────────────────────┘│  │                                │
-│                         │  │                                │
-│  ─────────────────────  │  │                                │
-│  [Lagre utkast] [Send]  │  │                                │
-└─────────────────────────┘  └────────────────────────────────┘
+Desktop: Form venstre (col-7), Kort høyre (col-5, self-start)
+Mobil:   Kort øverst (col-12), Form under (col-12)
+
+┌────────────────────────────────┐  ┌─────────────────────────┐
+│  FORMPANEL (col-7, order-1)    │  │  FRISTCARD (col-5,      │
+│                                │  │  order-2, self-start)   │
+│  ┌────────────────────────┐   │  │  Fristforlengelse  [✕]  │
+│  │                        │   │  │                         │
+│  │  Byggherrens            │   │  │  Krevd dager: 10d       │
+│  │  begrunnelse            │   │  │  Varslet     13.feb     │
+│  │                        │   │  │  Spesifisert 20.feb     │
+│  │  [Auto-generert tekst] │   │  │                         │
+│  │                        │   │  │ ┌─ §33.4 Varsel ──────┐│
+│  │  [Rik tekst-editor]    │   │  │ │ Varslet i tide?      ││
+│  │                        │   │  │ │ [✓ Ja] [✕ Nei]      ││
+│  └────────────────────────┘   │  │ └──────────────────────┘│
+│  [Regenerer fra valg]         │  │ ┌─ §33.1 Vilkår ──────┐│
+│                                │  │ │ Vilkår oppfylt?      ││
+│                                │  │ │ [✓ Ja] [✕ Nei]      ││
+│                                │  │ └──────────────────────┘│
+│                                │  │ ┌─ §33.5 Beregning ───┐│
+│                                │  │ │ Godkjent: [__10_] d  ││
+│                                │  │ └──────────────────────┘│
+│                                │  │                         │
+│                                │  │ ┌ Resultat ────────────┐│
+│                                │  │ │ Godkjent – 10/10d    ││
+│                                │  │ │ ↳ Subsidiært: ...    ││
+│                                │  │ └──────────────────────┘│
+│                                │  │                         │
+│                                │  │  ─────────────────────  │
+│                                │  │  [Lagre utkast] [Send]  │
+└────────────────────────────────┘  └─────────────────────────┘
 ```
 
 ### Prinsipper
@@ -244,17 +248,27 @@ Preklusion vises som inline-advarsel under den aktuelle seksjonen.
 Subsidiær-badges vises per seksjon når relevant. Lukk-knapp øverst
 lar brukeren avbryte uten å scrolle. Submit nederst etter resultat.
 
-### Vederlag (ikke implementert)
+### Vederlag (implementert — bridge-hook)
 
-Se implementeringsplan: `docs/plans/2026-02-15-card-anchored-vederlag-frist.md`
+**Kort:** VederlagCard. **Form:** BentoRespondVederlag. **Bridge:** useVederlagBridge.
 
-Vederlag er vesentlig mer komplekst: 3 underkrav (hoved, rigg, produktivitet),
-metodevalg med betingelser, og beløps-beregninger. Frist-erfaringene tilsier:
+Vederlag er mer komplekst enn frist: 3 underkrav (hoved, rigg, produktivitet),
+metodevalg med betingelser, og beløps-beregninger. Collapsible seksjoner viste
+seg å ikke være nødvendig — kortets seksjonering med §-overskrifter (L7) gir
+tilstrekkelig visuell struktur.
 
-- **Dedikert `useVederlagBridge`-hook** — ikke generisk bridge
-- **Alle kontroller i kortet** — men med ekspanderbare underkrav-seksjoner
-- **Resultat + subsidiært i kortet** — ikke i formpanelet
-- **Auto-begrunnelse i formpanelet** — med `generateVederlagResponseBegrunnelse`
+| Kontroll | Plassering | Seksjon i kort |
+|----------|------------|----------------|
+| Lukk-knapp [✕] | **I kort** (øverst) | Header |
+| Metodevalg (§34) | **I kort** | Metode-seksjon |
+| Godkjent beløp hovedkrav | **I kort** (InlineNumberInput) | Hovedkrav |
+| Justert EP-sats (§26.3.2) | **I kort** (InlineYesNo) | Hovedkrav (betinget) |
+| Rigg & drift godkjent beløp | **I kort** (InlineNumberInput) | Rigg & drift |
+| Produktivitetstap godkjent beløp | **I kort** (InlineNumberInput) | Produktivitetstap |
+| Resultat + subsidiært | **I kort** (resultat-boks) | Resultat-seksjon |
+| TokenExpiredAlert | **I kort** | Feilhåndtering |
+| Send svar / Lagre utkast | **I kort** (nederst) | Submit footer |
+| Begrunnelse | I formpanel (RichTextEditor) | — |
 
 ### TE-skjemaer (Send/Oppdater)
 
@@ -270,11 +284,11 @@ Disse komponentene ble ekstrahert for gjenbruk på tvers av spor:
 
 | Komponent | Fil | Brukes i |
 |-----------|-----|----------|
-| `InlineYesNo` | `src/components/bento/InlineYesNo.tsx` | CaseMasterCard, FristCard |
-| `InlineNumberInput` | `src/components/bento/InlineNumberInput.tsx` | FristCard |
+| `InlineYesNo` | `src/components/bento/InlineYesNo.tsx` | CaseMasterCard, FristCard, VederlagCard |
+| `InlineNumberInput` | `src/components/bento/InlineNumberInput.tsx` | FristCard, VederlagCard |
 | `VerdictCards` | `src/components/bento/VerdictCards.tsx` | CaseMasterCard |
 | `getFristConsequence` | `src/components/bento/consequenceCallout.ts` | (tilgjengelig, brukes ikke i card-modus) |
-| `getVederlagConsequence` | `src/components/bento/consequenceCallout.ts` | (tilgjengelig for vederlag) |
+| `getVederlagConsequence` | `src/components/bento/consequenceCallout.ts` | (tilgjengelig, brukes ikke i card-modus) |
 
 ---
 
@@ -396,14 +410,28 @@ gruppering var vanskelig å skanne — spesielt med betingede felter.
 └────────────────────────────────┘
 ```
 
-### L8: CSS grid order for aktiv kortposisjonering
+### L8: CSS grid order for layout — kort høyre, form venstre
 
-**Problem:** Når frist-skjema åpnes bør FristCard+form vises øverst,
-med de andre kortene under. Men HTML-rekkefølgen i bento-gridet er
-fast.
+**Problem:** På desktop skal kortet alltid ligge på høyre side (der det
+normalt er i bento-gridet), med begrunnelsesskjema til venstre. Men
+for korrekt mobil-stacking (L15) må kortet rendres FØR formen i DOM.
 
-**Løsning:** Bruk CSS `order`-property på grid-children for å
-reposisjonere aktivt kort+form til toppen dynamisk.
+**Løsning:** Bruk CSS `order` og `self-start` på grid-children:
+
+```html
+<!-- DOM-rekkefølge: kort først (mobil-vennlig) -->
+<div class="col-span-12 md:col-span-5 md:order-2 md:self-start">
+  <!-- Kort: høyre på desktop, øverst på mobil -->
+</div>
+<div class="col-span-12 md:col-span-7 md:order-1">
+  <!-- Form: venstre på desktop, under kort på mobil -->
+</div>
+```
+
+- `md:order-2` på kortet → høyre kolonne på desktop
+- `md:order-1` på formen → venstre kolonne på desktop
+- `md:self-start` på kortet → holder seg øverst uavhengig av formhøyde
+- Uten `md:`-prefix: naturlig DOM-rekkefølge = kort øverst på mobil
 
 ### L9: Tester må flyttes sammen med kontrollene
 
@@ -564,16 +592,16 @@ brukeren trenger kontekst og valgkontrollene (kortet) først, deretter
 begrunnelsesskjemaet.
 
 **Løsning:**
-- I grid-layouten rendres kortet **før** formpanelet i HTML — dette gir
-  naturlig top→bottom rekkefølge på mobil (`col-span-12` + `col-span-12`).
+- Kortet rendres **først i DOM** → naturlig top→bottom på mobil.
+- `md:order-2` på kort + `md:order-1` på form → kort til høyre på desktop (L8).
 - Når edit-modus åpnes: **auto-scroll til toppen** av kortet med
-  `scrollIntoView({ behavior: 'smooth', block: 'start' })` slik at
-  brukeren alltid starter ved konteksten.
-- Formpanelet (begrunnelse) legger seg naturlig under kortet på mobil.
+  `scrollIntoView({ behavior: 'smooth', block: 'start' })` via ref per spor.
+- Formpanelets padding matcher kortet på mobil (`p-3 md:p-4` vs kortets `p-3`)
+  for visuell konsistens på smale skjermer.
 
 **Verifiser:** Alle card-anchored layouts (grunnlag, frist, vederlag) må
-ha kortet først i DOM-rekkefølgen, og utløse scroll-to-top ved åpning
-på mobil.
+ha kortet først i DOM-rekkefølgen, `md:order-*` for desktop-plassering,
+og utløse scroll-to-top ved åpning.
 
 ### L16: Knapper må følge bento-designsystemets mønster konsistent
 
@@ -641,15 +669,15 @@ NS 8407-reglene eksplisitt. Bridge-testene fokuserer på React-wiring.
 - **State-koordinering.** Bridge-hooks og konsolidert state krever
   disiplin — se L1-L2 for fallgruver.
 - **Overbelastning.** Risiko for at kort med mange inline-kontroller
-  (spesielt vederlag) blir uoversiktlige — mitiger med seksjonering (L7)
-  og ekspanderbare underkrav-seksjoner.
+  (spesielt vederlag) blir uoversiktlige — mitigert med seksjonering (L7).
+  Ekspanderbare seksjoner viste seg å ikke være nødvendig.
 
 ### Avbøtende tiltak
 
 - Start med enkle spor (grunnlag: 2 kontroller) før komplekse
-  (vederlag: 9+ kontroller). ✅ Gjort.
-- Bruk ekspanderbare seksjoner i kortet for å håndtere kompleksitet.
-- Seksjonerte kontroller med §-overskrifter (L7) for skanbarhet.
+  (vederlag: 9+ kontroller). ✅ Alle tre spor implementert.
+- Seksjonerte kontroller med §-overskrifter (L7) for skanbarhet — tilstrekkelig
+  uten ekspanderbare seksjoner, selv for vederlag.
 - Konsolidert FormState (L1) for å unngå cascading-problemer.
 - Auto-begrunnelse (L5) for å gi verdi tilbake til brukeren.
 
@@ -687,7 +715,7 @@ den er distribuert på tre filer med tydelige ansvarsområder.
 
 ---
 
-## Sjekkliste for neste spor (vederlag)
+## Sjekkliste for vederlag-implementering
 
 Basert på lærdom fra grunnlag- og frist-implementeringen:
 
@@ -697,31 +725,35 @@ Basert på lærdom fra grunnlag- og frist-implementeringen:
 - [ ] Resultatberegning, visibility, event-data som rene funksjoner
 
 **Bridge-hook:**
-- [ ] Opprett `useVederlagBridge`-hook som tynn adapter over domenelag
-- [ ] Bridge eier `useSubmitEvent`, `useFormBackup`, `useToast` internt (L12)
-- [ ] Konsolidert `FormState` inkl. begrunnelse (L1, L12)
-- [ ] State-during-render for reset (L2), ikke useEffect+useRef
-- [ ] Auto-begrunnelse med `userHasEditedRef` og «Regenerer»-knapp (L5)
+- [x] Opprett `useVederlagBridge`-hook som tynn adapter over domenelag
+- [x] Bridge eier `useSubmitEvent`, `useFormBackup`, `useToast` internt (L12)
+- [x] Konsolidert `FormState` inkl. begrunnelse (L1, L12)
+- [x] State-during-render for reset (L2), ikke useEffect+useRef
+- [x] Auto-begrunnelse med `userHasEditedRef` og «Regenerer»-knapp (L5)
 
 **Kort (VederlagCard):**
-- [ ] `editState?: VederlagEditState | null`-prop (L6)
-- [ ] Lukk-knapp [✕] øverst, Send/Lagre nederst (prinsipp 3)
-- [ ] All resultat/konsekvens-logikk i kortet (L3), ikke formpanelet
-- [ ] Kompakt resultat-linje (L4), detaljert tekst i auto-begrunnelse
-- [ ] Seksjonerte kontroller med §-overskrifter per underkrav (L7)
-- [ ] Ekspanderbare rigg/produktivitet-seksjoner for å håndtere tetthet
-- [ ] CSS grid order for aktiv kort-posisjonering (L8)
-- [ ] Knapper følger bento-mønster: `variant="primary"/"secondary" size="sm"` (L16)
+- [x] `editState?: VederlagEditState | null`-prop (L6)
+- [x] Lukk-knapp [✕] øverst, Send/Lagre nederst (prinsipp 3)
+- [x] All resultat/konsekvens-logikk i kortet (L3), ikke formpanelet
+- [x] Kompakt resultat-linje (L4), detaljert tekst i auto-begrunnelse
+- [x] Seksjonerte kontroller med §-overskrifter per underkrav (L7)
+- [x] CSS grid order: kort høyre (md:order-2 + md:self-start), form venstre (md:order-1) (L8)
+- [x] Knapper følger bento-mønster: `variant="primary"/"secondary" size="sm"` (L16)
+
+> **Observasjon:** Ekspanderbare/collapsible underkrav-seksjoner viste seg
+> å ikke være nødvendig. Seksjonering med §-overskrifter (L7) gir
+> tilstrekkelig visuell struktur uten ekstra interaksjonskompleksitet.
 
 **Mobil-layout:**
-- [ ] Kort rendres FØR formpanel i DOM → stables korrekt på mobil (L15)
-- [ ] Auto-scroll til toppen av kortet når edit-modus åpnes (L15)
-- [ ] Verifiser at begrunnelsesskjema legger seg under kortet på mobil (L15)
+- [x] Kort rendres FØR formpanel i DOM → stables korrekt på mobil (L15)
+- [x] Auto-scroll til toppen av kortet når edit-modus åpnes (L15)
+- [x] Begrunnelsesskjema legger seg under kortet på mobil (L15)
+- [x] Formpanel-padding matcher kort-padding på mobil: `p-3 md:p-4` (L15)
 
 **Formpanel + tester:**
-- [ ] Formpanelet tar kun `editorProps` — ingen setters/submit/domene (L11)
+- [x] Formpanelet tar kun `editorProps` — ingen setters/submit/domene (L11)
 - [ ] Flytt tester fra RespondVederlagModal.test → VederlagCard.test (L9)
-- [ ] Rydd opp foreldede props/imports i BentoRespondVederlag (L10)
+- [x] Rydd opp foreldede props/imports i BentoRespondVederlag (L10)
 - [ ] Opprett `createWrapper()` i bridge-testfil (L13)
 - [ ] Test at klassiske modaler (RespondVederlagModal) fremdeles fungerer
 
@@ -733,16 +765,19 @@ Basert på lærdom fra grunnlag- og frist-implementeringen:
 
 | Fil | Rolle | Lag |
 |-----|-------|----|
-| `src/domain/fristDomain.ts` | NS 8407 frist-regler (planlagt) | Domene |
+| `src/domain/fristDomain.ts` | NS 8407 frist-regler | Domene |
 | `src/domain/grunnlagDomain.ts` | NS 8407 grunnlag-regler (planlagt) | Domene |
 | `src/utils/begrunnelseGenerator.ts` | Auto-begrunnelse (allerede ren) | Domene |
 | `src/components/bento/consequenceCallout.ts` | Konsekvens-logikk (allerede ren) | Domene |
 | `src/hooks/useGrunnlagBridge.ts` | Bridge-hook for grunnlag | Bridge |
 | `src/hooks/useFristBridge.ts` | Bridge-hook for frist | Bridge |
+| `src/hooks/useVederlagBridge.ts` | Bridge-hook for vederlag | Bridge |
 | `src/components/bento/CaseMasterCard.tsx` | Kort for grunnlag (kontroller + submit + lukk) | Komponent |
 | `src/components/bento/track-cards/FristCard.tsx` | Kort for frist (kontroller + submit + lukk) | Komponent |
+| `src/components/bento/track-cards/VederlagCard.tsx` | Kort for vederlag (kontroller + submit + lukk) | Komponent |
 | `src/components/bento/BentoRespondGrunnlag.tsx` | Ren begrunnelse-editor for grunnlag (~60 linjer) | Komponent |
 | `src/components/bento/BentoRespondFrist.tsx` | Ren begrunnelse-editor for frist (~60 linjer) | Komponent |
+| `src/components/bento/BentoRespondVederlag.tsx` | Ren begrunnelse-editor for vederlag (~60 linjer) | Komponent |
 | `src/pages/CasePageBento.tsx` | Koordinering og layout | Komponent |
 
 ### Relaterte dokumenter
