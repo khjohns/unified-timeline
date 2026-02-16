@@ -18,6 +18,7 @@ import type {
 } from '../types/timeline';
 import * as vederlagDomain from '../domain/vederlagDomain';
 import type { BelopVurdering, VederlagFormState, VederlagDomainConfig, VederlagComputedValues } from '../domain/vederlagDomain';
+import { deriveVurdering, getGodkjentForDisplay } from '../domain/vederlagDomain';
 import {
   generateVederlagResponseBegrunnelse,
   type VederlagResponseInput,
@@ -464,9 +465,9 @@ export function useVederlagBridge(config: UseVederlagBridgeConfig): VederlagBrid
   const submitLabel = mutation.isPending ? 'Sender...' : 'Send svar';
 
   // ========== KRAV-LINJE BUILDERS ==========
-  const godkjentHovedkravBelop = getGodkjentForInput(formState.hovedkravVurdering, hovedkravBelop, formState.hovedkravGodkjentBelop);
-  const godkjentRiggBelop = getGodkjentForInput(formState.riggVurdering, riggBelop ?? 0, formState.riggGodkjentBelop);
-  const godkjentProduktivitetBelop = getGodkjentForInput(formState.produktivitetVurdering, produktivitetBelop ?? 0, formState.produktivitetGodkjentBelop);
+  const godkjentHovedkravBelop = getGodkjentForDisplay(formState.hovedkravVurdering, hovedkravBelop, formState.hovedkravGodkjentBelop);
+  const godkjentRiggBelop = getGodkjentForDisplay(formState.riggVurdering, riggBelop ?? 0, formState.riggGodkjentBelop);
+  const godkjentProduktivitetBelop = getGodkjentForDisplay(formState.produktivitetVurdering, produktivitetBelop ?? 0, formState.produktivitetGodkjentBelop);
 
   const showHovedkravVarsling = computed.har34_1_2_Preklusjon;
 
@@ -594,24 +595,3 @@ export function useVederlagBridge(config: UseVederlagBridgeConfig): VederlagBrid
   };
 }
 
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-/** D2: Derive vurdering from godkjent vs krevd beløp */
-function deriveVurdering(godkjent: number, krevd: number): BelopVurdering {
-  if (godkjent >= krevd && krevd > 0) return 'godkjent';
-  if (godkjent > 0) return 'delvis';
-  return 'avslatt';
-}
-
-/** Get display value for input based on vurdering */
-function getGodkjentForInput(
-  vurdering: BelopVurdering | undefined,
-  krevdBelop: number,
-  godkjentBelop: number | undefined,
-): number {
-  if (vurdering === 'godkjent' || vurdering === undefined) return krevdBelop;
-  if (vurdering === 'delvis') return godkjentBelop ?? 0;
-  return 0;
-}
