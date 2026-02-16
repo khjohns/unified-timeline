@@ -262,6 +262,13 @@
     --text-3xl: 1.875rem;    /* 30px */
     --text-4xl: 2.25rem;     /* 36px */
 
+    /* Bento typography tokens (ADR-004) */
+    --bento-text-micro: 9px;    /* Badges: TE/BH, PREKLUDERT */
+    --bento-text-label: 10px;   /* Card titles, section headers, KPI labels, §-refs */
+    --bento-text-caption: 11px; /* Key-value labels, status labels, history */
+    --bento-text-body: 12px;    /* Data values, body text, CTA */
+    --bento-text-kpi: 14px;     /* KPI hero numbers */
+
     /* ============================================
        BORDER RADIUS
        Bruk Tailwind-klasser: rounded-lg (kort), rounded-sm (badges), rounded-full (pills)
@@ -417,6 +424,16 @@
     animation: fadeIn 0.3s ease-out forwards;
 }
 
+
+/* ============================================
+   BENTO TYPOGRAPHY UTILITIES (ADR-004)
+   Semantic font-size tokens for bento cards.
+   ============================================ */
+@utility text-bento-micro   { font-size: var(--bento-text-micro); }
+@utility text-bento-label   { font-size: var(--bento-text-label); }
+@utility text-bento-caption { font-size: var(--bento-text-caption); }
+@utility text-bento-body    { font-size: var(--bento-text-body); }
+@utility text-bento-kpi     { font-size: var(--bento-text-kpi); }
 
 /* ============================================
    DARK MODE THEME OVERRIDES

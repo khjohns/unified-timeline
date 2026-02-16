@@ -29,7 +29,7 @@ export function BentoRespondFrist({ editorProps }: BentoRespondFristProps) {
   return (
     <div className="bg-pkt-bg-card rounded-lg p-3 h-full flex flex-col">
       <div className="mb-2">
-        <span className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+        <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
           Byggherrens begrunnelse
         </span>
       </div>
@@ -37,7 +37,7 @@ export function BentoRespondFrist({ editorProps }: BentoRespondFristProps) {
         id="frist-begrunnelse"
         value={editorProps.begrunnelse}
         onChange={editorProps.onBegrunnelseChange}
-        className="text-xs flex-1 flex flex-col"
+        className="text-bento-body flex-1 flex flex-col"
         minHeight={200}
         fullWidth
         error={!!editorProps.begrunnelseError}

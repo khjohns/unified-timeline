@@ -66,12 +66,12 @@ export function FristCard({
         style={style}
       >
         <div className="flex items-baseline gap-1.5">
-          <span className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+          <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
             Fristforlengelse
           </span>
-          <span className="text-[10px] text-pkt-text-body-muted">&sect;33</span>
+          <span className="text-bento-label text-pkt-text-body-muted">&sect;33</span>
         </div>
-        <p className="text-xs text-pkt-text-body-muted italic mt-2">Krever ansvarsgrunnlag</p>
+        <p className="text-bento-body text-pkt-text-body-muted italic mt-2">Krever ansvarsgrunnlag</p>
       </div>
     );
   }
@@ -88,12 +88,12 @@ export function FristCard({
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+          <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
             Fristforlengelse
           </span>
-          <span className="text-[10px] text-pkt-text-body-muted">&sect;33</span>
+          <span className="text-bento-label text-pkt-text-body-muted">&sect;33</span>
           {isSubsidiary && (
-            <span className="bg-badge-warning-bg text-badge-warning-text rounded-sm text-[10px] px-1.5 py-0.5 font-medium ml-1">
+            <span className="bg-badge-warning-bg text-badge-warning-text rounded-sm text-bento-label px-1.5 py-0.5 font-medium ml-1">
               Subsidi&aelig;rt
             </span>
           )}
@@ -113,39 +113,39 @@ export function FristCard({
       </div>
 
       {isEmpty ? (
-        <p className="text-xs text-pkt-text-body-muted italic">Ingen data enn&aring;</p>
+        <p className="text-bento-body text-pkt-text-body-muted italic">Ingen data enn&aring;</p>
       ) : (
         <>
           {/* Key-value rows */}
           <div className="space-y-1">
             {hasDays && !hasBhResponse && (
               <div className="flex justify-between items-baseline">
-                <span className="text-[11px] text-pkt-text-body-subtle">Krevd</span>
-                <span className="text-xs font-mono font-medium text-pkt-text-body-default tabular-nums">
+                <span className="text-bento-caption text-pkt-text-body-subtle">Krevd</span>
+                <span className="text-bento-body font-mono font-medium text-pkt-text-body-default tabular-nums">
                   {f.krevd_dager}d
                 </span>
               </div>
             )}
             {(hasVarselOnly || (hasDays && f.frist_varsel?.dato_sendt)) && (
               <div className="flex justify-between items-baseline">
-                <span className="text-[11px] text-pkt-text-body-subtle">Varslet §33.4</span>
-                <span className="text-xs font-mono text-pkt-text-body-default">
+                <span className="text-bento-caption text-pkt-text-body-subtle">Varslet §33.4</span>
+                <span className="text-bento-body font-mono text-pkt-text-body-default">
                   {formatDateShort(f.frist_varsel!.dato_sendt)}
                 </span>
               </div>
             )}
             {f.spesifisert_varsel?.dato_sendt && (
               <div className="flex justify-between items-baseline">
-                <span className="text-[11px] text-pkt-text-body-subtle">Krav §33.6.1</span>
-                <span className="text-xs font-mono text-pkt-text-body-default">
+                <span className="text-bento-caption text-pkt-text-body-subtle">Krav §33.6.1</span>
+                <span className="text-bento-body font-mono text-pkt-text-body-default">
                   {formatDateShort(f.spesifisert_varsel.dato_sendt)}
                 </span>
               </div>
             )}
             {f.ny_sluttdato && !editState && (
               <div className="flex justify-between items-baseline">
-                <span className="text-[11px] text-pkt-text-body-subtle">Ny sluttdato</span>
-                <span className="text-xs font-mono font-semibold text-pkt-brand-warm-blue-1000">
+                <span className="text-bento-caption text-pkt-text-body-subtle">Ny sluttdato</span>
+                <span className="text-bento-body font-mono font-semibold text-pkt-brand-warm-blue-1000">
                   {formatDateShort(f.ny_sluttdato)}
                 </span>
               </div>
@@ -158,16 +158,16 @@ export function FristCard({
             const diff = krevd - editState.godkjentDager;
             const pct = krevd > 0 ? ((editState.godkjentDager / krevd) * 100).toFixed(1) : '0';
             const subsidiaerBadge = (
-              <span className="bg-badge-warning-bg text-badge-warning-text rounded-sm text-[9px] px-1 py-0.5 font-medium flex-shrink-0">
+              <span className="bg-badge-warning-bg text-badge-warning-text rounded-sm text-bento-micro px-1 py-0.5 font-medium flex-shrink-0">
                 Subsidiært
               </span>
             );
             const sectionHeader = (title: string, paragraf: string, tooltip: string, badge?: React.ReactNode) => (
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-semibold text-pkt-text-body-default uppercase tracking-wide">
+                <span className="text-bento-label font-semibold text-pkt-text-body-default uppercase tracking-wide">
                   {title}
                 </span>
-                <span className="text-[10px] text-pkt-text-body-muted">{paragraf}</span>
+                <span className="text-bento-label text-pkt-text-body-muted">{paragraf}</span>
                 <Tooltip content={tooltip} side="right">
                   <button type="button" className="text-pkt-text-placeholder hover:text-pkt-text-body-default cursor-help">
                     <InfoCircledIcon className="w-3 h-3" />
@@ -193,7 +193,7 @@ export function FristCard({
                       showPrekludert
                     />
                     {editState.fristVarselOk === false && (
-                      <div className="text-[10px] text-pkt-brand-red-1000 bg-pkt-brand-red-1000/5 border border-pkt-brand-red-1000/20 rounded-sm px-2 py-1.5">
+                      <div className="text-bento-label text-pkt-brand-red-1000 bg-pkt-brand-red-1000/5 border border-pkt-brand-red-1000/20 rounded-sm px-2 py-1.5">
                         <span className="font-semibold">Preklusjon.</span>{' '}
                         {editState.showSpesifisertKravOk
                           ? 'Prinsipalt tapes kravet. Du tar subsidiært stilling til §33.6.1 under. Husk skriftlig innsigelse (§5).'
@@ -225,7 +225,7 @@ export function FristCard({
                       showPrekludert
                     />
                     {editState.foresporselSvarOk === false && (
-                      <div className="text-[10px] text-pkt-brand-red-1000 bg-pkt-brand-red-1000/5 border border-pkt-brand-red-1000/20 rounded-sm px-2 py-1.5">
+                      <div className="text-bento-label text-pkt-brand-red-1000 bg-pkt-brand-red-1000/5 border border-pkt-brand-red-1000/20 rounded-sm px-2 py-1.5">
                         <span className="font-semibold">Preklusjon.</span>{' '}
                         Kravet tapes (§33.6.2 tredje ledd). Husk skriftlig innsigelse (§5).
                       </div>
@@ -273,7 +273,7 @@ export function FristCard({
                       editState.port3ErSubsidiaer ? subsidiaerBadge : undefined,
                     )}
                     {editState.erRedusert && (
-                      <div className="text-[10px] text-pkt-brand-yellow-1000 bg-pkt-brand-yellow-1000/5 border border-pkt-brand-yellow-1000/20 rounded-sm px-2 py-1">
+                      <div className="text-bento-label text-pkt-brand-yellow-1000 bg-pkt-brand-yellow-1000/5 border border-pkt-brand-yellow-1000/20 rounded-sm px-2 py-1">
                         Begrenset godkjenning (§33.6.1) — kun det du måtte forstå
                       </div>
                     )}
@@ -292,7 +292,7 @@ export function FristCard({
 
                 {/* ── Resultat ── */}
                 {editState.beregningsResultat && (
-                  <div className="bg-pkt-bg-subtle/50 rounded-md border border-pkt-border-default px-2.5 py-2 text-[11px] space-y-1">
+                  <div className="bg-pkt-bg-subtle/50 rounded-md border border-pkt-border-default px-2.5 py-2 text-bento-caption space-y-1">
                     <div>
                       <span className="font-semibold">Resultat: </span>
                       <span className={
@@ -379,24 +379,24 @@ export function FristCard({
             <div className="mt-2 pt-2 border-t border-pkt-border-subtle">
               <div className="flex items-end gap-4">
                 <div>
-                  <span className="text-[10px] text-pkt-text-body-subtle uppercase tracking-wide">Krevd</span>
-                  <p className="text-sm font-semibold font-mono tabular-nums text-pkt-brand-yellow-1000 leading-tight">
+                  <span className="text-bento-label text-pkt-text-body-subtle uppercase tracking-wide">Krevd</span>
+                  <p className="text-bento-kpi font-semibold font-mono tabular-nums text-pkt-brand-yellow-1000 leading-tight">
                     {f.krevd_dager}d
                   </p>
                 </div>
                 <div>
-                  <span className="text-[10px] text-pkt-text-body-subtle uppercase tracking-wide">
+                  <span className="text-bento-label text-pkt-text-body-subtle uppercase tracking-wide">
                     {isSubsidiary ? 'Subs.' : 'Godkjent'}
                   </span>
-                  <p className="text-sm font-semibold font-mono tabular-nums text-pkt-brand-dark-green-1000 leading-tight">
+                  <p className="text-bento-kpi font-semibold font-mono tabular-nums text-pkt-brand-dark-green-1000 leading-tight">
                     {godkjentDager}d
                     {resolved && <CheckIcon className="w-3.5 h-3.5 inline ml-1 align-baseline" />}
                   </p>
                 </div>
                 {fristGrad != null && (
                   <div className="ml-auto text-right">
-                    <span className="text-[10px] text-pkt-text-body-subtle uppercase tracking-wide">Godkj.grad</span>
-                    <p className={clsx('text-sm font-bold font-mono tabular-nums leading-tight', getGradColor(fristGrad))}>
+                    <span className="text-bento-label text-pkt-text-body-subtle uppercase tracking-wide">Godkj.grad</span>
+                    <p className={clsx('text-bento-kpi font-bold font-mono tabular-nums leading-tight', getGradColor(fristGrad))}>
                       {fristGrad}%
                     </p>
                   </div>

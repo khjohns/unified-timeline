@@ -35,11 +35,11 @@ export function KravLinje({ editState }: KravLinjeProps) {
     <div className="space-y-1.5">
       {/* Section header */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-[10px] font-semibold text-pkt-text-body-default uppercase tracking-wide">
+        <span className="text-bento-label font-semibold text-pkt-text-body-default uppercase tracking-wide">
           {label}
         </span>
         {paragraf && (
-          <span className="text-[10px] text-pkt-text-body-muted">{paragraf}</span>
+          <span className="text-bento-label text-pkt-text-body-muted">{paragraf}</span>
         )}
         {paragraf && (
           <Tooltip content={getTooltipText(label, paragraf)} side="right">
@@ -50,10 +50,10 @@ export function KravLinje({ editState }: KravLinjeProps) {
         )}
         {erPrekludert && (
           <>
-            <span className="bg-pkt-brand-red-1000/10 text-pkt-brand-red-1000 rounded-sm text-[9px] px-1 py-0.5 font-bold uppercase tracking-wide">
+            <span className="bg-pkt-brand-red-1000/10 text-pkt-brand-red-1000 rounded-sm text-bento-micro px-1 py-0.5 font-bold uppercase tracking-wide">
               PREKLUDERT
             </span>
-            <span className="bg-badge-warning-bg text-badge-warning-text rounded-sm text-[9px] px-1 py-0.5 font-medium">
+            <span className="bg-badge-warning-bg text-badge-warning-text rounded-sm text-bento-micro px-1 py-0.5 font-medium">
               Subsidiært
             </span>
           </>
@@ -65,8 +65,8 @@ export function KravLinje({ editState }: KravLinjeProps) {
         <div className="space-y-1">
           {varsletDato && (
             <div className="flex justify-between items-baseline">
-              <span className="text-[10px] text-pkt-text-body-muted">Varslet</span>
-              <span className="text-[10px] font-mono text-pkt-text-body-muted">
+              <span className="text-bento-label text-pkt-text-body-muted">Varslet</span>
+              <span className="text-bento-label font-mono text-pkt-text-body-muted">
                 {formatDateShort(varsletDato)}
               </span>
             </div>

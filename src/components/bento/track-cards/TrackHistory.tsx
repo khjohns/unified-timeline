@@ -33,15 +33,15 @@ export function TrackHistory({ entries, className }: TrackHistoryProps) {
       <div className="bg-pkt-bg-subtle/30 rounded-sm p-2 space-y-1">
         {visible.map((entry) => (
           <div key={entry.id} className="flex items-baseline gap-2">
-            <span className="text-[10px] font-mono text-pkt-text-body-muted tabular-nums shrink-0">
+            <span className="text-bento-label font-mono text-pkt-text-body-muted tabular-nums shrink-0">
               {formatShortDate(entry.tidsstempel)}
             </span>
-            <span className="text-[11px] text-pkt-text-body-default truncate">
+            <span className="text-bento-caption text-pkt-text-body-default truncate">
               {entry.sammendrag}
             </span>
             <span
               className={clsx(
-                'text-[9px] font-medium uppercase shrink-0 px-1 py-0.5 rounded-sm',
+                'text-bento-micro font-medium uppercase shrink-0 px-1 py-0.5 rounded-sm',
                 entry.aktorRolle === 'BH'
                   ? 'bg-pkt-brand-warm-blue-1000/10 text-pkt-brand-warm-blue-1000'
                   : 'bg-pkt-grays-gray-100 text-pkt-text-body-subtle',
@@ -55,7 +55,7 @@ export function TrackHistory({ entries, className }: TrackHistoryProps) {
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="flex items-center gap-1 text-[11px] text-pkt-text-body-subtle hover:text-pkt-text-body-default transition-colors mt-1"
+            className="flex items-center gap-1 text-bento-caption text-pkt-text-body-subtle hover:text-pkt-text-body-default transition-colors mt-1"
           >
             <ChevronDownIcon className="w-3 h-3" />
             Vis alle {entries.length} hendelser
@@ -64,7 +64,7 @@ export function TrackHistory({ entries, className }: TrackHistoryProps) {
         {expanded && entries.length > MAX_VISIBLE && (
           <button
             type="button"
-            className="text-[11px] text-pkt-brand-warm-blue-1000 hover:underline mt-1"
+            className="text-bento-caption text-pkt-brand-warm-blue-1000 hover:underline mt-1"
             onClick={() => {/* could expand further or open modal */}}
           >
             Vis alle {entries.length} hendelser
@@ -74,7 +74,7 @@ export function TrackHistory({ entries, className }: TrackHistoryProps) {
           <button
             type="button"
             onClick={() => setExpanded(false)}
-            className="flex items-center gap-1 text-[11px] text-pkt-text-body-subtle hover:text-pkt-text-body-default transition-colors mt-1"
+            className="flex items-center gap-1 text-bento-caption text-pkt-text-body-subtle hover:text-pkt-text-body-default transition-colors mt-1"
           >
             <ChevronUpIcon className="w-3 h-3" />
             Skjul

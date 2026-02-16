@@ -23,7 +23,7 @@ export function StatusDot({ status, className }: StatusDotProps) {
           isOpen ? 'border border-pkt-grays-gray-400' : getStatusDotClass(status),
         )}
       />
-      <span className="text-[11px] font-medium text-pkt-text-body-subtle leading-none">
+      <span className="text-bento-caption font-medium text-pkt-text-body-subtle leading-none">
         {label}
       </span>
     </div>

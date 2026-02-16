@@ -74,10 +74,10 @@ export function VerdictCards({ value, onChange, options, error }: VerdictCardsPr
           >
             <Icon className={clsx('w-4 h-4 shrink-0', isSelected ? colors.icon : 'text-pkt-text-body-muted')} />
             <div className="min-w-0">
-              <span className={clsx('text-xs font-semibold', isSelected ? 'text-pkt-text-body-dark' : 'text-pkt-text-body-default')}>
+              <span className={clsx('text-bento-body font-semibold', isSelected ? 'text-pkt-text-body-dark' : 'text-pkt-text-body-default')}>
                 {option.label}
               </span>
-              <span className="block text-[10px] text-pkt-text-body-subtle leading-tight truncate">
+              <span className="block text-bento-label text-pkt-text-body-subtle leading-tight truncate">
                 {option.description}
               </span>
             </div>

@@ -67,12 +67,12 @@ export function VederlagCard({
         style={style}
       >
         <div className="flex items-baseline gap-1.5">
-          <span className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+          <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
             Vederlag
           </span>
-          <span className="text-[10px] text-pkt-text-body-muted">&sect;34</span>
+          <span className="text-bento-label text-pkt-text-body-muted">&sect;34</span>
         </div>
-        <p className="text-xs text-pkt-text-body-muted italic mt-2">Krever ansvarsgrunnlag</p>
+        <p className="text-bento-body text-pkt-text-body-muted italic mt-2">Krever ansvarsgrunnlag</p>
       </div>
     );
   }
@@ -89,12 +89,12 @@ export function VederlagCard({
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+          <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
             Vederlag
           </span>
-          <span className="text-[10px] text-pkt-text-body-muted">&sect;34</span>
+          <span className="text-bento-label text-pkt-text-body-muted">&sect;34</span>
           {(isSubsidiary || editState?.erSubsidiaer) && (
-            <span className="bg-badge-warning-bg text-badge-warning-text rounded-sm text-[10px] px-1.5 py-0.5 font-medium ml-1">
+            <span className="bg-badge-warning-bg text-badge-warning-text rounded-sm text-bento-label px-1.5 py-0.5 font-medium ml-1">
               Subsidi&aelig;rt
             </span>
           )}
@@ -114,7 +114,7 @@ export function VederlagCard({
       </div>
 
       {isEmpty && !editState ? (
-        <p className="text-xs text-pkt-text-body-muted italic">Ingen data enn&aring;</p>
+        <p className="text-bento-body text-pkt-text-body-muted italic">Ingen data enn&aring;</p>
       ) : (
         <>
           {/* Key-value rows (read-only, hidden in edit mode) */}
@@ -122,32 +122,32 @@ export function VederlagCard({
             <div className="space-y-1">
               {krevdBelop != null && !hasBhResponse && (
                 <div className="flex justify-between items-baseline">
-                  <span className="text-[11px] text-pkt-text-body-subtle">Krevd</span>
-                  <span className="text-xs font-mono font-medium text-pkt-text-body-default tabular-nums">
+                  <span className="text-bento-caption text-pkt-text-body-subtle">Krevd</span>
+                  <span className="text-bento-body font-mono font-medium text-pkt-text-body-default tabular-nums">
                     {formatCurrencyCompact(krevdBelop)}
                   </span>
                 </div>
               )}
               {v.metode && (
                 <div className="flex justify-between items-baseline">
-                  <span className="text-[11px] text-pkt-text-body-subtle">Metode</span>
-                  <span className="text-xs text-pkt-text-body-default">
+                  <span className="text-bento-caption text-pkt-text-body-subtle">Metode</span>
+                  <span className="text-bento-body text-pkt-text-body-default">
                     {getVederlagsmetodeShortLabel(v.metode)}
                   </span>
                 </div>
               )}
               {v.saerskilt_krav?.rigg_drift?.belop != null && v.saerskilt_krav.rigg_drift.belop > 0 && (
                 <div className="flex justify-between items-baseline">
-                  <span className="text-[11px] text-pkt-text-body-subtle">Rigg/drift</span>
-                  <span className="text-xs font-mono text-pkt-text-body-default tabular-nums">
+                  <span className="text-bento-caption text-pkt-text-body-subtle">Rigg/drift</span>
+                  <span className="text-bento-body font-mono text-pkt-text-body-default tabular-nums">
                     +{formatCurrencyCompact(v.saerskilt_krav.rigg_drift.belop)}
                   </span>
                 </div>
               )}
               {v.saerskilt_krav?.produktivitet?.belop != null && v.saerskilt_krav.produktivitet.belop > 0 && (
                 <div className="flex justify-between items-baseline">
-                  <span className="text-[11px] text-pkt-text-body-subtle">Produktivitet</span>
-                  <span className="text-xs font-mono text-pkt-text-body-default tabular-nums">
+                  <span className="text-bento-caption text-pkt-text-body-subtle">Produktivitet</span>
+                  <span className="text-bento-body font-mono text-pkt-text-body-default tabular-nums">
                     +{formatCurrencyCompact(v.saerskilt_krav.produktivitet.belop)}
                   </span>
                 </div>
@@ -160,14 +160,14 @@ export function VederlagCard({
             <div className="mt-2 pt-2 border-t border-pkt-border-subtle space-y-3">
               {/* Subsidiær context alert */}
               {editState.erSubsidiaer && (
-                <div className="text-[10px] text-pkt-brand-yellow-1000 bg-pkt-brand-yellow-1000/5 border border-pkt-brand-yellow-1000/20 rounded-sm px-2 py-1.5">
+                <div className="text-bento-label text-pkt-brand-yellow-1000 bg-pkt-brand-yellow-1000/5 border border-pkt-brand-yellow-1000/20 rounded-sm px-2 py-1.5">
                   Grunnlagskravet er avsl&aring;tt. Vederlagsvurderingen er subsidi&aelig;r.
                 </div>
               )}
 
               {/* Metode section */}
               <div className="space-y-1.5">
-                <span className="text-[10px] font-semibold text-pkt-text-body-default uppercase tracking-wide">
+                <span className="text-bento-label font-semibold text-pkt-text-body-default uppercase tracking-wide">
                   Beregningsmetode
                 </span>
                 <MethodCards
@@ -180,7 +180,7 @@ export function VederlagCard({
               {/* EP-justering (conditional) */}
               {editState.showEpJustering && (
                 <div className="space-y-1.5">
-                  <span className="text-[10px] font-semibold text-pkt-text-body-default uppercase tracking-wide">
+                  <span className="text-bento-label font-semibold text-pkt-text-body-default uppercase tracking-wide">
                     EP-justering &sect;34.3.3
                   </span>
                   <InlineYesNo
@@ -199,7 +199,7 @@ export function VederlagCard({
               {/* Tilbakeholdelse (conditional) */}
               {editState.showTilbakeholdelse && (
                 <div className="space-y-1.5">
-                  <span className="text-[10px] font-semibold text-pkt-text-body-default uppercase tracking-wide">
+                  <span className="text-bento-label font-semibold text-pkt-text-body-default uppercase tracking-wide">
                     Tilbakeholdelse &sect;30.2
                   </span>
                   <InlineYesNo
@@ -217,7 +217,7 @@ export function VederlagCard({
 
               {/* Resultat box */}
               {editState.prinsipaltResultat && (
-                <div className="bg-pkt-bg-subtle/50 rounded-md border border-pkt-border-default px-2.5 py-2 text-[11px] space-y-1">
+                <div className="bg-pkt-bg-subtle/50 rounded-md border border-pkt-border-default px-2.5 py-2 text-bento-caption space-y-1">
                   <div>
                     <span className="font-semibold">Resultat: </span>
                     <span className={
@@ -291,24 +291,24 @@ export function VederlagCard({
             <div className="mt-2 pt-2 border-t border-pkt-border-subtle">
               <div className="flex items-end gap-4">
                 <div>
-                  <span className="text-[10px] text-pkt-text-body-subtle uppercase tracking-wide">Krevd</span>
-                  <p className="text-sm font-semibold font-mono tabular-nums text-pkt-brand-yellow-1000 leading-tight">
+                  <span className="text-bento-label text-pkt-text-body-subtle uppercase tracking-wide">Krevd</span>
+                  <p className="text-bento-kpi font-semibold font-mono tabular-nums text-pkt-brand-yellow-1000 leading-tight">
                     {formatCurrencyCompact(krevdBelop)}
                   </p>
                 </div>
                 <div>
-                  <span className="text-[10px] text-pkt-text-body-subtle uppercase tracking-wide">
+                  <span className="text-bento-label text-pkt-text-body-subtle uppercase tracking-wide">
                     {isSubsidiary ? 'Subs.' : 'Godkjent'}
                   </span>
-                  <p className="text-sm font-semibold font-mono tabular-nums text-pkt-brand-dark-green-1000 leading-tight">
+                  <p className="text-bento-kpi font-semibold font-mono tabular-nums text-pkt-brand-dark-green-1000 leading-tight">
                     {formatCurrencyCompact(godkjentBelop)}
                     {resolved && <CheckIcon className="w-3.5 h-3.5 inline ml-1 align-baseline" />}
                   </p>
                 </div>
                 {vederlagGrad != null && (
                   <div className="ml-auto text-right">
-                    <span className="text-[10px] text-pkt-text-body-subtle uppercase tracking-wide">Godkj.grad</span>
-                    <p className={clsx('text-sm font-bold font-mono tabular-nums leading-tight', getGradColor(vederlagGrad))}>
+                    <span className="text-bento-label text-pkt-text-body-subtle uppercase tracking-wide">Godkj.grad</span>
+                    <p className={clsx('text-bento-kpi font-bold font-mono tabular-nums leading-tight', getGradColor(vederlagGrad))}>
                       {vederlagGrad}%
                     </p>
                   </div>

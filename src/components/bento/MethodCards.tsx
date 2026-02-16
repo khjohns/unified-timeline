@@ -58,24 +58,24 @@ export function MethodCards({ teMetode, bhMetode, onChange }: MethodCardsProps) 
             >
               {/* TE badge */}
               {isTe && (
-                <span className="absolute -top-1.5 -left-1 bg-pkt-brand-yellow-1000/15 text-pkt-brand-yellow-1000 rounded-sm text-[8px] px-1 py-px font-bold uppercase tracking-wide">
+                <span className="absolute -top-1.5 -left-1 bg-pkt-brand-yellow-1000/15 text-pkt-brand-yellow-1000 rounded-sm text-bento-micro px-1 py-px font-bold uppercase tracking-wide">
                   TE
                 </span>
               )}
               {/* BH badge (only when overriding) */}
               {isBh && harMetodeendring && (
-                <span className="absolute -top-1.5 -right-1 bg-pkt-brand-warm-blue-1000/15 text-pkt-brand-warm-blue-1000 rounded-sm text-[8px] px-1 py-px font-bold uppercase tracking-wide">
+                <span className="absolute -top-1.5 -right-1 bg-pkt-brand-warm-blue-1000/15 text-pkt-brand-warm-blue-1000 rounded-sm text-bento-micro px-1 py-px font-bold uppercase tracking-wide">
                   BH
                 </span>
               )}
               <span className={clsx(
-                'text-[10px] font-medium leading-tight',
+                'text-bento-label font-medium leading-tight',
                 isBh ? 'text-pkt-brand-warm-blue-1000' : 'text-pkt-text-body-default',
               )}>
                 {method.shortLabel}
               </span>
               <div className="flex items-center gap-0.5">
-                <span className="text-[9px] text-pkt-text-body-muted">{method.paragraf}</span>
+                <span className="text-bento-micro text-pkt-text-body-muted">{method.paragraf}</span>
                 <Tooltip content={VEDERLAGSMETODE_DESCRIPTIONS[method.value]} side="bottom">
                   <span className="text-pkt-text-placeholder hover:text-pkt-text-body-default cursor-help">
                     <InfoCircledIcon className="w-2.5 h-2.5" />
@@ -87,7 +87,7 @@ export function MethodCards({ teMetode, bhMetode, onChange }: MethodCardsProps) 
         })}
       </div>
       {harMetodeendring && (
-        <p className="text-[10px] text-pkt-text-body-muted">
+        <p className="text-bento-label text-pkt-text-body-muted">
           TE: {METHODS.find(m => m.value === teMetode)?.shortLabel} → BH: {METHODS.find(m => m.value === bhMetode)?.shortLabel}
         </p>
       )}

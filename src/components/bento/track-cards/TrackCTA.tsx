@@ -88,7 +88,7 @@ export function TrackCTA({
         <button
           type="button"
           onClick={primaryAction.onClick}
-          className="flex items-center gap-1.5 text-xs font-medium text-pkt-brand-warm-blue-1000 hover:text-pkt-brand-dark-blue-1000 transition-colors"
+          className="flex items-center gap-1.5 text-bento-body font-medium text-pkt-brand-warm-blue-1000 hover:text-pkt-brand-dark-blue-1000 transition-colors"
         >
           {showArrow && <ArrowRightIcon className="w-3.5 h-3.5" />}
           {ctaText}
@@ -96,7 +96,7 @@ export function TrackCTA({
       ) : (
         <span
           className={clsx(
-            'flex items-center gap-1.5 text-xs',
+            'flex items-center gap-1.5 text-bento-body',
             resolved
               ? 'text-pkt-text-body-muted font-medium'
               : 'text-pkt-text-body-subtle',

@@ -115,7 +115,7 @@ export function CaseMasterCard({
       {/* ===== Identity section ===== */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-mono text-pkt-text-body-subtle tracking-wide">
+          <p className="text-bento-caption font-mono text-pkt-text-body-subtle tracking-wide">
             {state.sak_id}
             <span className="text-pkt-grays-gray-300 mx-1.5">&middot;</span>
             <span className="font-sans">{sakstypeStyle.label}</span>
@@ -124,7 +124,7 @@ export function CaseMasterCard({
             {state.sakstittel}
           </h2>
           {(state.byggherre || state.entreprenor) && (
-            <p className="text-xs text-pkt-text-body-subtle mt-1">
+            <p className="text-bento-body text-pkt-text-body-subtle mt-1">
               {state.byggherre && (
                 <span className="font-medium text-pkt-text-body-default">{state.byggherre}</span>
               )}
@@ -148,10 +148,10 @@ export function CaseMasterCard({
       {/* ===== Grunnlag section ===== */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+          <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
             Ansvarsgrunnlag
           </span>
-          <span className="text-[10px] text-pkt-text-body-muted">
+          <span className="text-bento-label text-pkt-text-body-muted">
             &sect;25.2
           </span>
         </div>
@@ -170,13 +170,13 @@ export function CaseMasterCard({
       </div>
 
       {isEmpty ? (
-        <p className="text-xs text-pkt-text-body-muted italic">Ingen data enn&aring;</p>
+        <p className="text-bento-body text-pkt-text-body-muted italic">Ingen data enn&aring;</p>
       ) : (
         <>
           {/* Category: type + hjemmel + what it entitles */}
           {categoryInfo && (
             <div className="mb-2">
-              <p className="text-[11px] font-semibold text-pkt-text-body-default uppercase tracking-wide">
+              <p className="text-bento-caption font-semibold text-pkt-text-body-default uppercase tracking-wide">
                 {categoryInfo.line1}
                 {categoryInfo.line1Hjemmel && (
                   <span className="text-pkt-text-body-muted font-normal ml-1.5">
@@ -190,7 +190,7 @@ export function CaseMasterCard({
                 </p>
               )}
               {/* What this entitles */}
-              <p className="text-[10px] text-pkt-text-body-muted mt-1">
+              <p className="text-bento-label text-pkt-text-body-muted mt-1">
                 Gir krav p&aring;:
                 {categoryInfo.entitles.vederlag && (
                   <> Vederlag ({categoryInfo.entitles.vederlag})</>
@@ -213,16 +213,16 @@ export function CaseMasterCard({
             <div className="space-y-1">
               {g.dato_oppdaget && (
                 <div className="flex justify-between items-baseline">
-                  <span className="text-[11px] text-pkt-text-body-subtle">Oppdaget</span>
-                  <span className="text-xs font-mono text-pkt-text-body-default">
+                  <span className="text-bento-caption text-pkt-text-body-subtle">Oppdaget</span>
+                  <span className="text-bento-body font-mono text-pkt-text-body-default">
                     {formatDateShort(g.dato_oppdaget)}
                   </span>
                 </div>
               )}
               {g.grunnlag_varsel?.dato_sendt && (
                 <div className="flex justify-between items-baseline">
-                  <span className="text-[11px] text-pkt-text-body-subtle">Varslet</span>
-                  <span className="text-xs font-mono text-pkt-text-body-default">
+                  <span className="text-bento-caption text-pkt-text-body-subtle">Varslet</span>
+                  <span className="text-bento-body font-mono text-pkt-text-body-default">
                     {formatDateShort(g.grunnlag_varsel.dato_sendt)}
                   </span>
                 </div>
@@ -244,7 +244,7 @@ export function CaseMasterCard({
 
               {/* Preklusjons-advarsel */}
               {editState.erPrekludert && (
-                <div className="text-[10px] text-pkt-brand-red-1000 bg-pkt-brand-red-1000/5 border border-pkt-brand-red-1000/20 rounded-sm px-2 py-1.5">
+                <div className="text-bento-label text-pkt-brand-red-1000 bg-pkt-brand-red-1000/5 border border-pkt-brand-red-1000/20 rounded-sm px-2 py-1.5">
                   <span className="font-semibold">Preklusjon (§32.2).</span>{' '}
                   Varselet ble sendt for sent. Standpunktet gjelder prinsipalt. Ditt svar nedenfor gjelder subsidiært.
                 </div>
@@ -252,7 +252,7 @@ export function CaseMasterCard({
 
               {/* Verdict cards */}
               <div>
-                <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-1.5">
+                <p className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-1.5">
                   {editState.erPrekludert ? 'Ditt svar (subsidiært)' : 'Ditt svar'}
                 </p>
                 <VerdictCards
@@ -276,20 +276,20 @@ export function CaseMasterCard({
               {/* Update mode: current response banner */}
               {editState.isUpdateMode && editState.updateContext && (
                 <div className="rounded-sm border border-pkt-border-subtle bg-pkt-bg-subtle p-2.5">
-                  <p className="text-[10px] font-medium text-pkt-text-body-muted uppercase tracking-wide mb-1.5">N&aring;v&aelig;rende svar</p>
+                  <p className="text-bento-label font-medium text-pkt-text-body-muted uppercase tracking-wide mb-1.5">N&aring;v&aelig;rende svar</p>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-pkt-text-body-subtle">Resultat:</span>
+                    <span className="text-bento-caption text-pkt-text-body-subtle">Resultat:</span>
                     <Badge variant={editState.updateContext.forrigeResultat === 'avslatt' ? 'danger' : 'success'} size="sm">
                       {({ godkjent: 'Godkjent', avslatt: 'Avsl\u00e5tt', frafalt: 'Frafalt (\u00a732.3 c)' } as Record<GrunnlagResponsResultat, string>)[editState.updateContext.forrigeResultat] ?? 'Ukjent'}
                     </Badge>
                   </div>
                   {editState.updateContext.forrigeBegrunnelse && (
-                    <p className="text-[10px] text-pkt-text-body-muted italic mt-1 line-clamp-2">
+                    <p className="text-bento-label text-pkt-text-body-muted italic mt-1 line-clamp-2">
                       &laquo;{editState.updateContext.forrigeBegrunnelse}&raquo;
                     </p>
                   )}
                   {editState.updateContext.harSubsidiaereSvar && editState.updateContext.forrigeResultat === 'avslatt' && (
-                    <p className="text-[10px] text-pkt-grays-gray-500 mt-1">
+                    <p className="text-bento-label text-pkt-grays-gray-500 mt-1">
                       Det finnes subsidi&aelig;re svar p&aring; vederlag og/eller frist.
                     </p>
                   )}
@@ -303,7 +303,7 @@ export function CaseMasterCard({
                     Ved &aring; godkjenne grunnlaget n&aring;, vil alle subsidi&aelig;re svar p&aring; vederlag og frist
                     automatisk konverteres til <strong>prinsipale</strong> svar.
                   </p>
-                  <ul className="list-disc pl-5 mt-2 text-xs">
+                  <ul className="list-disc pl-5 mt-2 text-bento-body">
                     {editState.snuoperasjon.erSubsidiaertVederlag && (
                       <li>Vederlag: &ldquo;{editState.snuoperasjon.visningsstatusVederlag}&rdquo; blir gjeldende uten forbehold</li>
                     )}
@@ -368,13 +368,13 @@ export function CaseMasterCard({
               {/* Varslet i tide — only shown when BH has assessed it */}
               {g.grunnlag_varslet_i_tide != null && (
                 <div className="flex justify-between items-baseline">
-                  <span className="text-[11px] text-pkt-text-body-subtle">Varslet i tide</span>
+                  <span className="text-bento-caption text-pkt-text-body-subtle">Varslet i tide</span>
                   {g.grunnlag_varslet_i_tide ? (
-                    <span className="text-xs font-semibold text-pkt-brand-dark-green-1000 flex items-center gap-1">
+                    <span className="text-bento-body font-semibold text-pkt-brand-dark-green-1000 flex items-center gap-1">
                       Ja <CheckIcon className="w-3.5 h-3.5" />
                     </span>
                   ) : (
-                    <span className="text-xs font-semibold text-pkt-brand-red-1000 flex items-center gap-1">
+                    <span className="text-bento-body font-semibold text-pkt-brand-red-1000 flex items-center gap-1">
                       Nei <ExclamationTriangleIcon className="w-3.5 h-3.5" />
                     </span>
                   )}
@@ -383,10 +383,10 @@ export function CaseMasterCard({
 
               {/* BH resultat */}
               <div className="flex justify-between items-baseline">
-                <span className="text-[11px] text-pkt-text-body-subtle">BH resultat</span>
+                <span className="text-bento-caption text-pkt-text-body-subtle">BH resultat</span>
                 <span
                   className={clsx(
-                    'text-sm font-semibold flex items-center gap-1',
+                    'text-bento-kpi font-semibold flex items-center gap-1',
                     g.bh_resultat === 'godkjent' && 'text-pkt-brand-dark-green-1000',
                     g.bh_resultat === 'avslatt' && 'text-pkt-brand-red-1000',
                     g.bh_resultat === 'frafalt' && 'text-pkt-text-body-muted',
@@ -400,7 +400,7 @@ export function CaseMasterCard({
 
               {/* BH begrunnelse */}
               {g.bh_begrunnelse && (
-                <p className="text-[11px] text-pkt-text-body-muted italic line-clamp-4 mt-0.5">
+                <p className="text-bento-caption text-pkt-text-body-muted italic line-clamp-4 mt-0.5">
                   &laquo;{g.bh_begrunnelse}&raquo;
                 </p>
               )}

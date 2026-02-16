@@ -27,20 +27,20 @@ export function InlineYesNo({
   return (
     <div className={clsx('flex justify-between items-center gap-2', className)}>
       <div className="flex items-baseline gap-1 min-w-0">
-        <span className="text-[11px] text-pkt-text-body-subtle truncate">{label}</span>
+        <span className="text-bento-caption text-pkt-text-body-subtle truncate">{label}</span>
         {subtitle && (
-          <span className="text-[10px] text-pkt-text-body-muted flex-shrink-0">{subtitle}</span>
+          <span className="text-bento-label text-pkt-text-body-muted flex-shrink-0">{subtitle}</span>
         )}
         {badge}
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
         {showPrekludert && value === false && (
-          <span className="bg-pkt-brand-red-1000/10 text-pkt-brand-red-1000 rounded-sm text-[9px] px-1 py-0.5 font-bold uppercase tracking-wide mr-1">
+          <span className="bg-pkt-brand-red-1000/10 text-pkt-brand-red-1000 rounded-sm text-bento-micro px-1 py-0.5 font-bold uppercase tracking-wide mr-1">
             PREKLUDERT
           </span>
         )}
         {showRedusert && value === false && (
-          <span className="bg-pkt-brand-yellow-1000/10 text-pkt-brand-yellow-1000 rounded-sm text-[9px] px-1 py-0.5 font-bold uppercase tracking-wide mr-1">
+          <span className="bg-pkt-brand-yellow-1000/10 text-pkt-brand-yellow-1000 rounded-sm text-bento-micro px-1 py-0.5 font-bold uppercase tracking-wide mr-1">
             REDUSERT
           </span>
         )}
@@ -50,7 +50,7 @@ export function InlineYesNo({
           disabled={disabled}
           onClick={() => !disabled && onChange(true)}
           className={clsx(
-            'flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-medium transition-all',
+            'flex items-center gap-1 px-2 py-0.5 rounded-md border text-bento-caption font-medium transition-all',
             !disabled && 'cursor-pointer',
             disabled && 'cursor-not-allowed opacity-40',
             value === true
@@ -68,7 +68,7 @@ export function InlineYesNo({
           disabled={disabled}
           onClick={() => !disabled && onChange(false)}
           className={clsx(
-            'flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-medium transition-all',
+            'flex items-center gap-1 px-2 py-0.5 rounded-md border text-bento-caption font-medium transition-all',
             !disabled && 'cursor-pointer',
             disabled && 'cursor-not-allowed opacity-40',
             value === false
