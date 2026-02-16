@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import type { FristBeregningResultat, SubsidiaerTrigger } from '../types/timeline';
+import type { FristBeregningResultat } from '../types/timeline';
 import {
   generateFristResponseBegrunnelse,
   type FristResponseInput,
@@ -8,6 +8,7 @@ import { useSubmitEvent } from './useSubmitEvent';
 import { useFormBackup } from './useFormBackup';
 import { useCatendaStatusHandler } from './useCatendaStatusHandler';
 import { useToast } from '../components/primitives';
+import * as fristDomain from '../domain/fristDomain';
 
 // ============================================================================
 // TYPES
@@ -113,44 +114,6 @@ export interface FristBridgeReturn {
 }
 
 // ============================================================================
-// HELPER FUNCTIONS (ported from RespondFristModal)
-// ============================================================================
-
-function beregnPrinsipaltResultat(data: {
-  erPrekludert: boolean;
-  sendForesporsel: boolean;
-  harHindring: boolean;
-  krevdDager: number;
-  godkjentDager: number;
-}): FristBeregningResultat {
-  if (data.sendForesporsel) return 'avslatt';
-  if (data.erPrekludert) return 'avslatt';
-  if (!data.harHindring) return 'avslatt';
-
-  if (data.krevdDager === 0) return 'godkjent';
-
-  const godkjentProsent = data.godkjentDager / data.krevdDager;
-  if (godkjentProsent >= 0.99) return 'godkjent';
-
-  return 'delvis_godkjent';
-}
-
-function beregnSubsidiaertResultat(data: {
-  harHindring: boolean;
-  krevdDager: number;
-  godkjentDager: number;
-}): FristBeregningResultat {
-  if (!data.harHindring) return 'avslatt';
-
-  if (data.krevdDager === 0) return 'godkjent';
-
-  const godkjentProsent = data.godkjentDager / data.krevdDager;
-  if (godkjentProsent >= 0.99) return 'godkjent';
-
-  return 'delvis_godkjent';
-}
-
-// ============================================================================
 // HOOK
 // ============================================================================
 
@@ -178,56 +141,34 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
   // ========== TOKEN EXPIRED ==========
   const [showTokenExpired, setShowTokenExpired] = useState(false);
 
-  // Derived: har tidligere varsel i tide
+  // ========== DERIVED CONFIG (for domain functions) ==========
   const harTidligereFristVarsel = !!fristTilstand?.frist_varsel;
   const harTidligereVarselITide = harTidligereFristVarsel && fristTilstand?.frist_varsel_ok === true;
-
-  // Derived: er svar på forespørsel
   const erSvarPaForesporsel = fristTilstand?.har_bh_foresporsel === true && varselType === 'spesifisert';
-
-  // Grunnlag subsidiary
   const erHelFristSubsidiaerPgaGrunnlag = grunnlagVarsletForSent === true;
   const erGrunnlagSubsidiaer = grunnlagStatus === 'avslatt' || erHelFristSubsidiaerPgaGrunnlag;
 
-  // ========== STATE (now includes begrunnelse) ==========
-  const getDefaults = useCallback(() => {
-    if (isUpdateMode && lastResponseEvent && fristTilstand) {
-      return {
-        fristVarselOk: fristTilstand.frist_varsel_ok ?? true,
-        spesifisertKravOk: fristTilstand.spesifisert_krav_ok ?? true,
-        foresporselSvarOk: fristTilstand.foresporsel_svar_ok ?? true,
-        vilkarOppfylt: fristTilstand.vilkar_oppfylt ?? true,
-        sendForesporsel: false,
-        godkjentDager: lastResponseEvent.godkjent_dager ?? krevdDager,
-        begrunnelse: '',
-        begrunnelseValidationError: undefined as string | undefined,
-      };
-    }
-    return {
-      fristVarselOk: true,
-      spesifisertKravOk: true,
-      foresporselSvarOk: true,
-      vilkarOppfylt: true,
-      sendForesporsel: false,
-      godkjentDager: krevdDager,
-      begrunnelse: '',
-      begrunnelseValidationError: undefined as string | undefined,
-    };
-  }, [isUpdateMode, lastResponseEvent, fristTilstand, krevdDager]);
+  const domainConfig = useMemo((): fristDomain.FristDomainConfig => ({
+    varselType,
+    krevdDager,
+    erSvarPaForesporsel,
+    harTidligereVarselITide,
+    erGrunnlagSubsidiaer,
+    erHelFristSubsidiaerPgaGrunnlag,
+  }), [varselType, krevdDager, erSvarPaForesporsel, harTidligereVarselITide, erGrunnlagSubsidiaer, erHelFristSubsidiaerPgaGrunnlag]);
 
-  // Consolidated form state
-  interface FormState {
-    fristVarselOk: boolean;
-    spesifisertKravOk: boolean;
-    foresporselSvarOk: boolean;
-    vilkarOppfylt: boolean;
-    sendForesporsel: boolean;
-    godkjentDager: number;
-    begrunnelse: string;
-    begrunnelseValidationError: string | undefined;
-  }
+  // ========== STATE ==========
+  const getDefaults = useCallback(
+    () => fristDomain.getDefaults({
+      krevdDager,
+      isUpdateMode,
+      lastResponseEvent,
+      fristTilstand,
+    }),
+    [isUpdateMode, lastResponseEvent, fristTilstand, krevdDager],
+  );
 
-  const [formState, setFormState] = useState<FormState>(getDefaults);
+  const [formState, setFormState] = useState<fristDomain.FristFormState>(getDefaults);
 
   // ========== FORM BACKUP ==========
   const backupData = useMemo(
@@ -269,6 +210,12 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
   }, [isOpen, toast]);
 
   const { fristVarselOk, spesifisertKravOk, foresporselSvarOk, vilkarOppfylt, sendForesporsel, godkjentDager, begrunnelse, begrunnelseValidationError } = formState;
+
+  // ========== DOMAIN COMPUTATIONS (pure TypeScript, memoized) ==========
+  const computed = useMemo(
+    () => fristDomain.beregnAlt(formState, domainConfig),
+    [formState, domainConfig],
+  );
 
   // ========== SUBMIT MUTATION ==========
   const pendingToastId = useRef<string | null>(null);
@@ -315,91 +262,11 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
     }));
   }, []);
 
-  // ========== VISIBILITY FLAGS ==========
-  const erBegrunnelseUtsatt = varselType === 'begrunnelse_utsatt';
-
-  const showFristVarselOk = useMemo(() => {
-    if (erBegrunnelseUtsatt) return false;
-    if (varselType === 'varsel') return true;
-    if (varselType === 'spesifisert' && !harTidligereVarselITide && !erSvarPaForesporsel) return true;
-    return false;
-  }, [varselType, erBegrunnelseUtsatt, harTidligereVarselITide, erSvarPaForesporsel]);
-
-  const showSpesifisertKravOk = useMemo(() => {
-    if (erBegrunnelseUtsatt) return false;
-    if (varselType !== 'spesifisert') return false;
-    if (erSvarPaForesporsel) return false;
-    return true;
-  }, [varselType, erBegrunnelseUtsatt, erSvarPaForesporsel]);
-
-  const showForesporselSvarOk = useMemo(() => {
-    if (erBegrunnelseUtsatt) return false;
-    return erSvarPaForesporsel;
-  }, [erBegrunnelseUtsatt, erSvarPaForesporsel]);
-
-  const showSendForesporsel = useMemo(() => {
-    if (erBegrunnelseUtsatt) return false;
-    return varselType === 'varsel' && fristVarselOk === true;
-  }, [varselType, erBegrunnelseUtsatt, fristVarselOk]);
-
-  // ========== PRECLUSION ==========
+  // ========== AUTO-BEGRUNNELSE ==========
   const erForesporselSvarForSent = erSvarPaForesporsel && foresporselSvarOk === false;
 
-  const erPrekludert = useMemo(() => {
-    if (erForesporselSvarForSent) return true;
-    if (varselType === 'varsel') return fristVarselOk === false;
-    if (varselType === 'spesifisert' && !harTidligereVarselITide) return fristVarselOk === false;
-    return false;
-  }, [fristVarselOk, varselType, harTidligereVarselITide, erForesporselSvarForSent]);
-
-  const erRedusert = useMemo(() => {
-    if (erSvarPaForesporsel) return false;
-    if (varselType === 'spesifisert' && harTidligereVarselITide) return spesifisertKravOk === false;
-    if (varselType === 'spesifisert' && !harTidligereVarselITide) {
-      return fristVarselOk === true && spesifisertKravOk === false;
-    }
-    return false;
-  }, [fristVarselOk, spesifisertKravOk, varselType, erSvarPaForesporsel, harTidligereVarselITide]);
-
-  // ========== COMPUTED RESULTS ==========
-  const harHindring = vilkarOppfylt === true;
-
-  const prinsipaltResultat = useMemo(
-    () => beregnPrinsipaltResultat({
-      erPrekludert,
-      sendForesporsel,
-      harHindring,
-      krevdDager,
-      godkjentDager,
-    }),
-    [erPrekludert, sendForesporsel, harHindring, krevdDager, godkjentDager]
-  );
-
-  const subsidiaertResultat = useMemo(
-    () => beregnSubsidiaertResultat({ harHindring, krevdDager, godkjentDager }),
-    [harHindring, krevdDager, godkjentDager]
-  );
-
-  const visSubsidiaertResultat = prinsipaltResultat === 'avslatt';
-
-  const showGodkjentDager = !sendForesporsel;
-
-  // Port-level subsidiary flags (for card badge display)
-  const port2ErSubsidiaer = (erPrekludert || erGrunnlagSubsidiaer) && !sendForesporsel;
-  const port3ErSubsidiaer = (erPrekludert || !harHindring || erGrunnlagSubsidiaer) && !sendForesporsel;
-
-  // Subsidiary triggers
-  const subsidiaerTriggers = useMemo((): SubsidiaerTrigger[] => {
-    const triggers: SubsidiaerTrigger[] = [];
-    if (erGrunnlagSubsidiaer) triggers.push('grunnlag_avslatt');
-    if (erPrekludert) triggers.push('preklusjon_varsel');
-    if (!harHindring) triggers.push('ingen_hindring');
-    return triggers;
-  }, [erGrunnlagSubsidiaer, erPrekludert, harHindring]);
-
-  // ========== AUTO-BEGRUNNELSE ==========
   const autoBegrunnelse = useMemo(() => {
-    if (!prinsipaltResultat) return '';
+    if (!computed.prinsipaltResultat) return '';
     const input: FristResponseInput = {
       varselType,
       krevdDager,
@@ -409,31 +276,24 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
       sendForesporsel,
       vilkarOppfylt,
       godkjentDager,
-      erPrekludert,
+      erPrekludert: computed.erPrekludert,
       erForesporselSvarForSent,
-      erRedusert_33_6_1: erRedusert,
+      erRedusert_33_6_1: computed.erRedusert,
       harTidligereVarselITide,
       erGrunnlagSubsidiaer,
       erGrunnlagPrekludert: erHelFristSubsidiaerPgaGrunnlag,
-      prinsipaltResultat,
-      subsidiaertResultat,
-      visSubsidiaertResultat,
+      prinsipaltResultat: computed.prinsipaltResultat,
+      subsidiaertResultat: computed.subsidiaertResultat,
+      visSubsidiaertResultat: computed.visSubsidiaertResultat,
     };
     return generateFristResponseBegrunnelse(input, { useTokens: true });
   }, [
     varselType, krevdDager, fristVarselOk, spesifisertKravOk,
     foresporselSvarOk, sendForesporsel, vilkarOppfylt, godkjentDager,
-    prinsipaltResultat, erPrekludert, erForesporselSvarForSent,
-    erRedusert, harTidligereVarselITide, erGrunnlagSubsidiaer,
-    erHelFristSubsidiaerPgaGrunnlag, subsidiaertResultat, visSubsidiaertResultat,
+    computed.prinsipaltResultat, computed.erPrekludert, erForesporselSvarForSent,
+    computed.erRedusert, harTidligereVarselITide, erGrunnlagSubsidiaer,
+    erHelFristSubsidiaerPgaGrunnlag, computed.subsidiaertResultat, computed.visSubsidiaertResultat,
   ]);
-
-  const dynamicPlaceholder = useMemo(() => {
-    if (!prinsipaltResultat) return 'Gjør valgene i kortet, deretter skriv begrunnelse...';
-    if (prinsipaltResultat === 'godkjent') return 'Begrunn din godkjenning av fristforlengelsen...';
-    if (prinsipaltResultat === 'delvis_godkjent') return 'Forklar hvorfor du kun godkjenner deler av fristforlengelsen...';
-    return 'Begrunn ditt avslag på fristforlengelsen...';
-  }, [prinsipaltResultat]);
 
   // Auto-populate begrunnelse when auto-begrunnelse changes (if not manually edited)
   useEffect(() => {
@@ -449,34 +309,8 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
     }
   }, [autoBegrunnelse]);
 
-  // ========== BUILD EVENT DATA (internal) ==========
-  const buildEventData = useCallback((): Record<string, unknown> => {
-    const effectiveGodkjentDager = prinsipaltResultat !== 'avslatt' ? godkjentDager : 0;
-    return {
-      frist_krav_id: fristKravId,
-      frist_varsel_ok: fristVarselOk,
-      spesifisert_krav_ok: spesifisertKravOk,
-      foresporsel_svar_ok: foresporselSvarOk,
-      send_foresporsel: sendForesporsel,
-      vilkar_oppfylt: vilkarOppfylt,
-      godkjent_dager: effectiveGodkjentDager,
-      begrunnelse: begrunnelse || autoBegrunnelse,
-      auto_begrunnelse: autoBegrunnelse,
-      beregnings_resultat: prinsipaltResultat,
-      krevd_dager: krevdDager,
-      subsidiaer_triggers: subsidiaerTriggers.length > 0 ? subsidiaerTriggers : undefined,
-      subsidiaer_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
-      subsidiaer_godkjent_dager: visSubsidiaertResultat && subsidiaertResultat !== 'avslatt' ? effectiveGodkjentDager : undefined,
-      subsidiaer_begrunnelse: visSubsidiaertResultat ? (begrunnelse || autoBegrunnelse) : undefined,
-    };
-  }, [
-    fristKravId, fristVarselOk, spesifisertKravOk, foresporselSvarOk, sendForesporsel,
-    vilkarOppfylt, godkjentDager, begrunnelse, prinsipaltResultat, krevdDager,
-    autoBegrunnelse, subsidiaerTriggers, visSubsidiaertResultat, subsidiaertResultat,
-  ]);
-
   // ========== VALIDATE + SUBMIT ==========
-  const canSubmit = !!prinsipaltResultat && begrunnelse.length >= 10 && !mutation.isPending;
+  const canSubmit = !!computed.prinsipaltResultat && begrunnelse.length >= 10 && !mutation.isPending;
 
   const handleSubmit = useCallback(() => {
     if (begrunnelse.length < 10) {
@@ -492,11 +326,12 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
       'Vennligst vent mens svaret behandles.'
     );
 
+    const eventData = fristDomain.buildEventData(formState, domainConfig, computed, fristKravId, autoBegrunnelse);
     mutation.mutate({
       eventType: 'respons_frist',
-      data: buildEventData(),
+      data: eventData,
     });
-  }, [begrunnelse, buildEventData, mutation, toast]);
+  }, [begrunnelse, formState, domainConfig, computed, fristKravId, autoBegrunnelse, mutation, toast]);
 
   const handleSaveDraft = useCallback(() => {
     if (!onSaveDraft) return;
@@ -510,13 +345,13 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
 
     onSaveDraft({
       dager: godkjentDager,
-      resultat: prinsipaltResultat,
+      resultat: computed.prinsipaltResultat,
       begrunnelse: begrunnelse || autoBegrunnelse,
     });
     clearBackup();
     onSuccess();
     toast.success('Utkast lagret', 'Svaret på fristkravet er lagret som utkast.');
-  }, [onSaveDraft, godkjentDager, prinsipaltResultat, begrunnelse, autoBegrunnelse, clearBackup, onSuccess, toast]);
+  }, [onSaveDraft, godkjentDager, computed.prinsipaltResultat, begrunnelse, autoBegrunnelse, clearBackup, onSuccess, toast]);
 
   const submitLabel = mutation.isPending ? 'Sender...' : 'Send svar';
 
@@ -525,36 +360,36 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
     cardProps: {
       fristVarselOk,
       onFristVarselOkChange: handleFristVarselOkChange,
-      showFristVarselOk,
+      showFristVarselOk: computed.visibility.showFristVarselOk,
 
       spesifisertKravOk,
       onSpesifisertKravOkChange: setSpesifisertKravOk,
-      showSpesifisertKravOk,
+      showSpesifisertKravOk: computed.visibility.showSpesifisertKravOk,
 
       foresporselSvarOk,
       onForesporselSvarOkChange: setForesporselSvarOk,
-      showForesporselSvarOk,
+      showForesporselSvarOk: computed.visibility.showForesporselSvarOk,
 
       sendForesporsel,
       onSendForesporselChange: setSendForesporsel,
-      showSendForesporsel,
+      showSendForesporsel: computed.visibility.showSendForesporsel,
 
       vilkarOppfylt,
       onVilkarOppfyltChange: setVilkarOppfylt,
 
       godkjentDager,
       onGodkjentDagerChange: setGodkjentDager,
-      showGodkjentDager,
+      showGodkjentDager: computed.showGodkjentDager,
 
-      erPrekludert,
-      erRedusert,
-      port2ErSubsidiaer,
-      port3ErSubsidiaer,
+      erPrekludert: computed.erPrekludert,
+      erRedusert: computed.erRedusert,
+      port2ErSubsidiaer: computed.port2ErSubsidiaer,
+      port3ErSubsidiaer: computed.port3ErSubsidiaer,
       erSvarPaForesporsel,
       erGrunnlagSubsidiaer,
-      beregningsResultat: prinsipaltResultat,
-      visSubsidiaertResultat,
-      subsidiaertResultat,
+      beregningsResultat: computed.prinsipaltResultat,
+      visSubsidiaertResultat: computed.visSubsidiaertResultat,
+      subsidiaertResultat: computed.subsidiaertResultat,
       krevdDager,
 
       // Card actions
@@ -577,7 +412,7 @@ export function useFristBridge(config: UseFristBridgeConfig): FristBridgeReturn 
       begrunnelse,
       onBegrunnelseChange: handleBegrunnelseChange,
       begrunnelseError: begrunnelseValidationError,
-      placeholder: dynamicPlaceholder,
+      placeholder: computed.dynamicPlaceholder,
       autoBegrunnelse,
       onRegenerate: handleRegenerate,
       showRegenerate: !!autoBegrunnelse,
