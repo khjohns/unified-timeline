@@ -1,17 +1,22 @@
-# ADR-004: Bento Typography Token System
+# ADR-004: Bento Design Tokens og Spacing-konvensjoner
 
 **Status:** Akseptert
 **Dato:** 2026-02-16
 **Beslutningstagere:** Utviklingsteam
-**Kontekst:** Typografi-konsolidering for bento-kort i KOE-plattformen
+**Kontekst:** Typografi, spacing og visuell konsistens for bento-kort i KOE-plattformen
 
 ---
 
 ## Sammendrag
 
-Bento-kortene bruker et eget sett med typografi-tokens (CSS custom properties)
-som mapper til semantiske roller. Kun `font-size` tokeniseres — vekt og farge
-varierer etter kontekst innenfor samme tier.
+Bento-kortene bruker et eget sett med design-tokens og konvensjoner:
+
+- **Typografi:** 5 semantiske font-size tokens (`text-bento-micro` → `text-bento-kpi`)
+- **Spacing:** `gap-1` (4px) for inline-elementer, 4px-grid gjennomgående
+- **Padding:** Hierarki mellom primær- og sekundærkort (`p-4` vs `p-3`)
+- **Radius:** Konsistent per elementtype (`rounded-lg` kort, `rounded-sm` callouts)
+- **Depth:** Surface color + borders, ingen skygger
+- **Farge:** 3 bento-spesifikke tokens for track-identitet og KPI-kontrast
 
 ---
 
@@ -98,20 +103,97 @@ CSS custom properties i `:root` + Tailwind v4 `@utility`-direktiver:
 
 ---
 
+## Spacing
+
+### Inline-gaps: `gap-1` (4px)
+
+Alle inline element-gaps i bento-kort bruker `gap-1` (4px). Dette gjelder:
+
+- Ikon + tekst-par (StatusDot, TrackCTA, InlineYesNo)
+- Label + §-referanse (kortheadere, seksjonsheadere)
+- Badge-grupper og chip-lister
+
+Opprinnelig brukte komponentene `gap-1.5` (6px), men dette var off-grid
+og den visuelle forskjellen var neglisjerbar. Standardisert til 4px-grid.
+
+### Section-gaps: `space-y-3` (12px) og `space-y-1` (4px)
+
+| Nivå | Klasse | Bruk |
+|------|--------|------|
+| Mellom seksjoner | `space-y-3` | Mellom §-seksjoner i edit-modus |
+| Innenfor seksjoner | `space-y-1.5` | Mellom kontroller i en seksjon |
+| Key-value rader | `space-y-1` | Mellom label/verdi-rader |
+
+### Knapp-grupper: `gap-2` (8px)
+
+Submit-footer og knappgrupper beholder `gap-2` for tilstrekkelig luft
+mellom interaktive elementer.
+
+### Card padding-hierarki
+
+| Kort | Padding | Begrunnelse |
+|------|---------|-------------|
+| CaseMasterCard | `p-4` (16px) | Primærkort med identitet + grunnlag |
+| FristCard, VederlagCard | `p-3` (12px) | Sekundære claim-kort |
+
+Padding-forskjellen skaper visuell hierarki uten å bruke skygger eller
+andre depth-mekanismer.
+
+---
+
+## Border Radius
+
+| Elementtype | Klasse | Bruk |
+|-------------|--------|------|
+| Kort/containere | `rounded-lg` | Alle bento-kort |
+| Callouts/resultat-bokser | `rounded-sm` | Preklusjons-advarsler, resultat-bokser |
+| Inputs/knapper | `rounded-md` | InlineYesNo, InlineNumberInput |
+| Pills/indikatorer | `rounded-full` | StatusDot, progress-bar |
+
+---
+
+## Depth & Elevation
+
+Bento bruker **surface color + borders**, ingen skygger.
+
+| Tilstand | Implementering |
+|----------|----------------|
+| Read-only | Track-tinted bakgrunn (`bg-bento-frist`, `bg-bento-vederlag`) |
+| Edit-modus | `ring-2 ring-pkt-brand-warm-blue-1000/30` + hvit body, tinted header/footer |
+| Separatorer | `border-pkt-border-subtle` (1px) |
+| Callouts | Farget border med lav opacity (`border-pkt-brand-red-1000/20`) |
+
+---
+
+## Farge-tokens (bento-spesifikke)
+
+Definert i `src/index.css` under `@theme`:
+
+| Token | Verdi | Bruk |
+|-------|-------|------|
+| `--bento-surface-frist` | `#fef9ef` | FristCard bakgrunn (subtle amber) |
+| `--bento-surface-vederlag` | `#f0fdf4` | VederlagCard bakgrunn (subtle mint) |
+| `--bento-kpi-krevd` | `#b45309` | KPI "krevd"-verdier, underkategori-hjemmel (5.5:1 WCAG AA) |
+
+Grunnlag/CaseMasterCard bruker `bg-pkt-bg-card` (hvit) — ingen tint.
+
+---
+
 ## Konsekvenser
 
 ### Positive
 
-- **Konsistens** — Én kilde til sannhet for tekststørrelser i bento-kort
+- **Konsistens** — Én kilde til sannhet for typografi, spacing og visuelt uttrykk
 - **Vedlikehold** — Endre én variabel i stedet for 50+ className-attributter
 - **Skalerbarhet** — Tekststørrelse-toggle (liten/medium/stor) blir trivielt
   å implementere ved å swappe CSS-variabelverdier
 - **Lesbarhet** — `text-bento-label` kommuniserer intensjon bedre enn `text-[10px]`
+- **4px-grid** — Alle spacing-verdier er on-grid, forutsigbart og konsistent
 
 ### Negative
 
-- **Læringsterskel** — Utviklere må kjenne token-navnene
-- **Kun bento-scope** — Tokens gjelder ikke utenfor `src/components/bento/`
+- **Læringsterskel** — Utviklere må kjenne token-navnene og konvensjonene
+- **Kun bento-scope** — Tokens og konvensjoner gjelder ikke utenfor `src/components/bento/`
 
 ### Scope
 
