@@ -53,7 +53,7 @@ export function BentoRespondFrist({ editorProps }: BentoRespondFristProps) {
           <Button
             type="button"
             variant="ghost"
-            size="sm"
+            size="xs"
             onClick={editorProps.onRegenerate}
           >
             Regenerer fra valg

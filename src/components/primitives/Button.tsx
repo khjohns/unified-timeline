@@ -3,7 +3,7 @@ import { useFormStatus } from 'react-dom';
 import { clsx } from 'clsx';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
-type ButtonSize = 'sm' | 'md' | 'lg';
+type ButtonSize = 'xs' | 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends ComponentPropsWithoutRef<'button'> {
   variant?: ButtonVariant;
@@ -61,7 +61,7 @@ export function Button({ variant = 'primary', size = 'md', loading = false, clas
         // Base styles - subtle rounding (4px)
         'inline-flex items-center justify-center rounded gap-2',
         'font-medium transition-colors duration-200',
-        'border-2',
+        size === 'xs' ? 'border' : 'border-2',
 
         // Focus state - different for danger variant
         variant !== 'danger'
@@ -111,6 +111,7 @@ export function Button({ variant = 'primary', size = 'md', loading = false, clas
 
         // Size styles - standard button sizes
         {
+          'px-2.5 py-1 text-[11px] min-h-[26px]': size === 'xs',
           'px-4 py-2 text-sm min-h-[36px]': size === 'sm',
           'px-6 py-3 text-sm min-h-[40px]': size === 'md',
           'px-8 py-4 text-lg min-h-[44px]': size === 'lg',
@@ -123,6 +124,7 @@ export function Button({ variant = 'primary', size = 'md', loading = false, clas
       {loading && (
         <LoadingSpinner
           className={clsx({
+            'w-3 h-3': size === 'xs',
             'w-4 h-4': size === 'sm',
             'w-5 h-5': size === 'md',
             'w-6 h-6': size === 'lg',

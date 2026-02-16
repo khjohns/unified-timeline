@@ -265,7 +265,7 @@ export function VederlagCard({
                     <Button
                       type="button"
                       variant="secondary"
-                      size="sm"
+                      size="xs"
                       onClick={editState.onSaveDraft}
                       disabled={editState.isSubmitting}
                     >
@@ -275,7 +275,7 @@ export function VederlagCard({
                   <Button
                     type="button"
                     variant="primary"
-                    size="sm"
+                    size="xs"
                     onClick={editState.onSubmit}
                     disabled={!editState.canSubmit}
                   >

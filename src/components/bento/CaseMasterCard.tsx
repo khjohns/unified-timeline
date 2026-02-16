@@ -340,7 +340,7 @@ export function CaseMasterCard({
                     <Button
                       type="button"
                       variant="secondary"
-                      size="sm"
+                      size="xs"
                       onClick={editState.onSaveDraft}
                       disabled={editState.isSubmitting}
                     >
@@ -350,7 +350,7 @@ export function CaseMasterCard({
                   <Button
                     type="button"
                     variant={editState.submitVariant}
-                    size="sm"
+                    size="xs"
                     onClick={editState.onSubmit}
                     disabled={!editState.canSubmit}
                     data-testid="respond-grunnlag-submit"
