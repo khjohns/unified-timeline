@@ -69,3 +69,6 @@ backend/supabase/
 
 # Third-party API specs
 tredjepart-api/
+
+# Git worktrees
+.worktrees/
