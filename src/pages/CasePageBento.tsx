@@ -410,6 +410,21 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     },
   });
 
+  // ===== AUTO-SCROLL TO CARD ON MOBILE (L15) =====
+  const grunnlagCardRef = useRef<HTMLDivElement>(null);
+  const fristCardRef = useRef<HTMLDivElement>(null);
+  const vederlagCardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const ref = isGrunnlagFormOpen ? grunnlagCardRef
+      : isFristFormOpen ? fristCardRef
+      : isVederlagFormOpen ? vederlagCardRef
+      : null;
+    if (ref?.current) {
+      ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [isGrunnlagFormOpen, isFristFormOpen, isVederlagFormOpen]);
+
   // ===== EXPANDED FORM RENDERER =====
   const renderExpandedForm = useCallback(() => {
     if (!expandedTrack || !sakId) return null;
@@ -806,6 +821,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
 
           {/* Left column: Master card — pushed down when frist inline is open */}
           <div
+            ref={grunnlagCardRef}
             className={
               isFristFormOpen
                 ? 'col-span-12 md:col-span-6 order-1'
@@ -958,15 +974,12 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
               );
             }
 
-            // Frist card-anchored: Form (col-7, left) + FristCard (col-5, right)
-            // Card stays on right side where it normally lives — minimal visual disruption
+            // Frist card-anchored: FristCard (col-5, right on desktop) + Form (col-7, left on desktop)
+            // DOM order: card first for correct mobile stacking (L15), CSS order for desktop layout
             if (isFristInline) {
               return (
                 <>
-                  <div className="col-span-12 md:col-span-7">
-                    {renderExpandedForm()}
-                  </div>
-                  <div className="col-span-12 md:col-span-5">
+                  <div ref={fristCardRef} className="col-span-12 md:col-span-5 md:order-2">
                     <FristCard
                       state={state}
                       godkjentDager={godkjentDager ?? undefined}
@@ -978,6 +991,9 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                       editState={fristBridge.cardProps}
                     />
                   </div>
+                  <div className="col-span-12 md:col-span-7 md:order-1">
+                    {renderExpandedForm()}
+                  </div>
                 </>
               );
             }
@@ -986,7 +1002,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             if (isVederlagFormOpen) {
               return (
                 <>
-                  <div className="col-span-12 md:col-span-5">
+                  <div ref={vederlagCardRef} className="col-span-12 md:col-span-5">
                     <VederlagCard
                       state={state}
                       krevdBelop={krevdBelop}
