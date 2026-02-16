@@ -86,11 +86,18 @@ export function useSubmitEvent(sakId: string, options: UseSubmitEventOptions = {
   const retryToastId = useRef<string | null>(null);
   const didRetry = useRef(false);
 
-  // Fetch current state for PDF generation
-  const { data: stateData } = useQuery({
+  // Read state from context cache (populated by useCaseContext)
+  // Falls back to individual state query if context isn't cached
+  const contextData = queryClient.getQueryData(sakKeys.context(sakId)) as
+    | { version: number; state: Record<string, unknown> }
+    | undefined;
+  const { data: fallbackStateData } = useQuery({
     ...sakQueries.state(sakId),
-    enabled: !!sakId && generatePdf,
+    enabled: !!sakId && generatePdf && !contextData,
   });
+  const stateData = contextData
+    ? { version: contextData.version, state: contextData.state }
+    : fallbackStateData;
 
   const mutation = useMutation<EventSubmitResponse, Error, SubmitEventPayload>({
     mutationFn: async ({ eventType, data, catendaTopicId }) => {
