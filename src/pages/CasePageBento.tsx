@@ -415,10 +415,11 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
   const fristCardRef = useRef<HTMLDivElement>(null);
   const vederlagCardRef = useRef<HTMLDivElement>(null);
 
+  const cardAnchoredRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const ref = isGrunnlagFormOpen ? grunnlagCardRef
-      : isFristFormOpen ? fristCardRef
-      : isVederlagFormOpen ? vederlagCardRef
+      : (isFristFormOpen || isVederlagFormOpen) ? cardAnchoredRef
       : null;
     if (ref?.current) {
       ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -817,21 +818,61 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             <BentoBreadcrumb prosjektNavn={state.prosjekt_navn} sakId={sakId} />
           </div>
 
+          {/* ===== CARD-ANCHORED FORM (top of page when open) ===== */}
+          {isFristFormOpen && (
+            <div ref={cardAnchoredRef} className="col-span-12 grid grid-cols-12 gap-2 sm:gap-4 scroll-mt-4">
+              <div ref={fristCardRef} className="col-span-12 md:col-span-5 md:order-2 md:self-start">
+                <FristCard
+                  state={state}
+                  godkjentDager={godkjentDager ?? undefined}
+                  fristGrad={fristGrad ?? undefined}
+                  isSubsidiary={fristErSubsidiaer}
+                  userRole={userRole}
+                  actions={actions}
+                  entries={fristEntries}
+                  editState={fristBridge.cardProps}
+                />
+              </div>
+              <div className="col-span-12 md:col-span-7 md:order-1">
+                {renderExpandedForm()}
+              </div>
+            </div>
+          )}
+
+          {isVederlagFormOpen && (
+            <div ref={cardAnchoredRef} className="col-span-12 grid grid-cols-12 gap-2 sm:gap-4 scroll-mt-4">
+              <div ref={vederlagCardRef} className="col-span-12 md:col-span-5 md:order-2 md:self-start">
+                <VederlagCard
+                  state={state}
+                  krevdBelop={krevdBelop}
+                  godkjentBelop={godkjentBelop}
+                  vederlagGrad={vederlagGrad ?? undefined}
+                  isSubsidiary={vederlagErSubsidiaer}
+                  userRole={userRole}
+                  actions={actions}
+                  entries={vederlagEntries}
+                  editState={vederlagBridge.cardProps}
+                />
+              </div>
+              <div className="col-span-12 md:col-span-7 md:order-1">
+                {renderExpandedForm()}
+              </div>
+            </div>
+          )}
+
           {/* ===== TWO-COLUMN LAYOUT: Master (left) + Claims (right) ===== */}
 
-          {/* Left column: Master card — pushed down when frist inline is open */}
+          {/* Left column: Master card */}
           <div
             ref={grunnlagCardRef}
             className={
-              isFristFormOpen
-                ? 'col-span-12 md:col-span-6 order-1'
-                : isVederlagFormOpen
-                  ? 'col-span-12 md:col-span-6 order-1'
-                  : expandedTrack?.track === 'grunnlag'
-                    ? 'col-span-12 md:col-span-5'
-                    : expandedTrack
-                      ? 'col-span-12'
-                      : 'col-span-12 md:col-span-6'
+              isFristFormOpen || isVederlagFormOpen
+                ? 'col-span-12 md:col-span-6'
+                : expandedTrack?.track === 'grunnlag'
+                  ? 'col-span-12 md:col-span-5'
+                  : expandedTrack
+                    ? 'col-span-12'
+                    : 'col-span-12 md:col-span-6'
             }
             data-onboarding="grunnlag-card"
           >
@@ -959,11 +1000,10 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
           )}
 
           {/* Expanded track form — grunnlag opens right (col-7), others full-width */}
-          {expandedTrack && sakId && (() => {
+          {/* Card-anchored frist/vederlag are rendered above the master card */}
+          {expandedTrack && sakId && !isFristFormOpen && !isVederlagFormOpen && (() => {
             const meta = getTrackFormMeta(expandedTrack);
             const isGrunnlagInline = expandedTrack.track === 'grunnlag';
-            const isFristInline = expandedTrack.track === 'frist' &&
-              (expandedTrack.action === 'respond' || expandedTrack.action === 'updateResponse');
 
             // Grunnlag: render directly without TrackFormView header (MasterCard provides context)
             if (isGrunnlagInline) {
@@ -971,55 +1011,6 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                 <div className="col-span-12 md:col-span-7">
                   {renderExpandedForm()}
                 </div>
-              );
-            }
-
-            // Frist card-anchored: FristCard (col-5, right on desktop) + Form (col-7, left on desktop)
-            // DOM order: card first for correct mobile stacking (L15), CSS order for desktop layout
-            if (isFristInline) {
-              return (
-                <>
-                  <div ref={fristCardRef} className="col-span-12 md:col-span-5 md:order-2 md:self-start">
-                    <FristCard
-                      state={state}
-                      godkjentDager={godkjentDager ?? undefined}
-                      fristGrad={fristGrad ?? undefined}
-                      isSubsidiary={fristErSubsidiaer}
-                      userRole={userRole}
-                      actions={actions}
-                      entries={fristEntries}
-                      editState={fristBridge.cardProps}
-                    />
-                  </div>
-                  <div className="col-span-12 md:col-span-7 md:order-1">
-                    {renderExpandedForm()}
-                  </div>
-                </>
-              );
-            }
-
-            // Vederlag card-anchored: VederlagCard (col-5, right on desktop) + Form (col-7, left on desktop)
-            // DOM order: card first for correct mobile stacking (L15), CSS order for desktop layout
-            if (isVederlagFormOpen) {
-              return (
-                <>
-                  <div ref={vederlagCardRef} className="col-span-12 md:col-span-5 md:order-2 md:self-start">
-                    <VederlagCard
-                      state={state}
-                      krevdBelop={krevdBelop}
-                      godkjentBelop={godkjentBelop}
-                      vederlagGrad={vederlagGrad ?? undefined}
-                      isSubsidiary={vederlagErSubsidiaer}
-                      userRole={userRole}
-                      actions={actions}
-                      entries={vederlagEntries}
-                      editState={vederlagBridge.cardProps}
-                    />
-                  </div>
-                  <div className="col-span-12 md:col-span-7 md:order-1">
-                    {renderExpandedForm()}
-                  </div>
-                </>
               );
             }
 
@@ -1042,7 +1033,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
           {expandedTrack && (
             <>
               {expandedTrack.track !== 'vederlag' && (
-                <div className={`col-span-12 md:col-span-6${isFristFormOpen || isVederlagFormOpen ? ' order-1' : ''}`} data-onboarding="vederlag-card">
+                <div className="col-span-12 md:col-span-6" data-onboarding="vederlag-card">
                   <VederlagCard
                     state={state}
                     krevdBelop={krevdBelop}

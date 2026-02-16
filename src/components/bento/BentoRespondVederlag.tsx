@@ -9,7 +9,6 @@
 
 import {
   Button,
-  FormField,
   RichTextEditor,
 } from '../primitives';
 import type { VederlagEditorProps } from '../../hooks/useVederlagBridge';
@@ -28,35 +27,39 @@ export interface BentoRespondVederlagProps {
 
 export function BentoRespondVederlag({ editorProps }: BentoRespondVederlagProps) {
   return (
-    <div className="bg-pkt-bg-subtle rounded-lg p-3 md:p-4 max-h-[70vh] overflow-y-auto">
-      <FormField
-        label="Byggherrens begrunnelse"
-        required
-        error={editorProps.begrunnelseError}
-      >
-        <RichTextEditor
-          id="vederlag-begrunnelse"
-          value={editorProps.begrunnelse}
-          onChange={editorProps.onBegrunnelseChange}
-          className="text-xs"
-          minHeight={200}
-          fullWidth
-          error={!!editorProps.begrunnelseError}
-          placeholder={editorProps.placeholder}
-        />
-        {editorProps.showRegenerate && (
-          <div className="flex justify-end mt-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={editorProps.onRegenerate}
-            >
-              Regenerer fra valg
-            </Button>
-          </div>
-        )}
-      </FormField>
+    <div className="bg-pkt-bg-card rounded-lg p-3 max-h-[70vh] overflow-y-auto">
+      <div className="mb-2">
+        <span className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+          Byggherrens begrunnelse
+        </span>
+      </div>
+      <RichTextEditor
+        id="vederlag-begrunnelse"
+        value={editorProps.begrunnelse}
+        onChange={editorProps.onBegrunnelseChange}
+        className="text-xs"
+        minHeight={200}
+        fullWidth
+        error={!!editorProps.begrunnelseError}
+        placeholder={editorProps.placeholder}
+      />
+      {editorProps.begrunnelseError && (
+        <p className="mt-2 text-sm font-medium text-pkt-brand-red-1000" role="alert">
+          {editorProps.begrunnelseError}
+        </p>
+      )}
+      {editorProps.showRegenerate && (
+        <div className="flex justify-end mt-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={editorProps.onRegenerate}
+          >
+            Regenerer fra valg
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
