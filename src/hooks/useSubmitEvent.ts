@@ -168,7 +168,8 @@ export function useSubmitEvent(sakId: string, options: UseSubmitEventOptions = {
         didRetry.current = false;
       }
 
-      // Invalidate case state, timeline, and historikk to trigger refetch
+      // Invalidate all case data to trigger refetch
+      queryClient.invalidateQueries({ queryKey: sakKeys.context(sakId) });
       queryClient.invalidateQueries({ queryKey: sakKeys.state(sakId) });
       queryClient.invalidateQueries({ queryKey: sakKeys.timeline(sakId) });
       queryClient.invalidateQueries({ queryKey: sakKeys.historikk(sakId) });

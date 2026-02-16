@@ -48,6 +48,21 @@ export interface TimelineResponse {
   version: number;
 }
 
+/**
+ * Combined context response from /api/cases/{sak_id}/context.
+ * Returns state + timeline + historikk in a single request.
+ */
+export interface CaseContextResponse {
+  version: number;
+  state: SakState;
+  timeline: TimelineEvent[];
+  historikk: {
+    grunnlag: GrunnlagHistorikkEntry[];
+    vederlag: VederlagHistorikkEntry[];
+    frist: FristHistorikkEntry[];
+  };
+}
+
 // ========== HISTORIKK (REVISION HISTORY) ==========
 
 export interface AktorInfo {

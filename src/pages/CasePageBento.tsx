@@ -18,9 +18,7 @@ import { forseringKeys, endringsordreKeys } from '../queries';
 import { STALE_TIME } from '../constants/queryConfig';
 import { useAuth } from '../context/AuthContext';
 import { ApprovalProvider } from '../context/ApprovalContext';
-import { useCaseStateSuspense } from '../hooks/useCaseState';
-import { useTimelineSuspense } from '../hooks/useTimeline';
-import { useHistorikk } from '../hooks/useRevisionHistory';
+import { useCaseContext } from '../hooks/useCaseContext';
 import { useActionPermissions } from '../hooks/useActionPermissions';
 import { useUserRole } from '../hooks/useUserRole';
 import { useApprovalWorkflow } from '../hooks/useApprovalWorkflow';
@@ -129,10 +127,8 @@ function CasePageBentoContent() {
  * Data loader - same hooks as CasePage, different layout
  */
 function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
-  // ===== All hooks identical to CasePage =====
-  const { data } = useCaseStateSuspense(sakId);
-  const { data: timelineData } = useTimelineSuspense(sakId);
-  const { grunnlag: grunnlagHistorikk, vederlag: vederlagHistorikk, frist: fristHistorikk } = useHistorikk(sakId);
+  // Combined fetch: state + timeline + historikk in one request
+  const { data, timelineData, grunnlagHistorikk, vederlagHistorikk, fristHistorikk } = useCaseContext(sakId);
 
   const { data: forseringData } = useQuery<FindForseringerResponse>({
     queryKey: forseringKeys.byRelatert(sakId),

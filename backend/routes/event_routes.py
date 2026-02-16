@@ -824,14 +824,13 @@ def list_cases():
         return jsonify({"error": "INTERNAL_ERROR", "message": str(e)}), 500
 
 
-@events_bp.route("/api/cases/<sak_id>/state", methods=["GET"])
-@require_magic_link
-@require_project_access()
-def get_case_state(sak_id: str):
+def _fetch_and_parse_events(sak_id: str):
     """
-    Get computed state for a case.
+    Fetch and parse events for a case. Shared by state/timeline/historikk/context endpoints.
 
-    Response includes version for optimistic locking.
+    Returns:
+        Tuple of (parsed_events, version) on success.
+        Tuple of (flask_response, status_code) on error.
     """
     events_data, version = _get_event_repo().get_events(sak_id)
 
@@ -839,7 +838,6 @@ def get_case_state(sak_id: str):
         logger.warning(f"Case not found: {sak_id}")
         return jsonify({"error": "Sak ikke funnet"}), 404
 
-    # Parse events from stored data with error handling
     events = []
     parse_errors = 0
     for i, e in enumerate(events_data):
@@ -856,6 +854,70 @@ def get_case_state(sak_id: str):
     if not events:
         logger.error(f"All events failed to parse for {sak_id}")
         return jsonify({"error": "Kunne ikke lese hendelser"}), 500
+
+    return events, version
+
+
+@events_bp.route("/api/cases/<sak_id>/context", methods=["GET"])
+@require_magic_link
+@require_project_access()
+def get_case_context(sak_id: str):
+    """
+    Get combined case context: state + timeline + historikk in one request.
+
+    Fetches events from DB once and computes all three views, eliminating
+    redundant Supabase round-trips when the frontend needs all data.
+    """
+    result = _fetch_and_parse_events(sak_id)
+    if not isinstance(result[0], list):
+        return result  # Error response
+
+    events, version = result
+
+    # Compute state
+    try:
+        state = _get_timeline_service().compute_state(events)
+    except Exception as compute_error:
+        logger.error(f"Failed to compute state for {sak_id}: {compute_error}", exc_info=True)
+        return jsonify({"error": "Kunne ikke beregne saksstatus"}), 500
+
+    # Build timeline (CloudEvents format)
+    cloudevents_timeline = format_timeline_response(events)
+
+    # Build historikk for all three tracks
+    timeline_svc = _get_timeline_service()
+    grunnlag_historikk = timeline_svc.get_grunnlag_historikk(events)
+    vederlag_historikk = timeline_svc.get_vederlag_historikk(events)
+    frist_historikk = timeline_svc.get_frist_historikk(events)
+
+    return jsonify(
+        {
+            "version": version,
+            "state": state.model_dump(mode="json"),
+            "timeline": cloudevents_timeline,
+            "historikk": {
+                "grunnlag": grunnlag_historikk,
+                "vederlag": vederlag_historikk,
+                "frist": frist_historikk,
+            },
+        }
+    )
+
+
+@events_bp.route("/api/cases/<sak_id>/state", methods=["GET"])
+@require_magic_link
+@require_project_access()
+def get_case_state(sak_id: str):
+    """
+    Get computed state for a case.
+
+    Response includes version for optimistic locking.
+    """
+    result = _fetch_and_parse_events(sak_id)
+    if not isinstance(result[0], list):
+        return result
+
+    events, version = result
 
     try:
         state = _get_timeline_service().compute_state(events)
@@ -873,51 +935,14 @@ def get_case_timeline(sak_id: str):
     """
     Get full event timeline for UI display.
 
-    Returns CloudEvents v1.0 format:
-    {
-        "version": 5,
-        "events": [
-            {
-                "specversion": "1.0",
-                "id": "uuid",
-                "source": "/projects/P-001/cases/SAK-001",
-                "type": "no.oslo.koe.grunnlag_opprettet",
-                "time": "2025-01-15T10:30:00Z",
-                "subject": "SAK-001",
-                "datacontenttype": "application/json",
-                "actor": "Ola Nordmann",
-                "actorrole": "TE",
-                "data": { ... }
-            },
-            ...
-        ]
-    }
+    Returns CloudEvents v1.0 format.
     """
-    events_data, version = _get_event_repo().get_events(sak_id)
+    result = _fetch_and_parse_events(sak_id)
+    if not isinstance(result[0], list):
+        return result
 
-    if not events_data:
-        logger.warning(f"Case not found: {sak_id}")
-        return jsonify({"error": "Sak ikke funnet"}), 404
+    events, version = result
 
-    # Parse events from stored data with error handling
-    events = []
-    parse_errors = 0
-    for i, e in enumerate(events_data):
-        try:
-            parsed = parse_event(e)
-            events.append(parsed)
-        except Exception as parse_error:
-            parse_errors += 1
-            logger.error(f"Failed to parse event {i}: {parse_error}")
-
-    if parse_errors > 0:
-        logger.warning(f"Parsed {len(events)}/{len(events_data)} events for {sak_id}")
-
-    if not events:
-        logger.error(f"All events failed to parse for {sak_id}")
-        return jsonify({"error": "Kunne ikke lese hendelser"}), 500
-
-    # Always return CloudEvents format
     cloudevents_timeline = format_timeline_response(events)
     response = jsonify({"version": version, "events": cloudevents_timeline})
     response.headers["Content-Type"] = "application/cloudevents+json"
@@ -934,34 +959,16 @@ def get_case_historikk(sak_id: str):
     Returns a chronological list of all claim versions and BH responses,
     with version numbers to enable side-by-side comparison in the UI.
     """
-    events_data, version = _get_event_repo().get_events(sak_id)
+    result = _fetch_and_parse_events(sak_id)
+    if not isinstance(result[0], list):
+        return result
 
-    if not events_data:
-        logger.warning(f"Case not found: {sak_id}")
-        return jsonify({"error": "Sak ikke funnet"}), 404
+    events, version = result
 
-    # Parse events from stored data with error handling
-    events = []
-    parse_errors = 0
-    for i, e in enumerate(events_data):
-        try:
-            parsed = parse_event(e)
-            events.append(parsed)
-        except Exception as parse_error:
-            parse_errors += 1
-            logger.error(f"Failed to parse event {i}: {parse_error}")
-
-    if parse_errors > 0:
-        logger.warning(f"Parsed {len(events)}/{len(events_data)} events for {sak_id}")
-
-    if not events:
-        logger.error(f"All events failed to parse for {sak_id}")
-        return jsonify({"error": "Kunne ikke lese hendelser"}), 500
-
-    # Build historikk for all three tracks
-    grunnlag_historikk = _get_timeline_service().get_grunnlag_historikk(events)
-    vederlag_historikk = _get_timeline_service().get_vederlag_historikk(events)
-    frist_historikk = _get_timeline_service().get_frist_historikk(events)
+    timeline_svc = _get_timeline_service()
+    grunnlag_historikk = timeline_svc.get_grunnlag_historikk(events)
+    vederlag_historikk = timeline_svc.get_vederlag_historikk(events)
+    frist_historikk = timeline_svc.get_frist_historikk(events)
 
     return jsonify(
         {

@@ -17,8 +17,8 @@
  */
 
 import { queryOptions } from '@tanstack/react-query';
-import { fetchCaseState, fetchTimeline, fetchHistorikk } from '../api/state';
-import { StateResponse, TimelineResponse, HistorikkResponse } from '../types/api';
+import { fetchCaseState, fetchTimeline, fetchHistorikk, fetchCaseContext } from '../api/state';
+import { StateResponse, TimelineResponse, HistorikkResponse, CaseContextResponse } from '../types/api';
 import { STALE_TIME } from '../constants/queryConfig';
 import { getActiveProjectId } from '../api/client';
 
@@ -32,6 +32,7 @@ export const sakKeys = {
   state: (sakId: string) => ['sak', getActiveProjectId(), sakId, 'state'] as const,
   timeline: (sakId: string) => ['sak', getActiveProjectId(), sakId, 'timeline'] as const,
   historikk: (sakId: string) => ['sak', getActiveProjectId(), sakId, 'historikk'] as const,
+  context: (sakId: string) => ['sak', getActiveProjectId(), sakId, 'context'] as const,
 };
 
 /**
@@ -66,6 +67,17 @@ export const sakQueries = {
     queryOptions<HistorikkResponse, Error>({
       queryKey: sakKeys.historikk(sakId),
       queryFn: () => fetchHistorikk(sakId),
+      staleTime: STALE_TIME.DEFAULT,
+    }),
+
+  /**
+   * Fetch combined context (state + timeline + historikk) in one request.
+   * Eliminates redundant Supabase round-trips.
+   */
+  context: (sakId: string) =>
+    queryOptions<CaseContextResponse, Error>({
+      queryKey: sakKeys.context(sakId),
+      queryFn: () => fetchCaseContext(sakId),
       staleTime: STALE_TIME.DEFAULT,
     }),
 };

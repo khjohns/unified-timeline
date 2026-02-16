@@ -13,9 +13,7 @@ import { forseringKeys, endringsordreKeys } from '../queries';
 import { STALE_TIME } from '../constants/queryConfig';
 import { useAuth } from '../context/AuthContext';
 import { ApprovalProvider } from '../context/ApprovalContext';
-import { useCaseStateSuspense } from '../hooks/useCaseState';
-import { useTimelineSuspense } from '../hooks/useTimeline';
-import { useHistorikk } from '../hooks/useRevisionHistory';
+import { useCaseContext } from '../hooks/useCaseContext';
 import { useActionPermissions } from '../hooks/useActionPermissions';
 import { useUserRole } from '../hooks/useUserRole';
 import { useApprovalWorkflow } from '../hooks/useApprovalWorkflow';
@@ -128,10 +126,8 @@ function CasePageContent() {
  * This component will suspend until all data is loaded
  */
 function CasePageDataLoader({ sakId }: { sakId: string }) {
-  // These hooks suspend until data is available - no isLoading needed
-  const { data } = useCaseStateSuspense(sakId);
-  const { data: timelineData } = useTimelineSuspense(sakId);
-  const { grunnlag: grunnlagHistorikk, vederlag: vederlagHistorikk, frist: fristHistorikk } = useHistorikk(sakId);
+  // Combined fetch: state + timeline + historikk in one request
+  const { data, timelineData, grunnlagHistorikk, vederlagHistorikk, fristHistorikk } = useCaseContext(sakId);
 
   // Fetch forsering relations (check if this case is part of any forsering)
   const { data: forseringData } = useQuery<FindForseringerResponse>({

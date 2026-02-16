@@ -94,12 +94,26 @@ export function ConnectionStatusProvider({ children }: { children: ReactNode }) 
   }, [checkBackendHealth, checkCatendaHealth]);
 
   // Initial check and polling - runs only once for the entire app
+  // Pauses when tab is hidden to avoid wasting bandwidth
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial fetch, then poll
     checkAll();
 
-    const interval = setInterval(checkAll, POLL_INTERVAL);
-    return () => clearInterval(interval);
+    let interval = setInterval(checkAll, POLL_INTERVAL);
+
+    const handleVisibilityChange = () => {
+      clearInterval(interval);
+      if (!document.hidden) {
+        checkAll();
+        interval = setInterval(checkAll, POLL_INTERVAL);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [checkAll]);
 
   const value: ConnectionStatus = {

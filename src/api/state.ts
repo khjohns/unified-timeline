@@ -6,7 +6,7 @@
  */
 
 import { apiFetch } from './client';
-import { StateResponse, TimelineResponse, HistorikkResponse } from '../types/api';
+import { StateResponse, TimelineResponse, HistorikkResponse, CaseContextResponse } from '../types/api';
 
 /**
  * Fetch the current state of a case
@@ -38,4 +38,12 @@ export async function fetchTimeline(sakId: string): Promise<TimelineResponse> {
  */
 export async function fetchHistorikk(sakId: string): Promise<HistorikkResponse> {
   return apiFetch<HistorikkResponse>(`/api/cases/${sakId}/historikk`);
+}
+
+/**
+ * Fetch combined case context: state + timeline + historikk in one request.
+ * Eliminates redundant Supabase round-trips by fetching events once on backend.
+ */
+export async function fetchCaseContext(sakId: string): Promise<CaseContextResponse> {
+  return apiFetch<CaseContextResponse>(`/api/cases/${sakId}/context`);
 }

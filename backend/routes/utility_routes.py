@@ -123,10 +123,10 @@ def health_check():
 
     # Database check - prøv å hente metadata-count
     try:
-        from repositories import create_metadata_repository
+        from core.container import get_container
 
         start = time.time()
-        repo = create_metadata_repository()
+        repo = get_container().metadata_repository
         # Enkel spørring for å verifisere tilkobling
         _ = repo.count() if hasattr(repo, "count") else repo.list_all()[:1]
         latency_ms = round((time.time() - start) * 1000, 2)
