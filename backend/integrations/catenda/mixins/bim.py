@@ -249,6 +249,29 @@ class BIMMixin:
             return None
         return response.json()
 
+    def get_ifc_product_relations(
+        self: "CatendaClientBase",
+        project_id: str,
+        object_id: int | str,
+    ) -> dict:
+        """
+        Get relations (parent, children, type, systems, zones, groups) for an IFC product.
+
+        Args:
+            project_id: Catenda v2 project ID
+            object_id: Numeric object ID
+
+        Returns:
+            Dict with relation categories, or empty dict on failure
+        """
+        url = f"{self.base_url}/v2/projects/{project_id}/ifc/products/{object_id}/relations"
+        response = self._safe_request(
+            "GET", url, f"Feil ved henting av relasjoner for produkt {object_id}"
+        )
+        if response is None:
+            return {}
+        return response.json()
+
     def get_bim_objects_for_topic(
         self: "CatendaClientBase", topic_id: str
     ) -> list[dict]:
