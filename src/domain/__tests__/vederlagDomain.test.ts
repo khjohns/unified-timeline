@@ -18,6 +18,8 @@ import {
   beregnSubsidiaerTriggers,
   getVurderingBadge,
   getDynamicPlaceholder,
+  deriveVurdering,
+  getGodkjentForDisplay,
   buildEventData,
   beregnAlt,
   type VederlagFormState,
@@ -712,6 +714,58 @@ describe('buildEventData', () => {
       '', [],
     );
     expect(result2.data.hovedkrav_varslet_i_tide).toBeUndefined();
+  });
+});
+
+// ============================================================================
+// deriveVurdering
+// ============================================================================
+
+describe('deriveVurdering', () => {
+  it('returns godkjent when godkjent >= krevd and krevd > 0', () => {
+    expect(deriveVurdering(100000, 100000)).toBe('godkjent');
+  });
+
+  it('returns godkjent when godkjent > krevd', () => {
+    expect(deriveVurdering(120000, 100000)).toBe('godkjent');
+  });
+
+  it('returns delvis when godkjent > 0 but < krevd', () => {
+    expect(deriveVurdering(50000, 100000)).toBe('delvis');
+  });
+
+  it('returns avslatt when godkjent is 0', () => {
+    expect(deriveVurdering(0, 100000)).toBe('avslatt');
+  });
+
+  it('returns avslatt when both are 0', () => {
+    expect(deriveVurdering(0, 0)).toBe('avslatt');
+  });
+});
+
+// ============================================================================
+// getGodkjentForDisplay
+// ============================================================================
+
+describe('getGodkjentForDisplay', () => {
+  it('returns krevd when vurdering is godkjent', () => {
+    expect(getGodkjentForDisplay('godkjent', 100000, 50000)).toBe(100000);
+  });
+
+  it('returns krevd when vurdering is undefined (default)', () => {
+    expect(getGodkjentForDisplay(undefined, 100000, undefined)).toBe(100000);
+  });
+
+  it('returns godkjentBelop when vurdering is delvis', () => {
+    expect(getGodkjentForDisplay('delvis', 100000, 60000)).toBe(60000);
+  });
+
+  it('returns 0 when vurdering is delvis but godkjentBelop is undefined', () => {
+    expect(getGodkjentForDisplay('delvis', 100000, undefined)).toBe(0);
+  });
+
+  it('returns 0 when vurdering is avslatt', () => {
+    expect(getGodkjentForDisplay('avslatt', 100000, 60000)).toBe(0);
   });
 });
 

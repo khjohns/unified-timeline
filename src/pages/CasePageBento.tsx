@@ -33,9 +33,10 @@ import { downloadApprovedPdf } from '../pdf/generator';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
 import { MockToolbar } from '../components/MockToolbar';
-import { BentoBreadcrumb, CaseMasterCard, BimCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag, BentoRespondFrist } from '../components/bento';
+import { BentoBreadcrumb, CaseMasterCard, BimCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag, BentoRespondFrist, BentoRespondVederlag } from '../components/bento';
 import { useGrunnlagBridge } from '../hooks/useGrunnlagBridge';
 import { useFristBridge } from '../hooks/useFristBridge';
+import { useVederlagBridge } from '../hooks/useVederlagBridge';
 import {
   ApprovePakkeModal,
   SendResponsPakkeModal,
@@ -357,6 +358,73 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     },
   });
 
+  // ===== VEDERLAG CARD-ANCHORED EDITING =====
+  const isVederlagFormOpen = expandedTrack?.track === 'vederlag' &&
+    (expandedTrack.action === 'respond' || expandedTrack.action === 'updateResponse');
+
+  const hovedkravBelopForBridge = useMemo(() => {
+    const v = state.vederlag;
+    if (v.metode === 'REGNINGSARBEID' && v.kostnads_overslag !== undefined) {
+      return v.kostnads_overslag;
+    }
+    return v.belop_direkte ?? 0;
+  }, [state.vederlag]);
+
+  const vederlagBridge = useVederlagBridge({
+    isOpen: isVederlagFormOpen,
+    sakId,
+    vederlagKravId: `vederlag-${sakId}`,
+    teMetode: state.vederlag.metode as 'ENHETSPRISER' | 'REGNINGSARBEID' | 'FASTPRIS_TILBUD' | undefined,
+    hovedkravBelop: hovedkravBelopForBridge,
+    riggBelop: state.vederlag.saerskilt_krav?.rigg_drift?.belop,
+    produktivitetBelop: state.vederlag.saerskilt_krav?.produktivitet?.belop,
+    harRiggKrav: (state.vederlag.saerskilt_krav?.rigg_drift?.belop ?? 0) > 0,
+    harProduktivitetKrav: (state.vederlag.saerskilt_krav?.produktivitet?.belop ?? 0) > 0,
+    kreverJustertEp: state.vederlag.krever_justert_ep === true,
+    kostnadsOverslag: state.vederlag.kostnads_overslag,
+    hovedkategori: state.grunnlag.hovedkategori as 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE' | undefined,
+    riggVarsletDato: state.vederlag.saerskilt_krav?.rigg_drift?.dato_klar_over,
+    produktivitetVarsletDato: state.vederlag.saerskilt_krav?.produktivitet?.dato_klar_over,
+    hovedkravVarsletDato: state.grunnlag.dato_oppdaget,
+    grunnlagStatus: grunnlagStatus as 'godkjent' | 'avslatt' | 'frafalt' | undefined,
+    grunnlagVarsletForSent: state.grunnlag.grunnlag_varslet_i_tide === false,
+    lastResponseEvent: expandedTrack?.action === 'updateResponse' && state.vederlag.bh_resultat
+      ? {
+          eventId: `vederlag-response-${sakId}`,
+          akseptererMetode: state.vederlag.bh_metode === state.vederlag.metode || state.vederlag.bh_metode === undefined,
+          oensketMetode: state.vederlag.bh_metode !== state.vederlag.metode ? state.vederlag.bh_metode as 'ENHETSPRISER' | 'REGNINGSARBEID' | 'FASTPRIS_TILBUD' | undefined : undefined,
+          godkjentBelop: state.vederlag.godkjent_belop,
+        }
+      : undefined,
+    onSuccess: handleCollapseTrack,
+    onCatendaWarning: () => modals.catendaWarning.setOpen(true),
+    approvalEnabled: approvalWorkflow.approvalEnabled,
+    onSaveDraft: (draftData) => {
+      approvalWorkflow.saveDraft({
+        sporType: 'vederlag',
+        belop: draftData.belop as number,
+        resultat: draftData.resultat as 'godkjent' | 'delvis_godkjent' | 'avslatt',
+        begrunnelse: draftData.begrunnelse as string,
+        formData: draftData.formData as Record<string, unknown>,
+      });
+    },
+  });
+
+  // ===== AUTO-SCROLL TO CARD ON MOBILE (L15) =====
+  const grunnlagCardRef = useRef<HTMLDivElement>(null);
+  const fristCardRef = useRef<HTMLDivElement>(null);
+  const vederlagCardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const ref = isGrunnlagFormOpen ? grunnlagCardRef
+      : isFristFormOpen ? fristCardRef
+      : isVederlagFormOpen ? vederlagCardRef
+      : null;
+    if (ref?.current) {
+      ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [isGrunnlagFormOpen, isFristFormOpen, isVederlagFormOpen]);
+
   // ===== EXPANDED FORM RENDERER =====
   const renderExpandedForm = useCallback(() => {
     if (!expandedTrack || !sakId) return null;
@@ -453,6 +521,11 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             onCatendaWarning={onCatendaWarning}
           />
         );
+      case 'vederlag:respond':
+      case 'vederlag:updateResponse':
+        return (
+          <BentoRespondVederlag editorProps={vederlagBridge.editorProps} />
+        );
       case 'frist:respond':
       case 'frist:updateResponse':
         return (
@@ -499,7 +572,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       default:
         return null;
     }
-  }, [expandedTrack, sakId, state, grunnlagStatus, approvalWorkflow, modals.catendaWarning, handleCollapseTrack, grunnlagBridge, fristBridge]);
+  }, [expandedTrack, sakId, state, grunnlagStatus, approvalWorkflow, modals.catendaWarning, handleCollapseTrack, grunnlagBridge, fristBridge, vederlagBridge]);
 
   // ===== TRACK FORM VIEW METADATA =====
   const getTrackFormMeta = useCallback((expanded: { track: string; action: string }) => {
@@ -636,7 +709,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       if (inlineVederlagRevision?.canRevise && inlineVederlagRevision.showPrimaryVariant) return { label: 'Revider', onClick: () => setInlineReviseOpen(true) };
     }
     if (userRole === 'BH') {
-      if (actions.canRespondToVederlag) return { label: 'Svar på krav', onClick: () => modals.respondVederlag.setOpen(true) };
+      if (actions.canRespondToVederlag) return { label: 'Svar på krav', onClick: () => handleExpandTrack('vederlag', 'respond') };
     }
     return undefined;
   }, [userRole, actions, state.grunnlag.hovedkategori, inlineVederlagRevision, handleExpandTrack, modals.respondVederlag]);
@@ -650,7 +723,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       if (actions.canWithdrawVederlag) items.push({ label: 'Trekk tilbake', onClick: () => handleExpandTrack('vederlag', 'withdraw'), variant: 'danger' });
     }
     if (userRole === 'BH') {
-      if (actions.canUpdateVederlagResponse) items.push({ label: 'Endre svar', onClick: () => modals.updateVederlagResponse.setOpen(true) });
+      if (actions.canUpdateVederlagResponse) items.push({ label: 'Endre svar', onClick: () => handleExpandTrack('vederlag', 'updateResponse') });
     }
     return items;
   }, [userRole, actions, state.grunnlag.hovedkategori, inlineVederlagRevision, handleExpandTrack, modals.updateVederlagResponse]);
@@ -748,14 +821,17 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
 
           {/* Left column: Master card — pushed down when frist inline is open */}
           <div
+            ref={grunnlagCardRef}
             className={
               isFristFormOpen
                 ? 'col-span-12 md:col-span-6 order-1'
-                : expandedTrack?.track === 'grunnlag'
-                  ? 'col-span-12 md:col-span-5'
-                  : expandedTrack
-                    ? 'col-span-12'
-                    : 'col-span-12 md:col-span-6'
+                : isVederlagFormOpen
+                  ? 'col-span-12 md:col-span-6 order-1'
+                  : expandedTrack?.track === 'grunnlag'
+                    ? 'col-span-12 md:col-span-5'
+                    : expandedTrack
+                      ? 'col-span-12'
+                      : 'col-span-12 md:col-span-6'
             }
             data-onboarding="grunnlag-card"
           >
@@ -898,15 +974,12 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
               );
             }
 
-            // Frist card-anchored: Form (col-7, left) + FristCard (col-5, right)
-            // Card stays on right side where it normally lives — minimal visual disruption
+            // Frist card-anchored: FristCard (col-5, right on desktop) + Form (col-7, left on desktop)
+            // DOM order: card first for correct mobile stacking (L15), CSS order for desktop layout
             if (isFristInline) {
               return (
                 <>
-                  <div className="col-span-12 md:col-span-7">
-                    {renderExpandedForm()}
-                  </div>
-                  <div className="col-span-12 md:col-span-5">
+                  <div ref={fristCardRef} className="col-span-12 md:col-span-5 md:order-2">
                     <FristCard
                       state={state}
                       godkjentDager={godkjentDager ?? undefined}
@@ -917,6 +990,33 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                       entries={fristEntries}
                       editState={fristBridge.cardProps}
                     />
+                  </div>
+                  <div className="col-span-12 md:col-span-7 md:order-1">
+                    {renderExpandedForm()}
+                  </div>
+                </>
+              );
+            }
+
+            // Vederlag card-anchored: VederlagCard (col-5, left) + Form (col-7, right)
+            if (isVederlagFormOpen) {
+              return (
+                <>
+                  <div ref={vederlagCardRef} className="col-span-12 md:col-span-5">
+                    <VederlagCard
+                      state={state}
+                      krevdBelop={krevdBelop}
+                      godkjentBelop={godkjentBelop}
+                      vederlagGrad={vederlagGrad ?? undefined}
+                      isSubsidiary={vederlagErSubsidiaer}
+                      userRole={userRole}
+                      actions={actions}
+                      entries={vederlagEntries}
+                      editState={vederlagBridge.cardProps}
+                    />
+                  </div>
+                  <div className="col-span-12 md:col-span-7">
+                    {renderExpandedForm()}
                   </div>
                 </>
               );
@@ -941,7 +1041,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
           {expandedTrack && (
             <>
               {expandedTrack.track !== 'vederlag' && (
-                <div className={`col-span-12 md:col-span-6${isFristFormOpen ? ' order-1' : ''}`} data-onboarding="vederlag-card">
+                <div className={`col-span-12 md:col-span-6${isFristFormOpen || isVederlagFormOpen ? ' order-1' : ''}`} data-onboarding="vederlag-card">
                   <VederlagCard
                     state={state}
                     krevdBelop={krevdBelop}

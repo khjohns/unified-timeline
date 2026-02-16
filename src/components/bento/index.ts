@@ -18,3 +18,4 @@ export { ClaimContextPanel } from './ClaimContextPanel';
 export { getConsequence } from './consequenceCallout';
 export { BentoRespondGrunnlag } from './BentoRespondGrunnlag';
 export { BentoRespondFrist } from './BentoRespondFrist';
+export { BentoRespondVederlag } from './BentoRespondVederlag';

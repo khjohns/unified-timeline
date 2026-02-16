@@ -563,6 +563,34 @@ export function buildEventData(
 }
 
 // ============================================================================
+// DISPLAY HELPERS (L14: ren domenelogikk, ingen React)
+// ============================================================================
+
+/**
+ * Avled vurdering fra godkjent vs krevd beløp.
+ * Brukes av bridge-hook for å oppdatere vurdering når bruker endrer beløp.
+ */
+export function deriveVurdering(godkjent: number, krevd: number): BelopVurdering {
+  if (godkjent >= krevd && krevd > 0) return 'godkjent';
+  if (godkjent > 0) return 'delvis';
+  return 'avslatt';
+}
+
+/**
+ * Beregn visningsverdi for godkjent-beløp basert på vurdering.
+ * Returnerer krevd ved 'godkjent', bruker-input ved 'delvis', 0 ved 'avslatt'.
+ */
+export function getGodkjentForDisplay(
+  vurdering: BelopVurdering | undefined,
+  krevdBelop: number,
+  godkjentBelop: number | undefined,
+): number {
+  if (vurdering === 'godkjent' || vurdering === undefined) return krevdBelop;
+  if (vurdering === 'delvis') return godkjentBelop ?? 0;
+  return 0;
+}
+
+// ============================================================================
 // CONVENIENCE: beregnAlt
 // ============================================================================
 

@@ -556,7 +556,47 @@ export function useFristBridge(config) {
 - Vederlag skalerer: `vederlagDomain.ts` kan ha 300+ linjer uten
   at bridge-hooken vokser tilsvarende
 
-### L15: Domene-tester før bridge-tester
+### L15: Mobil-layout — kort øverst, begrunnelse under, auto-scroll
+
+**Problem:** På desktop vises kort og formpanel side om side (col-5 + col-7).
+På mobil stables de vertikalt (col-span-12). Rekkefølgen må være riktig:
+brukeren trenger kontekst og valgkontrollene (kortet) først, deretter
+begrunnelsesskjemaet.
+
+**Løsning:**
+- I grid-layouten rendres kortet **før** formpanelet i HTML — dette gir
+  naturlig top→bottom rekkefølge på mobil (`col-span-12` + `col-span-12`).
+- Når edit-modus åpnes: **auto-scroll til toppen** av kortet med
+  `scrollIntoView({ behavior: 'smooth', block: 'start' })` slik at
+  brukeren alltid starter ved konteksten.
+- Formpanelet (begrunnelse) legger seg naturlig under kortet på mobil.
+
+**Verifiser:** Alle card-anchored layouts (grunnlag, frist, vederlag) må
+ha kortet først i DOM-rekkefølgen, og utløse scroll-to-top ved åpning
+på mobil.
+
+### L16: Knapper må følge bento-designsystemets mønster konsistent
+
+**Problem:** Send- og Lagre-knapper i card-anchored modus kan lett
+avvike fra det etablerte knappemønsteret i bento-layouten.
+
+**Løsning:** Alle knapper i card-anchored edit-modus MÅ bruke det
+samme mønsteret som eksisterende kort:
+
+| Knapp | Variant | Size | Eksempel |
+|-------|---------|------|----------|
+| Send / primærhandling | `variant="primary"` | `size="sm"` | `<Button variant="primary" size="sm">` |
+| Lagre utkast | `variant="secondary"` | `size="sm"` | `<Button variant="secondary" size="sm">` |
+| Avbryt (om brukt) | `variant="ghost"` | `size="sm"` | `<Button variant="ghost" size="sm">` |
+
+Footer-layout: `flex-col-reverse sm:flex-row sm:justify-between gap-2`
+med `border-t border-pkt-border-subtle pt-3`.
+
+**Ikke bruk:** `size="md"` eller `size="lg"` i kort-kontekst.
+Modale skjemaer (som RespondVederlagModal) bruker `size="md"` og
+`border-t-2 pt-6` — dette er et annet mønster som gjelder der.
+
+### L17: Domene-tester før bridge-tester
 
 **Problem:** Når domenelogikk lever i hooks, testes forretningsregler
 og React-wiring i samme test-suite. Når en domeneregel feiler, er det
@@ -653,7 +693,7 @@ Basert på lærdom fra grunnlag- og frist-implementeringen:
 
 **Domenelag (L14):**
 - [ ] Opprett `src/domain/vederlagDomain.ts` med ren NS 8407-logikk
-- [ ] Skriv `src/domain/__tests__/vederlagDomain.test.ts` først (L15)
+- [ ] Skriv `src/domain/__tests__/vederlagDomain.test.ts` først (L17)
 - [ ] Resultatberegning, visibility, event-data som rene funksjoner
 
 **Bridge-hook:**
@@ -671,6 +711,12 @@ Basert på lærdom fra grunnlag- og frist-implementeringen:
 - [ ] Seksjonerte kontroller med §-overskrifter per underkrav (L7)
 - [ ] Ekspanderbare rigg/produktivitet-seksjoner for å håndtere tetthet
 - [ ] CSS grid order for aktiv kort-posisjonering (L8)
+- [ ] Knapper følger bento-mønster: `variant="primary"/"secondary" size="sm"` (L16)
+
+**Mobil-layout:**
+- [ ] Kort rendres FØR formpanel i DOM → stables korrekt på mobil (L15)
+- [ ] Auto-scroll til toppen av kortet når edit-modus åpnes (L15)
+- [ ] Verifiser at begrunnelsesskjema legger seg under kortet på mobil (L15)
 
 **Formpanel + tester:**
 - [ ] Formpanelet tar kun `editorProps` — ingen setters/submit/domene (L11)
