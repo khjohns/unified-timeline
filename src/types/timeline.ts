@@ -1045,6 +1045,42 @@ export interface BimLink {
   kommentar?: string;
 }
 
+/** A related BIM object suggested by Catenda */
+export interface RelatedBimObject {
+  object_id: number;
+  global_id: string;
+  name: string | null;
+  ifc_type: string | null;
+}
+
+/** A group of related BIM objects by relation category */
+export interface RelatedBimGroup {
+  category: string;
+  label: string;
+  items: RelatedBimObject[];
+}
+
+/** IFC type summary: type name → count */
+export type IfcTypeSummary = Record<string, number>;
+
+/** A single IFC product item from the object picker API */
+export interface IfcProductItem {
+  object_id: number;
+  global_id: string;
+  name: string | null;
+  ifc_type: string | null;
+  model_name: string | null;
+  fag: string | null;
+}
+
+/** Paginated response from GET /api/bim/ifc-products */
+export interface IfcProductsResponse {
+  items: IfcProductItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
 /** Cached Catenda model for the active project */
 export interface CatendaModel {
   id: number;
