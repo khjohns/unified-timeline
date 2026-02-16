@@ -1,5 +1,5 @@
 import { apiFetch } from './client';
-import type { BimLink, CatendaModel } from '../types/timeline';
+import type { BimLink, CatendaModel, RelatedBimGroup } from '../types/timeline';
 
 export async function fetchBimLinks(sakId: string): Promise<BimLink[]> {
   return apiFetch<BimLink[]>(`/api/saker/${sakId}/bim-links`);
@@ -7,7 +7,16 @@ export async function fetchBimLinks(sakId: string): Promise<BimLink[]> {
 
 export async function createBimLink(
   sakId: string,
-  data: { fag: string; model_id?: string; model_name?: string; kommentar?: string }
+  data: {
+    fag: string;
+    model_id?: string;
+    model_name?: string;
+    object_id?: number;
+    object_global_id?: string;
+    object_name?: string;
+    object_ifc_type?: string;
+    kommentar?: string;
+  }
 ): Promise<BimLink> {
   return apiFetch<BimLink>(`/api/saker/${sakId}/bim-links`, {
     method: 'POST',
@@ -17,6 +26,15 @@ export async function createBimLink(
 
 export async function deleteBimLink(sakId: string, linkId: number): Promise<void> {
   await apiFetch(`/api/saker/${sakId}/bim-links/${linkId}`, { method: 'DELETE' });
+}
+
+export async function fetchRelatedBimObjects(
+  sakId: string,
+  linkId: number
+): Promise<{ groups: RelatedBimGroup[] }> {
+  return apiFetch<{ groups: RelatedBimGroup[] }>(
+    `/api/saker/${sakId}/bim-links/${linkId}/related`
+  );
 }
 
 export async function fetchBimModels(): Promise<CatendaModel[]> {

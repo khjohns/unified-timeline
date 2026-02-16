@@ -4,10 +4,11 @@ BIM Link Routes Blueprint
 REST API for BIM-to-case linking.
 
 Endpoints:
-- GET    /api/saker/<sak_id>/bim-links      - List links for a case
-- POST   /api/saker/<sak_id>/bim-links      - Create a new link
-- DELETE /api/saker/<sak_id>/bim-links/<id>  - Remove a link
-- GET    /api/bim/models                     - List cached models for active project
+- GET    /api/saker/<sak_id>/bim-links                    - List links for a case
+- POST   /api/saker/<sak_id>/bim-links                    - Create a new link
+- DELETE /api/saker/<sak_id>/bim-links/<id>                - Remove a link
+- GET    /api/saker/<sak_id>/bim-links/<id>/related        - Related BIM objects
+- GET    /api/bim/models                                   - List cached models for active project
 """
 
 from flask import Blueprint, jsonify, request
@@ -27,6 +28,20 @@ def _get_bim_repo():
     from core.container import get_container
 
     return get_container().bim_link_repository
+
+
+def _get_catenda_client():
+    """Get CatendaClient from DI Container."""
+    from core.container import get_container
+
+    return get_container().catenda_client
+
+
+def _get_metadata_repo():
+    """Get SakMetadataRepository from DI Container."""
+    from core.container import get_container
+
+    return get_container().metadata_repository
 
 
 @bim_bp.route("/api/saker/<sak_id>/bim-links", methods=["GET"])
@@ -75,6 +90,98 @@ def delete_bim_link(sak_id: str, link_id: int):
         return "", 204
     except Exception as e:
         logger.error(f"Failed to delete BIM link {link_id}: {e}", exc_info=True)
+        return jsonify({"error": "INTERNAL_ERROR", "message": str(e)}), 500
+
+
+RELATION_CATEGORY_LABELS = {
+    "parent": "Overordnet",
+    "children": "I samme rom/etasje",
+    "type": "Samme type",
+    "systems": "Samme system",
+    "zones": "Samme sone",
+    "groups": "Grupper",
+}
+
+
+@bim_bp.route(
+    "/api/saker/<sak_id>/bim-links/<int:link_id>/related", methods=["GET"]
+)
+@require_magic_link
+@require_project_access()
+def get_related_bim_objects(sak_id: str, link_id: int):
+    """Get related BIM objects for a linked IFC product."""
+    try:
+        # 1. Find the link and validate it has an object_id
+        bim_repo = _get_bim_repo()
+        links = bim_repo.get_links_for_sak(sak_id)
+        link = next((l for l in links if l.id == link_id), None)
+        if not link:
+            return jsonify({"error": "NOT_FOUND", "message": "Link not found"}), 404
+        if not link.object_id:
+            return jsonify({"groups": []})
+
+        # 2. Get catenda_project_id from metadata
+        metadata = _get_metadata_repo().get(sak_id)
+        if not metadata or not metadata.catenda_project_id:
+            return jsonify({"groups": []})
+
+        # 3. Fetch relations from Catenda
+        catenda = _get_catenda_client()
+        if not catenda:
+            return jsonify({"groups": []})
+
+        relations = catenda.get_ifc_product_relations(
+            metadata.catenda_project_id, link.object_id
+        )
+        if not relations:
+            return jsonify({"groups": []})
+
+        # 4. Build set of already-linked object_ids for filtering
+        linked_object_ids = {
+            l.object_id for l in links if l.object_id is not None
+        }
+
+        # 5. Group and filter related objects
+        # Catenda returns lists for children/systems/zones/groups,
+        # but single dicts (or null) for parent/type.
+        groups = []
+        for category, label in RELATION_CATEGORY_LABELS.items():
+            raw = relations.get(category)
+            if raw is None:
+                continue
+            # Normalise: single dict → list of one
+            if isinstance(raw, dict):
+                raw_items = [raw]
+            elif isinstance(raw, list):
+                raw_items = raw
+            else:
+                continue
+
+            items = []
+            for item in raw_items:
+                obj_id = item.get("objectId") or item.get("object_id")
+                if obj_id is None or obj_id in linked_object_ids:
+                    continue
+                items.append(
+                    {
+                        "object_id": obj_id,
+                        "global_id": item.get("globalId", ""),
+                        "name": item.get("name"),
+                        "ifc_type": item.get("ifcType"),
+                    }
+                )
+
+            if items:
+                groups.append(
+                    {"category": category, "label": label, "items": items}
+                )
+
+        return jsonify({"groups": groups})
+    except Exception as e:
+        logger.error(
+            f"Failed to get related BIM objects for link {link_id}: {e}",
+            exc_info=True,
+        )
         return jsonify({"error": "INTERNAL_ERROR", "message": str(e)}), 500
 
 

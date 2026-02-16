@@ -198,6 +198,60 @@ def browse_products(
                 print_warn("Ugyldig valg")
 
 
+RELATION_LABELS = {
+    "parent": "Overordnet",
+    "children": "I samme rom/etasje",
+    "type": "Samme type",
+    "systems": "Samme system",
+    "zones": "Samme sone",
+    "groups": "Grupper",
+}
+
+
+def show_relations(client, project_id: str, object_id):
+    """Hent og vis relasjoner for et IFC-objekt."""
+    print_subheader(f"Relasjoner for objectId {object_id}")
+
+    relations = client.get_ifc_product_relations(project_id, object_id)
+    if not relations:
+        print_warn("Ingen relasjoner funnet (tomt svar fra API)")
+        return
+
+    total = 0
+    for category, label in RELATION_LABELS.items():
+        raw = relations.get(category)
+        if raw is None:
+            continue
+        # Normalise: single dict → list of one
+        items = [raw] if isinstance(raw, dict) else raw if isinstance(raw, list) else []
+        if not items:
+            continue
+
+        print(f"\n  {label} ({len(items)}):")
+        print(f"  {'─' * 60}")
+        for item in items[:20]:
+            obj_id = item.get("objectId") or item.get("object_id", "?")
+            name = item.get("name", "Uten navn")
+            ifc_type = item.get("ifcType", "?")
+            global_id = item.get("globalId", "")
+            gid_str = f" [{global_id[:12]}...]" if global_id else ""
+            print(f"    {ifc_type:25s} | {name:30s} | id:{obj_id}{gid_str}")
+            total += 1
+        if len(items) > 20:
+            print(f"    ... og {len(items) - 20} til")
+            total += len(items) - 20
+
+    if total == 0:
+        print_info("  Ingen relaterte objekter i noen kategori")
+    else:
+        print_ok(f"\n  Totalt {total} relaterte objekter")
+
+    # Vis rå JSON
+    show_raw = input("\n  Vis rå JSON? [j/N]: ").strip().lower()
+    if show_raw in ("j", "ja", "y"):
+        print(json.dumps(relations, indent=2, ensure_ascii=False))
+
+
 def inspect_product(client, project_id: str, product_summary: dict):
     """Hent og vis full detaljer for et produkt via GET /ifc/products/{objectId}."""
     object_id = product_summary.get("objectId")
@@ -214,16 +268,21 @@ def inspect_product(client, project_id: str, product_summary: dict):
     if full_product:
         print_product_details(full_product)
 
-        # Tilby rå JSON for debugging
-        show_raw = input("\n  Vis rå JSON? [j/N]: ").strip().lower()
-        if show_raw in ("j", "ja", "y"):
-            print(json.dumps(full_product, indent=2, ensure_ascii=False))
+        # Tilby videre utforskning
+        while True:
+            print("\n  [r] Vis relasjoner | [j] Vis rå JSON | [Enter] Tilbake")
+            choice = input("  > ").strip().lower()
+            if choice in ("r", "rel"):
+                show_relations(client, project_id, object_id)
+            elif choice in ("j", "ja", "json"):
+                print(json.dumps(full_product, indent=2, ensure_ascii=False))
+            else:
+                break
     else:
         # Fallback: vis det vi allerede har
         print_warn("Kunne ikke hente fulle detaljer, viser oppsummering:")
         print_product_details(product_summary)
-
-    input("\nTrykk Enter for å gå tilbake...")
+        input("\nTrykk Enter for å gå tilbake...")
 
 
 def main():

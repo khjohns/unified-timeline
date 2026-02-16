@@ -1045,6 +1045,21 @@ export interface BimLink {
   kommentar?: string;
 }
 
+/** A related BIM object suggested by Catenda */
+export interface RelatedBimObject {
+  object_id: number;
+  global_id: string;
+  name: string | null;
+  ifc_type: string | null;
+}
+
+/** A group of related BIM objects by relation category */
+export interface RelatedBimGroup {
+  category: string;
+  label: string;
+  items: RelatedBimObject[];
+}
+
 /** Cached Catenda model for the active project */
 export interface CatendaModel {
   id: number;

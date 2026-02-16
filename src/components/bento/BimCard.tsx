@@ -8,8 +8,8 @@
 import { Fragment, useState } from 'react';
 import { ChevronDownIcon, Cross2Icon, PlusIcon } from '@radix-ui/react-icons';
 import { clsx } from 'clsx';
-import { useBimLinks, useBimModels, useCreateBimLink, useDeleteBimLink } from '../../hooks/useBimLinks';
-import type { BimLink, CatendaModel } from '../../types/timeline';
+import { useBimLinks, useBimModels, useCreateBimLink, useDeleteBimLink, useRelatedBimObjects } from '../../hooks/useBimLinks';
+import type { BimLink, CatendaModel, RelatedBimObject } from '../../types/timeline';
 
 interface BimCardProps {
   sakId: string;
@@ -169,6 +169,7 @@ export function BimCard({ sakId, className }: BimCardProps) {
             <BimLinkDetail
               links={grouped.get(expandedFag)!}
               fag={expandedFag}
+              sakId={sakId}
               onDelete={handleDelete}
             />
           )}
@@ -199,12 +200,26 @@ function formatLinkedDate(iso: string): string {
 function BimLinkDetail({
   links,
   fag,
+  sakId,
   onDelete,
 }: {
   links: BimLink[];
   fag: string;
+  sakId: string;
   onDelete: (id: number) => void;
 }) {
+  const createLink = useCreateBimLink(sakId);
+
+  const handleAddRelated = (link: BimLink, obj: RelatedBimObject) => {
+    createLink.mutate({
+      fag: link.fag,
+      object_id: obj.object_id,
+      object_global_id: obj.global_id,
+      object_name: obj.name ?? undefined,
+      object_ifc_type: obj.ifc_type ?? undefined,
+    });
+  };
+
   return (
     <div className="rounded-md bg-pkt-bg-subtle border border-pkt-border-subtle p-2.5 space-y-3">
       {links.map((link) => (
@@ -251,6 +266,78 @@ function BimLinkDetail({
                 {link.object_global_id}
               </span>
             )}
+          </div>
+
+          {/* Related objects suggestions */}
+          {link.object_id && (
+            <RelatedObjectsSuggestions
+              sakId={sakId}
+              link={link}
+              onAdd={(obj) => handleAddRelated(link, obj)}
+              isAdding={createLink.isPending}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Suggestions for related BIM objects from Catenda */
+function RelatedObjectsSuggestions({
+  sakId,
+  link,
+  onAdd,
+  isAdding,
+}: {
+  sakId: string;
+  link: BimLink;
+  onAdd: (obj: RelatedBimObject) => void;
+  isAdding: boolean;
+}) {
+  const { data, isLoading } = useRelatedBimObjects(sakId, link.id ?? undefined);
+  const groups = data?.groups ?? [];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-1.5 pt-1">
+        <div className="h-3 w-3 border-2 border-pkt-text-body-subtle/30 border-t-pkt-text-body-subtle rounded-full animate-spin" />
+        <span className="text-[10px] text-pkt-text-body-subtle">Henter relaterte objekter...</span>
+      </div>
+    );
+  }
+
+  if (groups.length === 0) return null;
+
+  return (
+    <div className="pt-1 space-y-1.5">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-pkt-text-body-subtle">
+        Relaterte objekter
+      </span>
+      {groups.map((group) => (
+        <div key={group.category}>
+          <p className="text-[10px] text-pkt-text-body-subtle mb-1">{group.label}</p>
+          <div className="flex flex-wrap gap-1">
+            {group.items.map((item) => (
+              <button
+                key={item.object_id}
+                type="button"
+                disabled={isAdding}
+                onClick={() => onAdd(item)}
+                className={clsx(
+                  'inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-full border transition-all',
+                  'bg-pkt-bg-subtle border-pkt-border-default text-pkt-text-body-default',
+                  'hover:bg-pkt-bg-default hover:shadow-sm cursor-pointer',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                )}
+              >
+                <PlusIcon className="w-3 h-3 opacity-60" />
+                <span>{item.name ?? `#${item.object_id}`}</span>
+                {item.ifc_type && (
+                  <span className="opacity-50 font-normal">{item.ifc_type}</span>
+                )}
+              </button>
+            ))}
           </div>
         </div>
       ))}
