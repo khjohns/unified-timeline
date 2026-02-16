@@ -1,5 +1,5 @@
 import { apiFetch } from './client';
-import type { BimLink, CatendaModel, RelatedBimGroup } from '../types/timeline';
+import type { BimLink, CatendaModel, IfcProductsResponse, IfcTypeSummary, RelatedBimGroup } from '../types/timeline';
 
 export async function fetchBimLinks(sakId: string): Promise<BimLink[]> {
   return apiFetch<BimLink[]>(`/api/saker/${sakId}/bim-links`);
@@ -39,4 +39,23 @@ export async function fetchRelatedBimObjects(
 
 export async function fetchBimModels(): Promise<CatendaModel[]> {
   return apiFetch<CatendaModel[]>('/api/bim/models');
+}
+
+export async function fetchIfcTypes(): Promise<{ types: IfcTypeSummary }> {
+  return apiFetch<{ types: IfcTypeSummary }>('/api/bim/ifc-types');
+}
+
+export async function fetchIfcProducts(params: {
+  ifc_type?: string;
+  search?: string;
+  page?: number;
+  page_size?: number;
+}): Promise<IfcProductsResponse> {
+  const searchParams = new URLSearchParams();
+  if (params.ifc_type) searchParams.set('ifc_type', params.ifc_type);
+  if (params.search) searchParams.set('search', params.search);
+  if (params.page) searchParams.set('page', String(params.page));
+  if (params.page_size) searchParams.set('page_size', String(params.page_size));
+  const qs = searchParams.toString();
+  return apiFetch<IfcProductsResponse>(`/api/bim/ifc-products${qs ? `?${qs}` : ''}`);
 }

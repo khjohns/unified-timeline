@@ -185,6 +185,136 @@ def get_related_bim_objects(sak_id: str, link_id: int):
         return jsonify({"error": "INTERNAL_ERROR", "message": str(e)}), 500
 
 
+@bim_bp.route("/api/bim/ifc-products", methods=["GET"])
+@require_magic_link
+@require_project_access()
+def list_ifc_products():
+    """List IFC products with filtering, search, and fag lookup."""
+    try:
+        prosjekt_id = request.headers.get("X-Project-ID", "oslobygg")
+        ifc_type = request.args.get("ifc_type")
+        search = request.args.get("search", "").strip()
+        page = int(request.args.get("page", 1))
+        page_size = int(request.args.get("page_size", 20))
+
+        models = _get_bim_repo().get_cached_models(prosjekt_id)
+        if not models:
+            return jsonify(
+                {"items": [], "total": 0, "page": page, "page_size": page_size}
+            )
+
+        catenda = _get_catenda_client()
+        if not catenda:
+            return jsonify(
+                {"items": [], "total": 0, "page": page, "page_size": page_size}
+            )
+
+        catenda_project_id = models[0].catenda_project_id
+
+        # Build model_id → fag lookup from cached models
+        model_fag: dict[str, str] = {}
+        for m in models:
+            if m.model_id and m.fag:
+                model_fag[m.model_id] = m.fag
+
+        if search:
+            # Use query API for name search
+            query: dict = {}
+            if ifc_type:
+                query["ifcType"] = {"$ifcType": ifc_type}
+            query["attributes.Name"] = {"$regex": search, "$options": "i"}
+
+            products = catenda.query_ifc_products(
+                catenda_project_id,
+                query=query,
+                page=page,
+                page_size=page_size,
+            )
+        else:
+            # Simple list with optional type filter
+            products = catenda.list_ifc_products(
+                catenda_project_id,
+                ifc_type=ifc_type,
+                page=page,
+                page_size=page_size,
+            )
+
+        # Map products to response format with fag lookup
+        items = []
+        for p in products:
+            attrs = p.get("attributes", {})
+            name_val = attrs.get("Name", "")
+            # Name can be string or dict with value
+            if isinstance(name_val, dict):
+                name_val = name_val.get("value", "")
+            global_id_val = attrs.get("GlobalId", "")
+            if isinstance(global_id_val, dict):
+                global_id_val = global_id_val.get("value", "")
+
+            # Fag lookup: revisionId → find matching model
+            fag = None
+            model_name = None
+            revision_id = p.get("revisionId")
+            if revision_id:
+                for m in models:
+                    if m.fag:
+                        fag = fag or m.fag
+                        model_name = model_name or m.model_name
+
+            items.append(
+                {
+                    "object_id": p.get("objectId"),
+                    "global_id": str(global_id_val),
+                    "name": str(name_val) if name_val else None,
+                    "ifc_type": p.get("ifcType"),
+                    "model_name": model_name,
+                    "fag": fag,
+                }
+            )
+
+        # Total count: use type summary for accurate count when filtering by type
+        total = len(products)
+        if ifc_type and not search:
+            types = catenda.get_ifc_type_summary(catenda_project_id)
+            total = int(types.get(ifc_type, total))
+
+        return jsonify(
+            {
+                "items": items,
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to list IFC products: {e}", exc_info=True)
+        return jsonify({"error": "INTERNAL_ERROR", "message": str(e)}), 500
+
+
+@bim_bp.route("/api/bim/ifc-types", methods=["GET"])
+@require_magic_link
+@require_project_access()
+def list_ifc_types():
+    """Get IFC type summary (type → count) for the active Catenda project."""
+    try:
+        prosjekt_id = request.headers.get("X-Project-ID", "oslobygg")
+        models = _get_bim_repo().get_cached_models(prosjekt_id)
+        if not models:
+            return jsonify({"types": {}})
+
+        catenda = _get_catenda_client()
+        if not catenda:
+            return jsonify({"types": {}})
+
+        # Use first model's catenda_project_id (all models share the same project)
+        catenda_project_id = models[0].catenda_project_id
+        types = catenda.get_ifc_type_summary(catenda_project_id)
+        return jsonify({"types": types})
+    except Exception as e:
+        logger.error(f"Failed to get IFC types: {e}", exc_info=True)
+        return jsonify({"error": "INTERNAL_ERROR", "message": str(e)}), 500
+
+
 @bim_bp.route("/api/bim/models", methods=["GET"])
 @require_magic_link
 @require_project_access()

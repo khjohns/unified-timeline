@@ -8,8 +8,9 @@
 import { Fragment, useState } from 'react';
 import { ChevronDownIcon, Cross2Icon, PlusIcon } from '@radix-ui/react-icons';
 import { clsx } from 'clsx';
-import { useBimLinks, useBimModels, useCreateBimLink, useDeleteBimLink, useRelatedBimObjects } from '../../hooks/useBimLinks';
-import type { BimLink, CatendaModel, RelatedBimObject } from '../../types/timeline';
+import { useBimLinks, useCreateBimLink, useDeleteBimLink, useRelatedBimObjects } from '../../hooks/useBimLinks';
+import { BimObjectPickerModal } from './BimObjectPickerModal';
+import type { BimLink, RelatedBimObject } from '../../types/timeline';
 
 interface BimCardProps {
   sakId: string;
@@ -44,40 +45,13 @@ function groupByFag(links: BimLink[]): Map<string, BimLink[]> {
   return groups;
 }
 
-/** Get available fag options from cached models, excluding already linked ones */
-function getAvailableFag(models: CatendaModel[], existingLinks: BimLink[]): string[] {
-  const linkedFag = new Set(existingLinks.map((l) => l.fag));
-  const modelFag = new Set(models.map((m) => m.fag).filter(Boolean) as string[]);
-  return [...modelFag].filter((f) => !linkedFag.has(f)).sort();
-}
-
 export function BimCard({ sakId, className }: BimCardProps) {
   const { data: links = [], isLoading } = useBimLinks(sakId);
-  const { data: models = [] } = useBimModels();
-  const createLink = useCreateBimLink(sakId);
   const deleteLink = useDeleteBimLink(sakId);
-  const [showAdd, setShowAdd] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [expandedFag, setExpandedFag] = useState<string | null>(null);
 
   const grouped = groupByFag(links);
-  const availableFag = getAvailableFag(models, links);
-
-  const handleAddFag = (fag: string) => {
-    // Find models for this fag to include model info
-    const fagModels = models.filter((m) => m.fag === fag);
-    const singleModel = fagModels.length === 1 ? fagModels[0] : undefined;
-    if (singleModel) {
-      createLink.mutate({
-        fag,
-        model_id: singleModel.model_id,
-        model_name: singleModel.model_name,
-      });
-    } else {
-      // Multiple models or no models — link at fag level
-      createLink.mutate({ fag });
-    }
-    setShowAdd(false);
-  };
 
   const handleDelete = (linkId: number) => {
     deleteLink.mutate(linkId);
@@ -98,35 +72,14 @@ export function BimCard({ sakId, className }: BimCardProps) {
         <span className="text-[10px] font-semibold uppercase tracking-wider text-pkt-text-body-subtle">
           BIM-kobling
         </span>
-        {availableFag.length > 0 && (
-          <button
-            onClick={() => setShowAdd(!showAdd)}
-            className="flex items-center gap-0.5 text-[10px] font-medium text-pkt-text-body-subtle hover:text-pkt-text-body-default transition-colors"
-          >
-            <PlusIcon className="w-3 h-3" />
-            Legg til
-          </button>
-        )}
+        <button
+          onClick={() => setPickerOpen(true)}
+          className="flex items-center gap-0.5 text-[10px] font-medium text-pkt-text-body-subtle hover:text-pkt-text-body-default transition-colors"
+        >
+          <PlusIcon className="w-3 h-3" />
+          Legg til
+        </button>
       </div>
-
-      {/* Add dropdown */}
-      {showAdd && (
-        <div className="flex flex-wrap gap-1.5 mb-2 p-2 bg-pkt-bg-subtle rounded-md">
-          {availableFag.map((fag) => (
-            <button
-              key={fag}
-              onClick={() => handleAddFag(fag)}
-              className={clsx(
-                'px-2.5 py-1 text-xs font-medium rounded-full border transition-all',
-                'hover:scale-105 hover:shadow-sm cursor-pointer',
-                getFagColor(fag),
-              )}
-            >
-              + {fag}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Fag chips */}
       {links.length > 0 ? (
@@ -179,6 +132,12 @@ export function BimCard({ sakId, className }: BimCardProps) {
           Ingen modeller koblet
         </p>
       )}
+
+      <BimObjectPickerModal
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        sakId={sakId}
+      />
     </div>
   );
 }

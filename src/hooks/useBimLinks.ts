@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createBimLink, deleteBimLink, fetchBimLinks, fetchBimModels, fetchRelatedBimObjects } from '../api/bim';
+import { createBimLink, deleteBimLink, fetchBimLinks, fetchBimModels, fetchIfcProducts, fetchIfcTypes, fetchRelatedBimObjects } from '../api/bim';
 import { getActiveProjectId } from '../api/client';
 import { STALE_TIME } from '../constants/queryConfig';
 
@@ -33,6 +33,32 @@ export function useRelatedBimObjects(sakId: string, linkId: number | undefined) 
     queryFn: () => fetchRelatedBimObjects(sakId, linkId!),
     staleTime: STALE_TIME.EXTENDED,
     enabled: !!sakId && !!linkId,
+  });
+}
+
+export function useIfcTypeSummary() {
+  return useQuery({
+    queryKey: ['ifc-types', getActiveProjectId()] as const,
+    queryFn: fetchIfcTypes,
+    staleTime: 5 * STALE_TIME.EXTENDED,
+  });
+}
+
+export function useIfcProducts(params: {
+  ifcType?: string;
+  search?: string;
+  page: number;
+}) {
+  return useQuery({
+    queryKey: ['ifc-products', getActiveProjectId(), params.ifcType, params.search, params.page] as const,
+    queryFn: () =>
+      fetchIfcProducts({
+        ifc_type: params.ifcType,
+        search: params.search || undefined,
+        page: params.page,
+        page_size: 20,
+      }),
+    staleTime: STALE_TIME.EXTENDED,
   });
 }
 
