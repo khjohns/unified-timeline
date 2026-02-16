@@ -99,8 +99,6 @@ export function BentoBreadcrumb({
           <span className="text-pkt-grays-gray-300">/</span>
         </>
       )}
-      <span>KOE</span>
-      <span className="text-pkt-grays-gray-300">/</span>
       <span className="font-mono">{sakId}</span>
     </div>
   );

@@ -143,7 +143,7 @@ export function CaseMasterCard({
       </div>
 
       {/* ===== Divider ===== */}
-      <hr className="border-pkt-border-subtle my-3" />
+      <hr className="border-pkt-border-subtle my-3 mx-1" />
 
       {/* ===== Grunnlag section ===== */}
       <div className="flex items-center justify-between mb-2">
@@ -233,7 +233,8 @@ export function CaseMasterCard({
 
           {/* Inline controls when in edit mode (bridge-provided editState, L6) */}
           {editState && (
-            <div className={clsx(hasDates && 'mt-2 pt-2 border-t border-pkt-border-subtle', 'space-y-3')}>
+            <div className={clsx(hasDates && 'mt-2 pt-2', 'space-y-3')}>
+              {hasDates && <hr className="border-pkt-border-subtle mx-1" />}
               {/* §32.2 Varslet i tide toggle */}
               {editState.showVarsletToggle && (
                 <InlineYesNo
@@ -334,7 +335,8 @@ export function CaseMasterCard({
               )}
 
               {/* Submit footer */}
-              <div className="border-t border-pkt-border-subtle pt-3 flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
+              <hr className="border-pkt-border-subtle mx-1" />
+              <div className="pt-3 flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
                 <div>{/* spacer for alignment */}</div>
                 <div className="flex gap-2">
                   {editState.onSaveDraft && (
@@ -365,7 +367,8 @@ export function CaseMasterCard({
 
           {/* BH assessment section — below divider (read-only mode only) */}
           {!editState && hasBhResponse && (
-            <div className={clsx(hasDates && 'mt-2 pt-2 border-t border-pkt-border-subtle', 'space-y-1')}>
+            <div className={clsx(hasDates && 'mt-2 pt-2', 'space-y-1')}>
+              {hasDates && <hr className="border-pkt-border-subtle mx-1 mb-2" />}
               {/* Varslet i tide — only shown when BH has assessed it */}
               {g.grunnlag_varslet_i_tide != null && (
                 <div className="flex justify-between items-baseline">

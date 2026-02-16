@@ -33,7 +33,7 @@ import { downloadApprovedPdf } from '../pdf/generator';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
 import { MockToolbar } from '../components/MockToolbar';
-import { BentoBreadcrumb, CaseMasterCard, BimCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag, BentoRespondFrist, BentoRespondVederlag } from '../components/bento';
+import { CaseMasterCard, BimCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag, BentoRespondFrist, BentoRespondVederlag } from '../components/bento';
 import { useGrunnlagBridge } from '../hooks/useGrunnlagBridge';
 import { useFristBridge } from '../hooks/useFristBridge';
 import { useVederlagBridge } from '../hooks/useVederlagBridge';
@@ -788,14 +788,6 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
         />
       </div>
 
-      {/* Mock Toolbar */}
-      {userRole === 'BH' && (
-        <MockToolbar
-          approvalEnabled={approvalWorkflow.approvalEnabled}
-          onApprovalEnabledChange={approvalWorkflow.setApprovalEnabled}
-        />
-      )}
-
       {/* ===== BENTO MAIN CONTENT ===== */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 min-h-[calc(100vh-88px)]">
         <div className="grid grid-cols-12 gap-2 sm:gap-4">
@@ -813,9 +805,13 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             </div>
           )}
 
-          {/* Breadcrumb */}
-          <div className="col-span-12" data-onboarding="status-alert">
-            <BentoBreadcrumb prosjektNavn={state.prosjekt_navn} sakId={sakId} />
+          {/* Cross-track activity strip (top of page) */}
+          <div className="col-span-12">
+            <CrossTrackActivity
+              grunnlagHistorikk={grunnlagHistorikk}
+              vederlagHistorikk={vederlagHistorikk}
+              fristHistorikk={fristHistorikk}
+            />
           </div>
 
           {/* ===== CARD-ANCHORED FORM (top of page when open) ===== */}
@@ -1068,17 +1064,17 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             </>
           )}
 
-          {/* Cross-track activity strip */}
-          <div className="col-span-12">
-            <CrossTrackActivity
-              grunnlagHistorikk={grunnlagHistorikk}
-              vederlagHistorikk={vederlagHistorikk}
-              fristHistorikk={fristHistorikk}
-            />
-          </div>
 
         </div>
       </main>
+
+      {/* Mock Toolbar (bottom of page) */}
+      {userRole === 'BH' && (
+        <MockToolbar
+          approvalEnabled={approvalWorkflow.approvalEnabled}
+          onApprovalEnabledChange={approvalWorkflow.setApprovalEnabled}
+        />
+      )}
 
       {/* ===== Remaining Action Modals (complex wizards + special actions) ===== */}
       {sakId && (

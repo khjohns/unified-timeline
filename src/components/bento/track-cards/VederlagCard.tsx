@@ -157,7 +157,8 @@ export function VederlagCard({
 
           {/* Inline controls when in edit mode */}
           {editState && (
-            <div className="mt-2 pt-2 border-t border-pkt-border-subtle space-y-3">
+            <div className="mt-2 pt-2 space-y-3">
+              <hr className="border-pkt-border-subtle mx-1" />
               {/* Subsidiær context alert */}
               {editState.erSubsidiaer && (
                 <div className="text-bento-label text-pkt-brand-yellow-1000 bg-pkt-brand-yellow-1000/5 border border-pkt-brand-yellow-1000/20 rounded-sm px-2 py-1.5">
@@ -258,7 +259,8 @@ export function VederlagCard({
               )}
 
               {/* Submit footer */}
-              <div className="border-t border-pkt-border-subtle pt-3 flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
+              <hr className="border-pkt-border-subtle mx-1" />
+              <div className="pt-3 flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
                 <div>{/* spacer */}</div>
                 <div className="flex gap-2">
                   {editState.onSaveDraft && (
@@ -288,7 +290,8 @@ export function VederlagCard({
 
           {/* KPI row + progress bar — when BH has responded (read-only mode only) */}
           {!editState && hasBhResponse && krevdBelop != null && godkjentBelop != null && (
-            <div className="mt-2 pt-2 border-t border-pkt-border-subtle">
+            <div className="mt-2 pt-2">
+              <hr className="border-pkt-border-subtle mx-1 mb-2" />
               <div className="flex items-end gap-4">
                 <div>
                   <span className="text-bento-label text-pkt-text-body-subtle uppercase tracking-wide">Krevd</span>

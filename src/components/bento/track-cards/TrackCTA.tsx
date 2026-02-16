@@ -77,14 +77,14 @@ export function TrackCTA({
   const hasOverflow = secondaryActions.length > 0;
 
   return (
-    <div
-      className={clsx(
-        'mt-2 pt-2 border-t border-pkt-border-subtle',
-        'flex items-center justify-between',
-        sporBg, '-mx-3 -mb-3 px-3 py-2 rounded-b-lg',
-        className,
-      )}
-    >
+    <div className={clsx('mt-2', className)}>
+      <hr className="border-pkt-border-subtle mx-1 mb-2" />
+      <div
+        className={clsx(
+          'flex items-center justify-between',
+          sporBg, '-mx-3 -mb-3 px-3 py-2 rounded-b-lg',
+        )}
+      >
       {/* Primary CTA */}
       {ctaClickable && primaryAction ? (
         <button
@@ -134,6 +134,7 @@ export function TrackCTA({
           </DropdownMenuContent>
         </DropdownMenu>
       )}
+      </div>
     </div>
   );
 }

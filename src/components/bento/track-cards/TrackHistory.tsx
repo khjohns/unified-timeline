@@ -30,6 +30,7 @@ export function TrackHistory({ entries, className }: TrackHistoryProps) {
 
   return (
     <div className={clsx('mt-2', className)}>
+      <hr className="border-pkt-border-subtle mb-2 mx-1" />
       <div className="bg-pkt-bg-subtle/30 rounded-sm p-2 space-y-1">
         {visible.map((entry) => (
           <div key={entry.id} className="flex items-baseline gap-2">

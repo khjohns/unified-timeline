@@ -178,7 +178,8 @@ export function FristCard({
             );
 
             return (
-              <div className="mt-2 pt-2 border-t border-pkt-border-subtle space-y-3">
+              <div className="mt-2 pt-2 space-y-3">
+                <hr className="border-pkt-border-subtle mx-1" />
                 {/* ── Section: Foreløpig varsel (§33.4) ── */}
                 {editState.showFristVarselOk && (
                   <div className="space-y-1.5">
@@ -345,7 +346,8 @@ export function FristCard({
                 )}
 
                 {/* Submit footer */}
-                <div className="border-t border-pkt-border-subtle pt-3 flex flex-col-reverse sm:flex-row sm:justify-between gap-1">
+                <hr className="border-pkt-border-subtle mx-1" />
+                <div className="pt-3 flex flex-col-reverse sm:flex-row sm:justify-between gap-1">
                   <div>{/* spacer */}</div>
                   <div className="flex gap-1">
                     {editState.onSaveDraft && (
@@ -376,7 +378,8 @@ export function FristCard({
 
           {/* KPI row + progress bar — when BH has responded (read-only mode only) */}
           {!editState && hasBhResponse && hasDays && godkjentDager != null && (
-            <div className="mt-2 pt-2 border-t border-pkt-border-subtle">
+            <div className="mt-2 pt-2">
+              <hr className="border-pkt-border-subtle mx-1 mb-2" />
               <div className="flex items-end gap-4">
                 <div>
                   <span className="text-bento-label text-pkt-text-body-subtle uppercase tracking-wide">Krevd</span>
