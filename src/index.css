@@ -262,12 +262,12 @@
     --text-3xl: 1.875rem;    /* 30px */
     --text-4xl: 2.25rem;     /* 36px */
 
-    /* Bento typography tokens (ADR-004) */
-    --bento-text-micro: 9px;    /* Badges: TE/BH, PREKLUDERT */
-    --bento-text-label: 10px;   /* Card titles, section headers, KPI labels, §-refs */
-    --bento-text-caption: 11px; /* Key-value labels, status labels, history */
-    --bento-text-body: 12px;    /* Data values, body text, CTA */
-    --bento-text-kpi: 14px;     /* KPI hero numbers */
+    /* Bento typography tokens (ADR-004) — bumped defaults for readability */
+    --bento-text-micro: 11px;   /* Badges: TE/BH, PREKLUDERT */
+    --bento-text-label: 12px;   /* Card titles, section headers, KPI labels, §-refs */
+    --bento-text-caption: 13px; /* Key-value labels, status labels, history */
+    --bento-text-body: 14px;    /* Data values, body text, CTA */
+    --bento-text-kpi: 16px;     /* KPI hero numbers */
 
     /* Bento color tokens — card surfaces and KPI contrast */
     --bento-surface-frist: #fef9ef;       /* Subtle amber wash for FristCard */
@@ -451,11 +451,11 @@
    Activated by .font-large class on <html>.
    ============================================ */
 .font-large {
-  --bento-text-micro: 11px;   /* 9px → 11px */
-  --bento-text-label: 12px;   /* 10px → 12px */
-  --bento-text-caption: 13px; /* 11px → 13px */
-  --bento-text-body: 14px;    /* 12px → 14px */
-  --bento-text-kpi: 16px;     /* 14px → 16px */
+  --bento-text-micro: 13px;   /* 11px → 13px */
+  --bento-text-label: 14px;   /* 12px → 14px */
+  --bento-text-caption: 15px; /* 13px → 15px */
+  --bento-text-body: 16px;    /* 14px → 16px */
+  --bento-text-kpi: 18px;     /* 16px → 18px */
 }
 
 /* ============================================

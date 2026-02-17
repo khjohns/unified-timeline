@@ -2,8 +2,8 @@
  * FontSizeContext - Provides font size scaling for bento cards
  *
  * Two modes:
- * - 'default': Standard bento token sizes (ADR-004)
- * - 'large': All bento tokens bumped +2px for better readability
+ * - 'default': Standard bento token sizes (11-16px, bumped from original 9-14px)
+ * - 'large': All bento tokens bumped +2px for extra readability
  *
  * Applies a CSS class on <html> which overrides CSS custom properties.
  * Preference is persisted to localStorage.
@@ -23,7 +23,14 @@ const FontSizeContext = createContext<FontSizeContextType | undefined>(undefined
 export function FontSizeProvider({ children }: { children: ReactNode }) {
   const [fontSize, setFontSize] = useState<FontSize>(() => {
     if (typeof window !== 'undefined') {
-      return (localStorage.getItem('font-size') as FontSize) || 'default';
+      const stored = localStorage.getItem('font-size') as FontSize | null;
+      // Migration: users who had 'large' now get 'default' (sizes were bumped)
+      if (stored === 'large' && !localStorage.getItem('font-size-migrated-v2')) {
+        localStorage.setItem('font-size-migrated-v2', '1');
+        localStorage.setItem('font-size', 'default');
+        return 'default';
+      }
+      return stored || 'default';
     }
     return 'default';
   });

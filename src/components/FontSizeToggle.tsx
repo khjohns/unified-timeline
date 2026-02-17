@@ -23,8 +23,8 @@ export function FontSizeToggle() {
                  hover:bg-pkt-bg-card hover:border-pkt-border-default
                  focus:outline-none focus:ring-2 focus:ring-pkt-brand-warm-blue-1000/30
                  transition-all duration-200"
-      aria-label={isLarge ? 'Bytt til standard tekststørrelse' : 'Bytt til stor tekststørrelse'}
-      title={isLarge ? 'Standard tekst' : 'Stor tekst'}
+      aria-label={isLarge ? 'Bytt til standard tekststørrelse' : 'Bytt til større tekststørrelse'}
+      title={isLarge ? 'Standard tekst' : 'Større tekst'}
     >
       <span className="flex items-baseline gap-px w-4 h-4 justify-center text-pkt-text-body-default select-none">
         <span className="text-[9px] font-medium leading-none">A</span>
