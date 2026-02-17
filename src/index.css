@@ -446,6 +446,19 @@
 @utility text-bento-krevd   { color: var(--bento-kpi-krevd); }
 
 /* ============================================
+   FONT SIZE SCALE: LARGE
+   Overrides bento tokens +2px for readability.
+   Activated by .font-large class on <html>.
+   ============================================ */
+.font-large {
+  --bento-text-micro: 11px;   /* 9px → 11px */
+  --bento-text-label: 12px;   /* 10px → 12px */
+  --bento-text-caption: 13px; /* 11px → 13px */
+  --bento-text-body: 14px;    /* 12px → 14px */
+  --bento-text-kpi: 16px;     /* 14px → 16px */
+}
+
+/* ============================================
    DARK MODE THEME OVERRIDES
    Applied when .dark class is on <html>
    ============================================ */
