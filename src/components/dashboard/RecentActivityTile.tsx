@@ -78,12 +78,12 @@ export function RecentActivityTile({ cases }: RecentActivityTileProps) {
     <BentoCard colSpan="col-span-12" delay={150}>
       <div className="px-4 py-3">
         {/* Mobile: label above, horizontal scroll. Desktop: label left, grid */}
-        <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide shrink-0 mb-2 sm:hidden">
+        <p className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide shrink-0 mb-2 sm:hidden">
           Siste aktivitet
         </p>
 
         <div className="sm:flex sm:items-center sm:gap-4">
-          <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide shrink-0 hidden sm:block">
+          <p className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide shrink-0 hidden sm:block">
             Siste aktivitet
           </p>
 
@@ -97,14 +97,14 @@ export function RecentActivityTile({ cases }: RecentActivityTileProps) {
               >
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${TYPE_DOT_COLORS[item.sakstype] ?? 'bg-pkt-grays-gray-400'}`} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-medium text-pkt-text-body-dark truncate">
+                  <p className="text-bento-caption font-medium text-pkt-text-body-dark truncate">
                     {item.cached_title || 'Uten tittel'}
                   </p>
                   <div className="flex items-baseline gap-1.5">
-                    <span className="font-mono text-[11px] text-pkt-text-body-subtle shrink-0">
+                    <span className="font-mono text-bento-caption text-pkt-text-body-subtle shrink-0">
                       {formatSakIdShort(item.sak_id, item.sakstype)}
                     </span>
-                    <span className="text-[10px] text-pkt-text-body-subtle shrink-0">
+                    <span className="text-bento-label text-pkt-text-body-subtle shrink-0">
                       {formatRelativeTime(item.last_event_at)}
                     </span>
                   </div>
@@ -123,14 +123,14 @@ export function RecentActivityTile({ cases }: RecentActivityTileProps) {
               >
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${TYPE_DOT_COLORS[item.sakstype] ?? 'bg-pkt-grays-gray-400'}`} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-medium text-pkt-text-body-dark truncate">
+                  <p className="text-bento-caption font-medium text-pkt-text-body-dark truncate">
                     {item.cached_title || 'Uten tittel'}
                   </p>
                   <div className="flex items-baseline gap-1.5">
-                    <span className="font-mono text-[11px] text-pkt-text-body-subtle shrink-0">
+                    <span className="font-mono text-bento-caption text-pkt-text-body-subtle shrink-0">
                       {formatSakIdShort(item.sak_id, item.sakstype)}
                     </span>
-                    <span className="text-[10px] text-pkt-text-body-subtle shrink-0">
+                    <span className="text-bento-label text-pkt-text-body-subtle shrink-0">
                       {formatRelativeTime(item.last_event_at)}
                     </span>
                   </div>

@@ -42,7 +42,7 @@ export function MembersTile({ members }: MembersTileProps) {
   return (
     <BentoCard colSpan="col-span-12 sm:col-span-6 lg:col-span-5" delay={350}>
       <div className="p-4">
-        <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
+        <p className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
           Medlemmer
         </p>
 
@@ -50,26 +50,26 @@ export function MembersTile({ members }: MembersTileProps) {
           {shown.map((member) => (
             <div key={member.id} className="group relative">
               <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold ${
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-bento-body font-semibold ${
                   ROLE_COLORS[member.role] ?? ROLE_COLORS.viewer
                 }`}
                 title={`${getDisplayName(member)} (${member.role})`}
               >
                 {getInitials(member)}
               </div>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded bg-pkt-brand-dark-blue-1000 text-white text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded bg-pkt-brand-dark-blue-1000 text-white text-bento-label whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                 {getDisplayName(member)}
               </div>
             </div>
           ))}
           {overflow > 0 && (
-            <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold bg-pkt-grays-gray-200 text-pkt-text-body-subtle">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center text-bento-body font-semibold bg-pkt-grays-gray-200 text-pkt-text-body-subtle">
               +{overflow}
             </div>
           )}
         </div>
 
-        <p className="text-xs text-pkt-text-body-subtle mt-3">
+        <p className="text-bento-body text-pkt-text-body-subtle mt-3">
           {members.length} {members.length === 1 ? 'medlem' : 'medlemmer'}
         </p>
 
@@ -77,7 +77,7 @@ export function MembersTile({ members }: MembersTileProps) {
         <div className="mt-2 pt-2 border-t border-pkt-border-subtle">
           <Link
             to="/medlemmer"
-            className="flex items-center justify-center gap-1.5 w-full px-3 py-1.5 text-xs font-medium text-pkt-text-action-active hover:bg-pkt-bg-subtle rounded-md transition-colors"
+            className="flex items-center justify-center gap-1.5 w-full px-3 py-1.5 text-bento-body font-medium text-pkt-text-action-active hover:bg-pkt-bg-subtle rounded-md transition-colors"
           >
             <GearIcon className="w-3.5 h-3.5" />
             Administrer medlemmer

@@ -40,21 +40,21 @@ export function ProgressTile({ contract, totalDagerGodkjent }: ProgressTileProps
   return (
     <BentoCard colSpan="col-span-12 sm:col-span-6 lg:col-span-5" delay={50}>
       <div className="p-4">
-        <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-2">
+        <p className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-2">
           Fremdrift
         </p>
 
         <div className="space-y-1.5">
           <div className="flex justify-between items-baseline">
-            <span className="text-[11px] text-pkt-text-body-subtle">Frist</span>
-            <span className="text-xs font-mono text-pkt-text-body-default">
+            <span className="text-bento-caption text-pkt-text-body-subtle">Frist</span>
+            <span className="text-bento-body font-mono text-pkt-text-body-default">
               {formatDateShort(contract.kontraktsfrist)}
             </span>
           </div>
           {totalDagerGodkjent > 0 && (
             <div className="flex justify-between items-baseline">
-              <span className="text-[11px] text-pkt-text-body-subtle">Justert</span>
-              <span className="text-xs font-mono font-semibold text-pkt-brand-warm-blue-1000">
+              <span className="text-bento-caption text-pkt-text-body-subtle">Justert</span>
+              <span className="text-bento-body font-mono font-semibold text-pkt-brand-warm-blue-1000">
                 {formatDateShort(adjustedDateStr)}
               </span>
             </div>
@@ -63,15 +63,15 @@ export function ProgressTile({ contract, totalDagerGodkjent }: ProgressTileProps
 
         <div className="mt-2 pt-2 border-t border-pkt-border-subtle">
           <div className="flex items-baseline justify-between">
-            <span className="text-[11px] text-pkt-text-body-subtle">Gjenstår</span>
-            <p className={`text-sm font-mono font-bold tabular-nums ${
+            <span className="text-bento-caption text-pkt-text-body-subtle">Gjenstår</span>
+            <p className={`text-bento-kpi font-mono font-bold tabular-nums ${
               daysRemaining < 0 ? 'text-pkt-brand-red-1000' : daysRemaining < 30 ? 'text-pkt-brand-yellow-1000' : 'text-pkt-brand-dark-green-1000'
             }`}>
               {daysRemaining < 0 ? `${Math.abs(daysRemaining)}d over` : `${daysRemaining}d`}
             </p>
           </div>
           {totalDagerGodkjent > 0 && (
-            <p className="text-[10px] text-pkt-text-body-subtle mt-0.5">
+            <p className="text-bento-label text-pkt-text-body-subtle mt-0.5">
               +{totalDagerGodkjent}d forlengelse
             </p>
           )}

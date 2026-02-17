@@ -80,7 +80,7 @@ function CustomTooltip({ active, payload, label }: {
   const d = payload[0].payload;
 
   return (
-    <div className="bg-pkt-bg-card border border-pkt-border-subtle rounded-lg px-3 py-2 shadow-lg text-[11px]">
+    <div className="bg-pkt-bg-card border border-pkt-border-subtle rounded-lg px-3 py-2 shadow-lg text-bento-caption">
       <p className="font-medium text-pkt-text-body-dark mb-1">{label}</p>
       <div className="space-y-0.5">
         <div className="flex justify-between gap-4">
@@ -158,7 +158,7 @@ export function EconomicsChartTile({ cases, contract, totalKrevd, totalGodkjent 
   return (
     <BentoCard colSpan="col-span-12 lg:col-span-5" delay={300}>
       <div className="p-4">
-        <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-2">
+        <p className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-2">
           Kontraktsøkonomi
         </p>
 
@@ -227,7 +227,7 @@ export function EconomicsChartTile({ cases, contract, totalKrevd, totalGodkjent 
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex items-center justify-center h-24 text-xs text-pkt-text-body-subtle">
+          <div className="flex items-center justify-center h-24 text-bento-body text-pkt-text-body-subtle">
             Trenger minst 2 saker for graf
           </div>
         )}
@@ -237,27 +237,27 @@ export function EconomicsChartTile({ cases, contract, totalKrevd, totalGodkjent 
           {/* KPI row */}
           <div className="flex items-baseline gap-4 mb-2.5">
             <div>
-              <span className="text-[10px] text-pkt-text-body-subtle uppercase">Kontrakt</span>
-              <p className="text-sm font-semibold font-mono text-pkt-text-body-dark">
+              <span className="text-bento-label text-pkt-text-body-subtle uppercase">Kontrakt</span>
+              <p className="text-bento-kpi font-semibold font-mono text-pkt-text-body-dark">
                 {formatCurrencyCompact(kontraktssum)}
               </p>
             </div>
             <div>
-              <span className="text-[10px] text-pkt-text-body-subtle uppercase">Krevd</span>
-              <p className="text-sm font-semibold font-mono text-pkt-brand-yellow-1000">
+              <span className="text-bento-label text-pkt-text-body-subtle uppercase">Krevd</span>
+              <p className="text-bento-kpi font-semibold font-mono text-pkt-brand-yellow-1000">
                 {formatCurrencyCompact(totalKrevd)}
               </p>
             </div>
             <div>
-              <span className="text-[10px] text-pkt-text-body-subtle uppercase">Godkjent</span>
-              <p className="text-sm font-semibold font-mono text-pkt-brand-dark-green-1000">
+              <span className="text-bento-label text-pkt-text-body-subtle uppercase">Godkjent</span>
+              <p className="text-bento-kpi font-semibold font-mono text-pkt-brand-dark-green-1000">
                 {formatCurrencyCompact(totalGodkjent)}
               </p>
             </div>
             {godkjenningsgrad !== null && (
               <div className="ml-auto text-right">
-                <span className="text-[10px] text-pkt-text-body-subtle uppercase">Godkj.grad</span>
-                <p className={`text-sm font-bold font-mono tabular-nums ${
+                <span className="text-bento-label text-pkt-text-body-subtle uppercase">Godkj.grad</span>
+                <p className={`text-bento-kpi font-bold font-mono tabular-nums ${
                   godkjenningsgrad >= 70 ? 'text-pkt-brand-dark-green-1000' :
                   godkjenningsgrad >= 40 ? 'text-pkt-brand-yellow-1000' :
                   'text-pkt-brand-red-1000'
@@ -272,7 +272,7 @@ export function EconomicsChartTile({ cases, contract, totalKrevd, totalGodkjent 
           {kontraktssum > 0 && (
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-pkt-text-body-subtle w-12">Krevd</span>
+                <span className="text-bento-label text-pkt-text-body-subtle w-12">Krevd</span>
                 <div
                   className="flex-1 h-1.5 bg-pkt-grays-gray-100 dark:bg-white/10 rounded-full overflow-hidden"
                   role="progressbar"
@@ -286,10 +286,10 @@ export function EconomicsChartTile({ cases, contract, totalKrevd, totalGodkjent 
                     style={{ width: `${Math.min(krevdPct, 100)}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-pkt-text-body-subtle tabular-nums w-8 text-right">{krevdPct}%</span>
+                <span className="text-bento-label text-pkt-text-body-subtle tabular-nums w-8 text-right">{krevdPct}%</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-pkt-text-body-subtle w-12">Godkjent</span>
+                <span className="text-bento-label text-pkt-text-body-subtle w-12">Godkjent</span>
                 <div
                   className="flex-1 h-1.5 bg-pkt-grays-gray-100 dark:bg-white/10 rounded-full overflow-hidden"
                   role="progressbar"
@@ -303,7 +303,7 @@ export function EconomicsChartTile({ cases, contract, totalKrevd, totalGodkjent 
                     style={{ width: `${Math.min(godkjentPct, 100)}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-pkt-text-body-subtle tabular-nums w-8 text-right">{godkjentPct}%</span>
+                <span className="text-bento-label text-pkt-text-body-subtle tabular-nums w-8 text-right">{godkjentPct}%</span>
               </div>
             </div>
           )}

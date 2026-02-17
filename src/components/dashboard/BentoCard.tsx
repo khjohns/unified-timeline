@@ -61,11 +61,11 @@ export function BentoCtaCard({
   return (
     <BentoCard colSpan={colSpan} delay={delay}>
       <div className="flex flex-col items-center justify-center text-center p-6 h-full min-h-[140px]">
-        <p className="text-sm font-medium text-pkt-text-body-subtle mb-1">{title}</p>
-        <p className="text-xs text-pkt-text-body-subtle mb-3">{description}</p>
+        <p className="text-bento-kpi font-medium text-pkt-text-body-subtle mb-1">{title}</p>
+        <p className="text-bento-body text-pkt-text-body-subtle mb-3">{description}</p>
         <button
           onClick={() => navigate('/innstillinger')}
-          className="text-xs font-medium text-pkt-text-action-active hover:underline"
+          className="text-bento-body font-medium text-pkt-text-action-active hover:underline"
         >
           {ctaLabel} &rarr;
         </button>

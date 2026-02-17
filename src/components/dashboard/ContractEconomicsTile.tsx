@@ -35,20 +35,20 @@ export function ContractEconomicsTile({ contract, totalKrevd, totalGodkjent }: C
   return (
     <BentoCard colSpan="col-span-12 md:col-span-4" delay={50}>
       <div className="p-5">
-        <p className="text-xs font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
+        <p className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
           Kontraktsøkonomi
         </p>
 
         <div className="space-y-2 mb-4">
           <div className="flex justify-between items-baseline">
-            <span className="text-xs text-pkt-text-body-subtle">Kontraktssum</span>
-            <span className="text-sm font-semibold font-mono text-pkt-text-body-dark">
+            <span className="text-bento-caption text-pkt-text-body-subtle">Kontraktssum</span>
+            <span className="text-bento-kpi font-semibold font-mono text-pkt-text-body-dark">
               {formatCurrencyCompact(contract.kontraktssum)}
             </span>
           </div>
           <div className="flex justify-between items-baseline">
-            <span className="text-xs text-pkt-text-body-subtle">Justert sum</span>
-            <span className="text-sm font-semibold font-mono text-pkt-text-body-dark">
+            <span className="text-bento-caption text-pkt-text-body-subtle">Justert sum</span>
+            <span className="text-bento-kpi font-semibold font-mono text-pkt-text-body-dark">
               {formatCurrencyCompact(adjustedSum)}
             </span>
           </div>
@@ -56,7 +56,7 @@ export function ContractEconomicsTile({ contract, totalKrevd, totalGodkjent }: C
 
         {/* Progress bar */}
         <div className="space-y-1.5">
-          <div className="flex justify-between text-xs text-pkt-text-body-subtle">
+          <div className="flex justify-between text-bento-body text-pkt-text-body-subtle">
             <span>Krevd</span>
             <span className="font-mono">{formatCurrency(totalKrevd)}</span>
           </div>
@@ -67,7 +67,7 @@ export function ContractEconomicsTile({ contract, totalKrevd, totalGodkjent }: C
             />
           </div>
 
-          <div className="flex justify-between text-xs text-pkt-text-body-subtle">
+          <div className="flex justify-between text-bento-body text-pkt-text-body-subtle">
             <span>Godkjent</span>
             <span className="font-mono">{formatCurrency(totalGodkjent)}</span>
           </div>

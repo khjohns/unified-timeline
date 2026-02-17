@@ -40,7 +40,7 @@ export function CaseSummaryTile({ cases, userRole }: CaseSummaryTileProps) {
   return (
     <BentoCard colSpan="col-span-12 sm:col-span-6 md:col-span-4" delay={200}>
       <div className="p-5">
-        <p className="text-xs font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
+        <p className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
           Saker
         </p>
 
@@ -49,13 +49,13 @@ export function CaseSummaryTile({ cases, userRole }: CaseSummaryTileProps) {
             <p className="text-3xl font-bold font-mono text-pkt-text-body-dark tabular-nums">
               {stats.open}
             </p>
-            <p className="text-xs text-pkt-text-body-subtle">åpne</p>
+            <p className="text-bento-body text-pkt-text-body-subtle">åpne</p>
           </div>
           <div>
             <p className="text-xl font-semibold font-mono text-pkt-text-body-subtle tabular-nums">
               {stats.closed}
             </p>
-            <p className="text-xs text-pkt-text-body-subtle">lukket</p>
+            <p className="text-bento-body text-pkt-text-body-subtle">lukket</p>
           </div>
         </div>
 
@@ -63,7 +63,7 @@ export function CaseSummaryTile({ cases, userRole }: CaseSummaryTileProps) {
           <div className="mt-3 pt-3 border-t border-pkt-border-subtle">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-pkt-brand-yellow-1000 animate-pulse" />
-              <span className="text-xs font-medium text-pkt-text-body-default">
+              <span className="text-bento-body font-medium text-pkt-text-body-default">
                 {stats.pending} {stats.pending === 1 ? 'venter' : 'venter'} på{' '}
                 {userRole === 'BH' ? 'ditt svar' : 'svar fra BH'}
               </span>
