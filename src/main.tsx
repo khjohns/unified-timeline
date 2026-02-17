@@ -14,6 +14,7 @@ import { AuthProvider } from './context/AuthContext';
 import { UserRoleProvider } from './context/UserRoleContext';
 import { SupabaseAuthProvider } from './context/SupabaseAuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { FontSizeProvider } from './context/FontSizeContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './components/primitives/Toast';
 import { ConnectionStatusProvider } from './hooks/useConnectionStatus';
@@ -70,6 +71,7 @@ root.render(
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <SupabaseAuthProvider>
           <ThemeProvider>
+          <FontSizeProvider>
             <ToastProvider>
               <ConnectionStatusProvider>
                 <ProjectProvider>
@@ -83,6 +85,7 @@ root.render(
                 </ProjectProvider>
               </ConnectionStatusProvider>
             </ToastProvider>
+          </FontSizeProvider>
           </ThemeProvider>
         </SupabaseAuthProvider>
       </BrowserRouter>

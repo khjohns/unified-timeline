@@ -7,6 +7,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { CasePage } from '@/pages/CasePage';
 import { ComponentShowcase } from '@/pages/ComponentShowcase';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { FontSizeProvider } from '@/context/FontSizeContext';
 import { ToastProvider } from '@/components/primitives/Toast';
 import { UserRoleProvider } from '@/context/UserRoleContext';
 import { ConnectionStatusProvider } from '@/hooks/useConnectionStatus';
@@ -93,9 +94,11 @@ const createWrapper = () => {
       <UserRoleProvider>
         <ConnectionStatusProvider>
           <ThemeProvider>
+          <FontSizeProvider>
             <ToastProvider>
               <BrowserRouter>{children}</BrowserRouter>
             </ToastProvider>
+          </FontSizeProvider>
           </ThemeProvider>
         </ConnectionStatusProvider>
       </UserRoleProvider>

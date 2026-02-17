@@ -22,6 +22,7 @@ import {
   PlusIcon,
 } from '@radix-ui/react-icons';
 import { ThemeToggle } from './ThemeToggle';
+import { FontSizeToggle } from './FontSizeToggle';
 import { ModeToggle } from './ModeToggle';
 import { ConnectionStatusIndicator } from './ConnectionStatusIndicator';
 import { FeedbackButton } from './FeedbackButton';
@@ -90,6 +91,7 @@ export function PageHeader({
                 <div className="h-5 w-px bg-pkt-border-subtle" />
                 <FeedbackButton />
                 <ThemeToggle />
+                <FontSizeToggle />
                 {userRole && onToggleRole && (
                   <ModeToggle userRole={userRole} onToggle={onToggleRole} />
                 )}
@@ -185,6 +187,7 @@ export function PageHeader({
             <p className="text-sm text-pkt-grays-gray-500">{subtitle}</p>
             <div className="flex items-center gap-1.5">
               <ThemeToggle />
+              <FontSizeToggle />
               {userRole && onToggleRole && (
                 <ModeToggle userRole={userRole} onToggle={onToggleRole} />
               )}
