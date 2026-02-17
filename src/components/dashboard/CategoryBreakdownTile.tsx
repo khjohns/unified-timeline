@@ -59,7 +59,7 @@ export function CategoryBreakdownTile({ cases }: CategoryBreakdownTileProps) {
     return (
       <BentoCard colSpan="col-span-12 lg:col-span-7" delay={350}>
         <div className="p-4 flex items-center justify-center min-h-[100px]">
-          <p className="text-xs text-pkt-text-body-subtle">Ingen saker å kategorisere</p>
+          <p className="text-bento-body text-pkt-text-body-subtle">Ingen saker å kategorisere</p>
         </div>
       </BentoCard>
     );
@@ -70,14 +70,14 @@ export function CategoryBreakdownTile({ cases }: CategoryBreakdownTileProps) {
   return (
     <BentoCard colSpan="col-span-12 lg:col-span-7" delay={350}>
       <div className="p-4">
-        <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
+        <p className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
           Kategorier
         </p>
 
         <div className="space-y-2">
           {categories.map((cat) => (
             <div key={cat.label} className="flex items-center gap-3">
-              <span className="text-xs text-pkt-text-body-default w-48 truncate shrink-0" title={cat.label}>
+              <span className="text-bento-body text-pkt-text-body-default w-48 truncate shrink-0" title={cat.label}>
                 {cat.label}
               </span>
               <div className="flex-1 h-4 bg-pkt-grays-gray-100 dark:bg-white/10 rounded-sm overflow-hidden">
@@ -86,10 +86,10 @@ export function CategoryBreakdownTile({ cases }: CategoryBreakdownTileProps) {
                   style={{ width: `${(cat.count / maxCount) * 100}%` }}
                 />
               </div>
-              <span className="text-xs font-mono text-pkt-text-body-subtle tabular-nums w-8 text-right shrink-0">
+              <span className="text-bento-body font-mono text-pkt-text-body-subtle tabular-nums w-8 text-right shrink-0">
                 {cat.count}
               </span>
-              <span className="text-[10px] text-pkt-text-body-subtle tabular-nums w-8 text-right shrink-0">
+              <span className="text-bento-label text-pkt-text-body-subtle tabular-nums w-8 text-right shrink-0">
                 {cat.pct}%
               </span>
             </div>

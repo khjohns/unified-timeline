@@ -192,7 +192,7 @@ function PillToggle<T extends string>({
           key={opt.key}
           onClick={() => onChange(opt.key)}
           aria-pressed={value === opt.key}
-          className={`px-2.5 py-1 text-xs font-medium rounded-full transition-colors ${
+          className={`px-2.5 py-1 text-bento-body font-medium rounded-full transition-colors ${
             value === opt.key
               ? 'bg-pkt-brand-dark-blue-1000 text-white'
               : 'text-pkt-text-body-subtle hover:bg-pkt-bg-subtle'
@@ -265,7 +265,7 @@ function CaseListToolbar({
     <div className="px-3 sm:px-4 py-3 space-y-2">
       {/* Row 1: Title + filter pills + search + expand/collapse */}
       <div className="flex items-center gap-1.5 sm:gap-2">
-        <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide shrink-0">
+        <p className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide shrink-0">
           Saker
         </p>
 
@@ -295,7 +295,7 @@ function CaseListToolbar({
               onChange={(e) => setSearchQuery(e.target.value)}
               width="full"
               autoFocus
-              className="!pl-8 !py-1 !min-h-[28px] !text-xs !rounded-full !bg-pkt-bg-subtle !border-transparent focus:!border-pkt-border-default"
+              className="!pl-8 !py-1 !min-h-[28px] !text-bento-body !rounded-full !bg-pkt-bg-subtle !border-transparent focus:!border-pkt-border-default"
             />
             <button
               onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
@@ -322,13 +322,13 @@ function CaseListToolbar({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             width="full"
-            className="!pl-8 !py-1 !min-h-[28px] !text-xs !rounded-full !bg-pkt-bg-subtle !border-transparent focus:!border-pkt-border-default"
+            className="!pl-8 !py-1 !min-h-[28px] !text-bento-body !rounded-full !bg-pkt-bg-subtle !border-transparent focus:!border-pkt-border-default"
           />
         </div>
 
         <button
           onClick={onToggleExpand}
-          className="flex items-center gap-0.5 text-xs text-pkt-text-action-active hover:underline shrink-0"
+          className="flex items-center gap-0.5 text-bento-body text-pkt-text-action-active hover:underline shrink-0"
         >
           {expanded ? 'Kompakt' : 'Utvid'}
           {expanded ? <ChevronUpIcon className="w-3.5 h-3.5" /> : <ChevronDownIcon className="w-3.5 h-3.5" />}
@@ -336,7 +336,7 @@ function CaseListToolbar({
       </div>
 
       {/* Row 2: group + sort controls (wraps on mobile) */}
-      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-pkt-text-body-subtle">
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-bento-caption text-pkt-text-body-subtle">
         <span>Grupper:</span>
         <PillToggle
           options={[
@@ -370,21 +370,21 @@ function getDynamicValue(item: CaseListItem, sortBy: SortBy): React.ReactNode {
   switch (sortBy) {
     case 'belop':
       return (
-        <span className="font-mono text-xs tabular-nums">
+        <span className="font-mono text-bento-body tabular-nums">
           <span className="text-pkt-text-body-default">{formatCurrencyCompact(item.cached_sum_krevd)}</span>
-          <span className="text-pkt-text-body-subtle text-[10px] mx-0.5">/</span>
+          <span className="text-pkt-text-body-subtle text-bento-label mx-0.5">/</span>
           <span className="text-pkt-text-body-subtle">{formatCurrencyCompact(item.cached_sum_godkjent)}</span>
         </span>
       );
     case 'saksnummer':
       return (
-        <span className="text-xs text-pkt-text-body-subtle tabular-nums">
+        <span className="text-bento-body text-pkt-text-body-subtle tabular-nums">
           {formatDateShort(item.last_event_at)}
         </span>
       );
     default: // 'dato'
       return (
-        <span className="text-xs text-pkt-text-body-subtle tabular-nums">
+        <span className="text-bento-body text-pkt-text-body-subtle tabular-nums">
           {formatDateShort(item.last_event_at)}
         </span>
       );
@@ -419,15 +419,15 @@ function CaseRow({
               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${getStatusDotColor(item.cached_status)}`} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-1.5 min-w-0">
-                  <span className={`font-mono text-xs shrink-0 ${typeTag.className}`}>
+                  <span className={`font-mono text-bento-body shrink-0 ${typeTag.className}`}>
                     {formatSakId(item.sak_id, item.sakstype)}
                   </span>
-                  <span className="text-pkt-text-body-subtle text-[10px]">&middot;</span>
-                  <p className="text-sm font-medium text-pkt-text-body-dark truncate min-w-0">
+                  <span className="text-pkt-text-body-subtle text-bento-label">&middot;</span>
+                  <p className="text-bento-body font-medium text-pkt-text-body-dark truncate min-w-0">
                     {item.cached_title || 'Uten tittel'}
                   </p>
                 </div>
-                <p className="text-[11px] text-pkt-text-body-subtle mt-0.5">
+                <p className="text-bento-caption text-pkt-text-body-subtle mt-0.5">
                   {getStatusLabel(item.cached_status)}
                 </p>
               </div>
@@ -442,42 +442,42 @@ function CaseRow({
             {/* Sak-ID + Title */}
             <div className="col-span-4 flex items-center gap-2 min-w-0">
               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${getStatusDotColor(item.cached_status)}`} />
-              <span className={`font-mono text-xs shrink-0 ${typeTag.className}`}>
+              <span className={`font-mono text-bento-body shrink-0 ${typeTag.className}`}>
                 {formatSakId(item.sak_id, item.sakstype)}
               </span>
-              <p className="text-sm font-medium text-pkt-text-body-dark truncate min-w-0">
+              <p className="text-bento-body font-medium text-pkt-text-body-dark truncate min-w-0">
                 {item.cached_title || 'Uten tittel'}
               </p>
             </div>
             {/* Status */}
             <div className="col-span-2">
-              <span className="text-xs text-pkt-text-body-subtle">
+              <span className="text-bento-body text-pkt-text-body-subtle">
                 {getStatusLabel(item.cached_status)}
               </span>
             </div>
             {/* Vederlag */}
             <div className="col-span-2 text-right">
-              <span className="font-mono text-xs text-pkt-text-body-default">
+              <span className="font-mono text-bento-body text-pkt-text-body-default">
                 {formatCurrencyCompact(item.cached_sum_krevd)}
               </span>
-              <span className="text-pkt-text-body-subtle text-[10px] mx-0.5">/</span>
-              <span className="font-mono text-xs text-pkt-text-body-subtle">
+              <span className="text-pkt-text-body-subtle text-bento-label mx-0.5">/</span>
+              <span className="font-mono text-bento-body text-pkt-text-body-subtle">
                 {formatCurrencyCompact(item.cached_sum_godkjent)}
               </span>
             </div>
             {/* Frist */}
             <div className="col-span-2 text-right">
-              <span className="font-mono text-xs text-pkt-text-body-default">
+              <span className="font-mono text-bento-body text-pkt-text-body-default">
                 {formatDaysCompact(item.cached_dager_krevd)}
               </span>
-              <span className="text-pkt-text-body-subtle text-[10px] mx-0.5">/</span>
-              <span className="font-mono text-xs text-pkt-text-body-subtle">
+              <span className="text-pkt-text-body-subtle text-bento-label mx-0.5">/</span>
+              <span className="font-mono text-bento-body text-pkt-text-body-subtle">
                 {formatDaysCompact(item.cached_dager_godkjent)}
               </span>
             </div>
             {/* Date */}
             <div className="col-span-2 text-right">
-              <span className="text-xs text-pkt-text-body-subtle tabular-nums">
+              <span className="text-bento-body text-pkt-text-body-subtle tabular-nums">
                 {formatDateShort(item.last_event_at)}
               </span>
             </div>
@@ -487,10 +487,10 @@ function CaseRow({
         /* Compact: merged ID/title + dynamic value on mobile, full info on desktop */
         <div className="flex items-center gap-2 min-w-0">
           <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${getStatusDotColor(item.cached_status)}`} />
-          <span className={`font-mono text-xs shrink-0 ${typeTag.className}`}>
+          <span className={`font-mono text-bento-body shrink-0 ${typeTag.className}`}>
             {formatSakId(item.sak_id, item.sakstype)}
           </span>
-          <p className="text-sm font-medium text-pkt-text-body-dark truncate min-w-0 flex-1">
+          <p className="text-bento-body font-medium text-pkt-text-body-dark truncate min-w-0 flex-1">
             {item.cached_title || 'Uten tittel'}
           </p>
           {/* Mobile: dynamic value */}
@@ -498,10 +498,10 @@ function CaseRow({
             {getDynamicValue(item, sortBy)}
           </span>
           {/* Desktop: status + date */}
-          <span className="text-[11px] text-pkt-text-body-subtle shrink-0 hidden sm:inline">
+          <span className="text-bento-caption text-pkt-text-body-subtle shrink-0 hidden sm:inline">
             {getStatusLabel(item.cached_status)}
           </span>
-          <span className="text-xs text-pkt-text-body-subtle shrink-0 tabular-nums hidden sm:inline">
+          <span className="text-bento-body text-pkt-text-body-subtle shrink-0 tabular-nums hidden sm:inline">
             {formatDateShort(item.last_event_at)}
           </span>
         </div>
@@ -613,7 +613,7 @@ export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: Case
       {/* Empty state */}
       {totalFiltered === 0 && allCases.length > 0 && (
         <div className="text-center py-8 px-4">
-          <p className="text-xs text-pkt-text-body-subtle">
+          <p className="text-bento-body text-pkt-text-body-subtle">
             Ingen saker matcher &mdash;{' '}
             <button
               onClick={() => { setSearchQuery(''); setFilter('all'); }}
@@ -632,7 +632,7 @@ export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: Case
             /* ===== EXPANDED: grouped with per-group expand ===== */
             <>
               {/* Column header (desktop) */}
-              <div className="hidden md:grid md:grid-cols-12 gap-3 px-4 py-1.5 text-[10px] font-semibold text-pkt-text-body-subtle uppercase tracking-wider border-t border-pkt-border-subtle">
+              <div className="hidden md:grid md:grid-cols-12 gap-3 px-4 py-1.5 text-bento-label font-semibold text-pkt-text-body-subtle uppercase tracking-wider border-t border-pkt-border-subtle">
                 <div className="col-span-4">Sak</div>
                 <div className="col-span-2">Status</div>
                 <div className="col-span-2 text-right">Vederlag</div>
@@ -651,10 +651,10 @@ export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: Case
                   <div key={group.key}>
                     {groupBy !== 'ingen' && (
                       <div className="flex items-center gap-2 px-4 pt-3 pb-1">
-                        <span className="text-[10px] font-semibold text-pkt-text-body-subtle uppercase tracking-wider">
+                        <span className="text-bento-label font-semibold text-pkt-text-body-subtle uppercase tracking-wider">
                           {group.label}
                         </span>
-                        <span className="text-[10px] text-pkt-text-body-subtle tabular-nums">
+                        <span className="text-bento-label text-pkt-text-body-subtle tabular-nums">
                           {group.cases.length}
                         </span>
                         <div className="flex-1 border-t border-pkt-border-subtle" />
@@ -674,7 +674,7 @@ export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: Case
                     {hiddenCount > 0 && (
                       <button
                         onClick={() => toggleGroup(group.key)}
-                        className="w-full px-4 py-2 text-xs text-pkt-text-action-active hover:bg-pkt-bg-subtle/30 transition-colors text-left"
+                        className="w-full px-4 py-2 text-bento-body text-pkt-text-action-active hover:bg-pkt-bg-subtle/30 transition-colors text-left"
                       >
                         Vis {hiddenCount} flere...
                       </button>
@@ -682,7 +682,7 @@ export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: Case
                     {isGroupExpanded && group.cases.length > EXPANDED_ITEMS_PER_GROUP && (
                       <button
                         onClick={() => toggleGroup(group.key)}
-                        className="w-full px-4 py-2 text-xs text-pkt-text-action-active hover:bg-pkt-bg-subtle/30 transition-colors text-left"
+                        className="w-full px-4 py-2 text-bento-body text-pkt-text-action-active hover:bg-pkt-bg-subtle/30 transition-colors text-left"
                       >
                         Vis mindre
                       </button>
@@ -707,7 +707,7 @@ export function CaseListTile({ cases, allCases, expanded, onToggleExpand }: Case
               {compactHiddenCount > 0 && (
                 <button
                   onClick={onToggleExpand}
-                  className="w-full px-4 py-2.5 text-xs text-pkt-text-action-active hover:bg-pkt-bg-subtle/30 transition-colors text-center"
+                  className="w-full px-4 py-2.5 text-bento-body text-pkt-text-action-active hover:bg-pkt-bg-subtle/30 transition-colors text-center"
                 >
                   +{compactHiddenCount} flere saker
                 </button>

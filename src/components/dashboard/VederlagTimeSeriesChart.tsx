@@ -70,7 +70,7 @@ export function VederlagTimeSeriesChart({ cases, kontraktssum }: VederlagTimeSer
     return (
       <BentoCard colSpan="col-span-12 lg:col-span-5" delay={300}>
         <div className="p-5 flex items-center justify-center min-h-[200px]">
-          <p className="text-xs text-pkt-text-body-subtle">
+          <p className="text-bento-body text-pkt-text-body-subtle">
             Trenger minst 2 saker for å vise tidsserie
           </p>
         </div>
@@ -81,7 +81,7 @@ export function VederlagTimeSeriesChart({ cases, kontraktssum }: VederlagTimeSer
   return (
     <BentoCard colSpan="col-span-12 lg:col-span-5" delay={300}>
       <div className="p-5">
-        <p className="text-xs font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
+        <p className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-3">
           Vederlag over tid
         </p>
         <ResponsiveContainer width="100%" height={200}>

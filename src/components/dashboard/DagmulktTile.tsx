@@ -65,25 +65,25 @@ export function DagmulktTile({
   return (
     <BentoCard colSpan="col-span-12 sm:col-span-6 lg:col-span-3" delay={100}>
       <div className={`p-4 h-full ${bgColor}`}>
-        <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-2">
+        <p className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-2">
           Dagmulkt
         </p>
 
         {delayDays > 0 ? (
           <>
-            <p className={`text-lg font-bold font-mono tabular-nums leading-tight ${severityColor}`}>
+            <p className={`text-bento-kpi font-bold font-mono tabular-nums leading-tight ${severityColor}`}>
               {formatCurrencyCompact(exposure)}
             </p>
-            <p className="text-[10px] text-pkt-text-body-subtle mt-1">
+            <p className="text-bento-label text-pkt-text-body-subtle mt-1">
               {delayDays}d &times; {formatCurrency(contract.dagmulkt_sats)}/d
             </p>
           </>
         ) : (
           <>
-            <p className={`text-sm font-bold ${severityColor}`}>
+            <p className={`text-bento-kpi font-bold ${severityColor}`}>
               Ingen forsinkelse
             </p>
-            <p className="text-[10px] text-pkt-text-body-subtle mt-1">
+            <p className="text-bento-label text-pkt-text-body-subtle mt-1">
               Sats: {formatCurrencyCompact(contract.dagmulkt_sats)}/d
             </p>
           </>
@@ -91,16 +91,16 @@ export function DagmulktTile({
 
         {/* Forsering section */}
         <div className="mt-3 pt-3 border-t border-current/10">
-          <p className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-1">
+          <p className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-1">
             Forsering
           </p>
           {hasForsering ? (
             <>
               <div className="flex items-baseline gap-1">
-                <span className="text-xs font-bold font-mono tabular-nums text-pkt-text-body-default">
+                <span className="text-bento-body font-bold font-mono tabular-nums text-pkt-text-body-default">
                   {formatCurrencyCompact(forseringPaalopt)}
                 </span>
-                <span className="text-[10px] text-pkt-text-body-subtle">
+                <span className="text-bento-label text-pkt-text-body-subtle">
                   / {formatCurrencyCompact(forseringMaks)}
                 </span>
               </div>
@@ -122,7 +122,7 @@ export function DagmulktTile({
               </div>
             </>
           ) : (
-            <p className="text-[10px] text-pkt-text-body-subtle">
+            <p className="text-bento-label text-pkt-text-body-subtle">
               Ingen aktiv forsering
             </p>
           )}

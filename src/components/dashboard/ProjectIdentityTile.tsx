@@ -45,15 +45,15 @@ export function ProjectIdentityTile({ projectName, contract, cases, userRole }: 
       <div className="p-4">
         <div className="flex items-center gap-2 mb-2">
           <div className={`w-2 h-2 rounded-full ${health.color} animate-pulse`} />
-          <span className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+          <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
             {health.label}
           </span>
           {pendingCount > 0 && (
             <>
-              <span className="text-pkt-text-body-subtle text-[10px]">&middot;</span>
+              <span className="text-pkt-text-body-subtle text-bento-label">&middot;</span>
               <span className="flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-pkt-brand-yellow-1000 animate-pulse" />
-                <span className="text-[10px] font-medium text-pkt-text-body-default">
+                <span className="text-bento-label font-medium text-pkt-text-body-default">
                   {pendingCount} venter
                 </span>
               </span>
@@ -66,23 +66,23 @@ export function ProjectIdentityTile({ projectName, contract, cases, userRole }: 
         {contract ? (
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-pkt-text-body-subtle w-5">BH</span>
-              <span className="text-xs text-pkt-text-body-default truncate">{contract.byggherre_navn}</span>
+              <span className="text-bento-micro font-semibold uppercase tracking-wider text-pkt-text-body-subtle w-5">BH</span>
+              <span className="text-bento-body text-pkt-text-body-default truncate">{contract.byggherre_navn}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-pkt-text-body-subtle w-5">TE</span>
-              <span className="text-xs text-pkt-text-body-default truncate">{contract.totalentreprenor_navn}</span>
+              <span className="text-bento-micro font-semibold uppercase tracking-wider text-pkt-text-body-subtle w-5">TE</span>
+              <span className="text-bento-body text-pkt-text-body-default truncate">{contract.totalentreprenor_navn}</span>
             </div>
           </div>
         ) : (
-          <p className="text-xs text-pkt-text-body-subtle">NS 8407 Endringsregister</p>
+          <p className="text-bento-body text-pkt-text-body-subtle">NS 8407 Endringsregister</p>
         )}
 
         {/* Actions */}
         <div className="mt-2 pt-2 border-t border-pkt-border-subtle flex gap-1">
           <Link
             to={userRole === 'BH' ? '/endringsordre/ny' : '/saker/ny'}
-            className="flex items-center justify-center gap-1.5 flex-1 px-3 py-1.5 text-xs font-medium text-pkt-text-action-active hover:bg-pkt-bg-subtle rounded-md transition-colors"
+            className="flex items-center justify-center gap-1.5 flex-1 px-3 py-1.5 text-bento-body font-medium text-pkt-text-action-active hover:bg-pkt-bg-subtle rounded-md transition-colors"
           >
             <PlusIcon className="w-3.5 h-3.5" />
             {userRole === 'BH' ? 'Ny endringsordre' : 'Nytt krav om endring'}
@@ -90,7 +90,7 @@ export function ProjectIdentityTile({ projectName, contract, cases, userRole }: 
           {userRole === 'BH' && (
             <Link
               to="/innstillinger"
-              className="flex items-center justify-center px-2 py-1.5 text-xs text-pkt-text-body-subtle hover:text-pkt-text-action-active hover:bg-pkt-bg-subtle rounded-md transition-colors"
+              className="flex items-center justify-center px-2 py-1.5 text-bento-body text-pkt-text-body-subtle hover:text-pkt-text-action-active hover:bg-pkt-bg-subtle rounded-md transition-colors"
               title="Prosjektinnstillinger"
             >
               <GearIcon className="w-3.5 h-3.5" />
