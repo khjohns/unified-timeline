@@ -31,7 +31,7 @@ import { downloadApprovedPdf } from '../pdf/generator';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
 import { MockToolbar } from '../components/MockToolbar';
-import { CaseMasterCard, BimCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag, BentoRespondFrist, BentoRespondVederlag } from '../components/bento';
+import { CaseMasterCard, BimCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag, BentoRespondFrist, BentoRespondVederlag, VarslingStatusStrip } from '../components/bento';
 import { useGrunnlagBridge } from '../hooks/useGrunnlagBridge';
 import { useFristBridge } from '../hooks/useFristBridge';
 import { useVederlagBridge } from '../hooks/useVederlagBridge';
@@ -885,9 +885,14 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             )}
           </div>
 
-          {/* Right column: Vederlag + Frist stacked */}
+          {/* Right column: Varsling strip + Vederlag + Frist stacked */}
           {!expandedTrack && (
             <div className="col-span-12 md:col-span-6 flex flex-col gap-2 sm:gap-4">
+              <VarslingStatusStrip
+                state={state}
+                userRole={userRole}
+                className="animate-fade-in-up"
+              />
               <div data-onboarding="vederlag-card">
                 <VederlagCard
                   state={state}
