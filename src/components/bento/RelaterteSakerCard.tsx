@@ -1,13 +1,14 @@
 /**
- * RelaterteSakerCard - Compact card showing related forsering and endringsordre cases.
+ * RelaterteSakerCard - Compact card showing related forsering and endringsordre cases,
+ * plus actions to create new ones when conditions are met.
  *
- * Replaces the full-width Alert banners with a bento-integrated card
- * in the left column (above BimCard).
+ * Actions are suppressed when a relation of that type already exists,
+ * since only one EO/forsering per KOE case is relevant.
  */
 
 import { Link } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { RocketIcon, FileTextIcon, ArrowRightIcon } from '@radix-ui/react-icons';
+import { RocketIcon, FileTextIcon, ArrowRightIcon, PlusIcon } from '@radix-ui/react-icons';
 import { Badge } from '../primitives';
 import type { ForseringSomRefererer } from '../../api/forsering';
 import type { EOSomRefererer } from '../../api/endringsordre';
@@ -15,6 +16,10 @@ import type { EOSomRefererer } from '../../api/endringsordre';
 interface RelaterteSakerCardProps {
   forseringer: ForseringSomRefererer[];
   endringsordrer: EOSomRefererer[];
+  canIssueEO?: boolean;
+  canSendForsering?: boolean;
+  onIssueEO?: () => void;
+  onSendForsering?: () => void;
   className?: string;
 }
 
@@ -46,10 +51,23 @@ function getEOStatusBadge(status: string) {
   }
 }
 
-export function RelaterteSakerCard({ forseringer, endringsordrer, className }: RelaterteSakerCardProps) {
-  const hasAny = forseringer.length > 0 || endringsordrer.length > 0;
+export function RelaterteSakerCard({
+  forseringer,
+  endringsordrer,
+  canIssueEO,
+  canSendForsering,
+  onIssueEO,
+  onSendForsering,
+  className,
+}: RelaterteSakerCardProps) {
+  // Suppress actions when a relation of that type already exists
+  const showIssueEO = canIssueEO && endringsordrer.length === 0;
+  const showSendForsering = canSendForsering && forseringer.length === 0;
 
-  if (!hasAny) return null;
+  const hasRelations = forseringer.length > 0 || endringsordrer.length > 0;
+  const hasActions = showIssueEO || showSendForsering;
+
+  if (!hasRelations && !hasActions) return null;
 
   return (
     <div className={clsx('bg-pkt-bg-card rounded', className)}>
@@ -102,6 +120,32 @@ export function RelaterteSakerCard({ forseringer, endringsordrer, className }: R
             <ArrowRightIcon className="w-3.5 h-3.5 text-pkt-text-body-subtle opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-auto" />
           </Link>
         ))}
+        {hasActions && (
+          <>
+            {showIssueEO && (
+              <button
+                onClick={onIssueEO}
+                className="flex items-center gap-2 px-3 py-2.5 w-full text-left hover:bg-pkt-bg-subtle transition-colors group"
+              >
+                <PlusIcon className="w-4 h-4 text-badge-info-text shrink-0" />
+                <span className="text-sm font-medium text-badge-info-text">
+                  Utsted endringsordre
+                </span>
+              </button>
+            )}
+            {showSendForsering && (
+              <button
+                onClick={onSendForsering}
+                className="flex items-center gap-2 px-3 py-2.5 w-full text-left hover:bg-pkt-bg-subtle transition-colors group"
+              >
+                <PlusIcon className="w-4 h-4 text-badge-warning-text shrink-0" />
+                <span className="text-sm font-medium text-badge-warning-text">
+                  Forsering (§33.8)
+                </span>
+              </button>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

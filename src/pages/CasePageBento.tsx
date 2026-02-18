@@ -869,6 +869,10 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                 <RelaterteSakerCard
                   forseringer={forseringData?.forseringer ?? []}
                   endringsordrer={endringsordreData?.endringsordrer ?? []}
+                  canIssueEO={userRole === 'BH' && actions.canIssueEO}
+                  canSendForsering={userRole === 'TE' && actions.canSendForsering}
+                  onIssueEO={() => modals.utstEO.setOpen(true)}
+                  onSendForsering={() => modals.sendForsering.setOpen(true)}
                   className="mt-2 sm:mt-3 animate-fade-in-up"
                 />
                 <div className="mt-2 sm:mt-3">
