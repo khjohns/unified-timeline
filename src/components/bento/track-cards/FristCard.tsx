@@ -402,12 +402,22 @@ export function FristCard({
 
             return (
               <div className="mt-2 pt-2 space-y-3">
-                <hr className="border-pkt-border-subtle mx-1" />
-
                 {/* Forespørsel alert */}
                 {teEditState.showForesporselAlert && (
                   <div className="bg-alert-warning-bg text-alert-warning-text rounded-sm px-2 py-1 text-bento-caption">
                     Svar på forespørsel fra byggherre (§33.6.2)
+                  </div>
+                )}
+
+                {/* Explainer for varsel vs krav */}
+                {teEditState.showSegmentedControl && (
+                  <div>
+                    <p className="text-bento-label font-semibold text-pkt-text-body-default mb-0.5">Velg type henvendelse</p>
+                    <p className="text-bento-caption text-pkt-text-body-subtle">
+                      <span className="font-medium text-pkt-text-body-default">Varsel</span> (§33.4) melder fra om at et forhold kan gi rett til fristforlengelse, selv om omfanget ikke er klart ennå.
+                      <br />
+                      <span className="font-medium text-pkt-text-body-default">Krav</span> (§33.6.1) angir og begrunner antall dager.
+                    </p>
                   </div>
                 )}
 
