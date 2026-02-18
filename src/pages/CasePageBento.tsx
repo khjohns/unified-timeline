@@ -28,10 +28,9 @@ import { Alert, Button, AlertDialog, DropdownMenuItem, useToast } from '../compo
 import { PageHeader } from '../components/PageHeader';
 import { formatCurrency } from '../utils/formatters';
 import { downloadApprovedPdf } from '../pdf/generator';
-import { ForseringRelasjonBanner } from '../components/forsering';
-import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
+import { UtstEndringsordreModal } from '../components/endringsordre';
 import { MockToolbar } from '../components/MockToolbar';
-import { CaseMasterCard, BimCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag, BentoRespondFrist, BentoRespondVederlag, VarslingStatusStrip } from '../components/bento';
+import { CaseMasterCard, BimCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag, BentoRespondFrist, BentoRespondVederlag, VarslingStatusStrip, RelaterteSakerCard } from '../components/bento';
 import { useGrunnlagBridge } from '../hooks/useGrunnlagBridge';
 import { useFristBridge } from '../hooks/useFristBridge';
 import { useVederlagBridge } from '../hooks/useVederlagBridge';
@@ -788,19 +787,6 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 min-h-[calc(100vh-88px)]">
         <div className="grid grid-cols-12 gap-2 sm:gap-4">
 
-          {/* Banners (full width) */}
-          {((forseringData?.forseringer && forseringData.forseringer.length > 0) ||
-            (endringsordreData?.endringsordrer && endringsordreData.endringsordrer.length > 0)) && (
-            <div className="col-span-12 space-y-2">
-              {forseringData?.forseringer && forseringData.forseringer.length > 0 && (
-                <ForseringRelasjonBanner forseringer={forseringData.forseringer} />
-              )}
-              {endringsordreData?.endringsordrer && endringsordreData.endringsordrer.length > 0 && (
-                <EndringsordreRelasjonBanner endringsordrer={endringsordreData.endringsordrer} />
-              )}
-            </div>
-          )}
-
           {/* Cross-track activity strip (top of page) */}
           <div className="col-span-12">
             <CrossTrackActivity
@@ -879,9 +865,16 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
               className="animate-fade-in-up"
             />
             {!expandedTrack && (
-              <div className="mt-2 sm:mt-3">
-                <BimCard sakId={sakId} className="animate-fade-in-up" />
-              </div>
+              <>
+                <RelaterteSakerCard
+                  forseringer={forseringData?.forseringer ?? []}
+                  endringsordrer={endringsordreData?.endringsordrer ?? []}
+                  className="mt-2 sm:mt-3 animate-fade-in-up"
+                />
+                <div className="mt-2 sm:mt-3">
+                  <BimCard sakId={sakId} className="animate-fade-in-up" />
+                </div>
+              </>
             )}
           </div>
 
