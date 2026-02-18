@@ -292,7 +292,13 @@ export function useFristSubmissionBridge(
     scenario, grunnlagEventId, harMottattForesporsel, eventType, mutation, toast,
   ]);
 
-  const submitLabel = mutation.isPending ? 'Sender...' : 'Send krav';
+  const submitLabel = (() => {
+    if (mutation.isPending) return 'Sender...';
+    if (varselType === 'varsel') return 'Send varsel';
+    if (scenario === 'foresporsel') return 'Send svar';
+    if (scenario === 'edit') return 'Oppdater krav';
+    return 'Send krav';
+  })();
 
   // ========== RETURN (L11: cardProps + editorProps) ==========
   return {

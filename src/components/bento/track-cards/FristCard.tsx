@@ -456,10 +456,10 @@ export function FristCard({
                     />
                     <InlineDatePicker
                       label="Ny sluttdato"
+                      subtitle="valgfritt"
                       value={teEditState.nySluttdato}
                       onChange={(v) => teEditState.onNySluttdatoChange(v)}
                       disabled={teEditState.isSubmitting}
-                      helperText="Valgfritt"
                     />
                   </div>
                 )}
