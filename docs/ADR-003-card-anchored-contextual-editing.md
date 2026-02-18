@@ -646,6 +646,55 @@ src/hooks/__tests__/useFristBridge.test.ts    ← integrasjonstester
 Domene-testene er raske, krever ingen providers, og dokumenterer
 NS 8407-reglene eksplisitt. Bridge-testene fokuserer på React-wiring.
 
+### L18: isEmpty-guard må sjekke editState
+
+**Problem:** Ved TE-innsending på et tomt kort (ny sak, status = 'utkast')
+viste kortet bare «Ingen data ennå» selv om `teEditState` var aktivt.
+`isEmpty`-sjekken blokkerte all rendering av edit-kontroller.
+
+**Løsning:** Kort med edit-modus må sjekke `isEmpty && !editState && !teEditState`
+— ikke bare `isEmpty`. VederlagCard hadde allerede dette riktig (`isEmpty && !editState`),
+men FristCard manglet det. Regelen er enkel: **et tomt kort med aktiv editState
+er ikke tomt — det er et skjema.**
+
+### L19: Bento-primitiver kan ikke wrappe standard primitiver blindt
+
+**Problem:** `InlineDatePicker` wrappet `DatePicker`-primitiven med `width="sm"`,
+men DatePicker-triggeren har `px-4 py-3 min-h-[40px] border-2` — alt for
+stor for bento-konteksten der InlineYesNo og InlineNumberInput bruker
+`px-2 py-0.5 rounded-md border`.
+
+**Løsning:** `InlineDatePicker` bygger sin egen kompakte trigger
+(`px-2 py-0.5 text-bento-body font-mono`) og bruker Radix Popover + DayPicker
+direkte — uten å endre den standard `DatePicker`-primitiven.
+
+**Regel:** Bento-inline-primitiver som trenger vesentlig annen sizing enn
+standard-primitiven bør bygge egen trigger fremfor å wrappe. Kalender-popover
+og DayPicker kan gjenbrukes; det er triggeren som trenger tilpasning.
+
+### L20: TE-innsending gjenbruker BH-mønsteret med minimale tilpasninger
+
+**Problem:** TE-innsending (send krav) og BH-respons (vurder krav) er
+ulike domeneoperasjoner, men deler identisk arkitekturmønster. Var usikker
+på om card-anchored ville fungere for TE, spesielt for tomt kort.
+
+**Erfaring:** ADR-003-mønsteret fungerer uendret for TE:
+
+| Aspekt | BH-respons | TE-innsending |
+|--------|-----------|---------------|
+| Domene | `fristDomain.ts` | `fristSubmissionDomain.ts` |
+| Bridge | `useFristBridge.ts` | `useFristSubmissionBridge.ts` |
+| Formpanel | `BentoRespondFrist.tsx` | `BentoSubmitFrist.tsx` |
+| Kort-prop | `editState` | `teEditState` |
+| Begrunnelse | Auto-generert (L5) | Manuelt skrevet |
+
+Eneste signifikante forskjell: TE trenger `InlineSegmentedControl` for
+kravtype-valg og `InlineDatePicker` for datoer — nye bento-primitiver
+som følger eksisterende InlineYesNo/InlineNumberInput-mønster.
+
+**Anbefaling:** Grunnlag og vederlag TE-innsending bør følge
+samme tilnærming. Opprett sjekkliste som for BH (se under).
+
 ---
 
 ## Konsekvenser
@@ -780,7 +829,50 @@ Basert på lærdom fra grunnlag- og frist-implementeringen:
 | `src/components/bento/BentoRespondVederlag.tsx` | Ren begrunnelse-editor for vederlag (~60 linjer) | Komponent |
 | `src/pages/CasePageBento.tsx` | Koordinering og layout | Komponent |
 
+### TE-innsending (card-anchored)
+
+| Fil | Rolle | Lag |
+|-----|-------|----|
+| `src/domain/fristSubmissionDomain.ts` | NS 8407 frist-innsending regler | Domene |
+| `src/hooks/useFristSubmissionBridge.ts` | Bridge-hook for TE frist-innsending | Bridge |
+| `src/components/bento/BentoSubmitFrist.tsx` | Ren begrunnelse-editor for TE frist (~50 linjer) | Komponent |
+| `src/components/bento/InlineSegmentedControl.tsx` | Pill-tabs for kravtype-valg | Bento-primitiv |
+| `src/components/bento/InlineDatePicker.tsx` | Kompakt datopicker med egen trigger | Bento-primitiv |
+
+---
+
+## Sjekkliste for TE-innsending (grunnlag + vederlag)
+
+Basert på lærdom fra TE frist-implementeringen:
+
+**Domenelag (L14):**
+- [ ] Opprett `src/domain/grunnlagSubmissionDomain.ts`
+- [ ] Opprett `src/domain/vederlagSubmissionDomain.ts`
+- [ ] Skriv domene-tester først (L17)
+
+**Bridge-hook:**
+- [ ] `useGrunnlagSubmissionBridge` / `useVederlagSubmissionBridge`
+- [ ] Ingen auto-begrunnelse — TE skriver selv (ikke L5)
+- [ ] Konsolidert FormState (L1), state-during-render reset (L2)
+- [ ] Bridge eier submit, backup, toast (L12)
+
+**Kort:**
+- [ ] `teEditState`-prop (L6) — parallelt med eksisterende `editState`
+- [ ] **isEmpty-guard inkluderer teEditState** (L18) — `isEmpty && !editState && !teEditState`
+- [ ] Seksjonerte kontroller med §-overskrifter (L7)
+- [ ] Dynamisk submitLabel basert på kontekst
+
+**Primitiver:**
+- [ ] Gjenbruk `InlineSegmentedControl` og `InlineDatePicker` (allerede opprettet)
+- [ ] Nye bento-primitiver bygger egen trigger, ikke wrapper (L19)
+
+**CasePageBento:**
+- [ ] Scenario-derivasjon fra `expandedTrack.action`
+- [ ] Card-anchored layout (kort høyre, form venstre) (L8, L15)
+
 ### Relaterte dokumenter
 
 - Implementeringsplan: `docs/plans/2026-02-15-card-anchored-vederlag-frist.md`
 - Bento-design: `docs/plans/2026-02-13-bento-casepage-design.md`
+- TE frist design: `docs/plans/2026-02-18-te-frist-card-anchored-design.md`
+- TE frist plan: `docs/plans/2026-02-18-te-frist-card-anchored-plan.md`
