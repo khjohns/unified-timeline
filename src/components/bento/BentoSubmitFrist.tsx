@@ -8,20 +8,11 @@
  */
 
 import { Textarea } from '../primitives';
+import type { FristTeEditorProps } from '../../hooks/useFristSubmissionBridge';
 
 // ============================================================================
 // TYPES
 // ============================================================================
-
-// Defined locally until useFristSubmissionBridge.ts is available (Task 4).
-// TODO: Replace with: import type { FristTeEditorProps } from '../../hooks/useFristSubmissionBridge';
-export interface FristTeEditorProps {
-  begrunnelse: string;
-  onBegrunnelseChange: (v: string) => void;
-  begrunnelseError: string | undefined;
-  placeholder: string;
-  required: boolean;
-}
 
 export interface BentoSubmitFristProps {
   editorProps: FristTeEditorProps;
