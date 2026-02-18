@@ -134,8 +134,11 @@ export function useFristSubmissionBridge(
   );
 
   // ========== RESET (state-during-render per L2) ==========
+  // Uses ref + state-during-render pattern matching useFristBridge.ts.
+  // The ref write during render is intentional — it's a one-shot flag
+  // consumed by the effect below and is part of the L2 pattern.
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
-  const [restoredBackup, setRestoredBackup] = useState(false);
+  const restoredBackupRef = useRef(false);
 
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);
@@ -144,7 +147,8 @@ export function useFristSubmissionBridge(
       const backup = getBackup();
       if (backup?.begrunnelse) {
         setFormState({ ...defaults, begrunnelse: backup.begrunnelse });
-        setRestoredBackup(true);
+        // eslint-disable-next-line react-hooks/refs -- L2 pattern: one-shot flag for post-render effect
+        restoredBackupRef.current = true;
       } else {
         setFormState(defaults);
       }
@@ -153,13 +157,12 @@ export function useFristSubmissionBridge(
   }
 
   // Show toast after backup restore
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- Clearing one-shot flag after showing toast
   useEffect(() => {
-    if (restoredBackup) {
-      setRestoredBackup(false);
+    if (restoredBackupRef.current) {
+      restoredBackupRef.current = false;
       toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
     }
-  }, [restoredBackup, toast]);
+  }, [isOpen, toast]);
 
   // ========== DESTRUCTURE ==========
   const {
