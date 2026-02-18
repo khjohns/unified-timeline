@@ -117,7 +117,7 @@ export function FristCard({
         )}
       </div>
 
-      {isEmpty ? (
+      {isEmpty && !editState && !teEditState ? (
         <p className="text-bento-body text-pkt-text-body-muted italic">Ingen data enn&aring;</p>
       ) : (
         <>
