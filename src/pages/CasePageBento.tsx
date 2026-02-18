@@ -888,13 +888,11 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
           {/* Right column: Varsling strip + Vederlag + Frist stacked */}
           {!expandedTrack && (
             <div className="col-span-12 md:col-span-6 flex flex-col gap-2 sm:gap-4">
-              {!grunnlagIkkeSendt && (
-                <VarslingStatusStrip
-                  state={state}
-                  userRole={userRole}
-                  className="animate-fade-in-up"
-                />
-              )}
+              <VarslingStatusStrip
+                state={state}
+                userRole={userRole}
+                className="animate-fade-in-up"
+              />
               <div data-onboarding="vederlag-card">
                 <VederlagCard
                   state={state}
