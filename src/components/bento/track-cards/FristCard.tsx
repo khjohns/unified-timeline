@@ -1,6 +1,6 @@
 import { clsx } from 'clsx';
 import { CheckIcon, Cross2Icon } from '@radix-ui/react-icons';
-import type { SakState } from '../../../types/timeline';
+import type { SakState, FristVarselType } from '../../../types/timeline';
 import type { AvailableActions } from '../../../hooks/useActionPermissions';
 import { formatDateShort } from '../../../utils/formatters';
 import { Alert, Button, Tooltip } from '../../primitives';
@@ -14,7 +14,10 @@ import { TokenExpiredAlert } from '../../alerts/TokenExpiredAlert';
 import type { SporHistoryEntry } from '../../views/SporHistory';
 import { InlineYesNo } from '../InlineYesNo';
 import { InlineNumberInput } from '../InlineNumberInput';
+import { InlineSegmentedControl } from '../InlineSegmentedControl';
+import { InlineDatePicker } from '../InlineDatePicker';
 import type { FristEditState } from '../../../hooks/useFristBridge';
+import type { FristTeEditState } from '../../../hooks/useFristSubmissionBridge';
 
 interface FristCardProps {
   state: SakState;
@@ -28,6 +31,7 @@ interface FristCardProps {
   primaryAction?: { label: string; onClick: () => void };
   secondaryActions?: { label: string; onClick: () => void; variant?: 'default' | 'danger' }[];
   editState?: FristEditState | null;
+  teEditState?: FristTeEditState | null;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -44,6 +48,7 @@ export function FristCard({
   primaryAction,
   secondaryActions,
   editState,
+  teEditState,
   className,
   style,
 }: FristCardProps) {
@@ -80,13 +85,13 @@ export function FristCard({
     <div
       className={clsx(
         'rounded-lg p-3',
-        editState ? 'bg-pkt-bg-card ring-2 ring-pkt-brand-warm-blue-1000/30' : 'bg-bento-frist',
+        editState || teEditState ? 'bg-pkt-bg-card ring-2 ring-pkt-brand-warm-blue-1000/30' : 'bg-bento-frist',
         className,
       )}
       style={style}
     >
       {/* Header */}
-      <div className={clsx('flex items-center justify-between mb-2', editState && 'bg-bento-frist -mx-3 -mt-3 px-3 pt-3 pb-2 rounded-t-lg')}>
+      <div className={clsx('flex items-center justify-between mb-2', (editState || teEditState) && 'bg-bento-frist -mx-3 -mt-3 px-3 pt-3 pb-2 rounded-t-lg')}>
         <div className="flex items-baseline gap-1">
           <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
             Fristforlengelse
@@ -98,10 +103,10 @@ export function FristCard({
             </span>
           )}
         </div>
-        {editState ? (
+        {editState || teEditState ? (
           <button
             type="button"
-            onClick={editState.onClose}
+            onClick={(editState ?? teEditState)!.onClose}
             className="p-1 rounded-sm text-pkt-text-body-subtle hover:text-pkt-text-body-default hover:bg-pkt-bg-subtle transition-colors"
             aria-label="Lukk"
           >
@@ -142,7 +147,7 @@ export function FristCard({
                 </span>
               </div>
             )}
-            {f.ny_sluttdato && !editState && (
+            {f.ny_sluttdato && !editState && !teEditState && (
               <div className="flex justify-between items-baseline">
                 <span className="text-bento-caption text-pkt-text-body-subtle">Ny sluttdato</span>
                 <span className="text-bento-body font-mono font-semibold text-pkt-brand-warm-blue-1000">
@@ -376,6 +381,137 @@ export function FristCard({
             );
           })()}
 
+          {/* Inline controls when in TE edit mode */}
+          {teEditState && (() => {
+            const tooltipTexts = {
+              varsel: 'Oppstår forhold som gir rett til fristforlengelse, må parten varsle uten ugrunnet opphold (§33.4). Varsles det ikke i tide, tapes kravet.',
+              krav: 'Når parten har grunnlag for å beregne omfanget, må han angi og begrunne antall dager uten ugrunnet opphold (§33.6.1). Fremsettes ikke kravet i tide, har parten bare krav på slik fristforlengelse som motparten måtte forstå.',
+            };
+            const sectionHeader = (title: string, tooltip: string) => (
+              <div className="flex items-center gap-1">
+                <span className="text-bento-label font-semibold text-pkt-text-body-default uppercase tracking-wide">
+                  {title}
+                </span>
+                <Tooltip content={tooltip} side="right">
+                  <button type="button" className="text-pkt-text-placeholder hover:text-pkt-text-body-default cursor-help">
+                    <InfoCircledIcon className="w-3 h-3" />
+                  </button>
+                </Tooltip>
+              </div>
+            );
+
+            return (
+              <div className="mt-2 pt-2 space-y-3">
+                <hr className="border-pkt-border-subtle mx-1" />
+
+                {/* Forespørsel alert */}
+                {teEditState.showForesporselAlert && (
+                  <div className="bg-alert-warning-bg text-alert-warning-text rounded-sm px-2 py-1 text-bento-caption">
+                    Svar på forespørsel fra byggherre (§33.6.2)
+                  </div>
+                )}
+
+                {/* Segmented control for kravtype */}
+                {teEditState.showSegmentedControl && (
+                  <InlineSegmentedControl
+                    options={teEditState.segmentOptions}
+                    value={teEditState.varselType}
+                    onChange={(v) => teEditState.onVarselTypeChange(v as FristVarselType)}
+                    disabled={teEditState.isSubmitting}
+                  />
+                )}
+
+                {/* §33.4 Varsel section */}
+                {teEditState.showVarselSection && (
+                  <div className="space-y-1">
+                    {sectionHeader('§33.4 Varsel', tooltipTexts.varsel)}
+                    <InlineYesNo
+                      label="Tidligere varslet?"
+                      value={teEditState.tidligereVarslet}
+                      onChange={teEditState.onTidligereVarsletChange}
+                      disabled={teEditState.isSubmitting}
+                    />
+                    {teEditState.tidligereVarslet && (
+                      <InlineDatePicker
+                        label="Varseldato"
+                        value={teEditState.varselDato}
+                        onChange={teEditState.onVarselDatoChange}
+                        disabled={teEditState.isSubmitting}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* §33.6.1 Krav section */}
+                {teEditState.showKravSection && (
+                  <div className="space-y-1">
+                    {sectionHeader('§33.6.1 Krav', tooltipTexts.krav)}
+                    <InlineNumberInput
+                      label="Kalenderdager"
+                      value={teEditState.antallDager}
+                      onChange={teEditState.onAntallDagerChange}
+                      min={1}
+                      suffix="d"
+                      disabled={teEditState.isSubmitting}
+                    />
+                    <InlineDatePicker
+                      label="Ny sluttdato"
+                      value={teEditState.nySluttdato}
+                      onChange={(v) => teEditState.onNySluttdatoChange(v)}
+                      disabled={teEditState.isSubmitting}
+                      helperText="Valgfritt"
+                    />
+                  </div>
+                )}
+
+                {/* Preklusjonsvarsel */}
+                {teEditState.preklusjonsvarsel && (
+                  <div className={clsx(
+                    'rounded-sm px-2 py-1 text-bento-caption',
+                    teEditState.preklusjonsvarsel.variant === 'danger'
+                      ? 'bg-alert-danger-bg text-alert-danger-text'
+                      : 'bg-alert-warning-bg text-alert-warning-text',
+                  )}>
+                    ⚠️ {teEditState.preklusjonsvarsel.dager} dager siden oppdaget
+                  </div>
+                )}
+
+                {/* Token expired */}
+                <TokenExpiredAlert open={teEditState.showTokenExpired} onClose={teEditState.onTokenExpiredClose} />
+
+                {/* Submit error */}
+                {teEditState.submitError && (
+                  <Alert variant="danger" size="sm" title="Feil ved innsending">
+                    {teEditState.submitError}
+                  </Alert>
+                )}
+
+                {/* Submit footer */}
+                <hr className="border-pkt-border-subtle mx-1" />
+                <div className="pt-3 flex flex-col-reverse sm:flex-row sm:justify-between gap-1">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="xs"
+                    onClick={teEditState.onClose}
+                    disabled={teEditState.isSubmitting}
+                  >
+                    Avbryt
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="xs"
+                    onClick={teEditState.onSubmit}
+                    disabled={!teEditState.canSubmit || teEditState.isSubmitting}
+                  >
+                    {teEditState.submitLabel}
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* KPI row + progress bar — when BH has responded (read-only mode only) */}
           {!editState && hasBhResponse && hasDays && godkjentDager != null && (
             <div className="mt-2 pt-2">
@@ -422,7 +558,7 @@ export function FristCard({
       <TrackHistory entries={entries} />
 
       {/* CTA strip — hidden when in edit mode */}
-      {!editState && (
+      {!editState && !teEditState && (
         <TrackCTA
           spor="frist"
           status={status}
