@@ -14,7 +14,7 @@
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import type { FristVarselType } from '../types/timeline';
+import type { EventType, FristVarselType } from '../types/timeline';
 import { useSubmitEvent } from './useSubmitEvent';
 import { useFormBackup } from './useFormBackup';
 import { useCatendaStatusHandler } from './useCatendaStatusHandler';
@@ -135,7 +135,7 @@ export function useFristSubmissionBridge(
 
   // ========== RESET (state-during-render per L2) ==========
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
-  const restoredBackupRef = useRef(false);
+  const [restoredBackup, setRestoredBackup] = useState(false);
 
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);
@@ -144,7 +144,7 @@ export function useFristSubmissionBridge(
       const backup = getBackup();
       if (backup?.begrunnelse) {
         setFormState({ ...defaults, begrunnelse: backup.begrunnelse });
-        restoredBackupRef.current = true;
+        setRestoredBackup(true);
       } else {
         setFormState(defaults);
       }
@@ -153,12 +153,13 @@ export function useFristSubmissionBridge(
   }
 
   // Show toast after backup restore
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Clearing one-shot flag after showing toast
   useEffect(() => {
-    if (restoredBackupRef.current) {
-      restoredBackupRef.current = false;
+    if (restoredBackup) {
+      setRestoredBackup(false);
       toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
     }
-  }, [isOpen, toast]);
+  }, [restoredBackup, toast]);
 
   // ========== DESTRUCTURE ==========
   const {
@@ -280,7 +281,7 @@ export function useFristSubmissionBridge(
 
     const eventData = domain.buildEventData(formState, buildConfig);
     mutation.mutate({
-      eventType: eventType as any,
+      eventType: eventType as EventType,
       data: eventData,
     });
   }, [
