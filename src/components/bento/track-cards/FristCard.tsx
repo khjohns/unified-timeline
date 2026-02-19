@@ -121,41 +121,43 @@ export function FristCard({
         <p className="text-bento-body text-pkt-text-body-muted italic">Ingen data enn&aring;</p>
       ) : (
         <>
-          {/* Key-value rows */}
-          <div className="space-y-1">
-            {hasDays && !hasBhResponse && (
-              <div className="flex justify-between items-baseline">
-                <span className="text-bento-caption text-pkt-text-body-subtle">Krevd</span>
-                <span className="text-bento-body font-mono font-medium text-pkt-text-body-default tabular-nums">
-                  {f.krevd_dager}d
-                </span>
-              </div>
-            )}
-            {(hasVarselOnly || (hasDays && f.frist_varsel?.dato_sendt)) && (
-              <div className="flex justify-between items-baseline">
-                <span className="text-bento-caption text-pkt-text-body-subtle">Varslet §33.4</span>
-                <span className="text-bento-body font-mono text-pkt-text-body-default">
-                  {formatDateShort(f.frist_varsel!.dato_sendt)}
-                </span>
-              </div>
-            )}
-            {f.spesifisert_varsel?.dato_sendt && (
-              <div className="flex justify-between items-baseline">
-                <span className="text-bento-caption text-pkt-text-body-subtle">Krav §33.6.1</span>
-                <span className="text-bento-body font-mono text-pkt-text-body-default">
-                  {formatDateShort(f.spesifisert_varsel.dato_sendt)}
-                </span>
-              </div>
-            )}
-            {f.ny_sluttdato && !editState && !teEditState && (
-              <div className="flex justify-between items-baseline">
-                <span className="text-bento-caption text-pkt-text-body-subtle">Ny sluttdato</span>
-                <span className="text-bento-body font-mono font-semibold text-pkt-brand-warm-blue-1000">
-                  {formatDateShort(f.ny_sluttdato)}
-                </span>
-              </div>
-            )}
-          </div>
+          {/* Key-value rows — hidden during TE edit (values are in the edit form) */}
+          {!teEditState && (
+            <div className="space-y-1">
+              {hasDays && !hasBhResponse && (
+                <div className="flex justify-between items-baseline">
+                  <span className="text-bento-caption text-pkt-text-body-subtle">Krevd</span>
+                  <span className="text-bento-body font-mono font-medium text-pkt-text-body-default tabular-nums">
+                    {f.krevd_dager}d
+                  </span>
+                </div>
+              )}
+              {(hasVarselOnly || (hasDays && f.frist_varsel?.dato_sendt)) && (
+                <div className="flex justify-between items-baseline">
+                  <span className="text-bento-caption text-pkt-text-body-subtle">Varslet §33.4</span>
+                  <span className="text-bento-body font-mono text-pkt-text-body-default">
+                    {formatDateShort(f.frist_varsel!.dato_sendt)}
+                  </span>
+                </div>
+              )}
+              {f.spesifisert_varsel?.dato_sendt && (
+                <div className="flex justify-between items-baseline">
+                  <span className="text-bento-caption text-pkt-text-body-subtle">Krav §33.6.1</span>
+                  <span className="text-bento-body font-mono text-pkt-text-body-default">
+                    {formatDateShort(f.spesifisert_varsel.dato_sendt)}
+                  </span>
+                </div>
+              )}
+              {f.ny_sluttdato && !editState && (
+                <div className="flex justify-between items-baseline">
+                  <span className="text-bento-caption text-pkt-text-body-subtle">Ny sluttdato</span>
+                  <span className="text-bento-body font-mono font-semibold text-pkt-brand-warm-blue-1000">
+                    {formatDateShort(f.ny_sluttdato)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Inline controls when in edit mode */}
           {editState && (() => {
