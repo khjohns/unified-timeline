@@ -31,7 +31,7 @@ import { downloadApprovedPdf } from '../pdf/generator';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
 import { MockToolbar } from '../components/MockToolbar';
-import { CaseMasterCard, BimCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag, BentoRespondFrist, BentoRespondVederlag, VarslingStatusStrip, BentoSubmitFrist } from '../components/bento';
+import { CaseMasterCard, BimCard, TrackFormView, CrossTrackActivity, VederlagCard, FristCard, BentoRespondGrunnlag, BentoRespondFrist, BentoRespondVederlag, VarslingStatusStrip } from '../components/bento';
 import { useGrunnlagBridge } from '../hooks/useGrunnlagBridge';
 import { useFristBridge } from '../hooks/useFristBridge';
 import { useFristSubmissionBridge } from '../hooks/useFristSubmissionBridge';
@@ -448,7 +448,8 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
 
   useEffect(() => {
     const ref = isGrunnlagFormOpen ? grunnlagCardRef
-      : (isFristFormOpen || isFristTeFormOpen || isVederlagFormOpen) ? cardAnchoredRef
+      : isFristTeFormOpen ? fristCardRef
+      : (isFristFormOpen || isVederlagFormOpen) ? cardAnchoredRef
       : null;
     if (ref?.current) {
       ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -564,7 +565,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       case 'frist:send':
       case 'frist:update':
       case 'frist:foresporselSvar':
-        return <BentoSubmitFrist editorProps={fristSubmissionBridge.editorProps} />;
+        return null; // Handled internally by FristCard two-column layout
       case 'frist:withdraw':
         return (
           <WithdrawForm
@@ -590,7 +591,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       default:
         return null;
     }
-  }, [expandedTrack, sakId, state, grunnlagStatus, approvalWorkflow, modals.catendaWarning, handleCollapseTrack, grunnlagBridge, fristBridge, fristSubmissionBridge, vederlagBridge]);
+  }, [expandedTrack, sakId, state, grunnlagStatus, approvalWorkflow, modals.catendaWarning, handleCollapseTrack, grunnlagBridge, fristBridge, vederlagBridge]);
 
   // ===== TRACK FORM VIEW METADATA =====
   const getTrackFormMeta = useCallback((expanded: { track: string; action: string }) => {
@@ -854,22 +855,17 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
           )}
 
           {isFristTeFormOpen && (
-            <div ref={cardAnchoredRef} className="col-span-12 grid grid-cols-12 gap-2 sm:gap-4 scroll-mt-4">
-              <div ref={fristCardRef} className="col-span-12 md:col-span-5 md:order-2 md:self-start">
-                <FristCard
-                  state={state}
-                  godkjentDager={godkjentDager ?? undefined}
-                  fristGrad={fristGrad ?? undefined}
-                  isSubsidiary={fristErSubsidiaer}
-                  userRole={userRole}
-                  actions={actions}
-                  entries={fristEntries}
-                  teEditState={fristSubmissionBridge.cardProps}
-                />
-              </div>
-              <div className="col-span-12 md:col-span-7 md:order-1 flex flex-col">
-                {renderExpandedForm()}
-              </div>
+            <div ref={fristCardRef} className="col-span-12 scroll-mt-4">
+              <FristCard
+                state={state}
+                godkjentDager={godkjentDager ?? undefined}
+                fristGrad={fristGrad ?? undefined}
+                isSubsidiary={fristErSubsidiaer}
+                userRole={userRole}
+                actions={actions}
+                entries={fristEntries}
+                teEditState={fristSubmissionBridge.cardProps}
+              />
             </div>
           )}
 

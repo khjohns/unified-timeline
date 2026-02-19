@@ -68,7 +68,7 @@ describe('useFristSubmissionBridge', () => {
     });
     expect(result.current.cardProps.canSubmit).toBe(false);
 
-    act(() => result.current.editorProps.onBegrunnelseChange('Minst ti tegn begrunnelse'));
+    act(() => result.current.cardProps.onBegrunnelseChange('Minst ti tegn begrunnelse'));
     expect(result.current.cardProps.canSubmit).toBe(true);
   });
 
@@ -129,7 +129,7 @@ describe('useFristSubmissionBridge', () => {
     );
     expect(result.current.cardProps.varselType).toBe('spesifisert');
     expect(result.current.cardProps.antallDager).toBe(15);
-    expect(result.current.editorProps.begrunnelse).toBe('Eksisterende begrunnelse for fristkrav');
+    expect(result.current.cardProps.begrunnelse).toBe('Eksisterende begrunnelse for fristkrav');
     expect(result.current.cardProps.nySluttdato).toBe('2026-06-01');
   });
 
@@ -166,13 +166,13 @@ describe('useFristSubmissionBridge', () => {
       { wrapper: createWrapper() },
     );
     // No varselType selected
-    expect(result.current.editorProps.placeholder).toContain('Velg kravtype');
+    expect(result.current.cardProps.begrunnelsePlaceholder).toContain('Velg kravtype');
 
     act(() => result.current.cardProps.onVarselTypeChange('varsel'));
-    expect(result.current.editorProps.placeholder).toContain('valgfritt');
+    expect(result.current.cardProps.begrunnelsePlaceholder).toContain('valgfritt');
 
     act(() => result.current.cardProps.onVarselTypeChange('spesifisert'));
-    expect(result.current.editorProps.placeholder).toContain('§33.5');
+    expect(result.current.cardProps.begrunnelsePlaceholder).toContain('§33.5');
   });
 
   it('marks begrunnelse as required for spesifisert', () => {
@@ -181,7 +181,7 @@ describe('useFristSubmissionBridge', () => {
       { wrapper: createWrapper() },
     );
     act(() => result.current.cardProps.onVarselTypeChange('spesifisert'));
-    expect(result.current.editorProps.required).toBe(true);
+    expect(result.current.cardProps.begrunnelseRequired).toBe(true);
   });
 
   it('marks begrunnelse as not required for varsel', () => {
@@ -190,7 +190,7 @@ describe('useFristSubmissionBridge', () => {
       { wrapper: createWrapper() },
     );
     act(() => result.current.cardProps.onVarselTypeChange('varsel'));
-    expect(result.current.editorProps.required).toBe(false);
+    expect(result.current.cardProps.begrunnelseRequired).toBe(false);
   });
 
   it('clears begrunnelseError on text change', () => {
@@ -202,13 +202,13 @@ describe('useFristSubmissionBridge', () => {
     act(() => result.current.cardProps.onAntallDagerChange(5));
 
     // Force validation error by submitting with short begrunnelse
-    act(() => result.current.editorProps.onBegrunnelseChange('kort'));
+    act(() => result.current.cardProps.onBegrunnelseChange('kort'));
     act(() => result.current.cardProps.onSubmit());
-    expect(result.current.editorProps.begrunnelseError).toBe('Begrunnelse må være minst 10 tegn');
+    expect(result.current.cardProps.begrunnelseError).toBe('Begrunnelse må være minst 10 tegn');
 
     // Typing clears the error
-    act(() => result.current.editorProps.onBegrunnelseChange('kort men endret'));
-    expect(result.current.editorProps.begrunnelseError).toBeUndefined();
+    act(() => result.current.cardProps.onBegrunnelseChange('kort men endret'));
+    expect(result.current.cardProps.begrunnelseError).toBeUndefined();
   });
 
   it('requires begrunnelse for begrunnelse_utsatt', () => {
@@ -218,9 +218,9 @@ describe('useFristSubmissionBridge', () => {
     );
     act(() => result.current.cardProps.onVarselTypeChange('begrunnelse_utsatt'));
     expect(result.current.cardProps.canSubmit).toBe(false);
-    expect(result.current.editorProps.required).toBe(true);
+    expect(result.current.cardProps.begrunnelseRequired).toBe(true);
 
-    act(() => result.current.editorProps.onBegrunnelseChange('Minst ti tegn begrunnelse her'));
+    act(() => result.current.cardProps.onBegrunnelseChange('Minst ti tegn begrunnelse her'));
     expect(result.current.cardProps.canSubmit).toBe(true);
   });
 });

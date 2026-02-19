@@ -63,6 +63,13 @@ export interface FristTeEditState {
   preklusjonsvarsel: { variant: 'warning' | 'danger'; dager: number } | null;
   showForesporselAlert: boolean;
 
+  // Begrunnelse (integrated)
+  begrunnelse: string;
+  onBegrunnelseChange: (v: string) => void;
+  begrunnelseError: string | undefined;
+  begrunnelsePlaceholder: string;
+  begrunnelseRequired: boolean;
+
   // Actions (L12)
   onClose: () => void;
   onSubmit: () => void;
@@ -74,17 +81,8 @@ export interface FristTeEditState {
   onTokenExpiredClose: () => void;
 }
 
-export interface FristTeEditorProps {
-  begrunnelse: string;
-  onBegrunnelseChange: (v: string) => void;
-  begrunnelseError: string | undefined;
-  placeholder: string;
-  required: boolean;
-}
-
 export interface FristSubmissionBridgeReturn {
   cardProps: FristTeEditState;
-  editorProps: FristTeEditorProps;
 }
 
 // ============================================================================
@@ -300,7 +298,7 @@ export function useFristSubmissionBridge(
     return 'Send krav';
   })();
 
-  // ========== RETURN (L11: cardProps + editorProps) ==========
+  // ========== RETURN (L11: unified cardProps) ==========
   return {
     cardProps: {
       // Kravtype
@@ -323,6 +321,13 @@ export function useFristSubmissionBridge(
       onNySluttdatoChange: handleNySluttdatoChange,
       showKravSection: visibility.showKravSection,
 
+      // Begrunnelse
+      begrunnelse,
+      onBegrunnelseChange: handleBegrunnelseChange,
+      begrunnelseError: begrunnelseValidationError,
+      begrunnelsePlaceholder: dynamicPlaceholder,
+      begrunnelseRequired: visibility.begrunnelseRequired,
+
       // Computed
       preklusjonsvarsel,
       showForesporselAlert: visibility.showForesporselAlert,
@@ -338,13 +343,6 @@ export function useFristSubmissionBridge(
       submitLabel,
       showTokenExpired,
       onTokenExpiredClose: () => setShowTokenExpired(false),
-    },
-    editorProps: {
-      begrunnelse,
-      onBegrunnelseChange: handleBegrunnelseChange,
-      begrunnelseError: begrunnelseValidationError,
-      placeholder: dynamicPlaceholder,
-      required: visibility.begrunnelseRequired,
     },
   };
 }

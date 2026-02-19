@@ -3,7 +3,7 @@ import { CheckIcon, Cross2Icon } from '@radix-ui/react-icons';
 import type { SakState, FristVarselType } from '../../../types/timeline';
 import type { AvailableActions } from '../../../hooks/useActionPermissions';
 import { formatDateShort } from '../../../utils/formatters';
-import { Alert, Button, Tooltip } from '../../primitives';
+import { Alert, Button, Tooltip, Textarea } from '../../primitives';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import { getGradColor, isResolved } from './trackCardUtils';
 import { getResultatLabel } from '../../../utils/formatters';
@@ -381,7 +381,7 @@ export function FristCard({
             );
           })()}
 
-          {/* Inline controls when in TE edit mode */}
+          {/* Inline controls when in TE edit mode — two-column: begrunnelse left, controls right */}
           {teEditState && (() => {
             const tooltipTexts = {
               varsel: 'Oppstår forhold som gir rett til fristforlengelse, må parten varsle uten ugrunnet opphold (§33.4). Varsles det ikke i tide, tapes kravet.',
@@ -401,122 +401,154 @@ export function FristCard({
             );
 
             return (
-              <div className="mt-2 pt-2 space-y-3">
-                {/* Forespørsel alert */}
-                {teEditState.showForesporselAlert && (
-                  <div className="bg-alert-warning-bg text-alert-warning-text rounded-sm px-2 py-1 text-bento-caption">
-                    Svar på forespørsel fra byggherre (§33.6.2)
-                  </div>
-                )}
-
-                {/* Explainer for varsel vs krav */}
-                {teEditState.showSegmentedControl && (
-                  <div>
-                    <p className="text-bento-label font-semibold text-pkt-text-body-default mb-0.5">Velg type henvendelse</p>
-                    <p className="text-bento-caption text-pkt-text-body-subtle">
-                      <span className="font-medium text-pkt-text-body-default">Varsel</span> (§33.4) melder fra om at et forhold kan gi rett til fristforlengelse, selv om omfanget ikke er klart ennå.
-                      <br />
-                      <span className="font-medium text-pkt-text-body-default">Krav</span> (§33.6.1) angir og begrunner antall dager.
-                    </p>
-                  </div>
-                )}
-
-                {/* Segmented control for kravtype */}
-                {teEditState.showSegmentedControl && (
-                  <InlineSegmentedControl
-                    options={teEditState.segmentOptions}
-                    value={teEditState.varselType}
-                    onChange={(v) => teEditState.onVarselTypeChange(v as FristVarselType)}
-                    disabled={teEditState.isSubmitting}
-                  />
-                )}
-
-                {/* §33.4 Varsel section */}
-                {teEditState.showVarselSection && (
-                  <div className="space-y-1">
-                    {sectionHeader('§33.4 Varsel', tooltipTexts.varsel)}
-                    <InlineYesNo
-                      label="Tidligere varslet?"
-                      value={teEditState.tidligereVarslet}
-                      onChange={teEditState.onTidligereVarsletChange}
-                      disabled={teEditState.isSubmitting}
-                    />
-                    {teEditState.tidligereVarslet && (
-                      <InlineDatePicker
-                        label="Varseldato"
-                        value={teEditState.varselDato}
-                        onChange={teEditState.onVarselDatoChange}
-                        disabled={teEditState.isSubmitting}
-                      />
+              <div className="mt-2 pt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Left column: Begrunnelse */}
+                <div className="flex flex-col gap-1 md:order-1">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-bento-label font-semibold text-pkt-text-body-default uppercase tracking-wide">
+                      Begrunnelse
+                    </span>
+                    {teEditState.begrunnelseRequired && (
+                      <span className="text-pkt-brand-red-1000">*</span>
                     )}
                   </div>
-                )}
+                  <Textarea
+                    id="frist-te-begrunnelse"
+                    value={teEditState.begrunnelse}
+                    onChange={(e) => teEditState.onBegrunnelseChange(e.target.value)}
+                    rows={10}
+                    fullWidth
+                    error={!!teEditState.begrunnelseError}
+                    placeholder={teEditState.begrunnelsePlaceholder}
+                    className="flex-1"
+                  />
+                  {teEditState.begrunnelseError && (
+                    <p className="text-bento-body font-medium text-pkt-brand-red-1000" role="alert">
+                      {teEditState.begrunnelseError}
+                    </p>
+                  )}
+                </div>
 
-                {/* §33.6.1 Krav section */}
-                {teEditState.showKravSection && (
-                  <div className="space-y-1">
-                    {sectionHeader('§33.6.1 Krav', tooltipTexts.krav)}
-                    <InlineNumberInput
-                      label="Kalenderdager"
-                      value={teEditState.antallDager}
-                      onChange={teEditState.onAntallDagerChange}
-                      min={1}
-                      suffix="d"
+                {/* Right column: Controls */}
+                <div className="space-y-3 md:order-2">
+                  {/* Forespørsel alert */}
+                  {teEditState.showForesporselAlert && (
+                    <div className="bg-alert-warning-bg text-alert-warning-text rounded-sm px-2 py-1 text-bento-caption">
+                      Svar på forespørsel fra byggherre (§33.6.2)
+                    </div>
+                  )}
+
+                  {/* Explainer for varsel vs krav */}
+                  {teEditState.showSegmentedControl && (
+                    <div>
+                      <p className="text-bento-label font-semibold text-pkt-text-body-default mb-0.5">Velg type henvendelse</p>
+                      <p className="text-bento-caption text-pkt-text-body-subtle">
+                        <span className="font-medium text-pkt-text-body-default">Varsel</span> (§33.4) melder fra om at et forhold kan gi rett til fristforlengelse, selv om omfanget ikke er klart ennå.
+                        <br />
+                        <span className="font-medium text-pkt-text-body-default">Krav</span> (§33.6.1) angir og begrunner antall dager.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Segmented control for kravtype */}
+                  {teEditState.showSegmentedControl && (
+                    <InlineSegmentedControl
+                      options={teEditState.segmentOptions}
+                      value={teEditState.varselType}
+                      onChange={(v) => teEditState.onVarselTypeChange(v as FristVarselType)}
                       disabled={teEditState.isSubmitting}
                     />
-                    <InlineDatePicker
-                      label="Ny sluttdato"
-                      subtitle="valgfritt"
-                      value={teEditState.nySluttdato}
-                      onChange={(v) => teEditState.onNySluttdatoChange(v)}
+                  )}
+
+                  {/* §33.4 Varsel section */}
+                  {teEditState.showVarselSection && (
+                    <div className="space-y-1">
+                      {sectionHeader('§33.4 Varsel', tooltipTexts.varsel)}
+                      <InlineYesNo
+                        label="Tidligere varslet?"
+                        value={teEditState.tidligereVarslet}
+                        onChange={teEditState.onTidligereVarsletChange}
+                        disabled={teEditState.isSubmitting}
+                      />
+                      {teEditState.tidligereVarslet && (
+                        <InlineDatePicker
+                          label="Varseldato"
+                          value={teEditState.varselDato}
+                          onChange={teEditState.onVarselDatoChange}
+                          disabled={teEditState.isSubmitting}
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {/* §33.6.1 Krav section */}
+                  {teEditState.showKravSection && (
+                    <div className="space-y-1">
+                      {sectionHeader('§33.6.1 Krav', tooltipTexts.krav)}
+                      <InlineNumberInput
+                        label="Kalenderdager"
+                        value={teEditState.antallDager}
+                        onChange={teEditState.onAntallDagerChange}
+                        min={1}
+                        suffix="d"
+                        disabled={teEditState.isSubmitting}
+                      />
+                      <InlineDatePicker
+                        label="Ny sluttdato"
+                        subtitle="valgfritt"
+                        value={teEditState.nySluttdato}
+                        onChange={(v) => teEditState.onNySluttdatoChange(v)}
+                        disabled={teEditState.isSubmitting}
+                      />
+                    </div>
+                  )}
+
+                  {/* Preklusjonsvarsel */}
+                  {teEditState.preklusjonsvarsel && (
+                    <div className={clsx(
+                      'rounded-sm px-2 py-1 text-bento-caption',
+                      teEditState.preklusjonsvarsel.variant === 'danger'
+                        ? 'bg-alert-danger-bg text-alert-danger-text'
+                        : 'bg-alert-warning-bg text-alert-warning-text',
+                    )}>
+                      ⚠️ {teEditState.preklusjonsvarsel.dager} dager siden oppdaget
+                    </div>
+                  )}
+
+                  {/* Token expired */}
+                  <TokenExpiredAlert open={teEditState.showTokenExpired} onClose={teEditState.onTokenExpiredClose} />
+
+                  {/* Submit error */}
+                  {teEditState.submitError && (
+                    <Alert variant="danger" size="sm" title="Feil ved innsending">
+                      {teEditState.submitError}
+                    </Alert>
+                  )}
+                </div>
+
+                {/* Submit footer — spans both columns */}
+                <div className="md:col-span-2 md:order-3">
+                  <hr className="border-pkt-border-subtle mx-1 mb-3" />
+                  <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="xs"
+                      onClick={teEditState.onClose}
                       disabled={teEditState.isSubmitting}
-                    />
+                    >
+                      Avbryt
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="xs"
+                      onClick={teEditState.onSubmit}
+                      disabled={!teEditState.canSubmit || teEditState.isSubmitting}
+                    >
+                      {teEditState.submitLabel}
+                    </Button>
                   </div>
-                )}
-
-                {/* Preklusjonsvarsel */}
-                {teEditState.preklusjonsvarsel && (
-                  <div className={clsx(
-                    'rounded-sm px-2 py-1 text-bento-caption',
-                    teEditState.preklusjonsvarsel.variant === 'danger'
-                      ? 'bg-alert-danger-bg text-alert-danger-text'
-                      : 'bg-alert-warning-bg text-alert-warning-text',
-                  )}>
-                    ⚠️ {teEditState.preklusjonsvarsel.dager} dager siden oppdaget
-                  </div>
-                )}
-
-                {/* Token expired */}
-                <TokenExpiredAlert open={teEditState.showTokenExpired} onClose={teEditState.onTokenExpiredClose} />
-
-                {/* Submit error */}
-                {teEditState.submitError && (
-                  <Alert variant="danger" size="sm" title="Feil ved innsending">
-                    {teEditState.submitError}
-                  </Alert>
-                )}
-
-                {/* Submit footer */}
-                <hr className="border-pkt-border-subtle mx-1" />
-                <div className="pt-3 flex flex-col-reverse sm:flex-row sm:justify-between gap-1">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="xs"
-                    onClick={teEditState.onClose}
-                    disabled={teEditState.isSubmitting}
-                  >
-                    Avbryt
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="xs"
-                    onClick={teEditState.onSubmit}
-                    disabled={!teEditState.canSubmit || teEditState.isSubmitting}
-                  >
-                    {teEditState.submitLabel}
-                  </Button>
                 </div>
               </div>
             );

@@ -20,4 +20,3 @@ export { BentoRespondGrunnlag } from './BentoRespondGrunnlag';
 export { BentoRespondFrist } from './BentoRespondFrist';
 export { BentoRespondVederlag } from './BentoRespondVederlag';
 export { VarslingStatusStrip } from './VarslingStatusStrip';
-export { BentoSubmitFrist } from './BentoSubmitFrist';
