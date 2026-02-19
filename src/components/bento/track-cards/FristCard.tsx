@@ -521,7 +521,7 @@ export function FristCard({
                   {teEditState.showVarselSection && (
                     <div className="space-y-1.5">
                       {sectionHeader(
-                        'Forel&oslash;pig varsel', '&sect;33.4',
+                        'Foreløpig varsel', '§33.4',
                         'Oppstår forhold som gir rett til fristforlengelse, må parten varsle uten ugrunnet opphold (§33.4). Varsles det ikke i tide, tapes kravet. Byggherren må påberope sen varsling skriftlig uten ugrunnet opphold (§5).',
                       )}
                       <InlineYesNo
@@ -545,7 +545,7 @@ export function FristCard({
                   {teEditState.showKravSection && (
                     <div className="space-y-1.5">
                       {sectionHeader(
-                        'Krav om fristforlengelse', '&sect;33.6.1',
+                        'Krav om fristforlengelse', '§33.6.1',
                         'Når parten har grunnlag for å beregne omfanget, må han angi og begrunne antall dager uten ugrunnet opphold (§33.6.1). Fremsettes ikke kravet i tide, har parten bare krav på slik fristforlengelse som motparten måtte forstå.',
                       )}
                       <InlineNumberInput
@@ -570,7 +570,7 @@ export function FristCard({
                   {teEditState.varselType && (
                     <div className="space-y-1.5">
                       {sectionHeader(
-                        'Vilk&aring;r for fristforlengelse', '&sect;33.1',
+                        'Vilkår for fristforlengelse', '§33.1',
                         'Dersom fremdriften hindres på grunn av endringer, forsinkelse eller svikt i byggherrens medvirkning, eller andre forhold byggherren bærer risikoen for, har totalentreprenøren krav på fristforlengelse (§33.1).',
                       )}
                       <InlineYesNo
