@@ -242,4 +242,44 @@ describe('fristSubmissionDomain', () => {
       expect(domain.getEventType({ scenario: 'edit' })).toBe('frist_krav_oppdatert');
     });
   });
+
+  // ── beregnRevisionContext ──
+  describe('beregnRevisionContext', () => {
+    it('returns null when no bhResponse', () => {
+      expect(domain.beregnRevisionContext({})).toBeNull();
+    });
+
+    it('returns context for standard revision (edit)', () => {
+      const ctx = domain.beregnRevisionContext({
+        scenario: 'edit',
+        bhResponse: { resultat: 'delvis_godkjent', godkjent_dager: 5, begrunnelse: 'Kun delvis' },
+        krevdDager: 15,
+      });
+      expect(ctx).not.toBeNull();
+      expect(ctx!.bhResultat).toBe('delvis_godkjent');
+      expect(ctx!.bhGodkjentDager).toBe(5);
+      expect(ctx!.isSpecification).toBe(false);
+      expect(ctx!.isForesporsel).toBe(false);
+    });
+
+    it('returns specification context for spesifisering', () => {
+      const ctx = domain.beregnRevisionContext({
+        scenario: 'spesifisering',
+        bhResponse: { resultat: 'avslatt' },
+      });
+      expect(ctx!.isSpecification).toBe(true);
+      expect(ctx!.isForesporsel).toBe(false);
+    });
+
+    it('returns foresporsel context with deadline', () => {
+      const ctx = domain.beregnRevisionContext({
+        scenario: 'foresporsel',
+        bhResponse: { resultat: 'avslatt' },
+        foresporselDeadline: '2026-03-15',
+      });
+      expect(ctx!.isSpecification).toBe(true);
+      expect(ctx!.isForesporsel).toBe(true);
+      expect(ctx!.foresporselDeadline).toBe('2026-03-15');
+    });
+  });
 });

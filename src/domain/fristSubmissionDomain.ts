@@ -255,3 +255,46 @@ export function getEventType(config: { scenario: SubmissionScenario }): string {
     case 'edit': return 'frist_krav_oppdatert';
   }
 }
+
+// ============================================================================
+// REVISION CONTEXT
+// ============================================================================
+
+export interface RevisionContextConfig {
+  scenario?: SubmissionScenario;
+  bhResponse?: {
+    resultat: string;
+    godkjent_dager?: number;
+    begrunnelse?: string;
+  };
+  krevdDager?: number;
+  foresporselDeadline?: string;
+}
+
+export interface RevisionContext {
+  bhResultat: string;
+  bhGodkjentDager?: number;
+  bhBegrunnelse?: string;
+  krevdDager?: number;
+  isSpecification: boolean;
+  isForesporsel: boolean;
+  foresporselDeadline?: string;
+}
+
+export function beregnRevisionContext(
+  config: RevisionContextConfig,
+): RevisionContext | null {
+  if (!config.bhResponse) return null;
+
+  const isSpec = config.scenario === 'spesifisering' || config.scenario === 'foresporsel';
+
+  return {
+    bhResultat: config.bhResponse.resultat,
+    bhGodkjentDager: config.bhResponse.godkjent_dager,
+    bhBegrunnelse: config.bhResponse.begrunnelse,
+    krevdDager: config.krevdDager,
+    isSpecification: isSpec,
+    isForesporsel: config.scenario === 'foresporsel',
+    foresporselDeadline: config.foresporselDeadline,
+  };
+}
