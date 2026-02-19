@@ -90,32 +90,34 @@ export function FristCard({
       )}
       style={style}
     >
-      {/* Header */}
-      <div className={clsx('flex items-center justify-between mb-2', (editState || teEditState) && 'bg-bento-frist -mx-3 -mt-3 px-3 pt-3 pb-2 rounded-t-lg')}>
-        <div className="flex items-baseline gap-1">
-          <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
-            Fristforlengelse
-          </span>
-          <span className="text-bento-label text-pkt-text-body-muted">&sect;33</span>
-          {isSubsidiary && (
-            <span className="bg-badge-warning-bg text-badge-warning-text rounded-sm text-bento-label px-1.5 py-0.5 font-medium ml-1">
-              Subsidi&aelig;rt
+      {/* Header — in teEditState the title moves into the right column */}
+      {!teEditState && (
+        <div className={clsx('flex items-center justify-between mb-2', editState && 'bg-bento-frist -mx-3 -mt-3 px-3 pt-3 pb-2 rounded-t-lg')}>
+          <div className="flex items-baseline gap-1">
+            <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+              Fristforlengelse
             </span>
+            <span className="text-bento-label text-pkt-text-body-muted">&sect;33</span>
+            {isSubsidiary && (
+              <span className="bg-badge-warning-bg text-badge-warning-text rounded-sm text-bento-label px-1.5 py-0.5 font-medium ml-1">
+                Subsidi&aelig;rt
+              </span>
+            )}
+          </div>
+          {editState ? (
+            <button
+              type="button"
+              onClick={editState.onClose}
+              className="p-1 rounded-sm text-pkt-text-body-subtle hover:text-pkt-text-body-default hover:bg-pkt-bg-subtle transition-colors"
+              aria-label="Lukk"
+            >
+              <Cross2Icon className="w-4 h-4" />
+            </button>
+          ) : (
+            <StatusDot status={status} />
           )}
         </div>
-        {editState || teEditState ? (
-          <button
-            type="button"
-            onClick={(editState ?? teEditState)!.onClose}
-            className="p-1 rounded-sm text-pkt-text-body-subtle hover:text-pkt-text-body-default hover:bg-pkt-bg-subtle transition-colors"
-            aria-label="Lukk"
-          >
-            <Cross2Icon className="w-4 h-4" />
-          </button>
-        ) : (
-          <StatusDot status={status} />
-        )}
-      </div>
+      )}
 
       {isEmpty && !editState && !teEditState ? (
         <p className="text-bento-body text-pkt-text-body-muted italic">Ingen data enn&aring;</p>
@@ -436,8 +438,30 @@ export function FristCard({
                   )}
                 </div>
 
-                {/* Right column: Controls */}
-                <div className="space-y-3 md:order-2">
+                {/* Right column: Controls — with vertical divider and card title */}
+                <div className="space-y-3 md:order-2 md:border-l md:border-pkt-border-subtle md:pl-3">
+                  {/* Card title + close — positioned above controls */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+                        Fristforlengelse
+                      </span>
+                      <span className="text-bento-label text-pkt-text-body-muted">&sect;33</span>
+                      {isSubsidiary && (
+                        <span className="bg-badge-warning-bg text-badge-warning-text rounded-sm text-bento-label px-1.5 py-0.5 font-medium ml-1">
+                          Subsidi&aelig;rt
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={teEditState.onClose}
+                      className="p-1 rounded-sm text-pkt-text-body-subtle hover:text-pkt-text-body-default hover:bg-pkt-bg-subtle transition-colors"
+                      aria-label="Lukk"
+                    >
+                      <Cross2Icon className="w-4 h-4" />
+                    </button>
+                  </div>
                   {/* BH response summary (revision context) */}
                   {teEditState.revisionContext && !teEditState.revisionContext.isSpecification && (
                     <div className="bg-pkt-bg-subtle/80 rounded-sm border border-pkt-border-default px-2.5 py-2 text-bento-caption space-y-0.5">
