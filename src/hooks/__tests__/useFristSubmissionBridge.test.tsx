@@ -223,4 +223,50 @@ describe('useFristSubmissionBridge', () => {
     act(() => result.current.cardProps.onBegrunnelseChange('Minst ti tegn begrunnelse her'));
     expect(result.current.cardProps.canSubmit).toBe(true);
   });
+
+  it('computes revisionContext when bhResponse is provided', () => {
+    const { result } = renderHook(
+      () => useFristSubmissionBridge({
+        ...baseConfig,
+        scenario: 'edit',
+        existing: {
+          varsel_type: 'spesifisert',
+          antall_dager: 15,
+          begrunnelse: 'Eksisterende lang begrunnelse for revisjon',
+        },
+        bhResponse: { resultat: 'delvis_godkjent', godkjent_dager: 5, begrunnelse: 'Kun delvis' },
+        originalEventId: 'frist-evt-123',
+      }),
+      { wrapper: createWrapper() },
+    );
+    expect(result.current.cardProps.revisionContext).not.toBeNull();
+    expect(result.current.cardProps.revisionContext?.bhResultat).toBe('delvis_godkjent');
+    expect(result.current.cardProps.revisionContext?.bhGodkjentDager).toBe(5);
+  });
+
+  it('returns null revisionContext when no bhResponse', () => {
+    const { result } = renderHook(
+      () => useFristSubmissionBridge(baseConfig),
+      { wrapper: createWrapper() },
+    );
+    expect(result.current.cardProps.revisionContext).toBeNull();
+  });
+
+  it('passes originalEventId through to submit (edit scenario)', () => {
+    const { result } = renderHook(
+      () => useFristSubmissionBridge({
+        ...baseConfig,
+        scenario: 'edit',
+        existing: {
+          varsel_type: 'spesifisert',
+          antall_dager: 10,
+          begrunnelse: 'Begrunnelse som er lang nok',
+        },
+        originalEventId: 'frist-evt-789',
+      }),
+      { wrapper: createWrapper() },
+    );
+    expect(result.current.cardProps.varselType).toBe('spesifisert');
+    expect(result.current.cardProps.antallDager).toBe(10);
+  });
 });

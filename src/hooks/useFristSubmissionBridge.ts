@@ -34,6 +34,13 @@ export interface UseFristSubmissionBridgeConfig {
   existing?: domain.FristSubmissionDefaultsConfig['existing'];
   datoOppdaget?: string;
   harMottattForesporsel?: boolean;
+  bhResponse?: {
+    resultat: string;
+    godkjent_dager?: number;
+    begrunnelse?: string;
+  };
+  originalEventId?: string;
+  fristForSpesifisering?: string;
   onSuccess: () => void;
   onCatendaWarning?: () => void;
 }
@@ -79,6 +86,7 @@ export interface FristTeEditState {
   submitLabel: string;
   showTokenExpired: boolean;
   onTokenExpiredClose: () => void;
+  revisionContext: domain.RevisionContext | null;
 }
 
 export interface FristSubmissionBridgeReturn {
@@ -194,6 +202,16 @@ export function useFristSubmissionBridge(
     [varselType],
   );
 
+  const revisionContext = useMemo(
+    () => domain.beregnRevisionContext({
+      scenario,
+      bhResponse: config.bhResponse,
+      krevdDager: existing?.antall_dager,
+      foresporselDeadline: config.fristForSpesifisering,
+    }),
+    [scenario, config.bhResponse, existing?.antall_dager, config.fristForSpesifisering],
+  );
+
   // ========== SUBMIT MUTATION (L12) ==========
   const pendingToastId = useRef<string | null>(null);
 
@@ -278,6 +296,7 @@ export function useFristSubmissionBridge(
       scenario,
       grunnlagEventId,
       erSvarPaForesporsel: harMottattForesporsel,
+      originalEventId: config.originalEventId,
     };
 
     const eventData = domain.buildEventData(formState, buildConfig);
@@ -287,7 +306,7 @@ export function useFristSubmissionBridge(
     });
   }, [
     visibility.begrunnelseRequired, begrunnelse, formState,
-    scenario, grunnlagEventId, harMottattForesporsel, eventType, mutation, toast,
+    scenario, grunnlagEventId, harMottattForesporsel, config.originalEventId, eventType, mutation, toast,
   ]);
 
   const submitLabel = (() => {
@@ -343,6 +362,7 @@ export function useFristSubmissionBridge(
       submitLabel,
       showTokenExpired,
       onTokenExpiredClose: () => setShowTokenExpired(false),
+      revisionContext,
     },
   };
 }
