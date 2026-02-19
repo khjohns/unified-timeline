@@ -436,6 +436,58 @@ export function FristCard({
 
                 {/* Right column: Controls */}
                 <div className="space-y-3 md:order-2">
+                  {/* BH response summary (revision context) */}
+                  {teEditState.revisionContext && !teEditState.revisionContext.isSpecification && (
+                    <div className="bg-pkt-bg-subtle/80 rounded-sm border border-pkt-border-default px-2.5 py-2 text-bento-caption space-y-0.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-bento-label font-semibold text-pkt-text-body-default uppercase tracking-wide">
+                          BH svar
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium">Resultat: </span>
+                        <span className={
+                          teEditState.revisionContext.bhResultat === 'godkjent' ? 'text-pkt-brand-dark-green-1000 font-semibold'
+                            : teEditState.revisionContext.bhResultat === 'avslatt' ? 'text-pkt-brand-red-1000 font-semibold'
+                              : 'text-pkt-brand-yellow-1000 font-semibold'
+                        }>
+                          {getResultatLabel(teEditState.revisionContext.bhResultat)}
+                        </span>
+                        {teEditState.revisionContext.bhGodkjentDager != null && teEditState.revisionContext.krevdDager != null && (
+                          <span className="text-pkt-text-body-muted ml-1">
+                            &ndash; {teEditState.revisionContext.bhGodkjentDager} av {teEditState.revisionContext.krevdDager} dager
+                          </span>
+                        )}
+                      </div>
+                      {teEditState.revisionContext.bhBegrunnelse && (
+                        <p className="text-pkt-text-body-subtle italic">
+                          &laquo;{teEditState.revisionContext.bhBegrunnelse}&raquo;
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Specification info (upgrading from varsel to krav) */}
+                  {teEditState.revisionContext?.isSpecification && !teEditState.revisionContext.isForesporsel && (
+                    <div className="bg-alert-info-bg text-alert-info-text rounded-sm px-2 py-1.5 text-bento-caption">
+                      Du oppgraderer fra nøytralt varsel til spesifisert krav (§33.6.1).
+                      Kravet skal fremsettes &laquo;uten ugrunnet opphold&raquo; når du har grunnlag for beregning.
+                    </div>
+                  )}
+
+                  {/* Foresporsel deadline warning (§33.6.2) */}
+                  {teEditState.revisionContext?.isForesporsel && (
+                    <div className="bg-alert-danger-bg text-alert-danger-text rounded-sm px-2 py-1.5 text-bento-caption">
+                      <span className="font-semibold">Svarplikt (§33.6.2).</span>{' '}
+                      Byggherren har etterlyst dette kravet. Svarer du ikke, tapes hele retten til fristforlengelse.
+                      {teEditState.revisionContext.foresporselDeadline && (
+                        <span className="block mt-0.5">
+                          Frist: {teEditState.revisionContext.foresporselDeadline}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Forespørsel alert */}
                   {teEditState.showForesporselAlert && (
                     <div className="bg-alert-warning-bg text-alert-warning-text rounded-sm px-2 py-1 text-bento-caption">
