@@ -387,15 +387,12 @@ export function FristCard({
 
           {/* Inline controls when in TE edit mode — two-column: begrunnelse left, controls right */}
           {teEditState && (() => {
-            const tooltipTexts = {
-              varsel: 'Oppstår forhold som gir rett til fristforlengelse, må parten varsle uten ugrunnet opphold (§33.4). Varsles det ikke i tide, tapes kravet.',
-              krav: 'Når parten har grunnlag for å beregne omfanget, må han angi og begrunne antall dager uten ugrunnet opphold (§33.6.1). Fremsettes ikke kravet i tide, har parten bare krav på slik fristforlengelse som motparten måtte forstå.',
-            };
-            const sectionHeader = (title: string, tooltip: string) => (
+            const sectionHeader = (title: string, paragraf: string, tooltip: string) => (
               <div className="flex items-center gap-1">
                 <span className="text-bento-label font-semibold text-pkt-text-body-default uppercase tracking-wide">
                   {title}
                 </span>
+                <span className="text-bento-label text-pkt-text-body-muted">{paragraf}</span>
                 <Tooltip content={tooltip} side="right">
                   <button type="button" className="text-pkt-text-placeholder hover:text-pkt-text-body-default cursor-help">
                     <InfoCircledIcon className="w-3 h-3" />
@@ -462,49 +459,26 @@ export function FristCard({
                       <Cross2Icon className="w-4 h-4" />
                     </button>
                   </div>
-                  {/* BH response summary (revision context) */}
-                  {teEditState.revisionContext && !teEditState.revisionContext.isSpecification && (
-                    <div className="bg-pkt-bg-subtle/80 rounded-sm border border-pkt-border-default px-2.5 py-2 text-bento-caption space-y-0.5">
-                      <div className="flex items-center gap-1">
-                        <span className="text-bento-label font-semibold text-pkt-text-body-default uppercase tracking-wide">
-                          BH svar
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium">Resultat: </span>
-                        <span className={
-                          teEditState.revisionContext.bhResultat === 'godkjent' ? 'text-pkt-brand-dark-green-1000 font-semibold'
-                            : teEditState.revisionContext.bhResultat === 'avslatt' ? 'text-pkt-brand-red-1000 font-semibold'
-                              : 'text-pkt-brand-yellow-1000 font-semibold'
-                        }>
-                          {getResultatLabel(teEditState.revisionContext.bhResultat)}
-                        </span>
-                        {teEditState.revisionContext.bhGodkjentDager != null && teEditState.revisionContext.krevdDager != null && (
-                          <span className="text-pkt-text-body-muted ml-1">
-                            &ndash; {teEditState.revisionContext.bhGodkjentDager} av {teEditState.revisionContext.krevdDager} dager
-                          </span>
-                        )}
-                      </div>
-                      {teEditState.revisionContext.bhBegrunnelse && (
-                        <p className="text-pkt-text-body-subtle italic">
-                          &laquo;{teEditState.revisionContext.bhBegrunnelse}&raquo;
-                        </p>
-                      )}
+
+                  {/* Contextual status summary */}
+                  {teEditState.statusSummary && (
+                    <div className="bg-pkt-bg-subtle/80 rounded-sm border border-pkt-border-default px-2.5 py-1.5 text-bento-caption text-pkt-text-body-default font-medium">
+                      {teEditState.statusSummary}
                     </div>
                   )}
 
                   {/* Specification info (upgrading from varsel to krav) */}
                   {teEditState.revisionContext?.isSpecification && !teEditState.revisionContext.isForesporsel && (
                     <div className="bg-alert-info-bg text-alert-info-text rounded-sm px-2 py-1.5 text-bento-caption">
-                      Du oppgraderer fra nøytralt varsel til spesifisert krav (§33.6.1).
-                      Kravet skal fremsettes &laquo;uten ugrunnet opphold&raquo; når du har grunnlag for beregning.
+                      Du oppgraderer fra n&oslash;ytralt varsel til spesifisert krav (&sect;33.6.1).
+                      Kravet skal fremsettes &laquo;uten ugrunnet opphold&raquo; n&aring;r du har grunnlag for beregning.
                     </div>
                   )}
 
                   {/* Foresporsel deadline warning (§33.6.2) */}
                   {teEditState.revisionContext?.isForesporsel && (
                     <div className="bg-alert-danger-bg text-alert-danger-text rounded-sm px-2 py-1.5 text-bento-caption">
-                      <span className="font-semibold">Svarplikt (§33.6.2).</span>{' '}
+                      <span className="font-semibold">Svarplikt (&sect;33.6.2).</span>{' '}
                       Byggherren har etterlyst dette kravet. Svarer du ikke, tapes hele retten til fristforlengelse.
                       {teEditState.revisionContext.foresporselDeadline && (
                         <span className="block mt-0.5">
@@ -517,7 +491,7 @@ export function FristCard({
                   {/* Forespørsel alert */}
                   {teEditState.showForesporselAlert && (
                     <div className="bg-alert-warning-bg text-alert-warning-text rounded-sm px-2 py-1 text-bento-caption">
-                      Svar på forespørsel fra byggherre (§33.6.2)
+                      Svar p&aring; foresp&oslash;rsel fra byggherre (&sect;33.6.2)
                     </div>
                   )}
 
@@ -526,9 +500,9 @@ export function FristCard({
                     <div>
                       <p className="text-bento-label font-semibold text-pkt-text-body-default mb-0.5">Velg type henvendelse</p>
                       <p className="text-bento-caption text-pkt-text-body-subtle">
-                        <span className="font-medium text-pkt-text-body-default">Varsel</span> (§33.4) melder fra om at et forhold kan gi rett til fristforlengelse, selv om omfanget ikke er klart ennå.
+                        <span className="font-medium text-pkt-text-body-default">Varsel</span> (&sect;33.4) melder fra om at et forhold kan gi rett til fristforlengelse, selv om omfanget ikke er klart enn&aring;.
                         <br />
-                        <span className="font-medium text-pkt-text-body-default">Krav</span> (§33.6.1) angir og begrunner antall dager.
+                        <span className="font-medium text-pkt-text-body-default">Krav</span> (&sect;33.6.1) angir og begrunner antall dager.
                       </p>
                     </div>
                   )}
@@ -543,10 +517,13 @@ export function FristCard({
                     />
                   )}
 
-                  {/* §33.4 Varsel section */}
+                  {/* ── Section: Foreløpig varsel (§33.4) ── */}
                   {teEditState.showVarselSection && (
-                    <div className="space-y-1">
-                      {sectionHeader('§33.4 Varsel', tooltipTexts.varsel)}
+                    <div className="space-y-1.5">
+                      {sectionHeader(
+                        'Forel&oslash;pig varsel', '&sect;33.4',
+                        'Oppstår forhold som gir rett til fristforlengelse, må parten varsle uten ugrunnet opphold (§33.4). Varsles det ikke i tide, tapes kravet. Byggherren må påberope sen varsling skriftlig uten ugrunnet opphold (§5).',
+                      )}
                       <InlineYesNo
                         label="Tidligere varslet?"
                         value={teEditState.tidligereVarslet}
@@ -564,10 +541,13 @@ export function FristCard({
                     </div>
                   )}
 
-                  {/* §33.6.1 Krav section */}
+                  {/* ── Section: Krav om fristforlengelse (§33.6.1) ── */}
                   {teEditState.showKravSection && (
-                    <div className="space-y-1">
-                      {sectionHeader('§33.6.1 Krav', tooltipTexts.krav)}
+                    <div className="space-y-1.5">
+                      {sectionHeader(
+                        'Krav om fristforlengelse', '&sect;33.6.1',
+                        'Når parten har grunnlag for å beregne omfanget, må han angi og begrunne antall dager uten ugrunnet opphold (§33.6.1). Fremsettes ikke kravet i tide, har parten bare krav på slik fristforlengelse som motparten måtte forstå.',
+                      )}
                       <InlineNumberInput
                         label="Kalenderdager"
                         value={teEditState.antallDager}
@@ -586,6 +566,22 @@ export function FristCard({
                     </div>
                   )}
 
+                  {/* ── Section: Vilkår for fristforlengelse (§33.1) ── */}
+                  {teEditState.varselType && (
+                    <div className="space-y-1.5">
+                      {sectionHeader(
+                        'Vilk&aring;r for fristforlengelse', '&sect;33.1',
+                        'Dersom fremdriften hindres på grunn av endringer, forsinkelse eller svikt i byggherrens medvirkning, eller andre forhold byggherren bærer risikoen for, har totalentreprenøren krav på fristforlengelse (§33.1).',
+                      )}
+                      <InlineYesNo
+                        label="Har forholdet hindret fremdriften?"
+                        value={teEditState.vilkarOppfylt}
+                        onChange={teEditState.onVilkarOppfyltChange}
+                        disabled={teEditState.isSubmitting}
+                      />
+                    </div>
+                  )}
+
                   {/* Preklusjonsvarsel */}
                   {teEditState.preklusjonsvarsel && (
                     <div className={clsx(
@@ -594,7 +590,7 @@ export function FristCard({
                         ? 'bg-alert-danger-bg text-alert-danger-text'
                         : 'bg-alert-warning-bg text-alert-warning-text',
                     )}>
-                      ⚠️ {teEditState.preklusjonsvarsel.dager} dager siden oppdaget
+                      &#9888;&#65039; {teEditState.preklusjonsvarsel.dager} dager siden oppdaget
                     </div>
                   )}
 

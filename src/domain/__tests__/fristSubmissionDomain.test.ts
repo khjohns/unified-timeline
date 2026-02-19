@@ -243,6 +243,65 @@ describe('fristSubmissionDomain', () => {
     });
   });
 
+  // ── beregnTeStatusSummary ──
+  describe('beregnTeStatusSummary', () => {
+    it('returns null when no varselType', () => {
+      expect(domain.beregnTeStatusSummary(
+        { varselType: undefined, antallDager: 0 },
+        { scenario: 'new' },
+      )).toBeNull();
+    });
+
+    it('returns varsel text for new varsel', () => {
+      expect(domain.beregnTeStatusSummary(
+        { varselType: 'varsel', antallDager: 0 },
+        { scenario: 'new' },
+      )).toBe('Sender foreløpig varsel om fristforlengelse');
+    });
+
+    it('returns krav text with days for new spesifisert', () => {
+      expect(domain.beregnTeStatusSummary(
+        { varselType: 'spesifisert', antallDager: 20 },
+        { scenario: 'new' },
+      )).toBe('Krav om 20 dagers fristforlengelse');
+    });
+
+    it('returns justerer text for edit with changed days', () => {
+      expect(domain.beregnTeStatusSummary(
+        { varselType: 'spesifisert', antallDager: 25 },
+        { scenario: 'edit', existingAntallDager: 15 },
+      )).toBe('Justerer krav fra 15 til 25 dager');
+    });
+
+    it('returns oppdaterer text for edit with same days', () => {
+      expect(domain.beregnTeStatusSummary(
+        { varselType: 'spesifisert', antallDager: 15 },
+        { scenario: 'edit', existingAntallDager: 15 },
+      )).toBe('Oppdaterer krav om 15 dager');
+    });
+
+    it('returns spesifiserer text for spesifisering', () => {
+      expect(domain.beregnTeStatusSummary(
+        { varselType: 'spesifisert', antallDager: 10 },
+        { scenario: 'spesifisering' },
+      )).toBe('Spesifiserer krav: 10 dager');
+    });
+
+    it('returns foresporsel text for foresporsel', () => {
+      expect(domain.beregnTeStatusSummary(
+        { varselType: 'spesifisert', antallDager: 12 },
+        { scenario: 'foresporsel' },
+      )).toBe('Svarer på forespørsel: krav om 12 dager');
+    });
+
+    it('returns utsatt text for begrunnelse_utsatt', () => {
+      expect(domain.beregnTeStatusSummary(
+        { varselType: 'begrunnelse_utsatt', antallDager: 0 },
+        { scenario: 'foresporsel' },
+      )).toBe('Svarer på forespørsel: utsatt beregning');
+    });
+  });
+
   // ── beregnRevisionContext ──
   describe('beregnRevisionContext', () => {
     it('returns null when no bhResponse', () => {

@@ -22,6 +22,7 @@ export interface FristSubmissionFormState {
   nySluttdato: string | undefined;
   begrunnelse: string;
   begrunnelseValidationError: string | undefined;
+  vilkarOppfylt: boolean | undefined;
 }
 
 export interface FristSubmissionDefaultsConfig {
@@ -65,6 +66,7 @@ export interface FristSubmissionEventData {
   begrunnelse: string | undefined;
   ny_sluttdato: string | undefined;
   er_svar_pa_foresporsel: boolean | undefined;
+  vilkar_oppfylt?: boolean;
   original_event_id?: string;
   dato_revidert?: string;
   dato_spesifisert?: string;
@@ -84,6 +86,7 @@ export function getDefaults(config: FristSubmissionDefaultsConfig): FristSubmiss
       nySluttdato: config.existing.ny_sluttdato,
       begrunnelse: config.existing.begrunnelse ?? '',
       begrunnelseValidationError: undefined,
+      vilkarOppfylt: undefined,
     };
   }
 
@@ -96,6 +99,7 @@ export function getDefaults(config: FristSubmissionDefaultsConfig): FristSubmiss
       nySluttdato: undefined,
       begrunnelse: '',
       begrunnelseValidationError: undefined,
+      vilkarOppfylt: undefined,
     };
   }
 
@@ -107,6 +111,7 @@ export function getDefaults(config: FristSubmissionDefaultsConfig): FristSubmiss
     nySluttdato: undefined,
     begrunnelse: '',
     begrunnelseValidationError: undefined,
+    vilkarOppfylt: undefined,
   };
 }
 
@@ -229,6 +234,7 @@ export function buildEventData(
     begrunnelse: state.begrunnelse || undefined,
     ny_sluttdato: state.nySluttdato || undefined,
     er_svar_pa_foresporsel: config.erSvarPaForesporsel,
+    vilkar_oppfylt: state.vilkarOppfylt,
   };
 
   if (config.originalEventId) {
@@ -280,6 +286,66 @@ export interface RevisionContext {
   isForesporsel: boolean;
   foresporselDeadline?: string;
 }
+
+// ============================================================================
+// TE STATUS SUMMARY
+// ============================================================================
+
+export interface TeStatusSummaryConfig {
+  scenario: SubmissionScenario;
+  existingAntallDager?: number;
+}
+
+export function beregnTeStatusSummary(
+  state: Pick<FristSubmissionFormState, 'varselType' | 'antallDager'>,
+  config: TeStatusSummaryConfig,
+): string | null {
+  if (!state.varselType) return null;
+
+  if (config.scenario === 'edit') {
+    if (state.varselType === 'spesifisert' && state.antallDager > 0) {
+      if (config.existingAntallDager && config.existingAntallDager !== state.antallDager) {
+        return `Justerer krav fra ${config.existingAntallDager} til ${state.antallDager} dager`;
+      }
+      return `Oppdaterer krav om ${state.antallDager} dager`;
+    }
+    return 'Oppdaterer fristkrav';
+  }
+
+  if (config.scenario === 'spesifisering') {
+    if (state.antallDager > 0) {
+      return `Spesifiserer krav: ${state.antallDager} dager`;
+    }
+    return 'Spesifiserer fristkrav';
+  }
+
+  if (config.scenario === 'foresporsel') {
+    if (state.varselType === 'spesifisert' && state.antallDager > 0) {
+      return `Svarer på forespørsel: krav om ${state.antallDager} dager`;
+    }
+    if (state.varselType === 'begrunnelse_utsatt') {
+      return 'Svarer på forespørsel: utsatt beregning';
+    }
+    return 'Svarer på forespørsel';
+  }
+
+  // new scenario
+  if (state.varselType === 'varsel') {
+    return 'Sender foreløpig varsel om fristforlengelse';
+  }
+  if (state.varselType === 'spesifisert') {
+    if (state.antallDager > 0) {
+      return `Krav om ${state.antallDager} dagers fristforlengelse`;
+    }
+    return 'Sender krav om fristforlengelse';
+  }
+
+  return null;
+}
+
+// ============================================================================
+// REVISION CONTEXT
+// ============================================================================
 
 export function beregnRevisionContext(
   config: RevisionContextConfig,
