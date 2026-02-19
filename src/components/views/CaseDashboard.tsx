@@ -11,7 +11,6 @@ import { ReactNode, useMemo, useState } from 'react';
 import { DashboardCard, InlineDataList, InlineDataListItem, Badge, Button } from '../primitives';
 import { CategoryLabel } from '../shared';
 import { InlineReviseVederlag } from '../actions/InlineReviseVederlag';
-import { InlineReviseFrist } from '../actions/InlineReviseFrist';
 import { SakState, SporStatus, TimelineEvent } from '../../types/timeline';
 import { GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
 // getHovedkategoriLabel, getUnderkategoriLabel erstattet av CategoryAccordion
@@ -364,20 +363,7 @@ export function CaseDashboard({
             )}
           </InlineDataList>
 
-          {/* Inline Frist Revision Form */}
-          {inlineFristRevision && inlineFristReviseOpen && (
-            <InlineReviseFrist
-              sakId={inlineFristRevision.sakId}
-              lastFristEvent={inlineFristRevision.lastFristEvent}
-              originalVarselType={inlineFristRevision.originalVarselType}
-              onOpenFullModal={() => {
-                setInlineFristReviseOpen(false);
-                inlineFristRevision.onOpenFullModal();
-              }}
-              onClose={() => setInlineFristReviseOpen(false)}
-              onSuccess={() => setInlineFristReviseOpen(false)}
-            />
-          )}
+
 
           <SporHistory spor="frist" entries={fristEntries} events={events} sakState={state} externalOpen={fristExpanded} />
           </DashboardCard>
