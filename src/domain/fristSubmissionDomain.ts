@@ -53,6 +53,7 @@ export interface FristSubmissionBuildConfig {
   scenario: SubmissionScenario;
   grunnlagEventId: string;
   erSvarPaForesporsel?: boolean;
+  originalEventId?: string;  // for revision/specification events
 }
 
 export interface FristSubmissionEventData {
@@ -64,6 +65,9 @@ export interface FristSubmissionEventData {
   begrunnelse: string | undefined;
   ny_sluttdato: string | undefined;
   er_svar_pa_foresporsel: boolean | undefined;
+  original_event_id?: string;
+  dato_revidert?: string;
+  dato_spesifisert?: string;
 }
 
 // ============================================================================
@@ -216,7 +220,7 @@ export function buildEventData(
       ? { dato_sendt: today, metode: ['digital_oversendelse'] }
       : undefined;
 
-  return {
+  const result: FristSubmissionEventData = {
     grunnlag_event_id: config.grunnlagEventId,
     varsel_type: state.varselType,
     frist_varsel: fristVarsel,
@@ -226,6 +230,17 @@ export function buildEventData(
     ny_sluttdato: state.nySluttdato || undefined,
     er_svar_pa_foresporsel: config.erSvarPaForesporsel,
   };
+
+  if (config.originalEventId) {
+    result.original_event_id = config.originalEventId;
+    if (config.scenario === 'edit') {
+      result.dato_revidert = today;
+    } else if (config.scenario === 'spesifisering' || config.scenario === 'foresporsel') {
+      result.dato_spesifisert = today;
+    }
+  }
+
+  return result;
 }
 
 // ============================================================================

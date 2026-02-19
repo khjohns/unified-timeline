@@ -176,6 +176,52 @@ describe('fristSubmissionDomain', () => {
       expect(data.ny_sluttdato).toBe('2026-04-01');
       expect(data.frist_varsel?.dato_sendt).toBe('2026-02-10');
     });
+
+    it('includes original_event_id and dato_revidert for edit with originalEventId', () => {
+      const state = {
+        ...domain.getDefaults({ scenario: 'edit', existing: {
+          varsel_type: 'spesifisert' as const,
+          antall_dager: 20,
+          begrunnelse: 'Oppdatert begrunnelse for fristkrav',
+        }}),
+      };
+      const data = domain.buildEventData(state, {
+        scenario: 'edit',
+        grunnlagEventId: 'g-1',
+        originalEventId: 'frist-evt-123',
+      });
+      expect(data.original_event_id).toBe('frist-evt-123');
+      expect(data.dato_revidert).toBeDefined();
+      expect(data.dato_revidert).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it('includes original_event_id and dato_spesifisert for spesifisering with originalEventId', () => {
+      const state = {
+        ...domain.getDefaults({ scenario: 'spesifisering' }),
+        antallDager: 10,
+        begrunnelse: 'Spesifisert begrunnelse for kravet',
+      };
+      const data = domain.buildEventData(state, {
+        scenario: 'spesifisering',
+        grunnlagEventId: 'g-1',
+        originalEventId: 'frist-evt-456',
+      });
+      expect(data.original_event_id).toBe('frist-evt-456');
+      expect(data.dato_spesifisert).toBeDefined();
+    });
+
+    it('omits original_event_id for new submission', () => {
+      const state = {
+        ...domain.getDefaults({ scenario: 'new' }),
+        varselType: 'varsel' as const,
+      };
+      const data = domain.buildEventData(state, {
+        scenario: 'new',
+        grunnlagEventId: 'g-1',
+      });
+      expect(data.original_event_id).toBeUndefined();
+      expect(data.dato_revidert).toBeUndefined();
+    });
   });
 
   // ── getEventType ──
