@@ -404,13 +404,18 @@ export function FristCard({
               <div className="mt-2 pt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
                 {/* Left column: Begrunnelse */}
                 <div className="flex flex-col gap-1 md:order-1">
-                  <div className="flex items-baseline gap-1">
+                  <div className="flex items-center gap-1">
                     <span className="text-bento-label font-semibold text-pkt-text-body-default uppercase tracking-wide">
                       Begrunnelse
                     </span>
                     {teEditState.begrunnelseRequired && (
                       <span className="text-pkt-brand-red-1000">*</span>
                     )}
+                    <Tooltip content="Forklar hvordan forholdet har hindret fremdriften (§33.1), og begrunn antall dager ut fra den faktiske virkningen på fremdriften (§33.5). Ta hensyn til nødvendig avbrudd og oppstart, eventuell årstidsforskyvning, samlet virkning av tidligere fristforlengelser, og tiltak for å begrense skadevirkningene." side="right">
+                      <button type="button" className="text-pkt-text-placeholder hover:text-pkt-text-body-default cursor-help">
+                        <InfoCircledIcon className="w-3 h-3" />
+                      </button>
+                    </Tooltip>
                   </div>
                   <Textarea
                     id="frist-te-begrunnelse"
@@ -529,16 +534,7 @@ export function FristCard({
                 {/* Submit footer — spans both columns */}
                 <div className="md:col-span-2 md:order-3">
                   <hr className="border-pkt-border-subtle mx-1 mb-3" />
-                  <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="xs"
-                      onClick={teEditState.onClose}
-                      disabled={teEditState.isSubmitting}
-                    >
-                      Avbryt
-                    </Button>
+                  <div className="flex justify-end">
                     <Button
                       type="button"
                       variant="primary"
