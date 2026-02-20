@@ -263,7 +263,7 @@ export function getEventType(config: { scenario: SubmissionScenario }): string {
 }
 
 // ============================================================================
-// REVISION CONTEXT
+// REVISION CONTEXT — types
 // ============================================================================
 
 export interface RevisionContextConfig {
@@ -344,7 +344,7 @@ export function beregnTeStatusSummary(
 }
 
 // ============================================================================
-// REVISION CONTEXT
+// REVISION CONTEXT — computation
 // ============================================================================
 
 export function beregnRevisionContext(
