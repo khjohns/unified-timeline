@@ -8,7 +8,7 @@
  * - Optional new end date
  * - Justification textarea
  *
- * Used by SendFristModal (for spesifisert krav) and ReviseFristModal.
+ * Used by SendFristModal (for spesifisert krav).
  */
 
 import {

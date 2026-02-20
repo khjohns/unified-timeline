@@ -268,20 +268,10 @@ export function getEventType(config: { scenario: SubmissionScenario }): string {
 
 export interface RevisionContextConfig {
   scenario?: SubmissionScenario;
-  bhResponse?: {
-    resultat: string;
-    godkjent_dager?: number;
-    begrunnelse?: string;
-  };
-  krevdDager?: number;
   foresporselDeadline?: string;
 }
 
 export interface RevisionContext {
-  bhResultat: string;
-  bhGodkjentDager?: number;
-  bhBegrunnelse?: string;
-  krevdDager?: number;
   isSpecification: boolean;
   isForesporsel: boolean;
   foresporselDeadline?: string;
@@ -349,16 +339,10 @@ export function beregnTeStatusSummary(
 
 export function beregnRevisionContext(
   config: RevisionContextConfig,
-): RevisionContext | null {
-  if (!config.bhResponse) return null;
-
+): RevisionContext {
   const isSpec = config.scenario === 'spesifisering' || config.scenario === 'foresporsel';
 
   return {
-    bhResultat: config.bhResponse.resultat,
-    bhGodkjentDager: config.bhResponse.godkjent_dager,
-    bhBegrunnelse: config.bhResponse.begrunnelse,
-    krevdDager: config.krevdDager,
     isSpecification: isSpec,
     isForesporsel: config.scenario === 'foresporsel',
     foresporselDeadline: config.foresporselDeadline,

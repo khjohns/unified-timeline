@@ -18,7 +18,7 @@ export { RespondFristModal } from './RespondFristModal';
 // Update modals (TE) - for revising previously sent claims
 // Note: SendGrunnlagUpdateModal removed - SendGrunnlagModal handles updates via originalEvent prop
 export { ReviseVederlagModal } from './ReviseVederlagModal';
-export { ReviseFristModal } from './ReviseFristModal';
+// Note: ReviseFristModal removed - FristCard handles revision via card-internal two-column (ADR-003 L21)
 
 // Inline revision components (TE) - compact inline forms for quick updates
 export { InlineReviseVederlag } from './InlineReviseVederlag';

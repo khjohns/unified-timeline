@@ -34,11 +34,6 @@ export interface UseFristSubmissionBridgeConfig {
   existing?: domain.FristSubmissionDefaultsConfig['existing'];
   datoOppdaget?: string;
   harMottattForesporsel?: boolean;
-  bhResponse?: {
-    resultat: string;
-    godkjent_dager?: number;
-    begrunnelse?: string;
-  };
   originalEventId?: string;
   fristForSpesifisering?: string;
   onSuccess: () => void;
@@ -91,7 +86,7 @@ export interface FristTeEditState {
   submitLabel: string;
   showTokenExpired: boolean;
   onTokenExpiredClose: () => void;
-  revisionContext: domain.RevisionContext | null;
+  revisionContext: domain.RevisionContext;
 }
 
 export interface FristSubmissionBridgeReturn {
@@ -211,11 +206,9 @@ export function useFristSubmissionBridge(
   const revisionContext = useMemo(
     () => domain.beregnRevisionContext({
       scenario,
-      bhResponse: config.bhResponse,
-      krevdDager: existing?.antall_dager,
       foresporselDeadline: config.fristForSpesifisering,
     }),
-    [scenario, config.bhResponse, existing?.antall_dager, config.fristForSpesifisering],
+    [scenario, config.fristForSpesifisering],
   );
 
   const statusSummary = useMemo(

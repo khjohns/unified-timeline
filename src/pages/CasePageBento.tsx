@@ -46,7 +46,6 @@ import {
   RespondVederlagModal,
   RespondFristModal,
   ReviseVederlagModal,
-  ReviseFristModal,
   SendForseringModal,
 } from '../components/actions';
 import { InlineReviseVederlag } from '../components/actions/InlineReviseVederlag';
@@ -338,7 +337,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     if (expandedTrack?.action === 'update') return 'edit';
     if (expandedTrack?.action === 'foresporselSvar') return 'foresporsel';
     if (expandedTrack?.action === 'revise') {
-      // Determine revision mode from state (matching ReviseFristModal logic)
+      // Determine revision mode from state
       const erKunVarsel = state.frist.varsel_type === 'varsel' &&
         (state.frist.krevd_dager === 0 || state.frist.krevd_dager === undefined);
       if (erKunVarsel) {
@@ -391,12 +390,6 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     } : undefined,
     datoOppdaget: state.grunnlag.dato_oppdaget,
     harMottattForesporsel: state.frist.har_bh_foresporsel,
-    // Revision-specific context
-    bhResponse: expandedTrack?.action === 'revise' && state.frist.bh_resultat ? {
-      resultat: state.frist.bh_resultat,
-      godkjent_dager: state.frist.godkjent_dager,
-      begrunnelse: state.frist.bh_begrunnelse,
-    } : undefined,
     originalEventId: expandedTrack?.action === 'revise'
       ? (state.frist.siste_event_id || `frist-${sakId}`)
       : undefined,
@@ -1206,30 +1199,6 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             }
             onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
           />
-          <ReviseFristModal
-            open={modals.reviseFrist.open}
-            onOpenChange={modals.reviseFrist.setOpen}
-            sakId={sakId}
-            lastFristEvent={{
-              event_id: state.frist.siste_event_id || `frist-${sakId}`,
-              antall_dager: state.frist.krevd_dager || 0,
-              begrunnelse: state.frist.begrunnelse,
-            }}
-            lastResponseEvent={state.frist.bh_resultat ? {
-              event_id: `frist-response-${sakId}`,
-              resultat: state.frist.bh_resultat,
-              godkjent_dager: state.frist.godkjent_dager,
-              begrunnelse: state.frist.bh_begrunnelse,
-            } : undefined}
-            fristTilstand={state.frist}
-            currentVersion={Math.max(0, (state.frist.antall_versjoner ?? 1) - 1)}
-            originalVarselType={state.frist.varsel_type}
-            harMottattForesporsel={state.frist.har_bh_foresporsel}
-            fristForSpesifisering={state.frist.frist_for_spesifisering}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-            subsidiaerTriggers={state.frist.subsidiaer_triggers}
-          />
-
           {/* Update Response Modals (BH) - complex wizards kept as modals */}
           <RespondVederlagModal
             open={modals.updateVederlagResponse.open}

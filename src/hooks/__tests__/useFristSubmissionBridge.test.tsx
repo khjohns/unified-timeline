@@ -262,32 +262,29 @@ describe('useFristSubmissionBridge', () => {
     expect(result.current.cardProps.statusSummary).toBe('Krav om 20 dagers fristforlengelse');
   });
 
-  it('computes revisionContext when bhResponse is provided', () => {
+  it('computes revisionContext flags from scenario', () => {
     const { result } = renderHook(
       () => useFristSubmissionBridge({
         ...baseConfig,
-        scenario: 'edit',
-        existing: {
-          varsel_type: 'spesifisert',
-          antall_dager: 15,
-          begrunnelse: 'Eksisterende lang begrunnelse for revisjon',
-        },
-        bhResponse: { resultat: 'delvis_godkjent', godkjent_dager: 5, begrunnelse: 'Kun delvis' },
-        originalEventId: 'frist-evt-123',
+        scenario: 'spesifisering',
       }),
       { wrapper: createWrapper() },
     );
-    expect(result.current.cardProps.revisionContext).not.toBeNull();
-    expect(result.current.cardProps.revisionContext?.bhResultat).toBe('delvis_godkjent');
-    expect(result.current.cardProps.revisionContext?.bhGodkjentDager).toBe(5);
+    expect(result.current.cardProps.revisionContext.isSpecification).toBe(true);
+    expect(result.current.cardProps.revisionContext.isForesporsel).toBe(false);
   });
 
-  it('returns null revisionContext when no bhResponse', () => {
+  it('sets isForesporsel for foresporsel scenario', () => {
     const { result } = renderHook(
-      () => useFristSubmissionBridge(baseConfig),
+      () => useFristSubmissionBridge({
+        ...baseConfig,
+        scenario: 'foresporsel',
+        fristForSpesifisering: '2026-03-15',
+      }),
       { wrapper: createWrapper() },
     );
-    expect(result.current.cardProps.revisionContext).toBeNull();
+    expect(result.current.cardProps.revisionContext.isForesporsel).toBe(true);
+    expect(result.current.cardProps.revisionContext.foresporselDeadline).toBe('2026-03-15');
   });
 
   it('passes originalEventId through to submit (edit scenario)', () => {
