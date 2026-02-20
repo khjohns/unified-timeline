@@ -34,6 +34,8 @@ export interface UseFristSubmissionBridgeConfig {
   existing?: domain.FristSubmissionDefaultsConfig['existing'];
   datoOppdaget?: string;
   harMottattForesporsel?: boolean;
+  originalEventId?: string;
+  fristForSpesifisering?: string;
   onSuccess: () => void;
   onCatendaWarning?: () => void;
 }
@@ -59,9 +61,14 @@ export interface FristTeEditState {
   onNySluttdatoChange: (v: string | undefined) => void;
   showKravSection: boolean;
 
+  // §33.1 Vilkår
+  vilkarOppfylt: boolean | undefined;
+  onVilkarOppfyltChange: (v: boolean) => void;
+
   // Computed
   preklusjonsvarsel: { variant: 'warning' | 'danger'; dager: number } | null;
   showForesporselAlert: boolean;
+  statusSummary: string | null;
 
   // Begrunnelse (integrated)
   begrunnelse: string;
@@ -79,6 +86,7 @@ export interface FristTeEditState {
   submitLabel: string;
   showTokenExpired: boolean;
   onTokenExpiredClose: () => void;
+  revisionContext: domain.RevisionContext;
 }
 
 export interface FristSubmissionBridgeReturn {
@@ -171,6 +179,7 @@ export function useFristSubmissionBridge(
     nySluttdato,
     begrunnelse,
     begrunnelseValidationError,
+    vilkarOppfylt,
   } = formState;
 
   // ========== DOMAIN COMPUTATIONS (pure TS, memoized) ==========
@@ -192,6 +201,22 @@ export function useFristSubmissionBridge(
   const dynamicPlaceholder = useMemo(
     () => domain.getDynamicPlaceholder(varselType),
     [varselType],
+  );
+
+  const revisionContext = useMemo(
+    () => domain.beregnRevisionContext({
+      scenario,
+      foresporselDeadline: config.fristForSpesifisering,
+    }),
+    [scenario, config.fristForSpesifisering],
+  );
+
+  const statusSummary = useMemo(
+    () => domain.beregnTeStatusSummary(formState, {
+      scenario,
+      existingAntallDager: existing?.antall_dager,
+    }),
+    [formState, scenario, existing?.antall_dager],
   );
 
   // ========== SUBMIT MUTATION (L12) ==========
@@ -258,6 +283,10 @@ export function useFristSubmissionBridge(
     }));
   }, []);
 
+  const handleVilkarOppfyltChange = useCallback((v: boolean) => {
+    setFormState(prev => ({ ...prev, vilkarOppfylt: v }));
+  }, []);
+
   // ========== VALIDATE + SUBMIT ==========
   const handleSubmit = useCallback(() => {
     // Validate begrunnelse for types that require it
@@ -278,6 +307,7 @@ export function useFristSubmissionBridge(
       scenario,
       grunnlagEventId,
       erSvarPaForesporsel: harMottattForesporsel,
+      originalEventId: config.originalEventId,
     };
 
     const eventData = domain.buildEventData(formState, buildConfig);
@@ -287,7 +317,7 @@ export function useFristSubmissionBridge(
     });
   }, [
     visibility.begrunnelseRequired, begrunnelse, formState,
-    scenario, grunnlagEventId, harMottattForesporsel, eventType, mutation, toast,
+    scenario, grunnlagEventId, harMottattForesporsel, config.originalEventId, eventType, mutation, toast,
   ]);
 
   const submitLabel = (() => {
@@ -321,6 +351,10 @@ export function useFristSubmissionBridge(
       onNySluttdatoChange: handleNySluttdatoChange,
       showKravSection: visibility.showKravSection,
 
+      // §33.1 Vilkår
+      vilkarOppfylt,
+      onVilkarOppfyltChange: handleVilkarOppfyltChange,
+
       // Begrunnelse
       begrunnelse,
       onBegrunnelseChange: handleBegrunnelseChange,
@@ -331,6 +365,7 @@ export function useFristSubmissionBridge(
       // Computed
       preklusjonsvarsel,
       showForesporselAlert: visibility.showForesporselAlert,
+      statusSummary,
 
       // Actions
       onClose: onSuccess,
@@ -343,6 +378,7 @@ export function useFristSubmissionBridge(
       submitLabel,
       showTokenExpired,
       onTokenExpiredClose: () => setShowTokenExpired(false),
+      revisionContext,
     },
   };
 }

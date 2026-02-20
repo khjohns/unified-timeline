@@ -176,6 +176,52 @@ describe('fristSubmissionDomain', () => {
       expect(data.ny_sluttdato).toBe('2026-04-01');
       expect(data.frist_varsel?.dato_sendt).toBe('2026-02-10');
     });
+
+    it('includes original_event_id and dato_revidert for edit with originalEventId', () => {
+      const state = {
+        ...domain.getDefaults({ scenario: 'edit', existing: {
+          varsel_type: 'spesifisert' as const,
+          antall_dager: 20,
+          begrunnelse: 'Oppdatert begrunnelse for fristkrav',
+        }}),
+      };
+      const data = domain.buildEventData(state, {
+        scenario: 'edit',
+        grunnlagEventId: 'g-1',
+        originalEventId: 'frist-evt-123',
+      });
+      expect(data.original_event_id).toBe('frist-evt-123');
+      expect(data.dato_revidert).toBeDefined();
+      expect(data.dato_revidert).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it('includes original_event_id and dato_spesifisert for spesifisering with originalEventId', () => {
+      const state = {
+        ...domain.getDefaults({ scenario: 'spesifisering' }),
+        antallDager: 10,
+        begrunnelse: 'Spesifisert begrunnelse for kravet',
+      };
+      const data = domain.buildEventData(state, {
+        scenario: 'spesifisering',
+        grunnlagEventId: 'g-1',
+        originalEventId: 'frist-evt-456',
+      });
+      expect(data.original_event_id).toBe('frist-evt-456');
+      expect(data.dato_spesifisert).toBeDefined();
+    });
+
+    it('omits original_event_id for new submission', () => {
+      const state = {
+        ...domain.getDefaults({ scenario: 'new' }),
+        varselType: 'varsel' as const,
+      };
+      const data = domain.buildEventData(state, {
+        scenario: 'new',
+        grunnlagEventId: 'g-1',
+      });
+      expect(data.original_event_id).toBeUndefined();
+      expect(data.dato_revidert).toBeUndefined();
+    });
   });
 
   // ── getEventType ──
@@ -194,6 +240,96 @@ describe('fristSubmissionDomain', () => {
 
     it('returns frist_krav_oppdatert for edit', () => {
       expect(domain.getEventType({ scenario: 'edit' })).toBe('frist_krav_oppdatert');
+    });
+  });
+
+  // ── beregnTeStatusSummary ──
+  describe('beregnTeStatusSummary', () => {
+    it('returns null when no varselType', () => {
+      expect(domain.beregnTeStatusSummary(
+        { varselType: undefined, antallDager: 0 },
+        { scenario: 'new' },
+      )).toBeNull();
+    });
+
+    it('returns varsel text for new varsel', () => {
+      expect(domain.beregnTeStatusSummary(
+        { varselType: 'varsel', antallDager: 0 },
+        { scenario: 'new' },
+      )).toBe('Sender foreløpig varsel om fristforlengelse');
+    });
+
+    it('returns krav text with days for new spesifisert', () => {
+      expect(domain.beregnTeStatusSummary(
+        { varselType: 'spesifisert', antallDager: 20 },
+        { scenario: 'new' },
+      )).toBe('Krav om 20 dagers fristforlengelse');
+    });
+
+    it('returns justerer text for edit with changed days', () => {
+      expect(domain.beregnTeStatusSummary(
+        { varselType: 'spesifisert', antallDager: 25 },
+        { scenario: 'edit', existingAntallDager: 15 },
+      )).toBe('Justerer krav fra 15 til 25 dager');
+    });
+
+    it('returns oppdaterer text for edit with same days', () => {
+      expect(domain.beregnTeStatusSummary(
+        { varselType: 'spesifisert', antallDager: 15 },
+        { scenario: 'edit', existingAntallDager: 15 },
+      )).toBe('Oppdaterer krav om 15 dager');
+    });
+
+    it('returns spesifiserer text for spesifisering', () => {
+      expect(domain.beregnTeStatusSummary(
+        { varselType: 'spesifisert', antallDager: 10 },
+        { scenario: 'spesifisering' },
+      )).toBe('Spesifiserer krav: 10 dager');
+    });
+
+    it('returns foresporsel text for foresporsel', () => {
+      expect(domain.beregnTeStatusSummary(
+        { varselType: 'spesifisert', antallDager: 12 },
+        { scenario: 'foresporsel' },
+      )).toBe('Svarer på forespørsel: krav om 12 dager');
+    });
+
+    it('returns utsatt text for begrunnelse_utsatt', () => {
+      expect(domain.beregnTeStatusSummary(
+        { varselType: 'begrunnelse_utsatt', antallDager: 0 },
+        { scenario: 'foresporsel' },
+      )).toBe('Svarer på forespørsel: utsatt beregning');
+    });
+  });
+
+  // ── beregnRevisionContext ──
+  describe('beregnRevisionContext', () => {
+    it('returns non-specification context for new scenario', () => {
+      const ctx = domain.beregnRevisionContext({ scenario: 'new' });
+      expect(ctx.isSpecification).toBe(false);
+      expect(ctx.isForesporsel).toBe(false);
+    });
+
+    it('returns non-specification context for edit scenario', () => {
+      const ctx = domain.beregnRevisionContext({ scenario: 'edit' });
+      expect(ctx.isSpecification).toBe(false);
+      expect(ctx.isForesporsel).toBe(false);
+    });
+
+    it('returns specification context for spesifisering', () => {
+      const ctx = domain.beregnRevisionContext({ scenario: 'spesifisering' });
+      expect(ctx.isSpecification).toBe(true);
+      expect(ctx.isForesporsel).toBe(false);
+    });
+
+    it('returns foresporsel context with deadline', () => {
+      const ctx = domain.beregnRevisionContext({
+        scenario: 'foresporsel',
+        foresporselDeadline: '2026-03-15',
+      });
+      expect(ctx.isSpecification).toBe(true);
+      expect(ctx.isForesporsel).toBe(true);
+      expect(ctx.foresporselDeadline).toBe('2026-03-15');
     });
   });
 });

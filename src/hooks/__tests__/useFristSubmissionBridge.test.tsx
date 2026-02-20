@@ -223,4 +223,85 @@ describe('useFristSubmissionBridge', () => {
     act(() => result.current.cardProps.onBegrunnelseChange('Minst ti tegn begrunnelse her'));
     expect(result.current.cardProps.canSubmit).toBe(true);
   });
+
+  it('initializes vilkarOppfylt as undefined', () => {
+    const { result } = renderHook(
+      () => useFristSubmissionBridge(baseConfig),
+      { wrapper: createWrapper() },
+    );
+    expect(result.current.cardProps.vilkarOppfylt).toBeUndefined();
+  });
+
+  it('updates vilkarOppfylt on change', () => {
+    const { result } = renderHook(
+      () => useFristSubmissionBridge(baseConfig),
+      { wrapper: createWrapper() },
+    );
+    act(() => result.current.cardProps.onVilkarOppfyltChange(true));
+    expect(result.current.cardProps.vilkarOppfylt).toBe(true);
+  });
+
+  it('returns statusSummary for varsel', () => {
+    const { result } = renderHook(
+      () => useFristSubmissionBridge(baseConfig),
+      { wrapper: createWrapper() },
+    );
+    act(() => result.current.cardProps.onVarselTypeChange('varsel'));
+    expect(result.current.cardProps.statusSummary).toBe('Sender foreløpig varsel om fristforlengelse');
+  });
+
+  it('returns statusSummary with days for spesifisert', () => {
+    const { result } = renderHook(
+      () => useFristSubmissionBridge(baseConfig),
+      { wrapper: createWrapper() },
+    );
+    act(() => {
+      result.current.cardProps.onVarselTypeChange('spesifisert');
+      result.current.cardProps.onAntallDagerChange(20);
+    });
+    expect(result.current.cardProps.statusSummary).toBe('Krav om 20 dagers fristforlengelse');
+  });
+
+  it('computes revisionContext flags from scenario', () => {
+    const { result } = renderHook(
+      () => useFristSubmissionBridge({
+        ...baseConfig,
+        scenario: 'spesifisering',
+      }),
+      { wrapper: createWrapper() },
+    );
+    expect(result.current.cardProps.revisionContext.isSpecification).toBe(true);
+    expect(result.current.cardProps.revisionContext.isForesporsel).toBe(false);
+  });
+
+  it('sets isForesporsel for foresporsel scenario', () => {
+    const { result } = renderHook(
+      () => useFristSubmissionBridge({
+        ...baseConfig,
+        scenario: 'foresporsel',
+        fristForSpesifisering: '2026-03-15',
+      }),
+      { wrapper: createWrapper() },
+    );
+    expect(result.current.cardProps.revisionContext.isForesporsel).toBe(true);
+    expect(result.current.cardProps.revisionContext.foresporselDeadline).toBe('2026-03-15');
+  });
+
+  it('passes originalEventId through to submit (edit scenario)', () => {
+    const { result } = renderHook(
+      () => useFristSubmissionBridge({
+        ...baseConfig,
+        scenario: 'edit',
+        existing: {
+          varsel_type: 'spesifisert',
+          antall_dager: 10,
+          begrunnelse: 'Begrunnelse som er lang nok',
+        },
+        originalEventId: 'frist-evt-789',
+      }),
+      { wrapper: createWrapper() },
+    );
+    expect(result.current.cardProps.varselType).toBe('spesifisert');
+    expect(result.current.cardProps.antallDager).toBe(10);
+  });
 });

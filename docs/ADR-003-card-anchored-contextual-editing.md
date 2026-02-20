@@ -1,7 +1,7 @@
 # ADR-003: Card-Anchored Contextual Editing
 
-**Status:** Akseptert — Alle tre spor implementert (Grunnlag, Frist, Vederlag), domenelag-ekstraksjon planlagt
-**Dato:** 2026-02-14 (opprinnelig), 2026-02-15 (refaktorert + domenelag-beslutning), 2026-02-16 (vederlag implementert)
+**Status:** Akseptert — Alle tre spor implementert (Grunnlag, Frist, Vederlag) + TE frist card-intern to-kolonne
+**Dato:** 2026-02-14 (opprinnelig), 2026-02-15 (refaktorert + domenelag-beslutning), 2026-02-16 (vederlag implementert), 2026-02-20 (TE frist revisjon + intern to-kolonne)
 **Beslutningstagere:** Utviklingsteam
 **Kontekst:** UX-mønster for inline skjemaer i bento-layout
 
@@ -270,11 +270,64 @@ tilstrekkelig visuell struktur.
 | Send svar / Lagre utkast | **I kort** (nederst) | Submit footer |
 | Begrunnelse | I formpanel (RichTextEditor) | — |
 
-### TE-skjemaer (Send/Oppdater)
+### TE Frist (implementert — bridge-hook, card-internal to-kolonne)
 
-Mønsteret passer for BH-svar (vurdering av eksisterende data) og TE-oppdateringer
-(revider). TE førstegangs-innsending forblir i TrackFormView — kortet er tomt,
-så det er ingen kontekst å forankre kontrollene i.
+**Kort:** FristCard (intern to-kolonne). **Form:** Ingen separat — begrunnelse er i kortet. **Bridge:** useFristSubmissionBridge.
+
+TE frist-innsending bruker en **card-intern to-kolonne** layout i stedet for den
+eksterne to-kolonnen (kort + separat formpanel) som BH-sporene bruker. Begrunnelse
+(Textarea) rendres i venstre kolonne, kontroller i høyre — alt innenfor FristCard.
+`renderExpandedForm` returnerer `null` for alle TE frist-scenarioer.
+
+| Kontroll | Plassering | Seksjon i kort |
+|----------|------------|----------------|
+| Lukk-knapp [✕] | **I kort** (høyre kolonne, øverst) | Header |
+| Kontekstuell status-oppsummering | **I kort** (dynamisk tekst-boks) | Status |
+| Spesifisering/forespørsel-info | **I kort** (alert) | Kontekst-alert |
+| Segmented control (Varsel/Krav) | **I kort** (InlineSegmentedControl) | Kravtype |
+| Foreløpig varsel §33.4 | **I kort** (InlineYesNo + InlineDatePicker) | §33.4 |
+| Krav om fristforlengelse §33.6.1 | **I kort** (InlineNumberInput + InlineDatePicker) | §33.6.1 |
+| Vilkår for fristforlengelse §33.1 | **I kort** (InlineYesNo) | §33.1 |
+| Preklusjonsvarsel | **I kort** (betinget alert) | Kontekst-alert |
+| Send krav / Oppdater | **I kort** (nederst, spans begge kolonner) | Submit footer |
+| Begrunnelse | **I kort** (venstre kolonne, Textarea) | Begrunnelse |
+
+**Scenarioer håndtert:** `new`, `edit` (revisjon), `spesifisering`, `foresporsel`.
+
+**Domenelag:** `fristSubmissionDomain.ts` — getDefaults, beregnVisibility,
+beregnCanSubmit, beregnPreklusjonsvarsel, beregnTeStatusSummary,
+beregnRevisionContext, buildEventData, getDynamicPlaceholder, getEventType.
+
+```
+Desktop to-kolonne (intern i FristCard):
+┌────────────────────────────────────────────────────────────────┐
+│  FRISTCARD                                                     │
+│  ┌───────────────────────────┬─│───────────────────────────┐  │
+│  │  BEGRUNNELSE (md:order-1)  │ │  KONTROLLER (md:order-2)  │  │
+│  │                            │ │  Fristforlengelse  [✕]    │  │
+│  │  Begrunnelse *             │ │                           │  │
+│  │  ┌──────────────────────┐ │ │  ┌ Status ─────────────┐  │  │
+│  │  │                      │ │ │  │ Krav om 20 dager ... │  │  │
+│  │  │  [Textarea]          │ │ │  └─────────────────────┘  │  │
+│  │  │                      │ │ │                           │  │
+│  │  │                      │ │ │  Velg type henvendelse    │  │
+│  │  │                      │ │ │  [Varsel] [Krav]          │  │
+│  │  │                      │ │ │                           │  │
+│  │  │                      │ │ │ ┌─ Foreløpig varsel §33.4 │  │
+│  │  │                      │ │ │ │ Tidligere varslet? Ja/Nei│  │
+│  │  │                      │ │ │ └─────────────────────────│  │
+│  │  │                      │ │ │ ┌─ Krav §33.6.1 ─────────│  │
+│  │  │                      │ │ │ │ Kalenderdager: [__20_] d│  │
+│  │  │                      │ │ │ │ Ny sluttdato: [dato]    │  │
+│  │  │                      │ │ │ └─────────────────────────│  │
+│  │  │                      │ │ │ ┌─ Vilkår §33.1 ─────────│  │
+│  │  │                      │ │ │ │ Hindret fremdrift? Ja/Nei│  │
+│  │  └──────────────────────┘ │ │ └─────────────────────────│  │
+│  └───────────────────────────┴─┴───────────────────────────┘  │
+│  ──────────────────────────────────────────────────────────── │
+│                                              [Send krav]      │
+└────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -672,6 +725,37 @@ direkte — uten å endre den standard `DatePicker`-primitiven.
 standard-primitiven bør bygge egen trigger fremfor å wrappe. Kalender-popover
 og DayPicker kan gjenbrukes; det er triggeren som trenger tilpasning.
 
+### L21: TE card-intern to-kolonne — begrunnelse i kortet, ikke separat panel
+
+**Problem:** BH-mønsteret bruker en ekstern to-kolonne: kort (col-5) + separat
+formpanel (col-7) med RichTextEditor og «Regenerer fra valg». TE-innsending
+trenger ikke auto-begrunnelse — TE skriver sin egen tekst. Å lage et separat
+formpanel med bare en Textarea ga unødvendig indireksjon.
+
+**Løsning:** TE bruker en **card-intern to-kolonne** med `md:grid-cols-2` inne
+i FristCard. Begrunnelse (Textarea) rendres i venstre kolonne, kontroller i høyre.
+`renderExpandedForm` returnerer `null` — alt håndteres av kortet.
+
+**Konsekvenser for bridge-kontrakten:**
+
+| Aspekt | BH-bridge | TE-bridge |
+|--------|-----------|-----------|
+| Returnerer | `{ cardProps, editorProps }` | `{ cardProps }` |
+| Begrunnelse | I `editorProps` → formpanel | I `cardProps` → kort |
+| Auto-begrunnelse | Ja (L5) | Nei |
+| Separat formpanel | `BentoRespondFrist.tsx` | Ingen |
+| Layout-eier | CasePageBento (ekstern grid) | FristCard (intern grid) |
+
+**Når bruke hvilken:**
+- **Ekstern to-kolonne** (BH): Når begrunnelse er auto-generert, trenger
+  RichTextEditor, og bruker «Regenerer fra valg».
+- **Intern to-kolonne** (TE): Når begrunnelse er manuelt skrevet, enkel
+  Textarea holder, og kortet er selvforsynt.
+
+**BentoSubmitFrist ble aldri opprettet** — design-dokumentet planla det, men
+card-intern layout viste seg å være tilstrekkelig for alle TE frist-scenarioer
+(ny, revisjon, spesifisering, forespørsel).
+
 ### L20: TE-innsending gjenbruker BH-mønsteret med minimale tilpasninger
 
 **Problem:** TE-innsending (send krav) og BH-respons (vurder krav) er
@@ -829,13 +913,13 @@ Basert på lærdom fra grunnlag- og frist-implementeringen:
 | `src/components/bento/BentoRespondVederlag.tsx` | Ren begrunnelse-editor for vederlag (~60 linjer) | Komponent |
 | `src/pages/CasePageBento.tsx` | Koordinering og layout | Komponent |
 
-### TE-innsending (card-anchored)
+### TE-innsending (card-intern to-kolonne)
 
 | Fil | Rolle | Lag |
 |-----|-------|----|
 | `src/domain/fristSubmissionDomain.ts` | NS 8407 frist-innsending regler | Domene |
 | `src/hooks/useFristSubmissionBridge.ts` | Bridge-hook for TE frist-innsending | Bridge |
-| `src/components/bento/BentoSubmitFrist.tsx` | Ren begrunnelse-editor for TE frist (~50 linjer) | Komponent |
+| `src/components/bento/track-cards/FristCard.tsx` | Kort med intern to-kolonne (begrunnelse + kontroller) | Komponent |
 | `src/components/bento/InlineSegmentedControl.tsx` | Pill-tabs for kravtype-valg | Bento-primitiv |
 | `src/components/bento/InlineDatePicker.tsx` | Kompakt datopicker med egen trigger | Bento-primitiv |
 
@@ -843,7 +927,7 @@ Basert på lærdom fra grunnlag- og frist-implementeringen:
 
 ## Sjekkliste for TE-innsending (grunnlag + vederlag)
 
-Basert på lærdom fra TE frist-implementeringen:
+Basert på lærdom fra TE frist-implementeringen (L20, L21):
 
 **Domenelag (L14):**
 - [ ] Opprett `src/domain/grunnlagSubmissionDomain.ts`
@@ -855,12 +939,14 @@ Basert på lærdom fra TE frist-implementeringen:
 - [ ] Ingen auto-begrunnelse — TE skriver selv (ikke L5)
 - [ ] Konsolidert FormState (L1), state-during-render reset (L2)
 - [ ] Bridge eier submit, backup, toast (L12)
+- [ ] Vurder card-intern to-kolonne (L21) vs ekstern formpanel
 
 **Kort:**
 - [ ] `teEditState`-prop (L6) — parallelt med eksisterende `editState`
 - [ ] **isEmpty-guard inkluderer teEditState** (L18) — `isEmpty && !editState && !teEditState`
-- [ ] Seksjonerte kontroller med §-overskrifter (L7)
-- [ ] Dynamisk submitLabel basert på kontekst
+- [ ] Seksjonerte kontroller med §-overskrifter matching BH-format (L7)
+- [ ] Dynamisk submitLabel og statusSummary basert på kontekst
+- [ ] §-seksjoner speiler BH: tittel + paragrafref + tooltip
 
 **Primitiver:**
 - [ ] Gjenbruk `InlineSegmentedControl` og `InlineDatePicker` (allerede opprettet)
@@ -868,7 +954,7 @@ Basert på lærdom fra TE frist-implementeringen:
 
 **CasePageBento:**
 - [ ] Scenario-derivasjon fra `expandedTrack.action`
-- [ ] Card-anchored layout (kort høyre, form venstre) (L8, L15)
+- [ ] Returner `null` fra `renderExpandedForm` når kortet håndterer alt (L21)
 
 ### Relaterte dokumenter
 

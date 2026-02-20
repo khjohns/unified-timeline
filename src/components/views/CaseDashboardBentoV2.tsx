@@ -15,7 +15,6 @@ import { ReactNode, useMemo, useState } from 'react';
 import { BentoDashboardCard, InlineDataList, InlineDataListItem, Badge, Button } from '../primitives';
 import { CategoryLabel } from '../shared';
 import { InlineReviseVederlag } from '../actions/InlineReviseVederlag';
-import { InlineReviseFrist } from '../actions/InlineReviseFrist';
 import { SakState, SporStatus, TimelineEvent } from '../../types/timeline';
 import { GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
 import { getVederlagsmetodeLabel } from '../../constants/paymentMethods';
@@ -424,19 +423,6 @@ export function CaseDashboardBentoV2({
               actions={actions}
             />
 
-            {inlineFristRevision && inlineFristReviseOpen && (
-              <InlineReviseFrist
-                sakId={inlineFristRevision.sakId}
-                lastFristEvent={inlineFristRevision.lastFristEvent}
-                originalVarselType={inlineFristRevision.originalVarselType}
-                onOpenFullModal={() => {
-                  setInlineFristReviseOpen(false);
-                  inlineFristRevision.onOpenFullModal();
-                }}
-                onClose={() => setInlineFristReviseOpen(false)}
-                onSuccess={() => setInlineFristReviseOpen(false)}
-              />
-            )}
 
             <SporHistory spor="frist" entries={fristEntries} events={events} sakState={state} externalOpen={fristExpanded} />
           </BentoDashboardCard>

@@ -46,11 +46,9 @@ import {
   RespondVederlagModal,
   RespondFristModal,
   ReviseVederlagModal,
-  ReviseFristModal,
   SendForseringModal,
 } from '../components/actions';
 import { InlineReviseVederlag } from '../components/actions/InlineReviseVederlag';
-import { InlineReviseFrist } from '../components/actions/InlineReviseFrist';
 import {
   SendGrunnlagForm,
   SendVederlagForm,
@@ -331,15 +329,24 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
 
   // ===== FRIST TE SUBMISSION (card-anchored) =====
   const isFristTeFormOpen = expandedTrack?.track === 'frist' &&
-    ['send', 'update', 'foresporselSvar'].includes(expandedTrack.action ?? '');
+    ['send', 'update', 'foresporselSvar', 'revise'].includes(expandedTrack.action ?? '');
 
   const fristTeScenario = useMemo((): SubmissionScenario | undefined => {
     if (!isFristTeFormOpen) return undefined;
     if (expandedTrack?.action === 'send') return 'new';
     if (expandedTrack?.action === 'update') return 'edit';
     if (expandedTrack?.action === 'foresporselSvar') return 'foresporsel';
+    if (expandedTrack?.action === 'revise') {
+      // Determine revision mode from state
+      const erKunVarsel = state.frist.varsel_type === 'varsel' &&
+        (state.frist.krevd_dager === 0 || state.frist.krevd_dager === undefined);
+      if (erKunVarsel) {
+        return state.frist.har_bh_foresporsel ? 'foresporsel' : 'spesifisering';
+      }
+      return 'edit';
+    }
     return undefined;
-  }, [isFristTeFormOpen, expandedTrack?.action]);
+  }, [isFristTeFormOpen, expandedTrack?.action, state.frist.varsel_type, state.frist.krevd_dager, state.frist.har_bh_foresporsel]);
 
   const fristBridge = useFristBridge({
     isOpen: isFristFormOpen,
@@ -374,7 +381,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     grunnlagEventId: `grunnlag-${sakId}`,
     scenario: fristTeScenario ?? 'new',
     existingVarselDato: state.frist.frist_varsel?.dato_sendt,
-    existing: expandedTrack?.action === 'update' ? {
+    existing: (expandedTrack?.action === 'update' || expandedTrack?.action === 'revise') ? {
       varsel_type: state.frist.varsel_type!,
       antall_dager: state.frist.krevd_dager,
       begrunnelse: state.frist.begrunnelse,
@@ -383,6 +390,12 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     } : undefined,
     datoOppdaget: state.grunnlag.dato_oppdaget,
     harMottattForesporsel: state.frist.har_bh_foresporsel,
+    originalEventId: expandedTrack?.action === 'revise'
+      ? (state.frist.siste_event_id || `frist-${sakId}`)
+      : undefined,
+    fristForSpesifisering: expandedTrack?.action === 'revise'
+      ? state.frist.frist_for_spesifisering
+      : undefined,
     onSuccess: handleCollapseTrack,
     onCatendaWarning: () => modals.catendaWarning.setOpen(true),
   });
@@ -565,6 +578,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       case 'frist:send':
       case 'frist:update':
       case 'frist:foresporselSvar':
+      case 'frist:revise':
         return null; // Handled internally by FristCard two-column layout
       case 'frist:withdraw':
         return (
@@ -603,6 +617,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     const actionTitles: Record<string, string> = {
       send: 'Send krav',
       update: 'Oppdater krav',
+      revise: 'Revider krav',
       respond: 'Svar på krav',
       updateResponse: 'Oppdater svar',
       withdraw: 'Trekk krav',
@@ -643,7 +658,6 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
   const fristEntries = useMemo(() => transformFristHistorikk(fristHistorikk), [fristHistorikk]);
 
   const [inlineReviseOpen, setInlineReviseOpen] = useState(false);
-  const [inlineFristReviseOpen, setInlineFristReviseOpen] = useState(false);
 
   // Inline vederlag revision props
   const inlineVederlagRevision = useMemo(() => {
@@ -670,26 +684,6 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
         state.vederlag.antall_versjoner - 1 === state.vederlag.bh_respondert_versjon,
     };
   }, [sakId, state.vederlag, userRole, actions.canUpdateVederlag, modals.reviseVederlag]);
-
-  // Inline frist revision props
-  const inlineFristRevision = useMemo(() => {
-    if (!sakId || state.frist.krevd_dager === undefined || state.frist.har_bh_foresporsel) return undefined;
-    return {
-      sakId,
-      lastFristEvent: {
-        event_id: state.frist.siste_event_id || `frist-${sakId}`,
-        antall_dager: state.frist.krevd_dager ?? 0,
-        begrunnelse: state.frist.begrunnelse,
-      },
-      originalVarselType: state.frist.varsel_type,
-      onOpenFullModal: () => modals.reviseFrist.setOpen(true),
-      canRevise: userRole === 'TE' && actions.canUpdateFrist,
-      showPrimaryVariant:
-        !!state.frist.bh_resultat &&
-        state.frist.bh_resultat !== 'godkjent' &&
-        state.frist.antall_versjoner - 1 === state.frist.bh_respondert_versjon,
-    };
-  }, [sakId, state.frist, userRole, actions.canUpdateFrist, modals.reviseFrist]);
 
   // ===== PRIMARY/SECONDARY ACTIONS FOR TRACK CARDS =====
 
@@ -752,18 +746,28 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     if (userRole === 'TE') {
       if (actions.canSendFrist) return { label: 'Send krav', onClick: () => handleExpandTrack('frist', 'send') };
       if (actions.canUpdateFrist && state.frist.har_bh_foresporsel) return { label: 'Svar forespørsel', onClick: () => handleExpandTrack('frist', 'foresporselSvar') };
-      if (inlineFristRevision?.canRevise && inlineFristRevision.showPrimaryVariant) return { label: 'Revider', onClick: () => setInlineFristReviseOpen(true) };
+      if (actions.canUpdateFrist && !actions.canSendFrist && !state.frist.har_bh_foresporsel) {
+        const showAsPrimary = !!state.frist.bh_resultat &&
+          state.frist.bh_resultat !== 'godkjent' &&
+          state.frist.antall_versjoner - 1 === state.frist.bh_respondert_versjon;
+        if (showAsPrimary) return { label: 'Revider', onClick: () => handleExpandTrack('frist', 'revise') };
+      }
     }
     if (userRole === 'BH') {
       if (actions.canRespondToFrist) return { label: 'Svar på krav', onClick: () => handleExpandTrack('frist', 'respond') };
     }
     return undefined;
-  }, [userRole, actions, state.frist.har_bh_foresporsel, inlineFristRevision, handleExpandTrack]);
+  }, [userRole, actions, state.frist, handleExpandTrack]);
 
   const fristSecondaryActions = useMemo(() => {
     const items: { label: string; onClick: () => void; variant?: 'default' | 'danger' }[] = [];
     if (userRole === 'TE') {
-      if (inlineFristRevision?.canRevise && !inlineFristRevision.showPrimaryVariant) items.push({ label: 'Revider', onClick: () => setInlineFristReviseOpen(true) });
+      if (actions.canUpdateFrist && !actions.canSendFrist && !state.frist.har_bh_foresporsel) {
+        const showAsPrimary = !!state.frist.bh_resultat &&
+          state.frist.bh_resultat !== 'godkjent' &&
+          state.frist.antall_versjoner - 1 === state.frist.bh_respondert_versjon;
+        if (!showAsPrimary) items.push({ label: 'Revider', onClick: () => handleExpandTrack('frist', 'revise') });
+      }
       if (actions.canSendForsering) items.push({ label: 'Forsering (§33.8)', onClick: () => modals.sendForsering.setOpen(true) });
       if (actions.canAcceptFristResponse) items.push({ label: 'Godta svaret', onClick: () => handleExpandTrack('frist', 'accept') });
       if (actions.canWithdrawFrist) items.push({ label: 'Trekk tilbake', onClick: () => handleExpandTrack('frist', 'withdraw'), variant: 'danger' });
@@ -772,7 +776,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       if (actions.canUpdateFristResponse) items.push({ label: 'Endre svar', onClick: () => handleExpandTrack('frist', 'updateResponse') });
     }
     return items;
-  }, [userRole, actions, inlineFristRevision, handleExpandTrack, modals.sendForsering]);
+  }, [userRole, actions, state.frist, handleExpandTrack, modals.sendForsering]);
 
   // ===== BENTO LAYOUT =====
   return (
@@ -976,19 +980,6 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                   className="animate-fade-in-up"
                   style={{ animationDelay: '150ms' }}
                 />
-                {inlineFristRevision && inlineFristReviseOpen && (
-                  <InlineReviseFrist
-                    sakId={inlineFristRevision.sakId}
-                    lastFristEvent={inlineFristRevision.lastFristEvent}
-                    originalVarselType={inlineFristRevision.originalVarselType}
-                    onOpenFullModal={() => {
-                      setInlineFristReviseOpen(false);
-                      inlineFristRevision.onOpenFullModal();
-                    }}
-                    onClose={() => setInlineFristReviseOpen(false)}
-                    onSuccess={() => setInlineFristReviseOpen(false)}
-                  />
-                )}
               </div>
             </div>
           )}
@@ -1208,30 +1199,6 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             }
             onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
           />
-          <ReviseFristModal
-            open={modals.reviseFrist.open}
-            onOpenChange={modals.reviseFrist.setOpen}
-            sakId={sakId}
-            lastFristEvent={{
-              event_id: state.frist.siste_event_id || `frist-${sakId}`,
-              antall_dager: state.frist.krevd_dager || 0,
-              begrunnelse: state.frist.begrunnelse,
-            }}
-            lastResponseEvent={state.frist.bh_resultat ? {
-              event_id: `frist-response-${sakId}`,
-              resultat: state.frist.bh_resultat,
-              godkjent_dager: state.frist.godkjent_dager,
-              begrunnelse: state.frist.bh_begrunnelse,
-            } : undefined}
-            fristTilstand={state.frist}
-            currentVersion={Math.max(0, (state.frist.antall_versjoner ?? 1) - 1)}
-            originalVarselType={state.frist.varsel_type}
-            harMottattForesporsel={state.frist.har_bh_foresporsel}
-            fristForSpesifisering={state.frist.frist_for_spesifisering}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-            subsidiaerTriggers={state.frist.subsidiaer_triggers}
-          />
-
           {/* Update Response Modals (BH) - complex wizards kept as modals */}
           <RespondVederlagModal
             open={modals.updateVederlagResponse.open}

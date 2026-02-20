@@ -49,7 +49,6 @@ import {
   // Update modals (TE)
   // Note: SendGrunnlagUpdateModal is now handled by SendGrunnlagModal with originalEvent prop
   ReviseVederlagModal,
-  ReviseFristModal,
   // Update response modals (BH)
   // Note: RespondGrunnlagUpdateModal is now handled by RespondGrunnlagModal with lastResponseEvent prop
   // Note: UpdateResponseVederlagModal is now handled by RespondVederlagModal with lastResponseEvent prop
@@ -758,31 +757,6 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
             }
             onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
           />
-          <ReviseFristModal
-            open={modals.reviseFrist.open}
-            onOpenChange={modals.reviseFrist.setOpen}
-            sakId={sakId}
-            lastFristEvent={{
-              // Use actual CloudEvents ID from state (populated by backend)
-              event_id: state.frist.siste_event_id || `frist-${sakId}`,
-              antall_dager: state.frist.krevd_dager || 0,
-              begrunnelse: state.frist.begrunnelse,
-            }}
-            lastResponseEvent={state.frist.bh_resultat ? {
-              event_id: `frist-response-${sakId}`,
-              resultat: state.frist.bh_resultat,
-              godkjent_dager: state.frist.godkjent_dager,
-              begrunnelse: state.frist.bh_begrunnelse,
-            } : undefined}
-            fristTilstand={state.frist}
-            currentVersion={Math.max(0, (state.frist.antall_versjoner ?? 1) - 1)}
-            originalVarselType={state.frist.varsel_type}
-            harMottattForesporsel={state.frist.har_bh_foresporsel}
-            fristForSpesifisering={state.frist.frist_for_spesifisering}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-            subsidiaerTriggers={state.frist.subsidiaer_triggers}
-          />
-
           {/* Update Response Modals (BH) */}
           <RespondGrunnlagModal
             open={modals.updateGrunnlagResponse.open}

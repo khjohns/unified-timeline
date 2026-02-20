@@ -20,7 +20,7 @@ import { SendFristModal } from '@/components/actions/SendFristModal';
 // Note: SendGrunnlagUpdateModal removed - SendGrunnlagModal handles updates via originalEvent prop
 // Note: RespondGrunnlagUpdateModal removed - RespondGrunnlagModal handles updates via lastResponseEvent prop
 import { ReviseVederlagModal } from '@/components/actions/ReviseVederlagModal';
-import { ReviseFristModal } from '@/components/actions/ReviseFristModal';
+// Note: ReviseFristModal removed - FristCard handles revision via card-internal two-column (ADR-003 L21)
 // Note: UpdateResponseVederlagModal removed - RespondVederlagModal handles updates via lastResponseEvent prop
 // Note: UpdateResponseFristModal removed - RespondFristModal handles updates via lastResponseEvent prop
 
@@ -433,47 +433,7 @@ describe('Action/Modal Components - Functional Tests', () => {
     });
   });
 
-  describe('ReviseFristModal', () => {
-    const defaultProps = {
-      open: true,
-      onOpenChange: vi.fn(),
-      sakId: 'TEST-001',
-      lastFristEvent: {
-        event_id: 'frist-1',
-        antall_dager: 10,
-        begrunnelse: 'Original begrunnelse',
-      },
-      fristTilstand: {
-        krevd_dager: 10,
-        godkjent_dager: 0,
-      } as any,
-    };
-
-    it('should render when open', () => {
-      renderWithProviders(<ReviseFristModal {...defaultProps} />);
-
-      expect(screen.getByRole('dialog', { name: /Oppdater fristkrav/i })).toBeInTheDocument();
-    });
-
-    it('should have begrunnelse field', () => {
-      renderWithProviders(<ReviseFristModal {...defaultProps} />);
-
-      expect(screen.getAllByText(/Begrunnelse/i).length).toBeGreaterThan(0);
-    });
-
-    it('should not render when closed', () => {
-      renderWithProviders(<ReviseFristModal {...defaultProps} open={false} />);
-
-      expect(screen.queryByRole('dialog', { name: /Oppdater fristkrav/i })).not.toBeInTheDocument();
-    });
-
-    it('should have submit and cancel buttons', () => {
-      renderWithProviders(<ReviseFristModal {...defaultProps} />);
-
-      expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Oppdater Krav/i })).toBeInTheDocument();
-    });
-  });
+  // ReviseFristModal tests removed - FristCard handles revision via card-internal two-column (ADR-003 L21)
 
   describe('RespondVederlagModal (update mode)', () => {
     const defaultProps = {
