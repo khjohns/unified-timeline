@@ -7,7 +7,7 @@
  */
 
 import { useMemo, useCallback, useRef, Suspense, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { forseringKeys, endringsordreKeys } from '../queries';
 import { STALE_TIME } from '../constants/queryConfig';
@@ -68,6 +68,7 @@ import {
   DownloadIcon,
   PaperPlaneIcon,
   QuestionMarkCircledIcon,
+  DashboardIcon,
 } from '@radix-ui/react-icons';
 import { OnboardingGuide, useOnboarding, casePageSteps } from '../components/onboarding';
 import { PdfPreviewModal } from '../components/pdf';
@@ -335,6 +336,18 @@ function CasePageDataLoader({ sakId }: { sakId: string }) {
           subtitle={`Sak #${sakId}`}
           userRole={userRole}
           onToggleRole={setUserRole}
+          actions={
+            <Link
+              to={`/saker/${sakId}/bento`}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-md
+                         text-pkt-text-body-subtle hover:text-pkt-text-body-default
+                         hover:bg-pkt-bg-subtle transition-colors duration-200"
+              title="Åpne bento-visning"
+            >
+              <DashboardIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">Bento</span>
+            </Link>
+          }
           menuActions={
           <>
             <DropdownMenuItem onClick={() => onboarding.start()}>
