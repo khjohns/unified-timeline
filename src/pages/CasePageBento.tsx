@@ -12,7 +12,7 @@
  */
 
 import { useMemo, useCallback, useRef, useState, Suspense, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { forseringKeys, endringsordreKeys } from '../queries';
 import { STALE_TIME } from '../constants/queryConfig';
@@ -64,6 +64,7 @@ import type { DraftResponseData } from '../types/approval';
 import {
   PaperPlaneIcon,
   QuestionMarkCircledIcon,
+  ArrowLeftIcon,
 } from '@radix-ui/react-icons';
 import { OnboardingGuide, useOnboarding, casePageSteps } from '../components/onboarding';
 import { PdfPreviewModal } from '../components/pdf';
@@ -790,6 +791,18 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
           userRole={userRole}
           onToggleRole={setUserRole}
           maxWidth="wide"
+          actions={
+            <Link
+              to={`/saker/${sakId}`}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-md
+                         text-pkt-text-body-subtle hover:text-pkt-text-body-default
+                         hover:bg-pkt-bg-subtle transition-colors duration-200"
+              title="Tilbake til tidslinje-visning"
+            >
+              <ArrowLeftIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">Tidslinje</span>
+            </Link>
+          }
           menuActions={
             <>
               <DropdownMenuItem onClick={() => onboarding.start()}>
