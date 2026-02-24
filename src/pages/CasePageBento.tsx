@@ -45,8 +45,6 @@ import {
   ApprovalDashboardCard,
 } from '../components/approval';
 import {
-  RespondVederlagModal,
-  RespondFristModal,
   SendForseringModal,
 } from '../components/actions';
 import {
@@ -1112,142 +1110,9 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
         />
       )}
 
-      {/* ===== Remaining Action Modals (complex wizards + special actions) ===== */}
+      {/* ===== Remaining Action Modals (special actions) ===== */}
       {sakId && (
         <>
-          <RespondVederlagModal
-            open={modals.respondVederlag.open}
-            onOpenChange={modals.respondVederlag.setOpen}
-            sakId={sakId}
-            vederlagKravId={`vederlag-${sakId}`}
-            grunnlagStatus={grunnlagStatus}
-            hovedkategori={state.grunnlag.hovedkategori as 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE' | undefined}
-            grunnlagVarsletForSent={grunnlagVarsletForSent}
-            vederlagEvent={{
-              metode: state.vederlag.metode,
-              belop_direkte: state.vederlag.belop_direkte,
-              kostnads_overslag: state.vederlag.kostnads_overslag,
-              begrunnelse: state.vederlag.begrunnelse,
-              krever_justert_ep: state.vederlag.krever_justert_ep,
-              saerskilt_krav: state.vederlag.saerskilt_krav,
-              dato_oppdaget: state.grunnlag.dato_oppdaget,
-              dato_krav_mottatt: vederlagHistorikk.find(e => e.endring_type === 'sendt')?.tidsstempel,
-            }}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-            approvalEnabled={approvalWorkflow.approvalEnabled}
-            onSaveDraft={(draftData) => {
-              approvalWorkflow.saveDraft({
-                sporType: 'vederlag',
-                belop: draftData.belop,
-                resultat: draftData.resultat,
-                begrunnelse: draftData.begrunnelse,
-                formData: draftData.formData,
-              });
-            }}
-          />
-          <RespondFristModal
-            open={modals.respondFrist.open}
-            onOpenChange={modals.respondFrist.setOpen}
-            sakId={sakId}
-            fristKravId={`frist-${sakId}`}
-            krevdDager={state.frist.krevd_dager}
-            grunnlagStatus={grunnlagStatus}
-            grunnlagVarsletForSent={grunnlagVarsletForSent}
-            varselType={state.frist.varsel_type}
-            fristEvent={{
-              antall_dager: state.frist.krevd_dager,
-              begrunnelse: state.frist.begrunnelse,
-              dato_krav_mottatt: state.frist.spesifisert_varsel?.dato_sendt,
-              dato_oppdaget: state.grunnlag.dato_oppdaget,
-              frist_varsel: state.frist.frist_varsel,
-              spesifisert_varsel: state.frist.spesifisert_varsel,
-            }}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-            approvalEnabled={approvalWorkflow.approvalEnabled}
-            onSaveDraft={(draftData) => {
-              approvalWorkflow.saveDraft({
-                sporType: 'frist',
-                dager: draftData.dager,
-                resultat: draftData.resultat,
-                begrunnelse: draftData.begrunnelse,
-                formData: draftData.formData,
-              });
-            }}
-          />
-
-          {/* Update Response Modals (BH) - complex wizards kept as modals */}
-          <RespondVederlagModal
-            open={modals.updateVederlagResponse.open}
-            onOpenChange={modals.updateVederlagResponse.setOpen}
-            sakId={sakId}
-            vederlagKravId={`vederlag-${sakId}`}
-            grunnlagStatus={grunnlagStatus}
-            hovedkategori={state.grunnlag.hovedkategori as 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE' | undefined}
-            grunnlagVarsletForSent={grunnlagVarsletForSent}
-            vederlagEvent={{
-              metode: state.vederlag.metode,
-              belop_direkte: state.vederlag.belop_direkte,
-              kostnads_overslag: state.vederlag.kostnads_overslag,
-              begrunnelse: state.vederlag.begrunnelse,
-              krever_justert_ep: state.vederlag.krever_justert_ep,
-              saerskilt_krav: state.vederlag.saerskilt_krav,
-              dato_oppdaget: state.grunnlag.dato_oppdaget,
-              dato_krav_mottatt: vederlagHistorikk.find(e => e.endring_type === 'sendt')?.tidsstempel,
-            }}
-            lastResponseEvent={{
-              event_id: `vederlag-response-${sakId}`,
-              resultat: state.vederlag.bh_resultat || 'godkjent',
-              godkjent_belop: state.vederlag.godkjent_belop,
-              respondedToVersion: state.vederlag.bh_respondert_versjon,
-              aksepterer_metode: state.vederlag.bh_metode === state.vederlag.metode,
-            }}
-            vederlagTilstand={state.vederlag}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-            approvalEnabled={approvalWorkflow.approvalEnabled}
-            onSaveDraft={(draftData) => {
-              approvalWorkflow.saveDraft({
-                sporType: 'vederlag',
-                belop: draftData.belop,
-                resultat: draftData.resultat,
-                begrunnelse: draftData.begrunnelse,
-                formData: draftData.formData,
-              });
-            }}
-          />
-          <RespondFristModal
-            open={modals.updateFristResponse.open}
-            onOpenChange={modals.updateFristResponse.setOpen}
-            sakId={sakId}
-            grunnlagStatus={grunnlagStatus}
-            grunnlagVarsletForSent={grunnlagVarsletForSent}
-            varselType={state.frist.varsel_type}
-            fristEvent={{
-              antall_dager: state.frist.krevd_dager,
-              begrunnelse: state.frist.begrunnelse,
-              dato_krav_mottatt: state.frist.spesifisert_varsel?.dato_sendt,
-              dato_oppdaget: state.grunnlag.dato_oppdaget,
-              frist_varsel: state.frist.frist_varsel,
-              spesifisert_varsel: state.frist.spesifisert_varsel,
-            }}
-            lastResponseEvent={{
-              event_id: `frist-response-${sakId}`,
-              resultat: state.frist.bh_resultat || 'godkjent',
-              godkjent_dager: state.frist.godkjent_dager,
-            }}
-            fristTilstand={state.frist}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-            approvalEnabled={approvalWorkflow.approvalEnabled}
-            onSaveDraft={(draftData) => {
-              approvalWorkflow.saveDraft({
-                sporType: 'frist',
-                dager: draftData.dager,
-                resultat: draftData.resultat,
-                begrunnelse: draftData.begrunnelse,
-                formData: draftData.formData,
-              });
-            }}
-          />
-
           {/* Special Action Modals (TE) */}
           <SendForseringModal
             open={modals.sendForsering.open}
