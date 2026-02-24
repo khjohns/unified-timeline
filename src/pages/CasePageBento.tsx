@@ -8,7 +8,7 @@
  * - Row 1 (Context): CaseIdentityTile (col-5) + Grunnlag card (col-4) + Activity card (col-3)
  * - Row 2 (Claims): Vederlag card (col-6) + Frist card (col-6)
  * - TrackFormView: Inline expand/collapse forms instead of modals
- * - All track cards rendered directly in page grid (no CaseDashboardBentoV2 wrapper)
+ * - All track cards rendered directly in page grid
  */
 
 import { useMemo, useCallback, useRef, useState, Suspense, useEffect } from 'react';
@@ -652,7 +652,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     };
   }, []);
 
-  // ===== TRACK CARD STATE (extracted from CaseDashboardBentoV2) =====
+  // ===== TRACK CARD STATE =====
   const krevdBelop = useMemo(() => getKrevdBelop(state), [state]);
   const vederlagErSubsidiaer = state.vederlag.subsidiaer_godkjent_belop != null;
   const fristErSubsidiaer = state.frist.subsidiaer_godkjent_dager != null;
