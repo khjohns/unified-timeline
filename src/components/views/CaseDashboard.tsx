@@ -10,7 +10,6 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { DashboardCard, InlineDataList, InlineDataListItem, Badge, Button } from '../primitives';
 import { CategoryLabel } from '../shared';
-import { InlineReviseVederlag } from '../actions/InlineReviseVederlag';
 import { SakState, SporStatus, TimelineEvent } from '../../types/timeline';
 import { GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
 // getHovedkategoriLabel, getUnderkategoriLabel erstattet av CategoryAccordion
@@ -28,35 +27,7 @@ import {
   transformFristHistorikk,
 } from './SporHistory';
 import { Pencil1Icon } from '@radix-ui/react-icons';
-import type { VederlagsMetode } from '../actions/shared';
 import type { FristVarselType } from '../../types/timeline';
-
-/** Data needed for inline vederlag revision */
-interface InlineVederlagRevisionProps {
-  sakId: string;
-  lastVederlagEvent: {
-    event_id: string;
-    metode: VederlagsMetode;
-    belop_direkte?: number;
-    kostnads_overslag?: number;
-    begrunnelse?: string;
-    krever_justert_ep?: boolean;
-    varslet_for_oppstart?: boolean;
-    saerskilt_krav?: {
-      rigg_drift?: { belop?: number; dato_klar_over?: string };
-      produktivitet?: { belop?: number; dato_klar_over?: string };
-    } | null;
-    /** BH's foreslåtte metode (hvis ulik TEs metode) - brukes som forhåndsvalg */
-    bh_metode?: VederlagsMetode;
-  };
-  currentVersion?: number;
-  /** Callback to open full modal for advanced options */
-  onOpenFullModal: () => void;
-  /** Whether inline revision is allowed (canUpdateVederlag && userRole === 'TE') */
-  canRevise: boolean;
-  /** Whether to show primary variant (BH rejected/partial and TE hasn't revised yet) */
-  showPrimaryVariant?: boolean;
-}
 
 /** Data needed for inline frist revision */
 interface InlineFristRevisionProps {
@@ -89,8 +60,6 @@ interface CaseDashboardProps {
   vederlagHistorikk?: VederlagHistorikkEntry[];
   /** Frist history entries from backend */
   fristHistorikk?: FristHistorikkEntry[];
-  /** Props for inline vederlag revision (optional - if not provided, uses vederlagActions) */
-  inlineVederlagRevision?: InlineVederlagRevisionProps;
   /** Props for inline frist revision (optional - if not provided, uses fristActions) */
   inlineFristRevision?: InlineFristRevisionProps;
 }
@@ -143,7 +112,6 @@ export function CaseDashboard({
   grunnlagHistorikk = [],
   vederlagHistorikk = [],
   fristHistorikk = [],
-  inlineVederlagRevision,
   inlineFristRevision,
 }: CaseDashboardProps) {
   const krevdBelop = useMemo(() => getKrevdBelop(state), [state]);
@@ -161,9 +129,6 @@ export function CaseDashboard({
   const [grunnlagExpanded, setGrunnlagExpanded] = useState(false);
   const [vederlagExpanded, setVederlagExpanded] = useState(false);
   const [fristExpanded, setFristExpanded] = useState(false);
-
-  // Inline vederlag revision state
-  const [inlineReviseOpen, setInlineReviseOpen] = useState(false);
 
   // Inline frist revision state
   const [inlineFristReviseOpen, setInlineFristReviseOpen] = useState(false);
@@ -226,27 +191,7 @@ export function CaseDashboard({
           <DashboardCard
             title="Vederlag"
             headerBadge={getStatusBadge(state.vederlag.status)}
-            action={
-              inlineVederlagRevision ? (
-                // Use inline revision - show "Revider" button that toggles inline form
-                <>
-                  {inlineVederlagRevision.canRevise && !inlineReviseOpen && (
-                    <Button
-                      variant={inlineVederlagRevision.showPrimaryVariant ? 'primary' : 'secondary'}
-                      size="sm"
-                      onClick={() => setInlineReviseOpen(true)}
-                    >
-                      <Pencil1Icon className="w-4 h-4 mr-2" />
-                      Revider
-                    </Button>
-                  )}
-                  {/* Pass through other vederlagActions if any (like BH response buttons) */}
-                  {vederlagActions}
-                </>
-              ) : (
-                vederlagActions
-              )
-            }
+            action={vederlagActions}
             variant="default"
             className="animate-fade-in-up"
             style={{ animationDelay: '75ms' }}
@@ -278,21 +223,6 @@ export function CaseDashboard({
               )
             )}
           </InlineDataList>
-
-          {/* Inline Vederlag Revision Form */}
-          {inlineVederlagRevision && inlineReviseOpen && (
-            <InlineReviseVederlag
-              sakId={inlineVederlagRevision.sakId}
-              lastVederlagEvent={inlineVederlagRevision.lastVederlagEvent}
-              currentVersion={inlineVederlagRevision.currentVersion}
-              onOpenFullModal={() => {
-                setInlineReviseOpen(false);
-                inlineVederlagRevision.onOpenFullModal();
-              }}
-              onClose={() => setInlineReviseOpen(false)}
-              onSuccess={() => setInlineReviseOpen(false)}
-            />
-          )}
 
           <SporHistory spor="vederlag" entries={vederlagEntries} events={events} sakState={state} externalOpen={vederlagExpanded} />
           </DashboardCard>

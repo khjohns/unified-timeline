@@ -20,9 +20,6 @@ export { RespondFristModal } from './RespondFristModal';
 export { ReviseVederlagModal } from './ReviseVederlagModal';
 // Note: ReviseFristModal removed - FristCard handles revision via card-internal two-column (ADR-003 L21)
 
-// Inline revision components (TE) - compact inline forms for quick updates
-export { InlineReviseVederlag } from './InlineReviseVederlag';
-
 // Update response modals (BH) - for changing previous responses
 // Note: RespondGrunnlagUpdateModal removed - RespondGrunnlagModal handles updates via lastResponseEvent prop
 // Note: UpdateResponseVederlagModal removed - RespondVederlagModal handles updates via lastResponseEvent prop

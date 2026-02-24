@@ -21,7 +21,6 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { BentoDashboardCard, InlineDataList, InlineDataListItem, Badge, Button } from '../primitives';
 import { CategoryLabel } from '../shared';
-import { InlineReviseVederlag } from '../actions/InlineReviseVederlag';
 import { SakState, SporStatus, TimelineEvent } from '../../types/timeline';
 import { GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
 import { getVederlagsmetodeLabel } from '../../constants/paymentMethods';
@@ -38,32 +37,9 @@ import {
   transformFristHistorikk,
 } from './SporHistory';
 import { Pencil1Icon } from '@radix-ui/react-icons';
-import type { VederlagsMetode } from '../actions/shared';
 import type { FristVarselType } from '../../types/timeline';
 
 // ========== Types ==========
-
-interface InlineVederlagRevisionProps {
-  sakId: string;
-  lastVederlagEvent: {
-    event_id: string;
-    metode: VederlagsMetode;
-    belop_direkte?: number;
-    kostnads_overslag?: number;
-    begrunnelse?: string;
-    krever_justert_ep?: boolean;
-    varslet_for_oppstart?: boolean;
-    saerskilt_krav?: {
-      rigg_drift?: { belop?: number; dato_klar_over?: string };
-      produktivitet?: { belop?: number; dato_klar_over?: string };
-    } | null;
-    bh_metode?: VederlagsMetode;
-  };
-  currentVersion?: number;
-  onOpenFullModal: () => void;
-  canRevise: boolean;
-  showPrimaryVariant?: boolean;
-}
 
 interface InlineFristRevisionProps {
   sakId: string;
@@ -87,7 +63,6 @@ interface CaseDashboardBentoProps {
   grunnlagHistorikk?: GrunnlagHistorikkEntry[];
   vederlagHistorikk?: VederlagHistorikkEntry[];
   fristHistorikk?: FristHistorikkEntry[];
-  inlineVederlagRevision?: InlineVederlagRevisionProps;
   inlineFristRevision?: InlineFristRevisionProps;
 }
 
@@ -125,7 +100,6 @@ export function CaseDashboardBento({
   grunnlagHistorikk = [],
   vederlagHistorikk = [],
   fristHistorikk = [],
-  inlineVederlagRevision,
   inlineFristRevision,
 }: CaseDashboardBentoProps) {
   const krevdBelop = useMemo(() => getKrevdBelop(state), [state]);
@@ -144,29 +118,7 @@ export function CaseDashboardBento({
   const [grunnlagExpanded, setGrunnlagExpanded] = useState(false);
   const [vederlagExpanded, setVederlagExpanded] = useState(false);
   const [fristExpanded, setFristExpanded] = useState(false);
-  const [inlineReviseOpen, setInlineReviseOpen] = useState(false);
   const [inlineFristReviseOpen, setInlineFristReviseOpen] = useState(false);
-
-  // Build inline revision action for vederlag
-  const vederlagAction = useMemo(() => {
-    if (!inlineVederlagRevision) return vederlagActions;
-    return (
-      <>
-        {inlineVederlagRevision.canRevise && !inlineReviseOpen && (
-          <Button
-            variant={inlineVederlagRevision.showPrimaryVariant ? 'primary' : 'secondary'}
-            size="sm"
-            onClick={() => setInlineReviseOpen(true)}
-            className="!px-3 !py-1.5 !min-h-[28px] !text-xs"
-          >
-            <Pencil1Icon className="w-3.5 h-3.5 mr-1.5" />
-            Revider
-          </Button>
-        )}
-        {vederlagActions}
-      </>
-    );
-  }, [inlineVederlagRevision, inlineReviseOpen, vederlagActions]);
 
   // Build inline revision action for frist
   const fristAction = useMemo(() => {
@@ -251,7 +203,7 @@ export function CaseDashboardBento({
             isSubsidiary={vederlagErSubsidiaer}
             isDimmed={grunnlagIkkeSendt}
             headerBadge={getStatusBadge(state.vederlag.status)}
-            action={vederlagAction}
+            action={vederlagActions}
             className="animate-fade-in-up"
             style={{ animationDelay: '75ms' }}
             collapsible
@@ -282,20 +234,6 @@ export function CaseDashboardBento({
                 )
               )}
             </InlineDataList>
-
-            {inlineVederlagRevision && inlineReviseOpen && (
-              <InlineReviseVederlag
-                sakId={inlineVederlagRevision.sakId}
-                lastVederlagEvent={inlineVederlagRevision.lastVederlagEvent}
-                currentVersion={inlineVederlagRevision.currentVersion}
-                onOpenFullModal={() => {
-                  setInlineReviseOpen(false);
-                  inlineVederlagRevision.onOpenFullModal();
-                }}
-                onClose={() => setInlineReviseOpen(false)}
-                onSuccess={() => setInlineReviseOpen(false)}
-              />
-            )}
 
             <SporHistory spor="vederlag" entries={vederlagEntries} events={events} sakState={state} externalOpen={vederlagExpanded} />
           </BentoDashboardCard>
