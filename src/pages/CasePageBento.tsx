@@ -37,6 +37,8 @@ import { useFristBridge } from '../hooks/useFristBridge';
 import { useFristSubmissionBridge } from '../hooks/useFristSubmissionBridge';
 import type { SubmissionScenario } from '../domain/fristSubmissionDomain';
 import { useVederlagBridge } from '../hooks/useVederlagBridge';
+import { useVederlagSubmissionBridge } from '../hooks/useVederlagSubmissionBridge';
+import type { VederlagSubmissionScenario } from '../domain/vederlagSubmissionDomain';
 import {
   ApprovePakkeModal,
   SendResponsPakkeModal,
@@ -51,7 +53,6 @@ import {
 import { InlineReviseVederlag } from '../components/actions/InlineReviseVederlag';
 import {
   SendGrunnlagForm,
-  SendVederlagForm,
   WithdrawForm,
   AcceptResponseForm,
 } from '../components/actions/forms';
@@ -452,6 +453,39 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     },
   });
 
+  // ===== VEDERLAG TE SUBMISSION (card-anchored) =====
+  const isVederlagTeFormOpen = expandedTrack?.track === 'vederlag' &&
+    ['send', 'update'].includes(expandedTrack.action ?? '');
+
+  const vederlagTeScenario = useMemo((): VederlagSubmissionScenario | undefined => {
+    if (!isVederlagTeFormOpen) return undefined;
+    if (expandedTrack?.action === 'send') return 'new';
+    if (expandedTrack?.action === 'update') return 'edit';
+    return undefined;
+  }, [isVederlagTeFormOpen, expandedTrack?.action]);
+
+  const vederlagSubmissionBridge = useVederlagSubmissionBridge({
+    isOpen: !!isVederlagTeFormOpen,
+    sakId,
+    grunnlagEventId: `grunnlag-${sakId}`,
+    scenario: vederlagTeScenario ?? 'new',
+    datoOppdaget: state.grunnlag.dato_oppdaget,
+    existing: expandedTrack?.action === 'update' ? {
+      metode: state.vederlag.metode as 'ENHETSPRISER' | 'REGNINGSARBEID' | 'FASTPRIS_TILBUD' | undefined,
+      belop_direkte: state.vederlag.belop_direkte,
+      kostnads_overslag: state.vederlag.kostnads_overslag,
+      krever_justert_ep: state.vederlag.krever_justert_ep,
+      varslet_for_oppstart: state.vederlag.varslet_for_oppstart,
+      begrunnelse: state.vederlag.begrunnelse,
+      saerskilt_krav: state.vederlag.saerskilt_krav as { rigg_drift?: { belop?: number; dato_klar_over?: string }; produktivitet?: { belop?: number; dato_klar_over?: string } } | null | undefined,
+    } : undefined,
+    originalEventId: expandedTrack?.action === 'update'
+      ? (state.vederlag.siste_event_id || `vederlag-${sakId}`)
+      : undefined,
+    onSuccess: handleCollapseTrack,
+    onCatendaWarning: () => modals.catendaWarning.setOpen(true),
+  });
+
   // ===== AUTO-SCROLL TO CARD ON MOBILE (L15) =====
   const grunnlagCardRef = useRef<HTMLDivElement>(null);
   const fristCardRef = useRef<HTMLDivElement>(null);
@@ -462,12 +496,13 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
   useEffect(() => {
     const ref = isGrunnlagFormOpen ? grunnlagCardRef
       : isFristTeFormOpen ? fristCardRef
+      : isVederlagTeFormOpen ? vederlagCardRef
       : (isFristFormOpen || isVederlagFormOpen) ? cardAnchoredRef
       : null;
     if (ref?.current) {
       ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  }, [isGrunnlagFormOpen, isFristFormOpen, isFristTeFormOpen, isVederlagFormOpen]);
+  }, [isGrunnlagFormOpen, isFristFormOpen, isFristTeFormOpen, isVederlagFormOpen, isVederlagTeFormOpen]);
 
   // ===== EXPANDED FORM RENDERER =====
   const renderExpandedForm = useCallback(() => {
@@ -528,21 +563,8 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
           />
         );
       case 'vederlag:send':
-        return (
-          <SendVederlagForm
-            sakId={sakId}
-            grunnlagEventId={`grunnlag-${sakId}`}
-            grunnlagEvent={{
-              tittel: state.sakstittel,
-              status: grunnlagStatus,
-              dato_oppdaget: state.grunnlag.dato_oppdaget,
-              hovedkategori: state.grunnlag.hovedkategori as 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE' | undefined,
-            }}
-            onSuccess={onSuccess}
-            onCancel={onCancel}
-            onCatendaWarning={onCatendaWarning}
-          />
-        );
+      case 'vederlag:update':
+        return null; // Handled internally by VederlagCard two-column layout
       case 'vederlag:withdraw':
         return (
           <WithdrawForm
@@ -605,7 +627,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       default:
         return null;
     }
-  }, [expandedTrack, sakId, state, grunnlagStatus, approvalWorkflow, modals.catendaWarning, handleCollapseTrack, grunnlagBridge, fristBridge, vederlagBridge]);
+  }, [expandedTrack, sakId, state, handleCollapseTrack, grunnlagBridge, fristBridge, vederlagBridge, modals.catendaWarning]);
 
   // ===== TRACK FORM VIEW METADATA =====
   const getTrackFormMeta = useCallback((expanded: { track: string; action: string }) => {
@@ -873,6 +895,22 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             </div>
           )}
 
+          {isVederlagTeFormOpen && (
+            <div ref={vederlagCardRef} className="col-span-12 scroll-mt-4">
+              <VederlagCard
+                state={state}
+                krevdBelop={krevdBelop}
+                godkjentBelop={godkjentBelop}
+                vederlagGrad={vederlagGrad ?? undefined}
+                isSubsidiary={vederlagErSubsidiaer}
+                userRole={userRole}
+                actions={actions}
+                entries={vederlagEntries}
+                teEditState={vederlagSubmissionBridge.cardProps}
+              />
+            </div>
+          )}
+
           {isVederlagFormOpen && (
             <div ref={cardAnchoredRef} className="col-span-12 grid grid-cols-12 gap-2 sm:gap-4 scroll-mt-4">
               <div ref={vederlagCardRef} className="col-span-12 md:col-span-5 md:order-2">
@@ -900,7 +938,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
           <div
             ref={grunnlagCardRef}
             className={
-              isFristFormOpen || isFristTeFormOpen || isVederlagFormOpen
+              isFristFormOpen || isFristTeFormOpen || isVederlagFormOpen || isVederlagTeFormOpen
                 ? 'col-span-12 md:col-span-6'
                 : expandedTrack?.track === 'grunnlag'
                   ? 'col-span-12 md:col-span-5'
@@ -1027,7 +1065,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
 
           {/* Expanded track form — grunnlag opens right (col-7), others full-width */}
           {/* Card-anchored frist/vederlag are rendered above the master card */}
-          {expandedTrack && sakId && !isFristFormOpen && !isFristTeFormOpen && !isVederlagFormOpen && (() => {
+          {expandedTrack && sakId && !isFristFormOpen && !isFristTeFormOpen && !isVederlagFormOpen && !isVederlagTeFormOpen && (() => {
             const meta = getTrackFormMeta(expandedTrack);
             const isGrunnlagInline = expandedTrack.track === 'grunnlag';
 
