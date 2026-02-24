@@ -1,21 +1,26 @@
 import { clsx } from 'clsx';
-import { CheckIcon, Cross2Icon } from '@radix-ui/react-icons';
+import { CheckIcon, Cross2Icon, InfoCircledIcon } from '@radix-ui/react-icons';
 import type { SakState } from '../../../types/timeline';
 import type { AvailableActions } from '../../../hooks/useActionPermissions';
 import { formatCurrencyCompact } from '../../../utils/formatters';
 import { getVederlagsmetodeShortLabel } from '../../../constants/paymentMethods';
+import type { VederlagsMetode } from '../../../constants/paymentMethods';
 import { getResultatLabel } from '../../../utils/formatters';
 import { getGradColor, isResolved } from './trackCardUtils';
 import { StatusDot } from './StatusDot';
 import { TrackHistory } from './TrackHistory';
 import { TrackCTA } from './TrackCTA';
-import { Alert, Button } from '../../primitives';
+import { Alert, Button, Tooltip, Textarea } from '../../primitives';
 import { TokenExpiredAlert } from '../../alerts/TokenExpiredAlert';
 import { MethodCards } from '../MethodCards';
 import { KravLinje } from '../KravLinje';
 import { InlineYesNo } from '../InlineYesNo';
+import { InlineNumberInput } from '../InlineNumberInput';
+import { InlineSegmentedControl } from '../InlineSegmentedControl';
+import { InlineDatePicker } from '../InlineDatePicker';
 import type { SporHistoryEntry } from '../../views/SporHistory';
 import type { VederlagEditState } from '../../../hooks/useVederlagBridge';
+import type { VederlagTeEditState } from '../../../hooks/useVederlagSubmissionBridge';
 
 interface VederlagCardProps {
   state: SakState;
@@ -30,9 +35,16 @@ interface VederlagCardProps {
   primaryAction?: { label: string; onClick: () => void };
   secondaryActions?: { label: string; onClick: () => void; variant?: 'default' | 'danger' }[];
   editState?: VederlagEditState | null;
+  teEditState?: VederlagTeEditState | null;
   className?: string;
   style?: React.CSSProperties;
 }
+
+const METODE_SEGMENTS = [
+  { value: 'ENHETSPRISER', label: 'Enhetspriser' },
+  { value: 'REGNINGSARBEID', label: 'Regning' },
+  { value: 'FASTPRIS_TILBUD', label: 'Fastpris' },
+];
 
 export function VederlagCard({
   state,
@@ -47,6 +59,7 @@ export function VederlagCard({
   primaryAction,
   secondaryActions,
   editState,
+  teEditState,
   className,
   style,
 }: VederlagCardProps) {
@@ -81,44 +94,47 @@ export function VederlagCard({
     <div
       className={clsx(
         'rounded-lg p-3',
-        editState ? 'bg-pkt-bg-card ring-2 ring-pkt-brand-warm-blue-1000/30' : 'bg-bento-vederlag',
+        editState || teEditState ? 'bg-pkt-bg-card ring-2 ring-pkt-brand-warm-blue-1000/30' : 'bg-bento-vederlag',
         className,
       )}
       style={style}
     >
-      {/* Header */}
-      <div className={clsx('flex items-center justify-between mb-2', editState && 'bg-bento-vederlag -mx-3 -mt-3 px-3 pt-3 pb-2 rounded-t-lg')}>
-        <div className="flex items-baseline gap-1">
-          <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
-            Vederlag
-          </span>
-          <span className="text-bento-label text-pkt-text-body-muted">&sect;34</span>
-          {(isSubsidiary || editState?.erSubsidiaer) && (
-            <span className="bg-badge-warning-bg text-badge-warning-text rounded-sm text-bento-label px-1.5 py-0.5 font-medium ml-1">
-              Subsidi&aelig;rt
+      {/* Header — in teEditState the title moves into the right column */}
+      {!teEditState && (
+        <div className={clsx('flex items-center justify-between mb-2', editState && 'bg-bento-vederlag -mx-3 -mt-3 px-3 pt-3 pb-2 rounded-t-lg')}>
+          <div className="flex items-baseline gap-1">
+            <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+              Vederlag
             </span>
+            <span className="text-bento-label text-pkt-text-body-muted">&sect;34</span>
+            {(isSubsidiary || editState?.erSubsidiaer) && (
+              <span className="bg-badge-warning-bg text-badge-warning-text rounded-sm text-bento-label px-1.5 py-0.5 font-medium ml-1">
+                Subsidi&aelig;rt
+              </span>
+            )}
+          </div>
+          {editState ? (
+            <button
+              type="button"
+              onClick={editState.onClose}
+              className="p-1 rounded-sm text-pkt-text-body-subtle hover:text-pkt-text-body-default hover:bg-pkt-bg-subtle transition-colors"
+              aria-label="Lukk"
+            >
+              <Cross2Icon className="w-4 h-4" />
+            </button>
+          ) : (
+            <StatusDot status={status} />
           )}
         </div>
-        {editState ? (
-          <button
-            type="button"
-            onClick={editState.onClose}
-            className="p-1 rounded-sm text-pkt-text-body-subtle hover:text-pkt-text-body-default hover:bg-pkt-bg-subtle transition-colors"
-            aria-label="Lukk"
-          >
-            <Cross2Icon className="w-4 h-4" />
-          </button>
-        ) : (
-          <StatusDot status={status} />
-        )}
-      </div>
+      )}
 
-      {isEmpty && !editState ? (
+      {/* L18: isEmpty guard must check teEditState */}
+      {isEmpty && !editState && !teEditState ? (
         <p className="text-bento-body text-pkt-text-body-muted italic">Ingen data enn&aring;</p>
       ) : (
         <>
-          {/* Key-value rows (read-only, hidden in edit mode) */}
-          {!editState && (
+          {/* Key-value rows (read-only, hidden in edit/teEdit mode) */}
+          {!editState && !teEditState && (
             <div className="space-y-1">
               {krevdBelop != null && !hasBhResponse && (
                 <div className="flex justify-between items-baseline">
@@ -155,7 +171,7 @@ export function VederlagCard({
             </div>
           )}
 
-          {/* Inline controls when in edit mode */}
+          {/* Inline controls when in BH edit mode */}
           {editState && (
             <div className="mt-2 pt-2 space-y-3">
               <hr className="border-pkt-border-subtle mx-1" />
@@ -288,8 +304,258 @@ export function VederlagCard({
             </div>
           )}
 
+          {/* Inline controls when in TE edit mode — two-column: begrunnelse left, controls right (L21) */}
+          {teEditState && (() => {
+            const sectionHeader = (title: string, paragraf: string, tooltip: string) => (
+              <div className="flex items-center gap-1">
+                <span className="text-bento-label font-semibold text-pkt-text-body-default uppercase tracking-wide">
+                  {title}
+                </span>
+                <span className="text-bento-label text-pkt-text-body-muted">{paragraf}</span>
+                <Tooltip content={tooltip} side="right">
+                  <button type="button" className="text-pkt-text-placeholder hover:text-pkt-text-body-default cursor-help">
+                    <InfoCircledIcon className="w-3 h-3" />
+                  </button>
+                </Tooltip>
+              </div>
+            );
+
+            return (
+              <div className="mt-2 pt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Left column: Begrunnelse */}
+                <div className="flex flex-col gap-1 md:order-1">
+                  <div className="flex items-center gap-1">
+                    <span className="text-bento-label font-semibold text-pkt-text-body-default uppercase tracking-wide">
+                      Begrunnelse
+                    </span>
+                    <span className="text-pkt-brand-red-1000">*</span>
+                    <Tooltip content="Beskriv grunnlaget for beregningen og henvis til vedlegg. Begrunn valgt metode og kravets omfang med referanse til kontraktens bestemmelser (§34.2–§34.4)." side="right">
+                      <button type="button" className="text-pkt-text-placeholder hover:text-pkt-text-body-default cursor-help">
+                        <InfoCircledIcon className="w-3 h-3" />
+                      </button>
+                    </Tooltip>
+                  </div>
+                  <Textarea
+                    id="vederlag-te-begrunnelse"
+                    value={teEditState.begrunnelse}
+                    onChange={(e) => teEditState.onBegrunnelseChange(e.target.value)}
+                    rows={10}
+                    fullWidth
+                    error={!!teEditState.begrunnelseError}
+                    placeholder={teEditState.begrunnelsePlaceholder}
+                    className="flex-1"
+                  />
+                  {teEditState.begrunnelseError && (
+                    <p className="text-bento-body font-medium text-pkt-brand-red-1000" role="alert">
+                      {teEditState.begrunnelseError}
+                    </p>
+                  )}
+                </div>
+
+                {/* Right column: Controls — with vertical divider and card title */}
+                <div className="space-y-3 md:order-2 md:border-l md:border-pkt-border-subtle md:pl-3">
+                  {/* Card title + close — positioned above controls */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+                        Vederlag
+                      </span>
+                      <span className="text-bento-label text-pkt-text-body-muted">&sect;34</span>
+                      {isSubsidiary && (
+                        <span className="bg-badge-warning-bg text-badge-warning-text rounded-sm text-bento-label px-1.5 py-0.5 font-medium ml-1">
+                          Subsidi&aelig;rt
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={teEditState.onClose}
+                      className="p-1 rounded-sm text-pkt-text-body-subtle hover:text-pkt-text-body-default hover:bg-pkt-bg-subtle transition-colors"
+                      aria-label="Lukk"
+                    >
+                      <Cross2Icon className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Contextual status summary */}
+                  {teEditState.statusSummary && (
+                    <div className="bg-pkt-bg-subtle/80 rounded-sm border border-pkt-border-default px-2.5 py-1.5 text-bento-caption text-pkt-text-body-default font-medium">
+                      {teEditState.statusSummary}
+                    </div>
+                  )}
+
+                  {/* ── Section: Beregningsmetode (§34) ── */}
+                  <div className="space-y-1.5">
+                    {sectionHeader(
+                      'Beregningsmetode', '§34',
+                      'Vederlaget kan beregnes etter kontraktens enhetspriser (§34.3), som regningsarbeid (§34.4) eller som fastpris/tilbud (§34.2.1). Valg av metode avgjør hvordan kravet dokumenteres.',
+                    )}
+                    <InlineSegmentedControl
+                      options={METODE_SEGMENTS}
+                      value={teEditState.metode}
+                      onChange={(v) => teEditState.onMetodeChange(v as VederlagsMetode)}
+                      disabled={teEditState.isSubmitting}
+                    />
+                  </div>
+
+                  {/* ── Section: Kravets omfang ── */}
+                  {teEditState.metode && (
+                    <div className="space-y-1.5">
+                      {teEditState.showBelopDirekte && (
+                        <>
+                          {sectionHeader(
+                            teEditState.metode === 'FASTPRIS_TILBUD' ? 'Tilbudt fastpris' : 'Direkte kostnader',
+                            teEditState.metode === 'FASTPRIS_TILBUD' ? '§34.2.1' : '§34.3',
+                            teEditState.metode === 'FASTPRIS_TILBUD'
+                              ? 'Spesifisert tilbud (§34.2.1). Ved avslag faller oppgjøret tilbake på enhetspriser (§34.3) eller regningsarbeid (§34.4).'
+                              : 'Sum direkte kostnader basert på kontraktens enhetspriser, eventuelt justert for endrede forutsetninger (§34.3).',
+                          )}
+                          <InlineNumberInput
+                            label="Beløp (eks. mva)"
+                            value={teEditState.belopDirekte ?? 0}
+                            onChange={(v) => teEditState.onBelopDirekteChange(v || undefined)}
+                            suffix="kr"
+                          />
+                        </>
+                      )}
+                      {teEditState.showKostnadsOverslag && (
+                        <>
+                          {sectionHeader(
+                            'Kostnadsoverslag', '§30.2',
+                            'Estimert totalkostnad. Byggherren kan holde tilbake betaling inntil overslag mottas (§30.2).',
+                          )}
+                          <InlineNumberInput
+                            label="Estimert beløp"
+                            value={teEditState.kostnadsOverslag ?? 0}
+                            onChange={(v) => teEditState.onKostnadsOverslagChange(v || undefined)}
+                            suffix="kr"
+                            min={0}
+                          />
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── Section: Justert EP (§34.3.3) — only ENHETSPRISER ── */}
+                  {teEditState.showJustertEp && (
+                    <div className="space-y-1.5">
+                      {sectionHeader(
+                        'Justert EP', '§34.3.3',
+                        'Krever totalentreprenøren justering av kontraktens enhetspriser på grunn av endrede forutsetninger (§34.3.3)?',
+                      )}
+                      <InlineYesNo
+                        label="Krever justerte enhetspriser?"
+                        value={teEditState.kreverJustertEp}
+                        onChange={teEditState.onKreverJustertEpChange}
+                        disabled={teEditState.isSubmitting}
+                      />
+                    </div>
+                  )}
+
+                  {/* ── Section: Varsling (§34.4) — only REGNINGSARBEID ── */}
+                  {teEditState.showVarsletForOppstart && (
+                    <div className="space-y-1.5">
+                      {sectionHeader(
+                        'Varsling', '§34.4',
+                        'Ble byggherren varslet om regningsarbeid før arbeidet ble igangsatt (§34.4)?',
+                      )}
+                      <InlineYesNo
+                        label="Varslet før oppstart?"
+                        value={teEditState.varsletForOppstart}
+                        onChange={teEditState.onVarsletForOppstartChange}
+                        disabled={teEditState.isSubmitting}
+                      />
+                    </div>
+                  )}
+
+                  {/* ── Section: Særskilte krav (§34.1.3) ── */}
+                  {teEditState.metode && (
+                    <div className="space-y-1.5">
+                      {sectionHeader(
+                        'Særskilte krav', '§34.1.3',
+                        'Krav om økte rigg-/driftskostnader og produktivitetstap krever særskilt varsel «uten ugrunnet opphold» etter at TE ble klar over at utgifter ville påløpe (§34.1.3).',
+                      )}
+                      <InlineYesNo
+                        label="Økte rigg-/driftskostnader?"
+                        value={teEditState.harRiggKrav}
+                        onChange={teEditState.onHarRiggKravChange}
+                        disabled={teEditState.isSubmitting}
+                      />
+                      {teEditState.harRiggKrav && (
+                        <div className="ml-2 pl-2 border-l-2 border-pkt-border-subtle space-y-1.5">
+                          <InlineNumberInput
+                            label="Estimert beløp"
+                            value={teEditState.belopRigg ?? 0}
+                            onChange={(v) => teEditState.onBelopRiggChange(v || undefined)}
+                            suffix="kr"
+                            min={0}
+                          />
+                          <InlineDatePicker
+                            label="Dato erkjent"
+                            value={teEditState.datoKlarOverRigg}
+                            onChange={teEditState.onDatoKlarOverRiggChange}
+                            disabled={teEditState.isSubmitting}
+                          />
+                        </div>
+                      )}
+                      <InlineYesNo
+                        label="Nedsatt produktivitet?"
+                        value={teEditState.harProduktivitetKrav}
+                        onChange={teEditState.onHarProduktivitetKravChange}
+                        disabled={teEditState.isSubmitting}
+                      />
+                      {teEditState.harProduktivitetKrav && (
+                        <div className="ml-2 pl-2 border-l-2 border-pkt-border-subtle space-y-1.5">
+                          <InlineNumberInput
+                            label="Estimert beløp"
+                            value={teEditState.belopProduktivitet ?? 0}
+                            onChange={(v) => teEditState.onBelopProduktivitetChange(v || undefined)}
+                            suffix="kr"
+                            min={0}
+                          />
+                          <InlineDatePicker
+                            label="Dato erkjent"
+                            value={teEditState.datoKlarOverProduktivitet}
+                            onChange={teEditState.onDatoKlarOverProduktivitetChange}
+                            disabled={teEditState.isSubmitting}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Token expired */}
+                  <TokenExpiredAlert open={teEditState.showTokenExpired} onClose={teEditState.onTokenExpiredClose} />
+
+                  {/* Submit error */}
+                  {teEditState.submitError && (
+                    <Alert variant="danger" size="sm" title="Feil ved innsending">
+                      {teEditState.submitError}
+                    </Alert>
+                  )}
+                </div>
+
+                {/* Submit footer — spans both columns */}
+                <div className="md:col-span-2 md:order-3">
+                  <hr className="border-pkt-border-subtle mx-1 mb-3" />
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="xs"
+                      onClick={teEditState.onSubmit}
+                      disabled={!teEditState.canSubmit || teEditState.isSubmitting}
+                    >
+                      {teEditState.submitLabel}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* KPI row + progress bar — when BH has responded (read-only mode only) */}
-          {!editState && hasBhResponse && krevdBelop != null && godkjentBelop != null && (
+          {!editState && !teEditState && hasBhResponse && krevdBelop != null && godkjentBelop != null && (
             <div className="mt-2 pt-2">
               <hr className="border-pkt-border-subtle mx-1 mb-2" />
               <div className="flex items-end gap-4">
@@ -334,7 +600,7 @@ export function VederlagCard({
       <TrackHistory entries={entries} />
 
       {/* CTA strip — hidden when in edit mode */}
-      {!editState && (
+      {!editState && !teEditState && (
         <TrackCTA
           spor="vederlag"
           status={status}

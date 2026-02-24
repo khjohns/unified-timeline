@@ -8,7 +8,7 @@
  * - Row 1 (Context): CaseIdentityTile (col-5) + Grunnlag card (col-4) + Activity card (col-3)
  * - Row 2 (Claims): Vederlag card (col-6) + Frist card (col-6)
  * - TrackFormView: Inline expand/collapse forms instead of modals
- * - All track cards rendered directly in page grid (no CaseDashboardBentoV2 wrapper)
+ * - All track cards rendered directly in page grid
  */
 
 import { useMemo, useCallback, useRef, useState, Suspense, useEffect } from 'react';
@@ -37,21 +37,18 @@ import { useFristBridge } from '../hooks/useFristBridge';
 import { useFristSubmissionBridge } from '../hooks/useFristSubmissionBridge';
 import type { SubmissionScenario } from '../domain/fristSubmissionDomain';
 import { useVederlagBridge } from '../hooks/useVederlagBridge';
+import { useVederlagSubmissionBridge } from '../hooks/useVederlagSubmissionBridge';
+import type { VederlagSubmissionScenario } from '../domain/vederlagSubmissionDomain';
 import {
   ApprovePakkeModal,
   SendResponsPakkeModal,
   ApprovalDashboardCard,
 } from '../components/approval';
 import {
-  RespondVederlagModal,
-  RespondFristModal,
-  ReviseVederlagModal,
   SendForseringModal,
 } from '../components/actions';
-import { InlineReviseVederlag } from '../components/actions/InlineReviseVederlag';
 import {
   SendGrunnlagForm,
-  SendVederlagForm,
   WithdrawForm,
   AcceptResponseForm,
 } from '../components/actions/forms';
@@ -452,6 +449,39 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     },
   });
 
+  // ===== VEDERLAG TE SUBMISSION (card-anchored) =====
+  const isVederlagTeFormOpen = expandedTrack?.track === 'vederlag' &&
+    ['send', 'update'].includes(expandedTrack.action ?? '');
+
+  const vederlagTeScenario = useMemo((): VederlagSubmissionScenario | undefined => {
+    if (!isVederlagTeFormOpen) return undefined;
+    if (expandedTrack?.action === 'send') return 'new';
+    if (expandedTrack?.action === 'update') return 'edit';
+    return undefined;
+  }, [isVederlagTeFormOpen, expandedTrack?.action]);
+
+  const vederlagSubmissionBridge = useVederlagSubmissionBridge({
+    isOpen: !!isVederlagTeFormOpen,
+    sakId,
+    grunnlagEventId: `grunnlag-${sakId}`,
+    scenario: vederlagTeScenario ?? 'new',
+    datoOppdaget: state.grunnlag.dato_oppdaget,
+    existing: expandedTrack?.action === 'update' ? {
+      metode: state.vederlag.metode as 'ENHETSPRISER' | 'REGNINGSARBEID' | 'FASTPRIS_TILBUD' | undefined,
+      belop_direkte: state.vederlag.belop_direkte,
+      kostnads_overslag: state.vederlag.kostnads_overslag,
+      krever_justert_ep: state.vederlag.krever_justert_ep,
+      varslet_for_oppstart: state.vederlag.varslet_for_oppstart,
+      begrunnelse: state.vederlag.begrunnelse,
+      saerskilt_krav: state.vederlag.saerskilt_krav as { rigg_drift?: { belop?: number; dato_klar_over?: string }; produktivitet?: { belop?: number; dato_klar_over?: string } } | null | undefined,
+    } : undefined,
+    originalEventId: expandedTrack?.action === 'update'
+      ? (state.vederlag.siste_event_id || `vederlag-${sakId}`)
+      : undefined,
+    onSuccess: handleCollapseTrack,
+    onCatendaWarning: () => modals.catendaWarning.setOpen(true),
+  });
+
   // ===== AUTO-SCROLL TO CARD ON MOBILE (L15) =====
   const grunnlagCardRef = useRef<HTMLDivElement>(null);
   const fristCardRef = useRef<HTMLDivElement>(null);
@@ -462,12 +492,13 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
   useEffect(() => {
     const ref = isGrunnlagFormOpen ? grunnlagCardRef
       : isFristTeFormOpen ? fristCardRef
+      : isVederlagTeFormOpen ? vederlagCardRef
       : (isFristFormOpen || isVederlagFormOpen) ? cardAnchoredRef
       : null;
     if (ref?.current) {
       ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  }, [isGrunnlagFormOpen, isFristFormOpen, isFristTeFormOpen, isVederlagFormOpen]);
+  }, [isGrunnlagFormOpen, isFristFormOpen, isFristTeFormOpen, isVederlagFormOpen, isVederlagTeFormOpen]);
 
   // ===== EXPANDED FORM RENDERER =====
   const renderExpandedForm = useCallback(() => {
@@ -528,21 +559,8 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
           />
         );
       case 'vederlag:send':
-        return (
-          <SendVederlagForm
-            sakId={sakId}
-            grunnlagEventId={`grunnlag-${sakId}`}
-            grunnlagEvent={{
-              tittel: state.sakstittel,
-              status: grunnlagStatus,
-              dato_oppdaget: state.grunnlag.dato_oppdaget,
-              hovedkategori: state.grunnlag.hovedkategori as 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE' | undefined,
-            }}
-            onSuccess={onSuccess}
-            onCancel={onCancel}
-            onCatendaWarning={onCatendaWarning}
-          />
-        );
+      case 'vederlag:update':
+        return null; // Handled internally by VederlagCard two-column layout
       case 'vederlag:withdraw':
         return (
           <WithdrawForm
@@ -605,7 +623,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       default:
         return null;
     }
-  }, [expandedTrack, sakId, state, grunnlagStatus, approvalWorkflow, modals.catendaWarning, handleCollapseTrack, grunnlagBridge, fristBridge, vederlagBridge]);
+  }, [expandedTrack, sakId, state, handleCollapseTrack, grunnlagBridge, fristBridge, vederlagBridge, modals.catendaWarning]);
 
   // ===== TRACK FORM VIEW METADATA =====
   const getTrackFormMeta = useCallback((expanded: { track: string; action: string }) => {
@@ -632,7 +650,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     };
   }, []);
 
-  // ===== TRACK CARD STATE (extracted from CaseDashboardBentoV2) =====
+  // ===== TRACK CARD STATE =====
   const krevdBelop = useMemo(() => getKrevdBelop(state), [state]);
   const vederlagErSubsidiaer = state.vederlag.subsidiaer_godkjent_belop != null;
   const fristErSubsidiaer = state.frist.subsidiaer_godkjent_dager != null;
@@ -657,33 +675,6 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
   const vederlagEntries = useMemo(() => transformVederlagHistorikk(vederlagHistorikk), [vederlagHistorikk]);
   const fristEntries = useMemo(() => transformFristHistorikk(fristHistorikk), [fristHistorikk]);
 
-  const [inlineReviseOpen, setInlineReviseOpen] = useState(false);
-
-  // Inline vederlag revision props
-  const inlineVederlagRevision = useMemo(() => {
-    if (!sakId || !state.vederlag.metode) return undefined;
-    return {
-      sakId,
-      lastVederlagEvent: {
-        event_id: state.vederlag.siste_event_id || `vederlag-${sakId}`,
-        metode: state.vederlag.metode,
-        belop_direkte: state.vederlag.belop_direkte,
-        kostnads_overslag: state.vederlag.kostnads_overslag,
-        begrunnelse: state.vederlag.begrunnelse,
-        krever_justert_ep: state.vederlag.krever_justert_ep,
-        varslet_for_oppstart: state.vederlag.varslet_for_oppstart,
-        saerskilt_krav: state.vederlag.saerskilt_krav,
-        bh_metode: state.vederlag.bh_metode,
-      },
-      currentVersion: Math.max(0, (state.vederlag.antall_versjoner ?? 1) - 1),
-      onOpenFullModal: () => modals.reviseVederlag.setOpen(true),
-      canRevise: userRole === 'TE' && actions.canUpdateVederlag,
-      showPrimaryVariant:
-        !!state.vederlag.bh_resultat &&
-        state.vederlag.bh_resultat !== 'godkjent' &&
-        state.vederlag.antall_versjoner - 1 === state.vederlag.bh_respondert_versjon,
-    };
-  }, [sakId, state.vederlag, userRole, actions.canUpdateVederlag, modals.reviseVederlag]);
 
   // ===== PRIMARY/SECONDARY ACTIONS FOR TRACK CARDS =====
 
@@ -720,19 +711,29 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
     if (state.grunnlag.hovedkategori === 'FORCE_MAJEURE') return undefined;
     if (userRole === 'TE') {
       if (actions.canSendVederlag) return { label: 'Send krav', onClick: () => handleExpandTrack('vederlag', 'send') };
-      if (inlineVederlagRevision?.canRevise && inlineVederlagRevision.showPrimaryVariant) return { label: 'Revider', onClick: () => setInlineReviseOpen(true) };
+      if (actions.canUpdateVederlag) {
+        const showAsPrimary = !!state.vederlag.bh_resultat &&
+          state.vederlag.bh_resultat !== 'godkjent' &&
+          state.vederlag.antall_versjoner - 1 === state.vederlag.bh_respondert_versjon;
+        if (showAsPrimary) return { label: 'Revider', onClick: () => handleExpandTrack('vederlag', 'update') };
+      }
     }
     if (userRole === 'BH') {
       if (actions.canRespondToVederlag) return { label: 'Svar på krav', onClick: () => handleExpandTrack('vederlag', 'respond') };
     }
     return undefined;
-  }, [userRole, actions, state.grunnlag.hovedkategori, inlineVederlagRevision, handleExpandTrack, modals.respondVederlag]);
+  }, [userRole, actions, state.grunnlag.hovedkategori, state.vederlag, handleExpandTrack]);
 
   const vederlagSecondaryActions = useMemo(() => {
     if (state.grunnlag.hovedkategori === 'FORCE_MAJEURE') return [];
     const items: { label: string; onClick: () => void; variant?: 'default' | 'danger' }[] = [];
     if (userRole === 'TE') {
-      if (inlineVederlagRevision?.canRevise && !inlineVederlagRevision.showPrimaryVariant) items.push({ label: 'Revider', onClick: () => setInlineReviseOpen(true) });
+      if (actions.canUpdateVederlag) {
+        const showAsPrimary = !!state.vederlag.bh_resultat &&
+          state.vederlag.bh_resultat !== 'godkjent' &&
+          state.vederlag.antall_versjoner - 1 === state.vederlag.bh_respondert_versjon;
+        if (!showAsPrimary) items.push({ label: 'Revider', onClick: () => handleExpandTrack('vederlag', 'update') });
+      }
       if (actions.canAcceptVederlagResponse) items.push({ label: 'Godta svaret', onClick: () => handleExpandTrack('vederlag', 'accept') });
       if (actions.canWithdrawVederlag) items.push({ label: 'Trekk tilbake', onClick: () => handleExpandTrack('vederlag', 'withdraw'), variant: 'danger' });
     }
@@ -740,7 +741,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
       if (actions.canUpdateVederlagResponse) items.push({ label: 'Endre svar', onClick: () => handleExpandTrack('vederlag', 'updateResponse') });
     }
     return items;
-  }, [userRole, actions, state.grunnlag.hovedkategori, inlineVederlagRevision, handleExpandTrack, modals.updateVederlagResponse]);
+  }, [userRole, actions, state.grunnlag.hovedkategori, state.vederlag, handleExpandTrack]);
 
   const fristPrimaryAction = useMemo(() => {
     if (userRole === 'TE') {
@@ -873,6 +874,22 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
             </div>
           )}
 
+          {isVederlagTeFormOpen && (
+            <div ref={vederlagCardRef} className="col-span-12 scroll-mt-4">
+              <VederlagCard
+                state={state}
+                krevdBelop={krevdBelop}
+                godkjentBelop={godkjentBelop}
+                vederlagGrad={vederlagGrad ?? undefined}
+                isSubsidiary={vederlagErSubsidiaer}
+                userRole={userRole}
+                actions={actions}
+                entries={vederlagEntries}
+                teEditState={vederlagSubmissionBridge.cardProps}
+              />
+            </div>
+          )}
+
           {isVederlagFormOpen && (
             <div ref={cardAnchoredRef} className="col-span-12 grid grid-cols-12 gap-2 sm:gap-4 scroll-mt-4">
               <div ref={vederlagCardRef} className="col-span-12 md:col-span-5 md:order-2">
@@ -900,7 +917,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
           <div
             ref={grunnlagCardRef}
             className={
-              isFristFormOpen || isFristTeFormOpen || isVederlagFormOpen
+              isFristFormOpen || isFristTeFormOpen || isVederlagFormOpen || isVederlagTeFormOpen
                 ? 'col-span-12 md:col-span-6'
                 : expandedTrack?.track === 'grunnlag'
                   ? 'col-span-12 md:col-span-5'
@@ -951,19 +968,6 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
                   className="animate-fade-in-up"
                   style={{ animationDelay: '75ms' }}
                 />
-                {inlineVederlagRevision && inlineReviseOpen && (
-                  <InlineReviseVederlag
-                    sakId={inlineVederlagRevision.sakId}
-                    lastVederlagEvent={inlineVederlagRevision.lastVederlagEvent}
-                    currentVersion={inlineVederlagRevision.currentVersion}
-                    onOpenFullModal={() => {
-                      setInlineReviseOpen(false);
-                      inlineVederlagRevision.onOpenFullModal();
-                    }}
-                    onClose={() => setInlineReviseOpen(false)}
-                    onSuccess={() => setInlineReviseOpen(false)}
-                  />
-                )}
               </div>
               <div data-onboarding="frist-card">
                 <FristCard
@@ -1027,7 +1031,7 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
 
           {/* Expanded track form — grunnlag opens right (col-7), others full-width */}
           {/* Card-anchored frist/vederlag are rendered above the master card */}
-          {expandedTrack && sakId && !isFristFormOpen && !isFristTeFormOpen && !isVederlagFormOpen && (() => {
+          {expandedTrack && sakId && !isFristFormOpen && !isFristTeFormOpen && !isVederlagFormOpen && !isVederlagTeFormOpen && (() => {
             const meta = getTrackFormMeta(expandedTrack);
             const isGrunnlagInline = expandedTrack.track === 'grunnlag';
 
@@ -1106,172 +1110,9 @@ function CasePageBentoDataLoader({ sakId }: { sakId: string }) {
         />
       )}
 
-      {/* ===== Remaining Action Modals (complex wizards + special actions) ===== */}
+      {/* ===== Remaining Action Modals (special actions) ===== */}
       {sakId && (
         <>
-          <RespondVederlagModal
-            open={modals.respondVederlag.open}
-            onOpenChange={modals.respondVederlag.setOpen}
-            sakId={sakId}
-            vederlagKravId={`vederlag-${sakId}`}
-            grunnlagStatus={grunnlagStatus}
-            hovedkategori={state.grunnlag.hovedkategori as 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE' | undefined}
-            grunnlagVarsletForSent={grunnlagVarsletForSent}
-            vederlagEvent={{
-              metode: state.vederlag.metode,
-              belop_direkte: state.vederlag.belop_direkte,
-              kostnads_overslag: state.vederlag.kostnads_overslag,
-              begrunnelse: state.vederlag.begrunnelse,
-              krever_justert_ep: state.vederlag.krever_justert_ep,
-              saerskilt_krav: state.vederlag.saerskilt_krav,
-              dato_oppdaget: state.grunnlag.dato_oppdaget,
-              dato_krav_mottatt: vederlagHistorikk.find(e => e.endring_type === 'sendt')?.tidsstempel,
-            }}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-            approvalEnabled={approvalWorkflow.approvalEnabled}
-            onSaveDraft={(draftData) => {
-              approvalWorkflow.saveDraft({
-                sporType: 'vederlag',
-                belop: draftData.belop,
-                resultat: draftData.resultat,
-                begrunnelse: draftData.begrunnelse,
-                formData: draftData.formData,
-              });
-            }}
-          />
-          <RespondFristModal
-            open={modals.respondFrist.open}
-            onOpenChange={modals.respondFrist.setOpen}
-            sakId={sakId}
-            fristKravId={`frist-${sakId}`}
-            krevdDager={state.frist.krevd_dager}
-            grunnlagStatus={grunnlagStatus}
-            grunnlagVarsletForSent={grunnlagVarsletForSent}
-            varselType={state.frist.varsel_type}
-            fristEvent={{
-              antall_dager: state.frist.krevd_dager,
-              begrunnelse: state.frist.begrunnelse,
-              dato_krav_mottatt: state.frist.spesifisert_varsel?.dato_sendt,
-              dato_oppdaget: state.grunnlag.dato_oppdaget,
-              frist_varsel: state.frist.frist_varsel,
-              spesifisert_varsel: state.frist.spesifisert_varsel,
-            }}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-            approvalEnabled={approvalWorkflow.approvalEnabled}
-            onSaveDraft={(draftData) => {
-              approvalWorkflow.saveDraft({
-                sporType: 'frist',
-                dager: draftData.dager,
-                resultat: draftData.resultat,
-                begrunnelse: draftData.begrunnelse,
-                formData: draftData.formData,
-              });
-            }}
-          />
-
-          {/* Revise Modals (TE) - kept as modals */}
-          <ReviseVederlagModal
-            open={modals.reviseVederlag.open}
-            onOpenChange={modals.reviseVederlag.setOpen}
-            sakId={sakId}
-            lastVederlagEvent={{
-              event_id: state.vederlag.siste_event_id || `vederlag-${sakId}`,
-              metode: state.vederlag.metode || 'ENHETSPRISER',
-              belop_direkte: state.vederlag.belop_direkte,
-              kostnads_overslag: state.vederlag.kostnads_overslag,
-              begrunnelse: state.vederlag.begrunnelse,
-              krever_justert_ep: state.vederlag.krever_justert_ep,
-              varslet_for_oppstart: state.vederlag.varslet_for_oppstart,
-              saerskilt_krav: state.vederlag.saerskilt_krav,
-            }}
-            currentVersion={Math.max(0, (state.vederlag.antall_versjoner ?? 1) - 1)}
-            bhResponse={
-              state.vederlag.bh_resultat
-                ? {
-                    resultat: state.vederlag.bh_resultat,
-                    godkjent_belop: state.vederlag.godkjent_belop,
-                    aksepterer_metode: state.vederlag.bh_metode === state.vederlag.metode || state.vederlag.bh_metode === undefined,
-                    oensket_metode: state.vederlag.bh_metode !== state.vederlag.metode ? state.vederlag.bh_metode : undefined,
-                    ep_justering_akseptert: state.vederlag.varsel_justert_ep_ok,
-                    begrunnelse: state.vederlag.bh_begrunnelse,
-                  }
-                : undefined
-            }
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-          />
-          {/* Update Response Modals (BH) - complex wizards kept as modals */}
-          <RespondVederlagModal
-            open={modals.updateVederlagResponse.open}
-            onOpenChange={modals.updateVederlagResponse.setOpen}
-            sakId={sakId}
-            vederlagKravId={`vederlag-${sakId}`}
-            grunnlagStatus={grunnlagStatus}
-            hovedkategori={state.grunnlag.hovedkategori as 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE' | undefined}
-            grunnlagVarsletForSent={grunnlagVarsletForSent}
-            vederlagEvent={{
-              metode: state.vederlag.metode,
-              belop_direkte: state.vederlag.belop_direkte,
-              kostnads_overslag: state.vederlag.kostnads_overslag,
-              begrunnelse: state.vederlag.begrunnelse,
-              krever_justert_ep: state.vederlag.krever_justert_ep,
-              saerskilt_krav: state.vederlag.saerskilt_krav,
-              dato_oppdaget: state.grunnlag.dato_oppdaget,
-              dato_krav_mottatt: vederlagHistorikk.find(e => e.endring_type === 'sendt')?.tidsstempel,
-            }}
-            lastResponseEvent={{
-              event_id: `vederlag-response-${sakId}`,
-              resultat: state.vederlag.bh_resultat || 'godkjent',
-              godkjent_belop: state.vederlag.godkjent_belop,
-              respondedToVersion: state.vederlag.bh_respondert_versjon,
-              aksepterer_metode: state.vederlag.bh_metode === state.vederlag.metode,
-            }}
-            vederlagTilstand={state.vederlag}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-            approvalEnabled={approvalWorkflow.approvalEnabled}
-            onSaveDraft={(draftData) => {
-              approvalWorkflow.saveDraft({
-                sporType: 'vederlag',
-                belop: draftData.belop,
-                resultat: draftData.resultat,
-                begrunnelse: draftData.begrunnelse,
-                formData: draftData.formData,
-              });
-            }}
-          />
-          <RespondFristModal
-            open={modals.updateFristResponse.open}
-            onOpenChange={modals.updateFristResponse.setOpen}
-            sakId={sakId}
-            grunnlagStatus={grunnlagStatus}
-            grunnlagVarsletForSent={grunnlagVarsletForSent}
-            varselType={state.frist.varsel_type}
-            fristEvent={{
-              antall_dager: state.frist.krevd_dager,
-              begrunnelse: state.frist.begrunnelse,
-              dato_krav_mottatt: state.frist.spesifisert_varsel?.dato_sendt,
-              dato_oppdaget: state.grunnlag.dato_oppdaget,
-              frist_varsel: state.frist.frist_varsel,
-              spesifisert_varsel: state.frist.spesifisert_varsel,
-            }}
-            lastResponseEvent={{
-              event_id: `frist-response-${sakId}`,
-              resultat: state.frist.bh_resultat || 'godkjent',
-              godkjent_dager: state.frist.godkjent_dager,
-            }}
-            fristTilstand={state.frist}
-            onCatendaWarning={() => modals.catendaWarning.setOpen(true)}
-            approvalEnabled={approvalWorkflow.approvalEnabled}
-            onSaveDraft={(draftData) => {
-              approvalWorkflow.saveDraft({
-                sporType: 'frist',
-                dager: draftData.dager,
-                resultat: draftData.resultat,
-                begrunnelse: draftData.begrunnelse,
-                formData: draftData.formData,
-              });
-            }}
-          />
-
           {/* Special Action Modals (TE) */}
           <SendForseringModal
             open={modals.sendForsering.open}

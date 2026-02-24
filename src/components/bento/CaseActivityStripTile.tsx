@@ -267,6 +267,3 @@ export function CaseActivityCard({ events, delay = 0, colSpan }: CaseActivityCar
     </BentoCard>
   );
 }
-
-/** Backwards-compatible alias */
-export const CaseActivityStripTile = CaseActivityCard;
