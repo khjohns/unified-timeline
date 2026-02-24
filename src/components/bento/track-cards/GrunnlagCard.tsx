@@ -40,7 +40,7 @@ export function GrunnlagCard({
   return (
     <div
       className={clsx(
-        'bg-pkt-bg-card rounded-lg p-3',
+        'bg-pkt-bg-card rounded-lg border border-pkt-border-subtle p-3',
         className,
       )}
       style={style}
@@ -48,7 +48,7 @@ export function GrunnlagCard({
       {/* Header: label + hjemmel + status dot */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-baseline gap-1">
-          <span className="text-[10px] font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+          <span className="text-[10px] font-medium text-pkt-text-body-default uppercase tracking-wide">
             Ansvarsgrunnlag
           </span>
           <span className="text-[10px] text-pkt-text-body-muted">

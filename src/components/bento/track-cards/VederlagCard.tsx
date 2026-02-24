@@ -74,13 +74,13 @@ export function VederlagCard({
     return (
       <div
         className={clsx(
-          'bg-pkt-bg-card rounded-lg p-3 opacity-60',
+          'bg-pkt-bg-card rounded-lg border border-pkt-border-subtle p-3 opacity-60',
           className,
         )}
         style={style}
       >
         <div className="flex items-baseline gap-1">
-          <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+          <span className="text-bento-label font-medium text-pkt-text-body-default uppercase tracking-wide">
             Vederlag
           </span>
           <span className="text-bento-label text-pkt-text-body-muted">&sect;34</span>
@@ -93,7 +93,7 @@ export function VederlagCard({
   return (
     <div
       className={clsx(
-        'rounded-lg p-3',
+        'rounded-lg border border-pkt-border-subtle p-3',
         editState || teEditState ? 'bg-pkt-bg-card ring-2 ring-pkt-brand-warm-blue-1000/30' : 'bg-bento-vederlag',
         className,
       )}
@@ -103,7 +103,7 @@ export function VederlagCard({
       {!teEditState && (
         <div className={clsx('flex items-center justify-between mb-2', editState && 'bg-bento-vederlag -mx-3 -mt-3 px-3 pt-3 pb-2 rounded-t-lg')}>
           <div className="flex items-baseline gap-1">
-            <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+            <span className="text-bento-label font-medium text-pkt-text-body-default uppercase tracking-wide">
               Vederlag
             </span>
             <span className="text-bento-label text-pkt-text-body-muted">&sect;34</span>
@@ -357,7 +357,7 @@ export function VederlagCard({
                   {/* Card title + close — positioned above controls */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+                      <span className="text-bento-label font-medium text-pkt-text-body-default uppercase tracking-wide">
                         Vederlag
                       </span>
                       <span className="text-bento-label text-pkt-text-body-muted">&sect;34</span>

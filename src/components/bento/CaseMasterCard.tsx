@@ -107,7 +107,7 @@ export function CaseMasterCard({
   return (
     <div
       className={clsx(
-        'bg-pkt-bg-card rounded-lg p-4',
+        'bg-pkt-bg-card rounded-lg border border-pkt-border-subtle p-4',
         editState && 'ring-2 ring-pkt-brand-warm-blue-1000/30',
         className,
       )}
@@ -148,7 +148,7 @@ export function CaseMasterCard({
       {/* ===== Grunnlag section ===== */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-baseline gap-1">
-          <span className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide">
+          <span className="text-bento-label font-medium text-pkt-text-body-default uppercase tracking-wide">
             Ansvarsgrunnlag
           </span>
           <span className="text-bento-label text-pkt-text-body-muted">
@@ -254,7 +254,7 @@ export function CaseMasterCard({
 
               {/* Verdict cards */}
               <div>
-                <p className="text-bento-label font-medium text-pkt-text-body-subtle uppercase tracking-wide mb-1.5">
+                <p className="text-bento-label font-medium text-pkt-text-body-default uppercase tracking-wide mb-1.5">
                   {editState.erPrekludert ? 'Ditt svar (subsidiært)' : 'Ditt svar'}
                 </p>
                 <VerdictCards
