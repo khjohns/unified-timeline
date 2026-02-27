@@ -31,6 +31,7 @@ import type { SporType, SakState } from '../types/timeline';
 import type { SporHistoryEntry } from '../components/views/SporHistory';
 import {
   ArrowLeftIcon,
+  ArrowRightIcon,
   CheckCircledIcon,
   CrossCircledIcon,
   ExclamationTriangleIcon,
@@ -38,6 +39,12 @@ import {
   FileTextIcon,
   CounterClockwiseClockIcon,
   Pencil1Icon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  PaperPlaneIcon,
+  ChatBubbleIcon,
+  ReloadIcon,
+  UploadIcon,
 } from '@radix-ui/react-icons';
 import {
   LoadingState,
@@ -133,6 +140,7 @@ function CasePageAccessContent({ sakId, userRole }: { sakId: string; userRole: '
           userRole={userRole}
           activeTrack={activeTrack}
           onTrackSelect={setActiveTrack}
+          actions={actions}
           krevdBelop={krevdBelop}
           godkjentBelop={godkjentBelop}
           vederlagGrad={vederlagGrad}
@@ -149,6 +157,7 @@ function CasePageAccessContent({ sakId, userRole }: { sakId: string; userRole: '
           rightTab={rightTab}
           onTabChange={setRightTab}
           entries={activeEntries}
+          userRole={userRole}
         />
       </div>
     </div>
@@ -623,22 +632,30 @@ interface MiddlePanelProps {
   userRole: 'TE' | 'BH';
   activeTrack: ActiveTrack;
   onTrackSelect: (track: ActiveTrack) => void;
+  actions: AvailableActions;
   krevdBelop?: number;
   godkjentBelop?: number;
   vederlagGrad?: number;
   fristGrad?: number;
 }
 
-function MiddlePanel({ state, userRole, activeTrack, onTrackSelect, krevdBelop, godkjentBelop, vederlagGrad, fristGrad }: MiddlePanelProps) {
+function MiddlePanel({ state, userRole, activeTrack, onTrackSelect, actions, krevdBelop, godkjentBelop, vederlagGrad, fristGrad }: MiddlePanelProps) {
   return (
-    <div className="flex-1 min-w-0 bg-pkt-bg-card overflow-y-auto scrollbar-auto">
-      {activeTrack === null && <OverviewPanel state={state} userRole={userRole} onTrackSelect={onTrackSelect} krevdBelop={krevdBelop} />}
-      {activeTrack === 'grunnlag' && <GrunnlagDetail state={state} userRole={userRole} />}
-      {activeTrack === 'vederlag' && (
-        <VederlagDetail state={state} userRole={userRole} krevdBelop={krevdBelop} godkjentBelop={godkjentBelop} vederlagGrad={vederlagGrad} />
-      )}
-      {activeTrack === 'frist' && (
-        <FristDetail state={state} userRole={userRole} fristGrad={fristGrad} />
+    <div className="flex-1 min-w-0 bg-pkt-bg-card overflow-y-auto scrollbar-auto flex flex-col">
+      <div className="flex-1">
+        {activeTrack === null && <OverviewPanel state={state} userRole={userRole} onTrackSelect={onTrackSelect} krevdBelop={krevdBelop} />}
+        {activeTrack === 'grunnlag' && <GrunnlagDetail state={state} userRole={userRole} />}
+        {activeTrack === 'vederlag' && (
+          <VederlagDetail state={state} userRole={userRole} krevdBelop={krevdBelop} godkjentBelop={godkjentBelop} vederlagGrad={vederlagGrad} />
+        )}
+        {activeTrack === 'frist' && (
+          <FristDetail state={state} userRole={userRole} fristGrad={fristGrad} />
+        )}
+      </div>
+
+      {/* Action footer — sticky at bottom when a track is selected */}
+      {activeTrack && (
+        <ActionFooter state={state} userRole={userRole} actions={actions} activeTrack={activeTrack} />
       )}
     </div>
   );
@@ -1230,19 +1247,17 @@ interface RightPanelProps {
   rightTab: RightTab;
   onTabChange: (tab: RightTab) => void;
   entries: SporHistoryEntry[];
+  userRole: 'TE' | 'BH';
 }
 
-function RightPanel({ state, activeTrack, rightTab, onTabChange, entries }: RightPanelProps) {
+function RightPanel({ state, activeTrack, rightTab, onTabChange, entries, userRole }: RightPanelProps) {
   const trackLabel = activeTrack === 'grunnlag' ? 'Grunnlag'
     : activeTrack === 'vederlag' ? 'Vederlag'
     : activeTrack === 'frist' ? 'Frist'
     : 'Alle spor';
 
-  // Get begrunnelse for active track
-  const begrunnelse = activeTrack === 'grunnlag' ? state.grunnlag.bh_begrunnelse
-    : activeTrack === 'vederlag' ? (state.vederlag.bh_begrunnelse || state.vederlag.begrunnelse)
-    : activeTrack === 'frist' ? (state.frist.bh_begrunnelse || state.frist.begrunnelse)
-    : null;
+  // Count entries for the badge
+  const entryCount = entries.length;
 
   return (
     <div className="w-[380px] shrink-0 bg-pkt-bg-card flex flex-col min-h-0">
@@ -1259,6 +1274,7 @@ function RightPanel({ state, activeTrack, rightTab, onTabChange, entries }: Righ
           icon={<CounterClockwiseClockIcon className="w-3 h-3" />}
           isActive={rightTab === 'historikk'}
           onClick={() => onTabChange('historikk')}
+          count={entryCount > 0 ? entryCount : undefined}
         />
         <TabButton
           label="Filer"
@@ -1273,7 +1289,8 @@ function RightPanel({ state, activeTrack, rightTab, onTabChange, entries }: Righ
         {rightTab === 'begrunnelse' && (
           <BegrunnelseTab
             activeTrack={activeTrack}
-            begrunnelse={begrunnelse}
+            state={state}
+            userRole={userRole}
           />
         )}
         {rightTab === 'historikk' && (
@@ -1283,7 +1300,7 @@ function RightPanel({ state, activeTrack, rightTab, onTabChange, entries }: Righ
           />
         )}
         {rightTab === 'filer' && (
-          <FilerTab />
+          <FilerTab activeTrack={activeTrack} />
         )}
       </div>
     </div>
@@ -1292,11 +1309,12 @@ function RightPanel({ state, activeTrack, rightTab, onTabChange, entries }: Righ
 
 // ========== Tab Button ==========
 
-function TabButton({ label, icon, isActive, onClick }: {
+function TabButton({ label, icon, isActive, onClick, count }: {
   label: string;
   icon: React.ReactNode;
   isActive: boolean;
   onClick: () => void;
+  count?: number;
 }) {
   return (
     <button
@@ -1310,6 +1328,11 @@ function TabButton({ label, icon, isActive, onClick }: {
     >
       {icon}
       {label}
+      {count != null && (
+        <span className="ml-0.5 text-bento-micro font-mono text-pkt-grays-gray-400">
+          {count}
+        </span>
+      )}
       {isActive && (
         <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-pkt-brand-dark-blue-1000 rounded-t-full" />
       )}
@@ -1319,7 +1342,11 @@ function TabButton({ label, icon, isActive, onClick }: {
 
 // ========== Begrunnelse Tab ==========
 
-function BegrunnelseTab({ activeTrack, begrunnelse }: { activeTrack: ActiveTrack; begrunnelse: string | null | undefined }) {
+function BegrunnelseTab({ activeTrack, state, userRole }: {
+  activeTrack: ActiveTrack;
+  state: SakState;
+  userRole: 'TE' | 'BH';
+}) {
   if (!activeTrack) {
     return (
       <div className="p-4">
@@ -1336,29 +1363,73 @@ function BegrunnelseTab({ activeTrack, begrunnelse }: { activeTrack: ActiveTrack
     frist: 'Fristforlengelse §33',
   };
 
+  // Extract TE and BH begrunnelse for the active track
+  let teBegrunnelse: string | undefined;
+  let bhBegrunnelse: string | undefined;
+  let teLabel = 'TEs begrunnelse';
+  let bhLabel = 'BHs vurdering';
+
+  if (activeTrack === 'grunnlag') {
+    teBegrunnelse = state.grunnlag.beskrivelse || undefined;
+    bhBegrunnelse = state.grunnlag.bh_begrunnelse;
+    teLabel = 'TEs grunnlag';
+    bhLabel = 'BHs vurdering';
+  } else if (activeTrack === 'vederlag') {
+    teBegrunnelse = state.vederlag.begrunnelse;
+    bhBegrunnelse = state.vederlag.bh_begrunnelse;
+    teLabel = 'TEs krav';
+    bhLabel = 'BHs vurdering';
+  } else if (activeTrack === 'frist') {
+    teBegrunnelse = state.frist.begrunnelse;
+    bhBegrunnelse = state.frist.bh_begrunnelse;
+    teLabel = 'TEs krav';
+    bhLabel = 'BHs vurdering';
+  }
+
+  const hasBegrunnelse = teBegrunnelse || bhBegrunnelse;
+
   return (
-    <div className="p-4 flex flex-col h-full">
-      <div className="text-bento-micro uppercase tracking-wider font-medium text-pkt-text-body-subtle mb-2">
+    <div className="p-4 flex flex-col gap-3">
+      <div className="text-bento-micro uppercase tracking-wider font-medium text-pkt-text-body-subtle">
         {trackLabels[activeTrack]}
       </div>
 
-      {/* Read-only display of current begrunnelse */}
-      {begrunnelse ? (
-        <div className="rounded-sm border border-pkt-border-subtle p-3 flex-1">
-          <div className="text-bento-micro text-pkt-text-body-subtle mb-1.5">Gjeldende begrunnelse</div>
-          <div className="text-bento-caption text-pkt-text-body-default leading-relaxed whitespace-pre-wrap">
-            {begrunnelse}
-          </div>
-        </div>
+      {hasBegrunnelse ? (
+        <>
+          {/* TE begrunnelse */}
+          <BegrunnelseBlock
+            label={teLabel}
+            role="TE"
+            text={teBegrunnelse}
+            isCurrentUser={userRole === 'TE'}
+          />
+
+          {/* Exchange arrow */}
+          {(teBegrunnelse && bhBegrunnelse) && (
+            <div className="flex items-center gap-2 px-2">
+              <div className="flex-1 border-t border-dashed border-pkt-grays-gray-300" />
+              <ArrowRightIcon className="w-3 h-3 text-pkt-grays-gray-400 rotate-90" />
+              <div className="flex-1 border-t border-dashed border-pkt-grays-gray-300" />
+            </div>
+          )}
+
+          {/* BH begrunnelse */}
+          <BegrunnelseBlock
+            label={bhLabel}
+            role="BH"
+            text={bhBegrunnelse}
+            isCurrentUser={userRole === 'BH'}
+          />
+        </>
       ) : (
-        <div className="rounded-sm border border-dashed border-pkt-grays-gray-300 p-4 flex-1 flex items-center justify-center">
+        <div className="rounded-sm border border-dashed border-pkt-grays-gray-300 p-4 flex items-center justify-center">
           <div className="text-center">
             <Pencil1Icon className="w-5 h-5 text-pkt-grays-gray-400 mx-auto mb-2" />
             <div className="text-bento-caption text-pkt-text-body-subtle">
               Ingen begrunnelse ennå
             </div>
             <div className="text-bento-micro text-pkt-grays-gray-400 mt-1">
-              Begrunnelse legges til når du svarer på kravet
+              Begrunnelse legges til når kravet sendes
             </div>
           </div>
         </div>
@@ -1367,9 +1438,60 @@ function BegrunnelseTab({ activeTrack, begrunnelse }: { activeTrack: ActiveTrack
   );
 }
 
+function BegrunnelseBlock({ label, role, text, isCurrentUser }: {
+  label: string;
+  role: 'TE' | 'BH';
+  text?: string;
+  isCurrentUser: boolean;
+}) {
+  if (!text) {
+    return (
+      <div className="rounded-sm border border-dashed border-pkt-grays-gray-200 px-3 py-2.5">
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className={clsx(
+            'text-bento-micro font-bold',
+            role === 'TE' ? 'text-role-te-text' : 'text-role-bh-text',
+          )}>
+            {role}
+          </span>
+          <span className="text-bento-micro text-pkt-grays-gray-400">{label}</span>
+        </div>
+        <div className="text-bento-micro text-pkt-grays-gray-400 italic">
+          Ikke avgitt ennå
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={clsx(
+      'rounded-sm border px-3 py-2.5',
+      isCurrentUser ? 'border-pkt-border-default bg-pkt-bg-subtle/30' : 'border-pkt-border-subtle',
+    )}>
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className={clsx(
+          'text-bento-micro font-bold',
+          role === 'TE' ? 'text-role-te-text' : 'text-role-bh-text',
+        )}>
+          {role}
+        </span>
+        <span className="text-bento-micro text-pkt-text-body-subtle">{label}</span>
+        {isCurrentUser && (
+          <span className="text-bento-micro text-pkt-grays-gray-400">(deg)</span>
+        )}
+      </div>
+      <div className="text-bento-caption text-pkt-text-body-default leading-relaxed whitespace-pre-wrap">
+        {text}
+      </div>
+    </div>
+  );
+}
+
 // ========== Historikk Tab ==========
 
 function HistorikkTab({ entries, trackLabel }: { entries: SporHistoryEntry[]; trackLabel: string }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   const SPOR_DOT: Record<string, string> = {
     grunnlag: 'bg-pkt-brand-dark-blue-1000',
     vederlag: 'bg-pkt-brand-warm-blue-1000',
@@ -1380,6 +1502,7 @@ function HistorikkTab({ entries, trackLabel }: { entries: SporHistoryEntry[]; tr
     return (
       <div className="p-4">
         <div className="text-bento-caption text-pkt-text-body-subtle text-center py-8">
+          <CounterClockwiseClockIcon className="w-5 h-5 text-pkt-grays-gray-400 mx-auto mb-2" />
           Ingen historikk for {trackLabel.toLowerCase()}.
         </div>
       </div>
@@ -1388,8 +1511,13 @@ function HistorikkTab({ entries, trackLabel }: { entries: SporHistoryEntry[]; tr
 
   return (
     <div className="p-4">
-      <div className="text-bento-micro uppercase tracking-wider font-medium text-pkt-text-body-subtle mb-3">
-        {trackLabel}
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-bento-micro uppercase tracking-wider font-medium text-pkt-text-body-subtle">
+          {trackLabel}
+        </div>
+        <span className="text-bento-micro text-pkt-grays-gray-400 font-mono">
+          {entries.length} {entries.length === 1 ? 'hendelse' : 'hendelser'}
+        </span>
       </div>
 
       <div className="relative">
@@ -1399,35 +1527,113 @@ function HistorikkTab({ entries, trackLabel }: { entries: SporHistoryEntry[]; tr
         <div className="flex flex-col gap-0">
           {entries.map((entry, i) => {
             const sporKey = (entry as any).spor as string | undefined;
+            const entryId = entry.id || `entry-${i}`;
+            const isExpanded = expandedId === entryId;
+            const hasDetails = entry.begrunnelse || entry.belop != null || entry.dager != null || entry.resultat;
 
             return (
-              <div key={i} className="flex gap-3 py-2 relative">
-                {/* Dot on the line */}
-                <div className={clsx(
-                  'w-[11px] h-[11px] rounded-full border-2 border-pkt-bg-card shrink-0 mt-0.5 z-10',
-                  sporKey ? SPOR_DOT[sporKey] || 'bg-pkt-grays-gray-400' : 'bg-pkt-grays-gray-400',
-                )} />
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-bento-caption font-medium text-pkt-text-body-default truncate">
-                      {entry.sammendrag}
-                    </span>
-                    {entry.aktorRolle && (
-                      <span className={clsx(
-                        'text-bento-micro font-bold shrink-0',
-                        entry.aktorRolle === 'TE' ? 'text-role-te-text' : 'text-role-bh-text',
-                      )}>
-                        {entry.aktorRolle}
-                      </span>
-                    )}
-                  </div>
-                  {entry.tidsstempel && (
-                    <span className="text-bento-micro text-pkt-grays-gray-400 font-mono">
-                      {formatDateShort(entry.tidsstempel)}
-                    </span>
+              <div key={entryId} className="relative">
+                <button
+                  onClick={() => hasDetails ? setExpandedId(isExpanded ? null : entryId) : undefined}
+                  className={clsx(
+                    'flex gap-3 py-2 w-full text-left transition-colors rounded-sm px-0.5',
+                    hasDetails && 'hover:bg-pkt-bg-subtle/50 cursor-pointer',
+                    !hasDetails && 'cursor-default',
+                    isExpanded && 'bg-pkt-bg-subtle/30',
                   )}
-                </div>
+                >
+                  {/* Dot on the line */}
+                  <div className={clsx(
+                    'w-[11px] h-[11px] rounded-full border-2 border-pkt-bg-card shrink-0 mt-0.5 z-10',
+                    sporKey ? SPOR_DOT[sporKey] || 'bg-pkt-grays-gray-400' : 'bg-pkt-grays-gray-400',
+                  )} />
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-bento-caption font-medium text-pkt-text-body-default truncate flex-1">
+                        {entry.sammendrag}
+                      </span>
+                      {entry.aktorRolle && (
+                        <span className={clsx(
+                          'text-bento-micro font-bold shrink-0',
+                          entry.aktorRolle === 'TE' ? 'text-role-te-text' : 'text-role-bh-text',
+                        )}>
+                          {entry.aktorRolle}
+                        </span>
+                      )}
+                      {hasDetails && (
+                        isExpanded
+                          ? <ChevronUpIcon className="w-3 h-3 text-pkt-grays-gray-400 shrink-0" />
+                          : <ChevronDownIcon className="w-3 h-3 text-pkt-grays-gray-400 shrink-0" />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {entry.tidsstempel && (
+                        <span className="text-bento-micro text-pkt-grays-gray-400 font-mono">
+                          {formatDateShort(entry.tidsstempel)}
+                        </span>
+                      )}
+                      {entry.versjon > 0 && (
+                        <span className="text-bento-micro text-pkt-grays-gray-400">
+                          v{entry.versjon}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+
+                {/* Expandable detail area */}
+                {isExpanded && hasDetails && (
+                  <div className="ml-[23px] pl-3 pb-2 border-l border-dashed border-pkt-grays-gray-300">
+                    <div className="rounded-sm bg-pkt-bg-subtle p-2.5 space-y-1.5">
+                      {/* Resultat badge */}
+                      {entry.resultat && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-bento-micro text-pkt-text-body-subtle">Resultat:</span>
+                          <Badge
+                            variant={entry.resultat === 'godkjent' ? 'success' : entry.resultat === 'avslatt' ? 'danger' : 'warning'}
+                            size="sm"
+                          >
+                            {entry.resultat === 'godkjent' ? 'Godkjent'
+                              : entry.resultat === 'avslatt' ? 'Avslått'
+                              : entry.resultat === 'delvis_godkjent' ? 'Delvis godkjent'
+                              : entry.resultat}
+                          </Badge>
+                        </div>
+                      )}
+
+                      {/* Amount */}
+                      {entry.belop != null && (
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-bento-micro text-pkt-text-body-subtle">Beløp:</span>
+                          <span className="text-bento-caption font-mono font-medium text-pkt-text-body-default">
+                            {formatCurrencyCompact(entry.belop)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Days */}
+                      {entry.dager != null && (
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-bento-micro text-pkt-text-body-subtle">Dager:</span>
+                          <span className="text-bento-caption font-mono font-medium text-pkt-text-body-default">
+                            {entry.dager} kalenderdager
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Begrunnelse */}
+                      {entry.begrunnelse && (
+                        <div>
+                          <span className="text-bento-micro text-pkt-text-body-subtle block mb-0.5">Begrunnelse:</span>
+                          <p className="text-bento-caption text-pkt-text-body-default leading-relaxed whitespace-pre-wrap line-clamp-4">
+                            {entry.begrunnelse}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -1439,21 +1645,133 @@ function HistorikkTab({ entries, trackLabel }: { entries: SporHistoryEntry[]; tr
 
 // ========== Filer Tab ==========
 
-function FilerTab() {
+function FilerTab({ activeTrack }: { activeTrack: ActiveTrack }) {
+  const trackLabel = activeTrack
+    ? { grunnlag: 'grunnlag', vederlag: 'vederlag', frist: 'frist' }[activeTrack]
+    : 'saken';
+
   return (
-    <div className="p-4">
-      <div className="text-bento-micro uppercase tracking-wider font-medium text-pkt-text-body-subtle mb-3">
+    <div className="p-4 flex flex-col gap-3">
+      <div className="text-bento-micro uppercase tracking-wider font-medium text-pkt-text-body-subtle">
         Dokumenter
       </div>
-      <div className="rounded-sm border border-dashed border-pkt-grays-gray-300 p-4 text-center">
-        <FileTextIcon className="w-5 h-5 text-pkt-grays-gray-400 mx-auto mb-2" />
-        <div className="text-bento-caption text-pkt-text-body-subtle">
-          Ingen vedlegg
+
+      {/* Upload area */}
+      <div className="rounded-sm border-2 border-dashed border-pkt-grays-gray-300 p-5 text-center hover:border-pkt-brand-warm-blue-1000 hover:bg-pkt-bg-subtle/30 transition-colors cursor-pointer group">
+        <UploadIcon className="w-5 h-5 text-pkt-grays-gray-400 group-hover:text-pkt-brand-warm-blue-1000 mx-auto mb-2 transition-colors" />
+        <div className="text-bento-caption text-pkt-text-body-subtle group-hover:text-pkt-text-body-default transition-colors">
+          Dra og slipp filer hit
         </div>
         <div className="text-bento-micro text-pkt-grays-gray-400 mt-1">
-          Dokumenter vises her når de er lagt til
+          eller klikk for å velge fra disk
+        </div>
+        <div className="text-bento-micro text-pkt-grays-gray-400 mt-2">
+          PDF, DOCX, XLSX, bilder (maks 25 MB)
         </div>
       </div>
+
+      {/* Empty state */}
+      <div className="rounded-sm border border-pkt-border-subtle p-3">
+        <div className="flex items-center gap-2 text-bento-caption text-pkt-text-body-subtle">
+          <FileTextIcon className="w-3.5 h-3.5 text-pkt-grays-gray-400 shrink-0" />
+          <span>Ingen vedlegg knyttet til {trackLabel}</span>
+        </div>
+      </div>
+
+      {/* File categories hint */}
+      <div className="text-bento-micro text-pkt-grays-gray-400 leading-relaxed">
+        Dokumenter lastes opp per spor og vises i kontekst av begrunnelsen de er knyttet til.
+      </div>
+    </div>
+  );
+}
+
+// ========== Action Footer ==========
+
+function ActionFooter({ state, userRole, actions, activeTrack }: {
+  state: SakState;
+  userRole: 'TE' | 'BH';
+  actions: AvailableActions;
+  activeTrack: SporType;
+}) {
+  // Determine available actions for this track
+  const trackActions: { label: string; icon: React.ReactNode; variant: 'primary' | 'secondary' | 'ghost'; key: string }[] = [];
+
+  if (activeTrack === 'grunnlag') {
+    if (userRole === 'TE') {
+      if (actions.canSendGrunnlag) trackActions.push({ label: 'Varsle krav', icon: <PaperPlaneIcon className="w-3.5 h-3.5" />, variant: 'primary', key: 'send' });
+      if (actions.canUpdateGrunnlag) trackActions.push({ label: 'Oppdater', icon: <ReloadIcon className="w-3.5 h-3.5" />, variant: 'secondary', key: 'update' });
+      if (actions.canAcceptGrunnlagResponse) trackActions.push({ label: 'Godta svaret', icon: <CheckCircledIcon className="w-3.5 h-3.5" />, variant: 'secondary', key: 'accept' });
+      if (actions.canWithdrawGrunnlag) trackActions.push({ label: 'Trekk tilbake', icon: <CrossCircledIcon className="w-3.5 h-3.5" />, variant: 'ghost', key: 'withdraw' });
+    } else {
+      if (actions.canRespondToGrunnlag) trackActions.push({ label: 'Svar på krav', icon: <ChatBubbleIcon className="w-3.5 h-3.5" />, variant: 'primary', key: 'respond' });
+      if (actions.canUpdateGrunnlagResponse) trackActions.push({ label: 'Endre svar', icon: <ReloadIcon className="w-3.5 h-3.5" />, variant: 'secondary', key: 'update-response' });
+    }
+  } else if (activeTrack === 'vederlag') {
+    if (userRole === 'TE') {
+      if (actions.canSendVederlag) trackActions.push({ label: 'Send krav', icon: <PaperPlaneIcon className="w-3.5 h-3.5" />, variant: 'primary', key: 'send' });
+      if (actions.canUpdateVederlag) trackActions.push({ label: 'Revider', icon: <ReloadIcon className="w-3.5 h-3.5" />, variant: 'secondary', key: 'update' });
+      if (actions.canAcceptVederlagResponse) trackActions.push({ label: 'Godta svaret', icon: <CheckCircledIcon className="w-3.5 h-3.5" />, variant: 'secondary', key: 'accept' });
+      if (actions.canWithdrawVederlag) trackActions.push({ label: 'Trekk tilbake', icon: <CrossCircledIcon className="w-3.5 h-3.5" />, variant: 'ghost', key: 'withdraw' });
+    } else {
+      if (actions.canRespondToVederlag) trackActions.push({ label: 'Svar på krav', icon: <ChatBubbleIcon className="w-3.5 h-3.5" />, variant: 'primary', key: 'respond' });
+      if (actions.canUpdateVederlagResponse) trackActions.push({ label: 'Endre svar', icon: <ReloadIcon className="w-3.5 h-3.5" />, variant: 'secondary', key: 'update-response' });
+    }
+  } else if (activeTrack === 'frist') {
+    if (userRole === 'TE') {
+      if (actions.canSendFrist) trackActions.push({ label: 'Send krav', icon: <PaperPlaneIcon className="w-3.5 h-3.5" />, variant: 'primary', key: 'send' });
+      if (actions.canUpdateFrist) trackActions.push({ label: 'Revider', icon: <ReloadIcon className="w-3.5 h-3.5" />, variant: 'secondary', key: 'update' });
+      if (actions.canAcceptFristResponse) trackActions.push({ label: 'Godta svaret', icon: <CheckCircledIcon className="w-3.5 h-3.5" />, variant: 'secondary', key: 'accept' });
+      if (actions.canSendForsering) trackActions.push({ label: 'Forsering §33.8', icon: <ArrowRightIcon className="w-3.5 h-3.5" />, variant: 'ghost', key: 'forsering' });
+      if (actions.canWithdrawFrist) trackActions.push({ label: 'Trekk tilbake', icon: <CrossCircledIcon className="w-3.5 h-3.5" />, variant: 'ghost', key: 'withdraw' });
+    } else {
+      if (actions.canRespondToFrist) trackActions.push({ label: 'Svar på krav', icon: <ChatBubbleIcon className="w-3.5 h-3.5" />, variant: 'primary', key: 'respond' });
+      if (actions.canUpdateFristResponse) trackActions.push({ label: 'Endre svar', icon: <ReloadIcon className="w-3.5 h-3.5" />, variant: 'secondary', key: 'update-response' });
+    }
+  }
+
+  if (trackActions.length === 0) return null;
+
+  const BUTTON_STYLES = {
+    primary: 'bg-pkt-brand-dark-blue-1000 text-white hover:bg-pkt-brand-warm-blue-1000 hover:text-white',
+    secondary: 'border border-pkt-border-default text-pkt-text-body-default hover:bg-pkt-bg-subtle',
+    ghost: 'text-pkt-text-body-subtle hover:text-pkt-text-body-default hover:bg-pkt-bg-subtle',
+  };
+
+  return (
+    <div className="border-t border-pkt-border-subtle px-5 py-3 flex items-center gap-2 shrink-0 bg-pkt-bg-card">
+      {trackActions.map((action) => (
+        <button
+          key={action.key}
+          className={clsx(
+            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-bento-caption font-medium transition-colors',
+            BUTTON_STYLES[action.variant],
+          )}
+          title={`${action.label} (ikke tilkoblet ennå)`}
+        >
+          {action.icon}
+          {action.label}
+        </button>
+      ))}
+
+      <div className="flex-1" />
+
+      {/* Version indicator */}
+      {activeTrack === 'grunnlag' && state.grunnlag.antall_versjoner > 1 && (
+        <span className="text-bento-micro text-pkt-grays-gray-400">
+          Rev. {state.grunnlag.antall_versjoner - 1}
+        </span>
+      )}
+      {activeTrack === 'vederlag' && state.vederlag.antall_versjoner > 1 && (
+        <span className="text-bento-micro text-pkt-grays-gray-400">
+          Rev. {state.vederlag.antall_versjoner - 1}
+        </span>
+      )}
+      {activeTrack === 'frist' && state.frist.antall_versjoner > 1 && (
+        <span className="text-bento-micro text-pkt-grays-gray-400">
+          Rev. {state.frist.antall_versjoner - 1}
+        </span>
+      )}
     </div>
   );
 }
