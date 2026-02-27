@@ -57,6 +57,27 @@ import {
 type ActiveTrack = SporType | null;
 type RightTab = 'begrunnelse' | 'historikk' | 'filer';
 
+// ========== Shared Constants ==========
+
+/** Track accent colors — one source of truth for dots, accents, timeline markers */
+const TRACK_COLORS: Record<string, { dot: string; accent: string; border: string }> = {
+  grunnlag: {
+    dot: 'bg-pkt-brand-dark-blue-1000',
+    accent: 'bg-pkt-brand-dark-blue-1000',
+    border: 'border-l-pkt-brand-dark-blue-1000',
+  },
+  vederlag: {
+    dot: 'bg-pkt-brand-warm-blue-1000',
+    accent: 'bg-pkt-brand-warm-blue-1000',
+    border: 'border-l-pkt-brand-warm-blue-1000',
+  },
+  frist: {
+    dot: 'bg-pkt-brand-yellow-1000',
+    accent: 'bg-pkt-brand-yellow-1000',
+    border: 'border-l-pkt-brand-yellow-1000',
+  },
+};
+
 // ========== Main Component ==========
 
 export function CasePageAccess() {
@@ -110,13 +131,13 @@ function CasePageAccessContent({ sakId, userRole }: { sakId: string; userRole: '
   }, [activeTrack, grunnlagEntries, vederlagEntries, fristEntries]);
 
   return (
-    <div className="h-[calc(100vh-52px)] flex flex-col">
+    <div className="h-[calc(100vh-var(--topbar-h,44px))] flex flex-col">
       {/* Top bar */}
       <TopBar state={state} sakId={sakId} userRole={userRole} />
 
-      {/* Three-panel layout */}
+      {/* Three-panel layout: nav (subtle) → workspace (card) → reference (card, bordered) */}
       <div className="flex-1 flex min-h-0">
-        {/* Left panel: Case overview + track navigation */}
+        {/* Left panel: navigation surface — recessed to separate from workspace */}
         <LeftPanel
           state={state}
           userRole={userRole}
@@ -131,10 +152,7 @@ function CasePageAccessContent({ sakId, userRole }: { sakId: string; userRole: '
           fristEntries={fristEntries}
         />
 
-        {/* Vertical divider */}
-        <div className="w-px bg-pkt-border-subtle shrink-0" />
-
-        {/* Middle panel: Track detail */}
+        {/* Middle panel: primary workspace — white, dominant */}
         <MiddlePanel
           state={state}
           userRole={userRole}
@@ -147,10 +165,7 @@ function CasePageAccessContent({ sakId, userRole }: { sakId: string; userRole: '
           fristGrad={fristGrad}
         />
 
-        {/* Vertical divider */}
-        <div className="w-px bg-pkt-border-subtle shrink-0" />
-
-        {/* Right panel: Tabbed reference */}
+        {/* Right panel: reference shelf — separated by a real border */}
         <RightPanel
           state={state}
           activeTrack={activeTrack}
@@ -171,16 +186,16 @@ function TopBar({ state, sakId, userRole }: { state: SakState; sakId: string; us
   const sakstypeStyle = getSakstypeStyle(state.sakstype || 'standard');
 
   return (
-    <div className="h-11 border-b border-pkt-border-subtle bg-pkt-bg-card flex items-center px-4 gap-3 shrink-0">
+    <div className="h-11 border-b border-pkt-grays-gray-200 bg-pkt-bg-card flex items-center px-4 gap-3 shrink-0" style={{ '--topbar-h': '44px' } as React.CSSProperties}>
       <Link
         to="/saker"
-        className="flex items-center gap-1 text-bento-caption text-pkt-text-body-subtle hover:text-pkt-text-body-default transition-colors"
+        className="flex items-center gap-1.5 text-bento-caption text-pkt-text-body-subtle hover:text-pkt-text-body-default transition-colors"
       >
         <ArrowLeftIcon className="w-3.5 h-3.5" />
         <span>Tilbake</span>
       </Link>
 
-      <div className="w-px h-5 bg-pkt-border-subtle" />
+      <div className="w-px h-5 bg-pkt-grays-gray-200" />
 
       <span className="font-mono text-bento-caption font-medium text-pkt-text-body-default">
         {state.sak_id}
@@ -202,8 +217,9 @@ function TopBar({ state, sakId, userRole }: { state: SakState; sakId: string; us
         {state.entreprenor || 'TE'} &harr; {state.byggherre || 'BH'}
       </span>
 
-      <div className="w-px h-5 bg-pkt-border-subtle" />
+      <div className="w-px h-5 bg-pkt-grays-gray-200" />
 
+      {/* View switcher — current view is visually distinct */}
       <Link
         to={`/saker/${sakId}`}
         className="text-bento-caption text-pkt-text-body-subtle hover:text-pkt-text-action-active transition-colors"
@@ -216,6 +232,9 @@ function TopBar({ state, sakId, userRole }: { state: SakState; sakId: string; us
       >
         Bento
       </Link>
+      <span className="text-bento-caption font-medium text-pkt-text-body-default border-b-2 border-pkt-brand-dark-blue-1000 pb-px">
+        Sak
+      </span>
     </div>
   );
 }
@@ -257,16 +276,16 @@ function LeftPanel({
   const nh = state.neste_handling;
 
   return (
-    <div className="w-[280px] shrink-0 bg-pkt-bg-card overflow-y-auto scrollbar-auto">
-      {/* Neste handling */}
+    <div className="w-[260px] shrink-0 bg-pkt-bg-subtle border-r border-pkt-grays-gray-200 overflow-y-auto scrollbar-auto">
+      {/* Neste handling — prominent call-to-action */}
       {nh.handling && (
-        <div className="px-4 pt-3 pb-2">
-          <div className="text-bento-micro uppercase tracking-wider font-medium text-pkt-text-body-subtle mb-1">
+        <div className="px-4 pt-4 pb-3">
+          <div className="text-bento-micro uppercase tracking-wider font-medium text-pkt-text-body-subtle mb-2">
             Neste handling
           </div>
           <button
             onClick={() => nh.spor && onTrackSelect(nh.spor)}
-            className="w-full text-left rounded-sm bg-pkt-bg-subtle px-2.5 py-2 hover:bg-pkt-grays-gray-200/50 transition-colors group"
+            className="w-full text-left rounded-sm bg-pkt-bg-card px-3 py-2 hover:bg-pkt-bg-card/80 transition-colors group shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
           >
             <div className="flex items-center gap-1.5">
               {nh.rolle && (
@@ -282,7 +301,7 @@ function LeftPanel({
               </span>
             </div>
             {nh.spor && (
-              <span className="text-bento-micro text-pkt-text-body-subtle capitalize">
+              <span className="text-bento-micro text-pkt-text-body-subtle capitalize mt-0.5 block">
                 {nh.spor}
               </span>
             )}
@@ -290,19 +309,15 @@ function LeftPanel({
         </div>
       )}
 
-      {/* Divider */}
-      <div className="mx-4 border-b border-pkt-border-subtle" />
-
-      {/* Track navigation */}
-      <div className="py-2">
-        {/* Grunnlag */}
+      {/* Track navigation — primary interactive zone */}
+      <div className="py-1">
         <TrackNavItem
           label="Ansvarsgrunnlag"
           hjemmel="§25.2"
           isActive={activeTrack === 'grunnlag'}
           onClick={() => onTrackSelect(activeTrack === 'grunnlag' ? null : 'grunnlag')}
           status={g.status}
-          accentColor="bg-pkt-brand-dark-blue-1000"
+          accentColor={TRACK_COLORS.grunnlag.accent}
         >
           {g.hovedkategori && (
             <span className="text-bento-micro text-pkt-text-body-subtle truncate">
@@ -317,14 +332,13 @@ function LeftPanel({
           )}
         </TrackNavItem>
 
-        {/* Vederlag */}
         <TrackNavItem
           label="Vederlag"
           hjemmel="§34"
           isActive={activeTrack === 'vederlag'}
           onClick={() => onTrackSelect(activeTrack === 'vederlag' ? null : 'vederlag')}
           status={v.status}
-          accentColor="bg-pkt-brand-warm-blue-1000"
+          accentColor={TRACK_COLORS.vederlag.accent}
           isSubsidiary={state.er_subsidiaert_vederlag}
         >
           {v.metode && (
@@ -338,14 +352,13 @@ function LeftPanel({
           )}
         </TrackNavItem>
 
-        {/* Frist */}
         <TrackNavItem
           label="Fristforlengelse"
           hjemmel="§33"
           isActive={activeTrack === 'frist'}
           onClick={() => onTrackSelect(activeTrack === 'frist' ? null : 'frist')}
           status={f.status}
-          accentColor="bg-pkt-brand-yellow-1000"
+          accentColor={TRACK_COLORS.frist.accent}
           isSubsidiary={state.er_subsidiaert_frist}
         >
           {f.krevd_dager != null && (
@@ -360,16 +373,11 @@ function LeftPanel({
         </TrackNavItem>
       </div>
 
-      {/* Divider */}
-      <div className="mx-4 border-b border-pkt-border-subtle" />
-
-      {/* Varslingsstatus */}
+      {/* Secondary info — recessed from track nav through reduced opacity labels */}
+      <div className="mx-4 border-t border-pkt-grays-gray-200/60" />
       <VarslingSection state={state} />
 
-      {/* Divider */}
-      <div className="mx-4 border-b border-pkt-border-subtle" />
-
-      {/* Recent activity */}
+      <div className="mx-4 border-t border-pkt-grays-gray-200/60" />
       <ActivitySection
         grunnlagEntries={grunnlagEntries}
         vederlagEntries={vederlagEntries}
@@ -401,19 +409,19 @@ function TrackNavItem({ label, hjemmel, isActive, onClick, status, accentColor, 
     <button
       onClick={onClick}
       className={clsx(
-        'w-full text-left px-4 py-2.5 transition-colors relative',
+        'w-full text-left px-4 py-3 transition-colors relative',
         isActive
-          ? 'bg-pkt-bg-subtle'
-          : 'hover:bg-pkt-bg-subtle/50',
+          ? 'bg-pkt-bg-card'
+          : 'hover:bg-pkt-bg-card/50',
       )}
     >
       {/* Active indicator — thin left accent bar */}
       {isActive && (
-        <div className={clsx('absolute left-0 top-1 bottom-1 w-[3px] rounded-r-full', accentColor)} />
+        <div className={clsx('absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full', accentColor)} />
       )}
 
       {/* Header row: dot + label + hjemmel */}
-      <div className="flex items-center gap-1.5 mb-0.5">
+      <div className="flex items-center gap-1.5 mb-1">
         <div
           className={clsx(
             'w-2 h-2 rounded-full shrink-0',
@@ -427,21 +435,21 @@ function TrackNavItem({ label, hjemmel, isActive, onClick, status, accentColor, 
           {hjemmel}
         </span>
         {isSubsidiary && (
-          <span className="text-bento-micro px-1 py-0 rounded-sm bg-pkt-brand-yellow-500 text-pkt-text-body-default font-medium">
+          <span className="text-bento-micro px-1 rounded-sm bg-pkt-brand-yellow-500 text-pkt-text-body-default font-medium">
             Sub.
           </span>
         )}
       </div>
 
       {/* Status label */}
-      <div className="pl-3.5 mb-0.5">
+      <div className="pl-4 mb-1">
         <span className={clsx('text-bento-micro font-medium', statusStyle.className, 'bg-transparent px-0 py-0')}>
           {statusStyle.label}
         </span>
       </div>
 
       {/* Detail lines (children) */}
-      <div className="pl-3.5 flex flex-col gap-0.5">
+      <div className="pl-4 flex flex-col gap-1">
         {children}
       </div>
     </button>
@@ -576,19 +584,13 @@ function ActivitySection({
       .slice(0, 5);
   }, [grunnlagEntries, vederlagEntries, fristEntries]);
 
-  const SPOR_DOT: Record<string, string> = {
-    grunnlag: 'bg-pkt-brand-dark-blue-1000',
-    vederlag: 'bg-pkt-brand-warm-blue-1000',
-    frist: 'bg-pkt-brand-yellow-1000',
-  };
-
   if (combined.length === 0) {
     return (
       <div className="px-4 py-3">
         <div className="text-bento-micro uppercase tracking-wider font-medium text-pkt-text-body-subtle mb-2">
           Aktivitet
         </div>
-        <div className="text-bento-micro text-pkt-grays-gray-400">Ingen hendelser ennå</div>
+        <div className="text-bento-micro text-pkt-grays-gray-400 italic py-1">Ingen hendelser ennå</div>
       </div>
     );
   }
@@ -601,7 +603,7 @@ function ActivitySection({
       <div className="flex flex-col gap-1">
         {combined.map((entry, i) => (
           <div key={i} className="flex items-center gap-1.5">
-            <div className={clsx('w-1.5 h-1.5 rounded-full shrink-0', SPOR_DOT[entry.spor])} />
+            <div className={clsx('w-1.5 h-1.5 rounded-full shrink-0', TRACK_COLORS[entry.spor]?.dot)} />
             <span className="text-bento-micro text-pkt-text-body-default truncate flex-1">
               {entry.sammendrag}
             </span>
@@ -641,7 +643,7 @@ interface MiddlePanelProps {
 
 function MiddlePanel({ state, userRole, activeTrack, onTrackSelect, actions, krevdBelop, godkjentBelop, vederlagGrad, fristGrad }: MiddlePanelProps) {
   return (
-    <div className="flex-1 min-w-0 bg-pkt-bg-card overflow-y-auto scrollbar-auto flex flex-col">
+    <div className="flex-1 min-w-0 bg-pkt-bg-card overflow-y-auto scrollbar-auto flex flex-col min-w-[400px]">
       <div className="flex-1">
         {activeTrack === null && <OverviewPanel state={state} userRole={userRole} onTrackSelect={onTrackSelect} krevdBelop={krevdBelop} />}
         {activeTrack === 'grunnlag' && <GrunnlagDetail state={state} userRole={userRole} />}
@@ -668,9 +670,9 @@ function OverviewPanel({ state, userRole, onTrackSelect, krevdBelop }: { state: 
   const nh = state.neste_handling;
 
   return (
-    <div className="p-5">
+    <div className="p-6">
       {/* Case identity */}
-      <div className="mb-5">
+      <div className="mb-6">
         <h2 className="text-lg font-semibold text-pkt-text-body-dark leading-tight mb-1">
           {state.sakstittel}
         </h2>
@@ -685,12 +687,14 @@ function OverviewPanel({ state, userRole, onTrackSelect, krevdBelop }: { state: 
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="space-y-3">
-        {/* Neste handling */}
+      <div className="space-y-4">
+        {/* Neste handling — focal point: larger, stronger border, more padding */}
         {nh.handling && (
-          <div className="rounded-sm border border-pkt-border-subtle p-3">
-            <div className="text-bento-micro uppercase tracking-wider font-medium text-pkt-text-body-subtle mb-1.5">
+          <button
+            onClick={() => nh.spor && onTrackSelect(nh.spor)}
+            className="w-full text-left rounded-sm border-l-[3px] border-l-pkt-brand-dark-blue-1000 border border-pkt-grays-gray-200 p-4 hover:bg-pkt-bg-subtle/40 transition-colors group"
+          >
+            <div className="text-bento-micro uppercase tracking-wider font-medium text-pkt-text-body-subtle mb-2">
               Neste handling
             </div>
             <div className="flex items-center gap-2">
@@ -702,11 +706,12 @@ function OverviewPanel({ state, userRole, onTrackSelect, krevdBelop }: { state: 
                   {nh.rolle}
                 </span>
               )}
-              <span className="text-bento-body font-medium text-pkt-text-body-default">
+              <span className="text-bento-body font-medium text-pkt-text-body-default group-hover:text-pkt-text-action-active transition-colors">
                 {nh.handling}
               </span>
+              <ArrowRightIcon className="w-3.5 h-3.5 text-pkt-grays-gray-400 ml-auto group-hover:text-pkt-text-action-active transition-colors" />
             </div>
-          </div>
+          </button>
         )}
 
         {/* Three-track summary grid — clickable to navigate */}
@@ -715,7 +720,7 @@ function OverviewPanel({ state, userRole, onTrackSelect, krevdBelop }: { state: 
             label="Grunnlag"
             hjemmel="§25.2"
             status={g.status}
-            accentColor="border-l-pkt-brand-dark-blue-1000"
+            accentColor={TRACK_COLORS.grunnlag.border}
             onClick={() => onTrackSelect('grunnlag')}
           >
             {g.bh_resultat
@@ -728,7 +733,7 @@ function OverviewPanel({ state, userRole, onTrackSelect, krevdBelop }: { state: 
             label="Vederlag"
             hjemmel="§34"
             status={state.vederlag.status}
-            accentColor="border-l-pkt-brand-warm-blue-1000"
+            accentColor={TRACK_COLORS.vederlag.border}
             onClick={() => onTrackSelect('vederlag')}
           >
             {krevdBelop != null
@@ -741,7 +746,7 @@ function OverviewPanel({ state, userRole, onTrackSelect, krevdBelop }: { state: 
             label="Frist"
             hjemmel="§33"
             status={state.frist.status}
-            accentColor="border-l-pkt-brand-yellow-1000"
+            accentColor={TRACK_COLORS.frist.border}
             onClick={() => onTrackSelect('frist')}
           >
             {state.frist.krevd_dager != null
@@ -753,8 +758,8 @@ function OverviewPanel({ state, userRole, onTrackSelect, krevdBelop }: { state: 
 
         {/* Description */}
         {g.beskrivelse && (
-          <div className="rounded-sm border border-pkt-border-subtle p-3">
-            <div className="text-bento-micro uppercase tracking-wider font-medium text-pkt-text-body-subtle mb-1.5">
+          <div className="rounded-sm border border-pkt-grays-gray-200 p-4">
+            <div className="text-bento-micro uppercase tracking-wider font-medium text-pkt-text-body-subtle mb-2">
               Beskrivelse
             </div>
             <p className="text-bento-caption text-pkt-text-body-default leading-relaxed line-clamp-6">
@@ -765,19 +770,19 @@ function OverviewPanel({ state, userRole, onTrackSelect, krevdBelop }: { state: 
 
         {/* Aggregates */}
         {(state.sum_krevd > 0 || state.sum_godkjent > 0) && (
-          <div className="rounded-sm border border-pkt-border-subtle p-3">
+          <div className="rounded-sm border border-pkt-grays-gray-200 p-4">
             <div className="text-bento-micro uppercase tracking-wider font-medium text-pkt-text-body-subtle mb-2">
               Totalt
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-bento-micro text-pkt-text-body-subtle">Krevd</div>
+                <div className="text-bento-micro text-pkt-text-body-subtle mb-0.5">Krevd</div>
                 <div className="text-bento-kpi font-semibold font-mono text-bento-krevd">
                   {formatCurrencyCompact(state.sum_krevd)}
                 </div>
               </div>
               <div>
-                <div className="text-bento-micro text-pkt-text-body-subtle">Godkjent</div>
+                <div className="text-bento-micro text-pkt-text-body-subtle mb-0.5">Godkjent</div>
                 <div className="text-bento-kpi font-semibold font-mono text-pkt-brand-dark-green-1000">
                   {formatCurrencyCompact(state.sum_godkjent)}
                 </div>
@@ -814,8 +819,8 @@ function TrackSummaryCard({
     <button
       onClick={onClick}
       className={clsx(
-        'rounded-sm border border-pkt-border-subtle border-l-[3px] p-2.5 text-left transition-colors w-full',
-        'hover:bg-pkt-bg-subtle/50',
+        'rounded-sm border border-pkt-grays-gray-200 border-l-[3px] p-3 text-left transition-colors w-full',
+        'hover:bg-pkt-bg-subtle/40 active:bg-pkt-bg-subtle/60',
         accentColor,
       )}
     >
@@ -837,7 +842,7 @@ function GrunnlagDetail({ state, userRole }: { state: SakState; userRole: 'TE' |
   const g = state.grunnlag;
 
   return (
-    <div className="p-5">
+    <div className="p-6">
       <DetailHeader
         label="Ansvarsgrunnlag"
         hjemmel="§25.2"
@@ -934,7 +939,7 @@ function VederlagDetail({
   const v = state.vederlag;
 
   return (
-    <div className="p-5">
+    <div className="p-6">
       <DetailHeader
         label="Vederlag"
         hjemmel="§34"
@@ -946,7 +951,7 @@ function VederlagDetail({
       <div className="space-y-4 mt-4">
         {/* KPI */}
         {krevdBelop != null && (
-          <div className="rounded-sm bg-pkt-bg-subtle p-3">
+          <div className="rounded-sm bg-pkt-bg-subtle p-4">
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <div className="text-bento-micro text-pkt-text-body-subtle">Krevd</div>
@@ -972,7 +977,7 @@ function VederlagDetail({
               )}
             </div>
             {vederlagGrad != null && (
-              <div className="mt-2 h-1.5 rounded-full bg-pkt-grays-gray-200 overflow-hidden">
+              <div className="mt-3 h-1 rounded-full bg-pkt-grays-gray-200 overflow-hidden">
                 <div
                   className="h-full rounded-full bg-pkt-brand-dark-green-1000 transition-all duration-500"
                   style={{ width: `${Math.min(vederlagGrad, 100)}%` }}
@@ -1085,7 +1090,7 @@ function FristDetail({
   const f = state.frist;
 
   return (
-    <div className="p-5">
+    <div className="p-6">
       <DetailHeader
         label="Fristforlengelse"
         hjemmel="§33"
@@ -1097,7 +1102,7 @@ function FristDetail({
       <div className="space-y-4 mt-4">
         {/* KPI */}
         {f.krevd_dager != null && (
-          <div className="rounded-sm bg-pkt-bg-subtle p-3">
+          <div className="rounded-sm bg-pkt-bg-subtle p-4">
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <div className="text-bento-micro text-pkt-text-body-subtle">Krevd</div>
@@ -1123,7 +1128,7 @@ function FristDetail({
               )}
             </div>
             {fristGrad != null && (
-              <div className="mt-2 h-1.5 rounded-full bg-pkt-grays-gray-200 overflow-hidden">
+              <div className="mt-3 h-1 rounded-full bg-pkt-grays-gray-200 overflow-hidden">
                 <div
                   className="h-full rounded-full bg-pkt-brand-dark-green-1000 transition-all duration-500"
                   style={{ width: `${Math.min(fristGrad, 100)}%` }}
@@ -1260,9 +1265,9 @@ function RightPanel({ state, activeTrack, rightTab, onTabChange, entries, userRo
   const entryCount = entries.length;
 
   return (
-    <div className="w-[380px] shrink-0 bg-pkt-bg-card flex flex-col min-h-0">
+    <div className="w-[360px] shrink-0 bg-pkt-bg-card border-l border-pkt-grays-gray-200 flex flex-col min-h-0">
       {/* Tab strip */}
-      <div className="h-10 border-b border-pkt-border-subtle flex items-end px-4 gap-0 shrink-0">
+      <div className="h-10 border-b border-pkt-grays-gray-200 flex items-end px-4 gap-0 shrink-0">
         <TabButton
           label="Begrunnelse"
           icon={<Pencil1Icon className="w-3 h-3" />}
@@ -1350,8 +1355,9 @@ function BegrunnelseTab({ activeTrack, state, userRole }: {
   if (!activeTrack) {
     return (
       <div className="p-4">
-        <div className="text-bento-caption text-pkt-text-body-subtle text-center py-8">
-          Velg et spor i venstepanelet for å se eller redigere begrunnelse.
+        <div className="text-bento-caption text-pkt-text-body-subtle text-center py-12">
+          <Pencil1Icon className="w-4 h-4 text-pkt-grays-gray-400 mx-auto mb-2" />
+          Velg et spor for å se begrunnelser
         </div>
       </div>
     );
@@ -1466,7 +1472,7 @@ function BegrunnelseBlock({ label, role, text, isCurrentUser }: {
   return (
     <div className={clsx(
       'rounded-sm border px-3 py-2.5',
-      isCurrentUser ? 'border-pkt-border-default bg-pkt-bg-subtle/30' : 'border-pkt-border-subtle',
+      isCurrentUser ? 'border-pkt-border-default bg-pkt-bg-subtle/30' : 'border-pkt-grays-gray-200',
     )}>
       <div className="flex items-center gap-1.5 mb-1.5">
         <span className={clsx(
@@ -1491,12 +1497,6 @@ function BegrunnelseBlock({ label, role, text, isCurrentUser }: {
 
 function HistorikkTab({ entries, trackLabel }: { entries: SporHistoryEntry[]; trackLabel: string }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  const SPOR_DOT: Record<string, string> = {
-    grunnlag: 'bg-pkt-brand-dark-blue-1000',
-    vederlag: 'bg-pkt-brand-warm-blue-1000',
-    frist: 'bg-pkt-brand-yellow-1000',
-  };
 
   if (entries.length === 0) {
     return (
@@ -1545,7 +1545,7 @@ function HistorikkTab({ entries, trackLabel }: { entries: SporHistoryEntry[]; tr
                   {/* Dot on the line */}
                   <div className={clsx(
                     'w-[11px] h-[11px] rounded-full border-2 border-pkt-bg-card shrink-0 mt-0.5 z-10',
-                    sporKey ? SPOR_DOT[sporKey] || 'bg-pkt-grays-gray-400' : 'bg-pkt-grays-gray-400',
+                    sporKey ? TRACK_COLORS[sporKey]?.dot || 'bg-pkt-grays-gray-400' : 'bg-pkt-grays-gray-400',
                   )} />
 
                   <div className="flex-1 min-w-0">
@@ -1582,10 +1582,10 @@ function HistorikkTab({ entries, trackLabel }: { entries: SporHistoryEntry[]; tr
                   </div>
                 </button>
 
-                {/* Expandable detail area */}
+                {/* Expandable detail area — aligned under the dot column via grid-start */}
                 {isExpanded && hasDetails && (
-                  <div className="ml-[23px] pl-3 pb-2 border-l border-dashed border-pkt-grays-gray-300">
-                    <div className="rounded-sm bg-pkt-bg-subtle p-2.5 space-y-1.5">
+                  <div className="ml-6 pl-3 pb-2 border-l border-dashed border-pkt-grays-gray-300">
+                    <div className="rounded-sm bg-pkt-bg-subtle p-3 space-y-2">
                       {/* Resultat badge */}
                       {entry.resultat && (
                         <div className="flex items-center gap-1.5">
@@ -1646,41 +1646,21 @@ function HistorikkTab({ entries, trackLabel }: { entries: SporHistoryEntry[]; tr
 // ========== Filer Tab ==========
 
 function FilerTab({ activeTrack }: { activeTrack: ActiveTrack }) {
-  const trackLabel = activeTrack
-    ? { grunnlag: 'grunnlag', vederlag: 'vederlag', frist: 'frist' }[activeTrack]
-    : 'saken';
-
   return (
-    <div className="p-4 flex flex-col gap-3">
+    <div className="p-4 flex flex-col gap-4">
       <div className="text-bento-micro uppercase tracking-wider font-medium text-pkt-text-body-subtle">
         Dokumenter
       </div>
 
-      {/* Upload area */}
-      <div className="rounded-sm border-2 border-dashed border-pkt-grays-gray-300 p-5 text-center hover:border-pkt-brand-warm-blue-1000 hover:bg-pkt-bg-subtle/30 transition-colors cursor-pointer group">
+      {/* Upload zone — this IS the empty state */}
+      <div className="rounded-sm border-2 border-dashed border-pkt-grays-gray-300 px-4 py-8 text-center hover:border-pkt-brand-warm-blue-1000 hover:bg-pkt-bg-subtle/30 transition-colors cursor-pointer group">
         <UploadIcon className="w-5 h-5 text-pkt-grays-gray-400 group-hover:text-pkt-brand-warm-blue-1000 mx-auto mb-2 transition-colors" />
         <div className="text-bento-caption text-pkt-text-body-subtle group-hover:text-pkt-text-body-default transition-colors">
-          Dra og slipp filer hit
-        </div>
-        <div className="text-bento-micro text-pkt-grays-gray-400 mt-1">
-          eller klikk for å velge fra disk
+          Dra filer hit eller klikk for å velge
         </div>
         <div className="text-bento-micro text-pkt-grays-gray-400 mt-2">
-          PDF, DOCX, XLSX, bilder (maks 25 MB)
+          PDF, DOCX, XLSX, bilder &middot; maks 25 MB
         </div>
-      </div>
-
-      {/* Empty state */}
-      <div className="rounded-sm border border-pkt-border-subtle p-3">
-        <div className="flex items-center gap-2 text-bento-caption text-pkt-text-body-subtle">
-          <FileTextIcon className="w-3.5 h-3.5 text-pkt-grays-gray-400 shrink-0" />
-          <span>Ingen vedlegg knyttet til {trackLabel}</span>
-        </div>
-      </div>
-
-      {/* File categories hint */}
-      <div className="text-bento-micro text-pkt-grays-gray-400 leading-relaxed">
-        Dokumenter lastes opp per spor og vises i kontekst av begrunnelsen de er knyttet til.
       </div>
     </div>
   );
@@ -1733,13 +1713,13 @@ function ActionFooter({ state, userRole, actions, activeTrack }: {
   if (trackActions.length === 0) return null;
 
   const BUTTON_STYLES = {
-    primary: 'bg-pkt-brand-dark-blue-1000 text-white hover:bg-pkt-brand-warm-blue-1000 hover:text-white',
-    secondary: 'border border-pkt-border-default text-pkt-text-body-default hover:bg-pkt-bg-subtle',
-    ghost: 'text-pkt-text-body-subtle hover:text-pkt-text-body-default hover:bg-pkt-bg-subtle',
+    primary: 'bg-pkt-brand-dark-blue-1000 text-white hover:bg-pkt-brand-warm-blue-1000 hover:text-white active:opacity-90',
+    secondary: 'border border-pkt-grays-gray-200 text-pkt-text-body-default hover:bg-pkt-bg-subtle active:bg-pkt-bg-subtle',
+    ghost: 'border border-transparent text-pkt-text-body-subtle hover:text-pkt-text-body-default hover:border-pkt-grays-gray-200 hover:bg-pkt-bg-subtle active:bg-pkt-bg-subtle',
   };
 
   return (
-    <div className="border-t border-pkt-border-subtle px-5 py-3 flex items-center gap-2 shrink-0 bg-pkt-bg-card">
+    <div className="border-t border-pkt-grays-gray-200 px-6 py-3 flex items-center gap-2 shrink-0 bg-pkt-bg-card">
       {trackActions.map((action) => (
         <button
           key={action.key}
@@ -1747,7 +1727,6 @@ function ActionFooter({ state, userRole, actions, activeTrack }: {
             'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-bento-caption font-medium transition-colors',
             BUTTON_STYLES[action.variant],
           )}
-          title={`${action.label} (ikke tilkoblet ennå)`}
         >
           {action.icon}
           {action.label}
@@ -1823,9 +1802,10 @@ function DetailSection({ title, children }: { title: string; children: React.Rea
 
 function KeyValueRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex items-baseline justify-between gap-2">
+    <div className="flex items-baseline gap-2">
       <span className="text-bento-caption text-pkt-text-body-subtle shrink-0">{label}</span>
-      <span className={clsx('text-bento-caption text-pkt-text-body-default text-right', mono && 'font-mono')}>
+      <span className="flex-1 border-b border-dotted border-pkt-grays-gray-200 translate-y-[-3px]" />
+      <span className={clsx('text-bento-caption text-pkt-text-body-default text-right shrink-0', mono && 'font-mono')}>
         {value}
       </span>
     </div>
