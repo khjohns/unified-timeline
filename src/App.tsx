@@ -10,6 +10,7 @@ const OpprettSakPage = lazy(() => import('./pages/OpprettSakPage'));
 const SaksoversiktPage = lazy(() => import('./pages/SaksoversiktPage'));
 const CasePage = lazy(() => import('./pages/CasePage'));
 const CasePageBento = lazy(() => import('./pages/CasePageBento'));
+const CasePageAccess = lazy(() => import('./pages/CasePageAccess'));
 const ForseringPage = lazy(() => import('./pages/ForseringPage'));
 const EndringsordePage = lazy(() => import('./pages/EndringsordePage'));
 const OpprettEndringsordre = lazy(() => import('./pages/OpprettEndringsordre'));
@@ -84,6 +85,14 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <CasePageBento />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/saker/:sakId/access"
+            element={
+              <ProtectedRoute>
+                <CasePageAccess />
               </ProtectedRoute>
             }
           />
