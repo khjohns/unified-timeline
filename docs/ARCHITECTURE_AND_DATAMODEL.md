@@ -2,7 +2,7 @@
 
 **Konseptuell oversikt over systemarkitektur, event sourcing og forretningslogikk**
 
-*Sist oppdatert: 2026-01-22 (datamodell kvalitetssikret)*
+*Sist oppdatert: 2026-03-01 (seksjon 6: tre-lags frontend-arkitektur og port-modell)*
 
 > **Merk:** For detaljerte type-definisjoner, se kildekoden direkte:
 > - KOE Event-modeller: `backend/models/events.py`
@@ -21,7 +21,7 @@
 3. [Event Sourcing](#3-event-sourcing)
 4. [Domenemodell](#4-domenemodell)
 5. [Tre-spor modellen](#5-tre-spor-modellen)
-6. [Port-modellen](#6-port-modellen)
+6. [Port-modellen og frontend-arkitektur](#6-port-modellen-og-frontend-arkitektur)
 7. [Subsidiær logikk](#7-subsidiær-logikk)
 8. [Forsering (§33.8)](#8-forsering-338)
 9. [Endringsordre (§31.3)](#9-endringsordre-313)
@@ -477,41 +477,159 @@ stateDiagram-v2
 
 ---
 
-## 6. Port-modellen
+## 6. Port-modellen og frontend-arkitektur
 
-Hver BH-respons følger en **port-struktur** der vurderinger skjer sekvensielt:
+### Tre-lags frontend-arkitektur: Domene → Bridge → Komponent
 
-### Grunnlag - Port 1 (Ansvar)
+All forretningslogikk i frontenden følger en tre-lags modell. Domenelogikk (NS 8407-regler) er ren TypeScript uten React-avhengigheter. Bridge-hooken er en tynn React-adapter som kobler domenelogikk til state, mutation og feedback. Komponentene er rene renderere.
 
-BH vurderer: Er TE's ansvarsgrunnlag gyldig?
-- `godkjent` / `delvis_godkjent` / `avslatt` / `frafalt` (§32.3 c)
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        FRONTEND TRE-LAGS MODELL                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌───────────────────┐    ┌──────────────────┐    ┌──────────────────┐ │
+│  │   DOMENE           │    │   BRIDGE          │    │   KOMPONENT      │ │
+│  │  (ren TypeScript)  │───▶│  (React hook)     │───▶│  (ren renderer)  │ │
+│  │                    │    │                   │    │                  │ │
+│  │ • NS 8407-regler   │    │ • useState        │    │ • Mottar props   │ │
+│  │ • Preklusjon       │    │ • useMemo(domain) │    │ • Ingen logikk   │ │
+│  │ • Beregninger      │    │ • useSubmitEvent  │    │ • Kun rendering  │ │
+│  │ • Subsidiær logikk │    │ • useFormBackup   │    │                  │ │
+│  │ • Event-bygging    │    │ • Toast/feedback  │    │                  │ │
+│  └───────────────────┘    └──────────────────┘    └──────────────────┘ │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
 
-### Vederlag - Port 1 + Port 2
+#### Lag 1: Domene (`src/domain/`)
 
-**Port 1 (Varsling/Preklusjon):**
-- Ble BH varslet i tide om kostnadene?
-- `saerskilt_varsel_rigg_drift_ok` (§34.1.3)
-- `varsel_justert_ep_ok` (§34.3.3)
-- `varsel_start_regning_ok` (§30.1)
+Rene funksjoner (input → output), ingen React-import. Enhetstestbare uten JSDOM.
 
-**Port 2 (Beregning/Utmåling):**
-- Er beløpet riktig beregnet?
-- `godkjent` / `delvis_godkjent` / `avslatt` / `hold_tilbake` (§30.2)
+| Fil | Rolle | Aktør | NS 8407-ref |
+|-----|-------|-------|-------------|
+| `grunnlagDomain.ts` | Ansvarsvurdering (BH-respons) | BH | §25.2 / §32.2 |
+| `vederlagDomain.ts` | Vederlagsrespons (BH-respons) | BH | §34 / §30.2 |
+| `fristDomain.ts` | Fristrespons (BH-respons) | BH | §33 |
+| `vederlagSubmissionDomain.ts` | Vederlagskrav (TE-innsending) | TE | §34 |
+| `fristSubmissionDomain.ts` | Fristkrav (TE-innsending) | TE | §33 |
 
-### Frist - Port 1 + Port 2 + Port 3
+Hvert domene eksporterer:
+- **Types**: `FormState`, `DomainConfig`, `ComputedValues`
+- **`getDefaults(config)`**: Initielle verdier, inkl. update mode
+- **`beregnAlt(state, config)`**: Alle avledninger i én funksjon
+- **`buildEventData(state, config, computed)`**: Event-payload for backend
+- **Hjelpefunksjoner**: Preklusjon, subsidiær-triggers, placeholder-tekst, synlighetsregler
 
-**Port 1 (Varsling/Preklusjon):**
-- `noytralt_varsel_ok` (§33.4)
-- `spesifisert_krav_ok` (§33.6)
-- `har_bh_etterlyst` (§33.6.2)
+#### Lag 2: Bridge (`src/hooks/use*Bridge.ts`)
 
-**Port 2 (Vilkår/Årsakssammenheng):**
-- Medførte forholdet faktisk forsinkelse?
-- `vilkar_oppfylt` (§33.1)
+Tynn React-adapter. Eier all state og kobler domene til React-livssyklusen.
 
-**Port 3 (Utmåling):**
-- Hvor mange dager godkjennes?
-- `godkjent` / `delvis_godkjent` / `avslatt`
+| Hook | Domene | Returnerer |
+|------|--------|------------|
+| `useGrunnlagBridge` | `grunnlagDomain` | `{ cardProps, editorProps }` |
+| `useVederlagBridge` | `vederlagDomain` | `{ cardProps, editorProps }` |
+| `useFristBridge` | `fristDomain` | `{ cardProps, editorProps }` |
+| `useVederlagSubmissionBridge` | `vederlagSubmissionDomain` | `{ cardProps }` |
+| `useFristSubmissionBridge` | `fristSubmissionDomain` | `{ cardProps }` |
+
+Bridge-ansvar:
+- **State**: `useState<FormState>` med `getDefaults()` ved åpning
+- **Domain-kobling**: `useMemo(() => domain.beregnAlt(formState, config))`
+- **Mutasjon**: `useSubmitEvent` → `domain.buildEventData()` → API
+- **Feedback**: Toast-meldinger, auto-begrunnelse, form backup
+- **Reset**: State-during-render-pattern ved modal/form open/close
+
+#### Lag 3: Komponent (side-varianter)
+
+Tre sidevisninger konsumerer de samme bridge-hookene:
+
+| Side | Rute | Layoutmønster |
+|------|------|---------------|
+| `CasePage.tsx` | `/saker/:sakId` | Modal-basert (modal per spor) |
+| `CasePageBento.tsx` | `/saker/:sakId/bento` | Bento-grid (inline kort + editor) |
+| `CasePageAccess.tsx` | `/saker/:sakId/access` | Tre-panel (nav / detalj / referanse) |
+
+**Forretningslogikk er identisk** på tvers av sidene — kun layout og interaksjonsmønster er forskjellig.
+
+#### Dataflyt gjennom lagene
+
+```
+Bruker klikker "Godkjenn" i VerdictCard
+         │
+         ▼
+   Bridge: setFormState({ resultat: 'godkjent' })
+         │
+         ▼
+   Domain: beregnAlt(formState, config)
+   ├── erPrekludert(state, config)          → false
+   ├── beregnTotaler(state, config, prek)   → { totalGodkjent: 150000, ... }
+   ├── beregnPrinsipaltResultat(...)        → 'godkjent'
+   ├── beregnSubsidiaerTriggers(...)        → []
+   └── getDynamicPlaceholder(...)           → 'Begrunn din godkjenning...'
+         │
+         ▼
+   Komponent: rendrer oppdatert UI med computed values
+         │
+   Bruker klikker "Send svar"
+         │
+         ▼
+   Bridge: domain.buildEventData(state, config, computed) → eventPayload
+         │
+         ▼
+   useSubmitEvent.mutate({ eventType, data: eventPayload })
+         │
+         ▼
+   Backend: POST /api/events → validering → persist → ny state
+```
+
+### Port-struktur per spor
+
+Hver BH-respons følger en **port-struktur** der vurderinger skjer sekvensielt. Avslag i en port gjør etterfølgende porter subsidiære.
+
+#### Grunnlag — 1 port
+
+| Port | Vurdering | Domene-funksjon |
+|------|-----------|-----------------|
+| **Port 1: Ansvar** | Er TE's grunnlag gyldig? | `grunnlagDomain.getVerdictOptions()` |
+
+Resultat: `godkjent` / `avslatt` / `frafalt` (§32.3 c, kun pålegg)
+
+Tilleggsvurderinger:
+- `erEndringMed32_2()` — §32.2-varsling for ENDRING-kategorien
+- `erPrekludert()` — varslet for sent → preklusjon
+- `beregnPassivitet()` — dager siden varsel (>10 = passivitetsadvarsel)
+
+#### Vederlag — 3 porter
+
+| Port | Vurdering | Domene-funksjoner |
+|------|-----------|-------------------|
+| **Port 1: Preklusjon** | Varslet BH i tide? | `har34_1_2Preklusjon()`, `beregnHovedkravPrekludert()`, `beregnRiggPrekludert()`, `beregnProduktivitetPrekludert()` |
+| **Port 2: Metode** | Aksepteres beregningsmetode? | `kanHoldeTilbake()` (§30.2), `maSvarePaJustering()` (§34.3.3) |
+| **Port 3: Beløp** | Er beløpet korrekt? | `beregnTotaler()`, `beregnPrinsipaltResultat()`, `beregnSubsidiaertResultat()` |
+
+Preklusjonsregler (Port 1):
+- `hovedkravVarsletITide` — §34.1.2 (kun SVIKT/ANDRE)
+- `riggVarsletITide` — §34.1.3 (særskilte krav)
+- `produktivitetVarsletITide` — §34.1.3 (særskilte krav)
+- `erHelVederlagSubsidiaerPgaGrunnlag()` — §32.2-preklusjon → hele vederlag subsidiært
+
+Resultat: `godkjent` / `delvis_godkjent` / `avslatt` / `hold_tilbake` (§30.2)
+
+#### Frist — 3 porter
+
+| Port | Vurdering | Domene-funksjoner |
+|------|-----------|-------------------|
+| **Port 1: Varsling** | Varslet og spesifisert i tide? | `beregnPreklusjon()`, `beregnReduksjon()`, `beregnVisibility()` |
+| **Port 2: Vilkår** | Forårsaket forholdet forsinkelse? | `vilkarOppfylt` (§33.1) |
+| **Port 3: Utmåling** | Hvor mange dager godkjennes? | `beregnPrinsipaltResultat()`, `beregnSubsidiaertResultat()` |
+
+Varslingsvurderinger (Port 1):
+- `fristVarselOk` — §33.4 nøytralt varsel
+- `spesifisertKravOk` — §33.6 spesifisert krav
+- `foresporselSvarOk` — §33.6.2 svar på BH-forespørsel
+
+Resultat: `godkjent` / `delvis_godkjent` / `avslatt`
 
 ---
 
@@ -796,6 +914,9 @@ Se [ADR-001: Dalux Sync](ADR-001-dalux-sync.md) for fullstendige arkitekturbeslu
 | **Dalux-synk** | `backend/services/dalux_sync_service.py` |
 | **API-routes** | `backend/routes/*.py` |
 | **TypeScript-typer** | `src/types/timeline.ts`, `src/types/fravik.ts` |
+| **Frontend domenelogikk** | `src/domain/grunnlagDomain.ts`, `vederlagDomain.ts`, `fristDomain.ts`, `vederlagSubmissionDomain.ts`, `fristSubmissionDomain.ts` |
+| **Frontend bridge-hooks** | `src/hooks/useGrunnlagBridge.ts`, `useVederlagBridge.ts`, `useFristBridge.ts`, `useVederlagSubmissionBridge.ts`, `useFristSubmissionBridge.ts` |
+| **Side-varianter** | `src/pages/CasePage.tsx`, `CasePageBento.tsx`, `CasePageAccess.tsx` |
 | **API-spesifikasjon** | `backend/docs/openapi.yaml` (auto-generert) |
 | **Database-arkitektur** | `backend/docs/DATABASE_ARCHITECTURE.md` |
 
