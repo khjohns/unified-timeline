@@ -1,0 +1,2395 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Forhandlingsbordet — KOE-2024-047</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* === RESET === */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* === TOKENS (from system.md) === */
+    :root {
+      --canvas: #0c0e14;
+      --felt: #12151e;
+      --felt-raised: #181c28;
+      --felt-hover: #1e2233;
+      --felt-active: #242840;
+
+      --ink: #e2e5ef;
+      --ink-secondary: #8890a4;
+      --ink-muted: #505568;
+      --ink-ghost: #353a4d;
+
+      --wire: rgba(255, 255, 255, 0.06);
+      --wire-strong: rgba(255, 255, 255, 0.10);
+      --wire-focus: rgba(232, 168, 56, 0.35);
+
+      --vekt: #e8a838;
+      --vekt-dim: #c49030;
+      --vekt-bg: rgba(232, 168, 56, 0.08);
+      --vekt-bg-strong: rgba(232, 168, 56, 0.14);
+
+      --score-high: #3d9a6e;
+      --score-high-bg: rgba(61, 154, 110, 0.10);
+      --score-mid: #8890a4;
+      --score-low: #c45858;
+      --score-low-bg: rgba(196, 88, 88, 0.10);
+
+      --font-data: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+      --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+      --sp-1: 4px;
+      --sp-2: 8px;
+      --sp-3: 12px;
+      --sp-4: 16px;
+      --sp-5: 20px;
+      --sp-6: 24px;
+      --sp-8: 32px;
+      --sp-12: 48px;
+
+      --r-sm: 4px;
+      --r-md: 6px;
+      --r-lg: 8px;
+    }
+
+    /* === BASE === */
+    html { height: 100%; }
+    body {
+      font-family: var(--font-ui);
+      background: var(--canvas);
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      height: 100%;
+    }
+
+    /* === UTILITIES === */
+    .mono {
+      font-family: var(--font-data);
+      font-variant-numeric: tabular-nums;
+    }
+    .separator {
+      color: var(--ink-ghost);
+      margin: 0 6px;
+      user-select: none;
+    }
+    .seksjon-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-ghost);
+      margin-bottom: var(--sp-2);
+    }
+
+    /* === CUSTOM TOOLTIP === */
+    [data-tooltip] {
+      position: relative;
+      cursor: help;
+    }
+    [data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: calc(100% + 8px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--felt-raised);
+      border: 1px solid var(--wire-strong);
+      padding: var(--sp-1) var(--sp-2);
+      border-radius: var(--r-sm);
+      font-size: 10px;
+      font-weight: 400;
+      font-family: var(--font-ui);
+      color: var(--ink-secondary);
+      white-space: nowrap;
+      z-index: 100;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 120ms ease-out;
+    }
+    [data-tooltip]:hover::after {
+      opacity: 1;
+    }
+    /* Tooltip variant: below element for inline flags */
+    .tooltip-below[data-tooltip]::after {
+      left: 50%;
+      top: calc(100% + 6px);
+      transform: translateX(-50%);
+    }
+
+    /* === VIEW MANAGEMENT === */
+    .view {
+      display: none;
+      min-height: 100vh;
+    }
+    .view.active {
+      display: block;
+      animation: viewIn 180ms ease-out;
+    }
+    @keyframes viewIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* === ROLE INDICATOR (anchored in sidebar) === */
+    .rolle-indikator {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: var(--ink-muted);
+      user-select: none;
+      margin-bottom: var(--sp-4);
+    }
+    .rolle-indikator span {
+      color: var(--ink-secondary);
+      font-weight: 600;
+    }
+
+    /* ================================================================
+       FORHANDLINGSBORDET — 2-column overview
+       ================================================================ */
+    .forhandlingsbord {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: 100vh;
+    }
+
+    /* --- Sidebar: Sakskontekst --- */
+    .sakskontekst {
+      border-right: 1px solid var(--wire);
+      padding: var(--sp-5);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .sak-id {
+      font-family: var(--font-data);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-secondary);
+      letter-spacing: 0.02em;
+      margin-bottom: var(--sp-1);
+    }
+    .sak-tittel {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.3;
+      letter-spacing: -0.01em;
+    }
+    .sak-separator {
+      height: 1px;
+      background: var(--wire);
+      margin: var(--sp-4) 0;
+    }
+    .sak-parter {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-1);
+    }
+    .sak-part {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+      font-size: 12px;
+    }
+    .part-rolle {
+      font-family: var(--font-data);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--ink-muted);
+      width: 20px;
+      flex-shrink: 0;
+    }
+    .part-navn {
+      color: var(--ink-secondary);
+      font-weight: 500;
+    }
+
+    /* Sidebar: FRISTER */
+    .sak-seksjon {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-1);
+    }
+    .frist-item {
+      display: flex;
+      align-items: baseline;
+      gap: var(--sp-2);
+      font-size: 12px;
+      padding-left: var(--sp-1);
+    }
+    .frist-item .frist-ikon {
+      width: 14px;
+      flex-shrink: 0;
+      text-align: center;
+    }
+    .frist-item .frist-navn {
+      width: 72px;
+      flex-shrink: 0;
+      font-weight: 500;
+    }
+    .frist-item .frist-verdi {
+      font-family: var(--font-data);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+    .frist-item.kritisk {
+      color: var(--score-low);
+      font-weight: 600;
+    }
+    .frist-item.kritisk .frist-verdi {
+      font-weight: 600;
+      font-family: var(--font-ui);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .frist-item.advarsel .frist-navn { color: var(--ink-secondary); }
+    .frist-item.advarsel .frist-verdi { color: var(--vekt); font-weight: 600; }
+    .frist-item.normal .frist-navn { color: var(--ink-secondary); }
+    .frist-item.normal .frist-verdi { color: var(--ink-secondary); }
+
+    /* Sidebar: VARSLING */
+    .varsling-item {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+      font-size: 12px;
+      color: var(--ink-secondary);
+      padding: 2px 0;
+      padding-left: var(--sp-1);
+    }
+    .v-ikon {
+      width: 14px;
+      flex-shrink: 0;
+      text-align: center;
+      font-size: 11px;
+    }
+    .v-ikon.ok { color: var(--score-high); }
+    .v-ikon.warn { color: var(--vekt); }
+    .v-ikon.fail { color: var(--score-low); }
+    .v-ikon.na { color: var(--ink-ghost); }
+
+    /* --- Timeline area --- */
+    .tidslinje-area {
+      padding: var(--sp-6) var(--sp-8);
+      padding-bottom: var(--sp-12);
+    }
+
+    /* --- Forhåndsvisningspanel (appears when hendelseslogg expanded) --- */
+    .forhandlingsbord.har-panel {
+      grid-template-columns: 260px 1fr 360px;
+    }
+    .forhåndsvisning {
+      border-left: 1px solid var(--wire);
+      padding: var(--sp-5);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      display: none;
+      animation: panelIn 200ms ease-out;
+    }
+    .forhandlingsbord.har-panel .forhåndsvisning {
+      display: block;
+    }
+    @keyframes panelIn {
+      from { opacity: 0; transform: translateX(12px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .fv-tom {
+      font-size: 11px;
+      color: var(--ink-ghost);
+      padding-top: var(--sp-8);
+      text-align: center;
+    }
+    .fv-header {
+      margin-bottom: var(--sp-4);
+    }
+    .fv-ikon-linje {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+      margin-bottom: 2px;
+    }
+    .fv-ikon {
+      font-size: 14px;
+      width: 18px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .fv-ikon.revisjon { color: var(--vekt-dim); }
+    .fv-ikon.sendt { color: var(--ink-muted); }
+    .fv-ikon.varslet { color: var(--ink-muted); }
+    .fv-handling {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .fv-meta {
+      font-family: var(--font-data);
+      font-size: 11px;
+      color: var(--ink-muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .fv-separator {
+      height: 1px;
+      background: var(--wire);
+      margin: var(--sp-4) 0;
+    }
+    .fv-seksjon-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-ghost);
+      margin-bottom: var(--sp-2);
+    }
+    .fv-tekst {
+      font-size: 12px;
+      color: var(--ink-secondary);
+      line-height: 1.5;
+    }
+    .fv-vedlegg {
+      background: var(--canvas);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-sm);
+      padding: var(--sp-2) var(--sp-3);
+      font-size: 11px;
+      color: var(--ink-secondary);
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+      cursor: pointer;
+      transition: background 100ms ease-out;
+    }
+    .fv-vedlegg:hover { background: var(--felt-hover); }
+    .fv-vedlegg-ikon { color: var(--ink-muted); font-size: 12px; }
+    .fv-bestemmelse {
+      background: var(--canvas);
+      border: 1px solid var(--wire);
+      border-left: 2px solid var(--ink-ghost);
+      border-radius: var(--r-sm);
+      padding: var(--sp-2) var(--sp-3);
+    }
+    .fv-paragraf {
+      font-family: var(--font-data);
+      font-size: 10px;
+      color: var(--ink-muted);
+      margin-bottom: 2px;
+    }
+    .fv-bestemmelse-tekst {
+      font-size: 11px;
+      color: var(--ink-secondary);
+      line-height: 1.4;
+    }
+    .fv-spordetalj-lenke {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink-muted);
+      cursor: pointer;
+      padding-top: var(--sp-3);
+      border-top: 1px solid var(--wire);
+      transition: color 100ms ease-out;
+    }
+    .fv-spordetalj-lenke:hover { color: var(--vekt); }
+
+    /* Focused event in hendelseslogg */
+    .hl-hendelse.fokusert {
+      background: var(--felt-hover);
+      border-left: 2px solid var(--vekt);
+      padding-left: calc(var(--sp-3) - 2px);
+    }
+
+    /* Handlingsbanner */
+    .handlingsbanner {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+      padding: var(--sp-2) var(--sp-3);
+      margin-bottom: var(--sp-6);
+      border-radius: var(--r-sm);
+      font-size: 12px;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--canvas);
+    }
+    .handlingsbanner.kritisk {
+      color: var(--score-low);
+      background: rgba(196, 88, 88, 0.06);
+      border-left: 2px solid var(--score-low);
+    }
+    .handlingsbanner.advarsel {
+      color: var(--vekt);
+      background: var(--vekt-bg);
+      border-left: 2px solid var(--vekt);
+    }
+    .handlingsbanner.ingen {
+      color: var(--ink-muted);
+      background: var(--canvas);
+      border-left: 2px solid var(--wire);
+    }
+    .banner-ikon { font-size: 13px; }
+
+    /* Tidslinje spine */
+    .tidslinje {
+      position: relative;
+      padding-left: 44px;
+    }
+    .tidslinje::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 6px;
+      bottom: 0;
+      width: 1px;
+      background: var(--wire-strong);
+    }
+
+    /* Tidslinje segments */
+    .tl-segment {
+      position: relative;
+      margin-bottom: var(--sp-5);
+    }
+    .tl-dato {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+      margin-bottom: var(--sp-3);
+      position: relative;
+    }
+    .tl-dato::before {
+      content: '';
+      position: absolute;
+      left: -44px;
+      top: 50%;
+      width: 36px;
+      height: 1px;
+      background: var(--wire-strong);
+    }
+    .tl-dato::after {
+      content: '';
+      position: absolute;
+      left: -40px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ink-muted);
+    }
+
+    /* Spine-event (small events without cards) */
+    .tl-hendelse {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+      font-size: 11px;
+      color: var(--ink-muted);
+      padding-left: 0;
+    }
+    .tl-hendelse .tl-punkt {
+      position: absolute;
+      left: -48px;
+      font-size: 10px;
+      color: var(--ink-ghost);
+    }
+
+    /* ================================================================
+       SPORKORT — compact track cards
+       ================================================================ */
+    .sporkort {
+      background: var(--felt);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-md);
+      padding: var(--sp-2) var(--sp-3);
+      cursor: pointer;
+      transition: background 120ms ease-out, border-color 120ms ease-out;
+      position: relative;
+    }
+    .sporkort:hover {
+      background: var(--felt-hover);
+      border-color: var(--wire-strong);
+    }
+    .sporkort:active {
+      background: var(--felt-active);
+    }
+
+    /* Sporkort: handling (amber left border) */
+    .sporkort.handling {
+      border-left: 3px solid var(--vekt);
+    }
+
+    /* Sporkort: kritisk (rose background + rose left border)
+       Design doc: "Rose overvinner posisjon — kritisk synlig uansett."
+       Stronger border + background to ensure visibility at bottom of timeline. */
+    .sporkort.kritisk {
+      background: rgba(196, 88, 88, 0.11);
+      border-color: rgba(196, 88, 88, 0.14);
+      border-left: 3px solid var(--score-low);
+    }
+    .sporkort.kritisk:hover {
+      background: rgba(196, 88, 88, 0.16);
+      border-color: rgba(196, 88, 88, 0.20);
+      border-left-color: var(--score-low);
+    }
+
+    /* Sporkort: venter (neutral) */
+    .sporkort.venter {
+      border-left: 1px solid var(--wire-strong);
+    }
+
+    /* Sporkort: godkjent (green left border, dimmed) */
+    .sporkort.godkjent {
+      border-left: 2px solid var(--score-high);
+      opacity: 0.75;
+    }
+    .sporkort.godkjent:hover { opacity: 1; }
+
+    /* Sporkort header */
+    .sporkort-header {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+      margin-bottom: var(--sp-1);
+    }
+    .spor-advarsel {
+      color: var(--score-low);
+      font-size: 13px;
+      line-height: 1;
+    }
+    .spor-navn {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .kritisk .spor-navn { color: var(--ink); }
+
+    /* Status badge */
+    .status-badge {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 1px 6px;
+      border-radius: var(--r-sm);
+    }
+    .status-badge.nytt {
+      color: var(--vekt);
+      background: var(--vekt-bg);
+    }
+    .status-badge.spesifisert {
+      color: var(--ink-secondary);
+      background: rgba(136, 144, 164, 0.10);
+    }
+    .status-badge.ubesvart {
+      color: var(--score-low);
+      background: var(--score-low-bg);
+    }
+    .status-badge.godkjent-badge {
+      color: var(--score-high);
+      background: var(--score-high-bg);
+    }
+    .status-badge.delvis {
+      color: var(--ink-secondary);
+      background: rgba(136, 144, 164, 0.10);
+    }
+
+    /* Varsling flag (inline in sporkort header) */
+    .varsling-flagg {
+      font-size: 10px;
+      color: var(--ink-muted);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .varsling-flagg .v-ikon {
+      font-size: 10px;
+      width: auto;
+    }
+
+    .sporkort-spacer { flex: 1; }
+
+    /* Action button */
+    .handling-btn {
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--vekt);
+      background: var(--vekt-bg);
+      border: 1px solid rgba(232, 168, 56, 0.15);
+      border-radius: var(--r-sm);
+      padding: 3px 10px;
+      cursor: pointer;
+      transition: background 100ms ease-out, border-color 100ms ease-out;
+      white-space: nowrap;
+    }
+    .handling-btn:hover {
+      background: var(--vekt-bg-strong);
+      border-color: rgba(232, 168, 56, 0.25);
+    }
+    .handling-btn.kritisk-btn {
+      color: var(--score-low);
+      background: var(--score-low-bg);
+      border-color: rgba(196, 88, 88, 0.15);
+    }
+    .handling-btn.kritisk-btn:hover {
+      background: rgba(196, 88, 88, 0.18);
+      border-color: rgba(196, 88, 88, 0.30);
+    }
+
+    /* Sporkort data line — entire line in --font-data per spec
+       "Data-linje: --font-data, 12px, --ink · prikk-separert"
+       Monospace for the whole line reinforces data-forward aesthetic. */
+    .sporkort-data {
+      font-family: var(--font-data);
+      font-variant-numeric: tabular-nums;
+      font-size: 12px;
+      color: var(--ink-secondary);
+      line-height: 1.5;
+    }
+    .sporkort-data .mono {
+      color: var(--ink);
+    }
+
+    /* Sporkort history line — quieter than data for sharper hierarchy */
+    .sporkort-historikk {
+      font-size: 10px;
+      color: var(--ink-muted);
+      line-height: 1.5;
+      letter-spacing: 0.01em;
+    }
+
+    /* Sporkort consequence line (passivitet) */
+    .sporkort-konsekvens {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-1);
+      font-size: 11px;
+      color: var(--score-low);
+      font-weight: 500;
+      margin-top: 1px;
+    }
+    .konsekvens-ikon {
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    /* Godkjent check in header */
+    .godkjent-check {
+      color: var(--score-high);
+      font-size: 12px;
+    }
+
+    /* Click feedback on sporkort */
+    .sporkort.clicking {
+      transform: scale(0.995);
+      transition: transform 80ms ease-out;
+    }
+
+    /* Expanded sporkort state */
+    .sporkort.expanded {
+      background: var(--felt-raised);
+      border-color: var(--wire-strong);
+    }
+    .sporkort.handling.expanded {
+      border-left-color: var(--vekt);
+    }
+
+    /* ================================================================
+       HENDELSESLOGG — expandable event history in sporkort
+       Visible for 4+ events. Toggle bar is always shown in the
+       inset area; events expand below it on click.
+       ================================================================ */
+
+    /* Inset area: always visible when present */
+    .hendelseslogg-area {
+      background: var(--canvas);
+      border-top: 1px solid var(--wire);
+      margin: var(--sp-2) calc(-1 * var(--sp-3));
+      margin-bottom: calc(-1 * var(--sp-2));
+      border-radius: 0 0 calc(var(--r-md) - 1px) calc(var(--r-md) - 1px);
+      cursor: default;
+    }
+    .sporkort.handling .hendelseslogg-area {
+      margin-left: calc(-1 * var(--sp-3) + 2px);
+    }
+
+    /* Toggle bar: always visible */
+    .hendelseslogg-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--sp-1) var(--sp-3);
+      cursor: pointer;
+      transition: background 100ms ease-out;
+      user-select: none;
+    }
+    .hendelseslogg-bar:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .hlb-tekst {
+      font-family: var(--font-data);
+      font-size: 10px;
+      color: var(--ink-muted);
+    }
+    .hlb-chevron {
+      font-size: 8px;
+      color: var(--ink-ghost);
+      transition: transform 150ms ease-out;
+      display: inline-block;
+    }
+    .sporkort.expanded .hlb-chevron {
+      transform: rotate(90deg);
+    }
+    .sporkort.expanded .hendelseslogg-bar {
+      border-bottom: 1px solid var(--wire);
+    }
+
+    /* Event list: collapsed by default */
+    .hendelseslogg-events {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 200ms ease-out;
+    }
+    .sporkort.expanded .hendelseslogg-events {
+      max-height: 280px;
+    }
+
+    /* Individual event lines */
+    .hl-hendelse {
+      display: flex;
+      align-items: baseline;
+      gap: var(--sp-2);
+      padding: 2px var(--sp-3);
+      font-size: 11px;
+    }
+    .hl-hendelse + .hl-hendelse {
+      border-top: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    .hl-ikon {
+      width: 14px;
+      text-align: center;
+      flex-shrink: 0;
+      color: var(--ink-muted);
+      font-size: 11px;
+    }
+    .hl-ikon.revisjon { color: var(--vekt-dim); }
+    .hl-ikon.svar { color: var(--score-high); }
+    .hl-ikon.trukket { color: var(--score-low); }
+
+    .hl-dato {
+      font-family: var(--font-data);
+      font-size: 10px;
+      color: var(--ink-muted);
+      width: 38px;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .hl-tekst {
+      color: var(--ink-secondary);
+      flex: 1;
+      min-width: 0;
+    }
+    .hl-rev {
+      font-family: var(--font-data);
+      font-size: 9px;
+      color: var(--ink-ghost);
+      margin-left: 2px;
+    }
+    .hl-part {
+      font-family: var(--font-data);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--ink-ghost);
+      width: 20px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* ================================================================
+       SPORDETALJ — 3-column detail view
+       ================================================================ */
+    .spordetalj {
+      display: grid;
+      grid-template-columns: 260px 1fr 360px;
+      min-height: 100vh;
+    }
+
+    /* Left: Spor-nav */
+    .spor-nav {
+      border-right: 1px solid var(--wire);
+      padding: var(--sp-5);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .tilbake-link {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--sp-1);
+      margin-bottom: var(--sp-5);
+      transition: color 100ms ease-out;
+      text-decoration: none;
+    }
+    .tilbake-link:hover { color: var(--vekt); }
+    .tilbake-link .arrow { font-size: 14px; }
+
+    /* Neste handling card in spordetalj nav */
+    .neste-handling-kort {
+      background: var(--vekt-bg);
+      border: 1px solid rgba(232, 168, 56, 0.12);
+      border-radius: var(--r-md);
+      padding: var(--sp-3);
+      margin-bottom: var(--sp-5);
+    }
+    .neste-handling-kort .nh-rolle {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--vekt-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .neste-handling-kort .nh-handling {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--vekt);
+      line-height: 1.3;
+    }
+    /* Kritisk variant for ansvarsgrunnlag */
+    .neste-handling-kort.kritisk-nh {
+      background: var(--score-low-bg);
+      border-color: rgba(196, 88, 88, 0.12);
+    }
+    .neste-handling-kort.kritisk-nh .nh-rolle { color: var(--score-low); }
+    .neste-handling-kort.kritisk-nh .nh-handling { color: var(--score-low); }
+
+    /* Spor list in nav */
+    .spor-nav-liste {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-bottom: var(--sp-5);
+    }
+    .spor-nav-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding: var(--sp-2) var(--sp-3);
+      border-radius: var(--r-sm);
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 100ms ease-out;
+      border-left: 3px solid transparent;
+    }
+    .spor-nav-item:hover { background: var(--felt-hover); }
+    .spor-nav-item.aktiv {
+      background: var(--vekt-bg);
+      border-left-color: var(--vekt);
+    }
+    .spor-nav-item .sni-navn {
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .spor-nav-item.aktiv .sni-navn { color: var(--vekt); }
+    .spor-nav-item .sni-status {
+      font-size: 11px;
+      color: var(--ink-muted);
+    }
+    .spor-nav-item .sni-data {
+      font-family: var(--font-data);
+      font-size: 11px;
+      color: var(--ink-secondary);
+    }
+
+    /* Frister in spordetalj nav */
+    .nav-frister {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-1);
+    }
+    .nav-frist-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+    }
+    .nav-frist-item .nfi-navn { color: var(--ink-muted); }
+    .nav-frist-item .nfi-verdi {
+      font-family: var(--font-data);
+      color: var(--ink-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+    .nav-frist-item.nfi-kritisk .nfi-navn { color: var(--score-low); font-weight: 500; }
+    .nav-frist-item.nfi-kritisk .nfi-verdi { color: var(--score-low); font-weight: 600; }
+
+    /* Center: Spor-skjema */
+    .spor-skjema {
+      padding: var(--sp-6) var(--sp-8);
+      overflow-y: auto;
+    }
+    .skjema-header {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+      margin-bottom: var(--sp-6);
+      padding-bottom: var(--sp-4);
+      border-bottom: 1px solid var(--wire);
+    }
+    .skjema-header .sh-spor {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    /* Passivitet warning banner in spordetalj */
+    .passivitet-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--sp-3);
+      background: var(--score-low-bg);
+      border: 1px solid rgba(196, 88, 88, 0.12);
+      border-left: 3px solid var(--score-low);
+      border-radius: var(--r-md);
+      padding: var(--sp-3) var(--sp-4);
+      margin-bottom: var(--sp-6);
+      font-size: 12px;
+    }
+    .passivitet-banner .pb-ikon {
+      color: var(--score-low);
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .passivitet-banner .pb-tekst {
+      color: var(--score-low);
+      font-weight: 500;
+      line-height: 1.4;
+    }
+    .passivitet-banner .pb-tooltip {
+      font-size: 10px;
+      color: var(--ink-muted);
+      font-weight: 400;
+      margin-top: 2px;
+    }
+
+    /* Read-only claim section */
+    .krav-seksjon {
+      background: var(--felt);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-md);
+      padding: var(--sp-4) var(--sp-5);
+      margin-bottom: var(--sp-6);
+    }
+    .krav-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--sp-3);
+    }
+    .krav-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-ghost);
+    }
+    .krav-dato {
+      font-size: 10px;
+      color: var(--ink-muted);
+      font-family: var(--font-data);
+    }
+    .krav-rad {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: var(--sp-1) 0;
+      font-size: 12px;
+    }
+    .krav-rad .kr-navn { color: var(--ink-secondary); }
+    .krav-rad .kr-verdi {
+      font-family: var(--font-data);
+      font-size: 12px;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+    .krav-separator {
+      height: 1px;
+      background: var(--wire);
+      margin: var(--sp-2) 0;
+    }
+    .krav-total {
+      font-weight: 600;
+    }
+    .krav-total .kr-verdi {
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .krav-meta {
+      display: flex;
+      gap: var(--sp-4);
+      margin-top: var(--sp-3);
+      padding-top: var(--sp-2);
+      border-top: 1px solid var(--wire);
+    }
+    .krav-meta-item {
+      font-size: 11px;
+      color: var(--ink-muted);
+    }
+    .krav-meta-item strong {
+      color: var(--ink-secondary);
+      font-weight: 500;
+    }
+    /* Krav text description */
+    .krav-beskrivelse {
+      font-size: 12px;
+      color: var(--ink-secondary);
+      line-height: 1.5;
+      margin-bottom: var(--sp-3);
+    }
+
+    /* Response form */
+    .svar-seksjon {
+      margin-top: var(--sp-6);
+    }
+    .svar-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-ghost);
+      margin-bottom: var(--sp-3);
+    }
+
+    /* Radio group */
+    .radio-gruppe {
+      display: flex;
+      gap: var(--sp-2);
+      margin-bottom: var(--sp-5);
+    }
+    .radio-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+      padding: var(--sp-2) var(--sp-3);
+      background: var(--felt);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-sm);
+      font-family: var(--font-ui);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-secondary);
+      cursor: pointer;
+      transition: all 100ms ease-out;
+    }
+    .radio-btn:hover {
+      background: var(--felt-hover);
+      border-color: var(--wire-strong);
+    }
+    .radio-btn.selected {
+      background: var(--vekt-bg);
+      border-color: rgba(232, 168, 56, 0.20);
+      color: var(--vekt);
+    }
+    .radio-sirkel {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid var(--wire-strong);
+      position: relative;
+      flex-shrink: 0;
+      transition: border-color 100ms ease-out;
+    }
+    .radio-btn.selected .radio-sirkel {
+      border-color: var(--vekt);
+      background: var(--vekt);
+      box-shadow: inset 0 0 0 2px var(--felt);
+    }
+
+    /* Input fields */
+    .felt-gruppe {
+      margin-bottom: var(--sp-4);
+    }
+    .felt-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink-muted);
+      margin-bottom: var(--sp-1);
+    }
+    .felt-input {
+      width: 100%;
+      max-width: 240px;
+      background: var(--canvas);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-sm);
+      padding: var(--sp-2) var(--sp-3);
+      font-family: var(--font-data);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 100ms ease-out;
+    }
+    .felt-input:focus {
+      border-color: var(--wire-focus);
+    }
+    .felt-input::placeholder {
+      color: var(--ink-ghost);
+    }
+    .felt-suffix {
+      font-size: 11px;
+      color: var(--ink-muted);
+      margin-left: var(--sp-2);
+    }
+    .felt-row {
+      display: flex;
+      align-items: center;
+    }
+
+    /* Checkbox group */
+    .checkbox-gruppe {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-2);
+      margin-bottom: var(--sp-4);
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+      font-size: 12px;
+      color: var(--ink-secondary);
+      cursor: pointer;
+    }
+    .checkbox-item:hover { color: var(--ink); }
+    .checkbox-boks {
+      width: 14px;
+      height: 14px;
+      border: 1px solid var(--wire-strong);
+      border-radius: 2px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: transparent;
+      transition: all 100ms ease-out;
+    }
+    .checkbox-item.checked .checkbox-boks {
+      background: var(--vekt);
+      border-color: var(--vekt);
+      color: var(--canvas);
+    }
+
+    /* Timeline in krav-seksjon */
+    .krav-tidslinje {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-1);
+      margin-top: var(--sp-3);
+      padding-top: var(--sp-2);
+      border-top: 1px solid var(--wire);
+    }
+    .krav-tl-item {
+      display: flex;
+      align-items: baseline;
+      gap: var(--sp-2);
+      font-size: 11px;
+    }
+    .krav-tl-dato {
+      font-family: var(--font-data);
+      color: var(--ink-muted);
+      font-size: 10px;
+      width: 48px;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .krav-tl-tekst { color: var(--ink-muted); }
+
+    /* Right: Begrunnelse panel */
+    .spor-begrunnelse {
+      border-left: 1px solid var(--wire);
+      padding: var(--sp-6) var(--sp-5);
+    }
+    .begr-header {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-ghost);
+      margin-bottom: var(--sp-3);
+    }
+    .begr-textarea {
+      width: 100%;
+      min-height: 200px;
+      background: var(--felt);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-md);
+      padding: var(--sp-3);
+      font-family: var(--font-ui);
+      font-size: 13px;
+      color: var(--ink);
+      line-height: 1.6;
+      resize: vertical;
+      outline: none;
+      transition: border-color 100ms ease-out;
+    }
+    .begr-textarea:focus {
+      border-color: var(--wire-focus);
+    }
+    .begr-textarea::placeholder {
+      color: var(--ink-ghost);
+    }
+    .begr-hint {
+      font-size: 10px;
+      color: var(--ink-ghost);
+      margin-top: var(--sp-2);
+    }
+
+    /* Reference cards in begrunnelse panel */
+    .begr-referanser {
+      margin-top: var(--sp-6);
+    }
+    .ref-kort {
+      background: var(--felt);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-sm);
+      padding: var(--sp-2) var(--sp-3);
+      margin-top: var(--sp-2);
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 100ms ease-out;
+    }
+    .ref-kort:hover { background: var(--felt-hover); }
+    .ref-kort .ref-paragraf {
+      font-family: var(--font-data);
+      font-size: 10px;
+      color: var(--ink-muted);
+      margin-bottom: 1px;
+    }
+    .ref-kort .ref-tekst {
+      color: var(--ink-secondary);
+      line-height: 1.3;
+    }
+
+    /* === SEND BUTTON === */
+    .send-seksjon {
+      margin-top: var(--sp-6);
+      padding-top: var(--sp-4);
+      border-top: 1px solid var(--wire);
+      display: flex;
+      align-items: center;
+      gap: var(--sp-3);
+    }
+    .send-btn {
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--canvas);
+      background: var(--vekt);
+      border: none;
+      border-radius: var(--r-sm);
+      padding: var(--sp-2) var(--sp-5);
+      cursor: pointer;
+      transition: background 100ms ease-out;
+    }
+    .send-btn:hover { background: var(--vekt-dim); }
+    .send-btn.kritisk-send {
+      background: var(--score-low);
+    }
+    .send-btn.kritisk-send:hover { background: #b04e4e; }
+    .send-hint {
+      font-size: 11px;
+      color: var(--ink-muted);
+    }
+
+    /* Detail section labels */
+    .detalj-felt {
+      margin-bottom: var(--sp-4);
+    }
+    .detalj-label {
+      font-size: 11px;
+      color: var(--ink-muted);
+      margin-bottom: 2px;
+    }
+    .detalj-verdi {
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+    .detalj-verdi.mono-verdi {
+      font-family: var(--font-data);
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================================================================
+       VIEW: FORHANDLINGSBORDET (2-column overview)
+       ================================================================ -->
+  <div id="view-oversikt" class="view active">
+    <div class="forhandlingsbord">
+
+      <!-- LEFT: Sakskontekst -->
+      <aside class="sakskontekst">
+        <div class="rolle-indikator">Du er <span>BH</span> (Oslobygg)</div>
+        <div class="sak-id mono">KOE-2024-047</div>
+        <div class="sak-tittel">Forsinket leveranse stålkonstruksjon</div>
+
+        <div class="sak-separator"></div>
+
+        <div class="sak-parter">
+          <div class="sak-part">
+            <span class="part-rolle">TE</span>
+            <span class="part-navn">Veidekke</span>
+          </div>
+          <div class="sak-part">
+            <span class="part-rolle">BH</span>
+            <span class="part-navn">Oslobygg</span>
+          </div>
+        </div>
+
+        <div class="sak-separator"></div>
+
+        <!-- FRISTER (urgency-sorted) -->
+        <div class="sak-seksjon">
+          <div class="seksjon-label">Frister</div>
+          <div class="frist-item kritisk" data-tooltip="§32.3 — manglende svar medfører rettighetsforfall">
+            <span class="frist-ikon">⚠</span>
+            <span class="frist-navn">Grunnlag</span>
+            <span class="frist-verdi">passivitet</span>
+          </div>
+          <div class="frist-item advarsel">
+            <span class="frist-ikon"></span>
+            <span class="frist-navn">Frist</span>
+            <span class="frist-verdi mono">13d igjen</span>
+          </div>
+          <div class="frist-item normal">
+            <span class="frist-ikon"></span>
+            <span class="frist-navn">Vederlag</span>
+            <span class="frist-verdi mono">14d igjen</span>
+          </div>
+        </div>
+
+        <div class="sak-separator"></div>
+
+        <!-- VARSLING (contractual compliance) -->
+        <div class="sak-seksjon">
+          <div class="seksjon-label">Varsling</div>
+          <div class="varsling-item" data-tooltip="§25.2 — irregulær endring varslet i tide">
+            <span class="v-ikon ok">✓</span>
+            <span>Endring varslet</span>
+          </div>
+          <div class="varsling-item" data-tooltip="§33.4 — foreløpig varsel sendt etter rimelig tid">
+            <span class="v-ikon warn">⚠</span>
+            <span>Frist: varslet sent</span>
+          </div>
+          <div class="varsling-item" data-tooltip="§33.6 — spesifisert krav ikke sendt ennå">
+            <span class="v-ikon na">–</span>
+            <span>Frist: ikke spesifisert</span>
+          </div>
+          <div class="varsling-item" data-tooltip="§34.3 — vederlagskrav ikke varslet ennå">
+            <span class="v-ikon na">–</span>
+            <span>Vederlag: ikke varslet</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- RIGHT: Tidslinje -->
+      <main class="tidslinje-area">
+
+        <!-- Handlingsbanner -->
+        <div class="handlingsbanner kritisk">
+          <span class="banner-ikon">⚠</span>
+          <span><strong>3 handlinger</strong> venter på deg</span>
+        </div>
+
+        <!-- Tidslinje spine -->
+        <div class="tidslinje">
+
+          <!-- ── I DAG ── -->
+          <div class="tl-segment">
+            <div class="tl-dato">i dag</div>
+            <div class="tl-innhold">
+              <div class="sporkort handling" data-spor="vederlag" onclick="navigerTilSpor('vederlag')">
+                <div class="sporkort-header">
+                  <span class="spor-navn">VEDERLAG</span>
+                  <span class="status-badge nytt">Nytt krav</span>
+                  <span class="sporkort-spacer"></span>
+                  <button class="handling-btn" onclick="event.stopPropagation(); navigerTilSpor('vederlag')">Svar →</button>
+                </div>
+                <div class="sporkort-data">
+                  Regningsarbeid<span class="separator">·</span><span class="mono">2,4M</span><span class="separator">·</span>Rev. 1<span class="separator">·</span>Frist <span class="mono">14d</span>
+                </div>
+                <div class="sporkort-historikk">
+                  i dag revidert<span class="separator">·</span>01.03 krevd<span class="separator">·</span>28.02 varslet
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── I GÅR ── -->
+          <div class="tl-segment">
+            <div class="tl-dato">i går</div>
+            <div class="tl-innhold">
+              <div class="sporkort handling" data-spor="frist" id="kort-frist" onclick="navigerTilSpor('frist')">
+                <div class="sporkort-header">
+                  <span class="spor-navn">FRISTFORLENGELSE</span>
+                  <span class="status-badge spesifisert">Spesifisert krav</span>
+                  <span class="varsling-flagg tooltip-below" data-tooltip="§33.4 — foreløpig varsel sendt etter rimelig tid">
+                    <span class="v-ikon warn">⚠</span> Varslet sent
+                  </span>
+                  <span class="sporkort-spacer"></span>
+                  <button class="handling-btn" onclick="event.stopPropagation(); navigerTilSpor('frist')">Svar →</button>
+                </div>
+                <div class="sporkort-data">
+                  <span class="mono">45d</span> krevd<span class="separator">·</span>Rev. 2<span class="separator">·</span>Ny dato <span class="mono">15.08.26</span><span class="separator">·</span>Frist <span class="mono">13d</span>
+                </div>
+                <div class="sporkort-historikk">
+                  i går spesifisert<span class="separator">·</span>15.02 revidert<span class="separator">·</span>15.01 varslet
+                </div>
+                <!-- Hendelseslogg: inset area with visible toggle bar -->
+                <div class="hendelseslogg-area" onclick="event.stopPropagation();">
+                  <div class="hendelseslogg-bar" onclick="toggleLogg('frist')">
+                    <span class="hlb-tekst">5 hendelser</span>
+                    <span class="hlb-chevron">▸</span>
+                  </div>
+                  <div class="hendelseslogg-events">
+                    <div class="hl-hendelse">
+                      <span class="hl-ikon revisjon">↻</span>
+                      <span class="hl-dato">02.03</span>
+                      <span class="hl-tekst">Spesifiserte krav (45d)<span class="hl-rev">Rev. 2</span></span>
+                      <span class="hl-part">TE</span>
+                    </div>
+                    <div class="hl-hendelse">
+                      <span class="hl-ikon">→</span>
+                      <span class="hl-dato">25.02</span>
+                      <span class="hl-tekst">La til dokumentasjon for forsinkelse</span>
+                      <span class="hl-part">TE</span>
+                    </div>
+                    <div class="hl-hendelse">
+                      <span class="hl-ikon revisjon">↻</span>
+                      <span class="hl-dato">15.02</span>
+                      <span class="hl-tekst">Reviderte forespørsel (30d → 45d)<span class="hl-rev">Rev. 1</span></span>
+                      <span class="hl-part">TE</span>
+                    </div>
+                    <div class="hl-hendelse">
+                      <span class="hl-ikon">→</span>
+                      <span class="hl-dato">20.01</span>
+                      <span class="hl-tekst">Forespurte fristforlengelse (30d)</span>
+                      <span class="hl-part">TE</span>
+                    </div>
+                    <div class="hl-hendelse">
+                      <span class="hl-ikon">⚑</span>
+                      <span class="hl-dato">15.01</span>
+                      <span class="hl-tekst">Varslet mulig fristforlengelse</span>
+                      <span class="hl-part">TE</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── 12. FEBRUAR ── -->
+          <div class="tl-segment">
+            <div class="tl-dato">12. februar</div>
+            <div class="tl-innhold">
+              <div class="sporkort kritisk" data-spor="grunnlag" onclick="navigerTilSpor('grunnlag')">
+                <div class="sporkort-header">
+                  <span class="spor-advarsel">⚠</span>
+                  <span class="spor-navn">ANSVARSGRUNNLAG</span>
+                  <span class="status-badge ubesvart">Ubesvart</span>
+                  <span class="sporkort-spacer"></span>
+                  <button class="handling-btn kritisk-btn" onclick="event.stopPropagation(); navigerTilSpor('grunnlag')">Svar nå →</button>
+                </div>
+                <div class="sporkort-data">
+                  TE varslet irregulær endring<span class="separator">·</span>Stålmontasje AS
+                </div>
+                <div class="sporkort-konsekvens tooltip-below" data-tooltip="§32.3 passivitet — manglende svar innen rimelig tid medfører rettighetsforfall">
+                  <span class="konsekvens-ikon">⚠</span>
+                  19d uten svar — du kan miste retten til å protestere
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── 10. JANUAR ── -->
+          <div class="tl-segment">
+            <div class="tl-dato">10. januar</div>
+            <div class="tl-innhold tl-hendelse">
+              <span class="tl-punkt">○</span>
+              Sak opprettet av TE
+            </div>
+          </div>
+
+        </div><!-- /tidslinje -->
+      </main>
+
+      <!-- RIGHT: Forhåndsvisningspanel (hendelsesdetalj) -->
+      <aside class="forhåndsvisning" id="fv-panel">
+        <!-- Default: tom state -->
+        <div class="fv-tom" id="fv-tom">Hover over en hendelse<br>for å se detaljer</div>
+
+        <!-- Filled state (hidden by default, shown when event focused) -->
+        <div id="fv-innhold" style="display: none;">
+          <div class="fv-header">
+            <div class="fv-ikon-linje">
+              <span class="fv-ikon" id="fv-h-ikon">↻</span>
+              <span class="fv-handling" id="fv-h-handling">Reviderte forespørsel</span>
+            </div>
+            <div class="fv-meta" id="fv-h-meta">15.02.2026 · TE</div>
+          </div>
+
+          <div class="fv-separator"></div>
+
+          <div class="fv-seksjon-label">Endring</div>
+          <div class="fv-tekst" id="fv-endring">
+            Krevd forlengelse økt fra 30 til 45 dager. Begrunnelse: ytterligere forsinkelse fra underleverandør bekreftet av Stålmontasje AS.
+          </div>
+
+          <div class="fv-separator"></div>
+
+          <div class="fv-seksjon-label">Vedlegg</div>
+          <div class="fv-vedlegg">
+            <span class="fv-vedlegg-ikon">📎</span>
+            Forsinkelsesbekreftelse_rev1.pdf
+          </div>
+
+          <div class="fv-separator"></div>
+
+          <div class="fv-seksjon-label">Bestemmelse</div>
+          <div class="fv-bestemmelse">
+            <div class="fv-paragraf">NS 8407 §33.6</div>
+            <div class="fv-bestemmelse-tekst">Spesifisering av fristkrav: Krav skal spesifiseres innen rimelig tid etter varsling, med dokumentasjon for kravets omfang.</div>
+          </div>
+
+          <div class="fv-separator"></div>
+
+          <div class="fv-spordetalj-lenke" id="fv-lenke" onclick="navigerTilSpor('frist')">
+            Åpne i spordetalj →
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       VIEW: SPORDETALJ — VEDERLAG
+       ================================================================ -->
+  <div id="view-vederlag" class="view">
+    <div class="spordetalj">
+
+      <!-- LEFT: Spor-nav -->
+      <aside class="spor-nav">
+        <a class="tilbake-link" onclick="tilbakeTilOversikt()">
+          <span class="arrow">←</span> Forhandlingsbordet
+        </a>
+
+        <div class="seksjon-label">Neste handling</div>
+        <div class="neste-handling-kort">
+          <div class="nh-rolle">BH</div>
+          <div class="nh-handling">Svar på vederlagskrav</div>
+        </div>
+
+        <div class="sak-separator"></div>
+
+        <div class="spor-nav-liste">
+          <div class="spor-nav-item" onclick="navigerTilSpor('grunnlag')">
+            <span class="sni-navn">Ansvarsgrunnlag</span>
+            <span class="sni-status">Ubesvart · 19d</span>
+          </div>
+          <div class="spor-nav-item aktiv">
+            <span class="sni-navn">Vederlag</span>
+            <span class="sni-data">Rev. 1 · 2,4M</span>
+          </div>
+          <div class="spor-nav-item" onclick="navigerTilSpor('frist')">
+            <span class="sni-navn">Fristforlengelse</span>
+            <span class="sni-status">Spesifisert krav</span>
+          </div>
+        </div>
+
+        <div class="sak-separator"></div>
+
+        <div class="sak-seksjon">
+          <div class="seksjon-label">Frister</div>
+          <div class="nav-frister">
+            <div class="nav-frist-item nfi-kritisk">
+              <span class="nfi-navn">⚠ Grunnlag</span>
+              <span class="nfi-verdi">passivitet</span>
+            </div>
+            <div class="nav-frist-item">
+              <span class="nfi-navn">Frist</span>
+              <span class="nfi-verdi">13d</span>
+            </div>
+            <div class="nav-frist-item">
+              <span class="nfi-navn">Vederlag</span>
+              <span class="nfi-verdi">14d</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CENTER: Skjema -->
+      <main class="spor-skjema">
+        <div class="skjema-header">
+          <span class="sh-spor">VEDERLAG</span>
+          <span class="status-badge nytt">Nytt krav</span>
+        </div>
+
+        <!-- TE's claim (read-only) -->
+        <div class="krav-seksjon">
+          <div class="krav-header">
+            <span class="krav-label">Krav fra TE — Veidekke · Rev. 1</span>
+            <span class="krav-dato">Revidert 03.03.2026</span>
+          </div>
+
+          <div class="detalj-felt">
+            <div class="detalj-label">Type</div>
+            <div class="detalj-verdi">Regningsarbeid</div>
+          </div>
+
+          <div class="krav-rad">
+            <span class="kr-navn">Stålkonstruksjon omarbeiding</span>
+            <span class="kr-verdi">1 480 000 kr</span>
+          </div>
+          <div class="krav-rad">
+            <span class="kr-navn">Rigg og drift</span>
+            <span class="kr-verdi">340 000 kr</span>
+          </div>
+          <div class="krav-rad">
+            <span class="kr-navn">Produksjonstap</span>
+            <span class="kr-verdi">180 000 kr</span>
+          </div>
+          <div class="krav-rad">
+            <span class="kr-navn">Prosjektering tillegg</span>
+            <span class="kr-verdi">400 000 kr</span>
+          </div>
+
+          <div class="krav-separator"></div>
+
+          <div class="krav-rad krav-total">
+            <span class="kr-navn">Totalt krevd</span>
+            <span class="kr-verdi">2 400 000 kr</span>
+          </div>
+
+          <div class="krav-tidslinje">
+            <div class="krav-tl-item">
+              <span class="krav-tl-dato">03.03</span>
+              <span class="krav-tl-tekst">TE reviderte krav (1,8M → 2,4M) · Rev. 1</span>
+            </div>
+            <div class="krav-tl-item">
+              <span class="krav-tl-dato">01.03</span>
+              <span class="krav-tl-tekst">TE sendte vederlagskrav (1 800 000 kr)</span>
+            </div>
+            <div class="krav-tl-item">
+              <span class="krav-tl-dato">28.02</span>
+              <span class="krav-tl-tekst">TE varslet vederlagskrav</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BH's response form -->
+        <div class="svar-seksjon">
+          <div class="svar-label">Ditt svar</div>
+
+          <div class="radio-gruppe">
+            <div class="radio-btn" onclick="velgRadio(this)">
+              <div class="radio-sirkel"></div>
+              Godkjenn fullt
+            </div>
+            <div class="radio-btn selected" onclick="velgRadio(this)">
+              <div class="radio-sirkel"></div>
+              Delvis godkjenning
+            </div>
+            <div class="radio-btn" onclick="velgRadio(this)">
+              <div class="radio-sirkel"></div>
+              Avslå
+            </div>
+          </div>
+
+          <div class="felt-gruppe">
+            <div class="felt-label">Godkjent beløp</div>
+            <div class="felt-row">
+              <input class="felt-input" type="text" value="1 820 000" placeholder="0">
+              <span class="felt-suffix">kr</span>
+            </div>
+          </div>
+
+          <div class="svar-label" style="margin-top: var(--sp-5)">Innsigelser</div>
+          <div class="checkbox-gruppe">
+            <label class="checkbox-item checked" onclick="toggleCheckbox(this)">
+              <div class="checkbox-boks">✓</div>
+              Produksjonstap utilstrekkelig dokumentert
+            </label>
+            <label class="checkbox-item" onclick="toggleCheckbox(this)">
+              <div class="checkbox-boks">✓</div>
+              Ikke årsakssammenheng
+            </label>
+            <label class="checkbox-item" onclick="toggleCheckbox(this)">
+              <div class="checkbox-boks">✓</div>
+              For sent varslet
+            </label>
+            <label class="checkbox-item" onclick="toggleCheckbox(this)">
+              <div class="checkbox-boks">✓</div>
+              Manglende dokumentasjon
+            </label>
+          </div>
+
+          <div class="send-seksjon">
+            <button class="send-btn">Send svar</button>
+            <span class="send-hint">Frist: 17.03.2026 (14 dager)</span>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT: Begrunnelse -->
+      <aside class="spor-begrunnelse">
+        <div class="begr-header">Begrunnelse</div>
+        <textarea class="begr-textarea" placeholder="Skriv begrunnelse for ditt standpunkt til vederlagskravet..."></textarea>
+        <div class="begr-hint">Begrunnelsen sendes til TE sammen med ditt svar.</div>
+
+        <div class="begr-referanser">
+          <div class="seksjon-label">Relevante bestemmelser</div>
+          <div class="ref-kort" data-tooltip="Åpne NS 8407 §34">
+            <div class="ref-paragraf">NS 8407 §34</div>
+            <div class="ref-tekst">Vederlagsjustering ved endringer</div>
+          </div>
+          <div class="ref-kort" data-tooltip="Åpne NS 8407 §34.3">
+            <div class="ref-paragraf">NS 8407 §34.3</div>
+            <div class="ref-tekst">Varslingsplikt for vederlagskrav</div>
+          </div>
+          <div class="ref-kort" data-tooltip="Åpne NS 8407 §34.4">
+            <div class="ref-paragraf">NS 8407 §34.4</div>
+            <div class="ref-tekst">Spesifisering av vederlagskrav</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       VIEW: SPORDETALJ — FRISTFORLENGELSE
+       ================================================================ -->
+  <div id="view-frist" class="view">
+    <div class="spordetalj">
+
+      <!-- LEFT: Spor-nav -->
+      <aside class="spor-nav">
+        <a class="tilbake-link" onclick="tilbakeTilOversikt()">
+          <span class="arrow">←</span> Forhandlingsbordet
+        </a>
+
+        <div class="seksjon-label">Neste handling</div>
+        <div class="neste-handling-kort">
+          <div class="nh-rolle">BH</div>
+          <div class="nh-handling">Svar på fristkrav</div>
+        </div>
+
+        <div class="sak-separator"></div>
+
+        <div class="spor-nav-liste">
+          <div class="spor-nav-item" onclick="navigerTilSpor('grunnlag')">
+            <span class="sni-navn">Ansvarsgrunnlag</span>
+            <span class="sni-status">Ubesvart · 19d</span>
+          </div>
+          <div class="spor-nav-item" onclick="navigerTilSpor('vederlag')">
+            <span class="sni-navn">Vederlag</span>
+            <span class="sni-data">Rev. 1 · 2,4M</span>
+          </div>
+          <div class="spor-nav-item aktiv">
+            <span class="sni-navn">Fristforlengelse</span>
+            <span class="sni-data">Rev. 2 · 45d krevd</span>
+          </div>
+        </div>
+
+        <div class="sak-separator"></div>
+
+        <div class="sak-seksjon">
+          <div class="seksjon-label">Frister</div>
+          <div class="nav-frister">
+            <div class="nav-frist-item nfi-kritisk">
+              <span class="nfi-navn">⚠ Grunnlag</span>
+              <span class="nfi-verdi">passivitet</span>
+            </div>
+            <div class="nav-frist-item">
+              <span class="nfi-navn">Frist</span>
+              <span class="nfi-verdi">13d</span>
+            </div>
+            <div class="nav-frist-item">
+              <span class="nfi-navn">Vederlag</span>
+              <span class="nfi-verdi">14d</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CENTER: Skjema -->
+      <main class="spor-skjema">
+        <div class="skjema-header">
+          <span class="sh-spor">FRISTFORLENGELSE</span>
+          <span class="status-badge spesifisert">Spesifisert krav</span>
+          <span class="varsling-flagg tooltip-below" data-tooltip="§33.4 — foreløpig varsel sendt etter rimelig tid">
+            <span class="v-ikon warn">⚠</span> Varslet sent
+          </span>
+        </div>
+
+        <!-- TE's claim (read-only) -->
+        <div class="krav-seksjon">
+          <div class="krav-header">
+            <span class="krav-label">Krav fra TE — Veidekke · Rev. 2</span>
+            <span class="krav-dato">Spesifisert 02.03.2026</span>
+          </div>
+
+          <div class="detalj-felt">
+            <div class="detalj-label">Krevd forlengelse</div>
+            <div class="detalj-verdi mono-verdi">45 dager</div>
+          </div>
+
+          <div class="detalj-felt">
+            <div class="detalj-label">Ny sluttdato</div>
+            <div class="detalj-verdi mono-verdi">15.08.2026</div>
+          </div>
+
+          <div class="detalj-felt">
+            <div class="detalj-label">Årsak</div>
+            <div class="detalj-verdi">Forsinket leveranse av stålkonstruksjon fra underleverandør Stålmontasje AS. Forsinkelsen skyldes materialmangler hos stålleverandør.</div>
+          </div>
+
+          <div class="krav-tidslinje">
+            <div class="krav-tl-item">
+              <span class="krav-tl-dato">02.03</span>
+              <span class="krav-tl-tekst">TE spesifiserte krav (45d) · Rev. 2</span>
+            </div>
+            <div class="krav-tl-item">
+              <span class="krav-tl-dato">25.02</span>
+              <span class="krav-tl-tekst">TE la til dokumentasjon</span>
+            </div>
+            <div class="krav-tl-item">
+              <span class="krav-tl-dato">15.02</span>
+              <span class="krav-tl-tekst">TE reviderte forespørsel (30d → 45d) · Rev. 1</span>
+            </div>
+            <div class="krav-tl-item">
+              <span class="krav-tl-dato">20.01</span>
+              <span class="krav-tl-tekst">TE forespurte fristforlengelse (30d)</span>
+            </div>
+            <div class="krav-tl-item">
+              <span class="krav-tl-dato">15.01</span>
+              <span class="krav-tl-tekst">TE varslet mulig fristforlengelse</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BH's response form -->
+        <div class="svar-seksjon">
+          <div class="svar-label">Ditt svar</div>
+
+          <div class="radio-gruppe">
+            <div class="radio-btn" onclick="velgRadio(this)">
+              <div class="radio-sirkel"></div>
+              Godkjenn fullt
+            </div>
+            <div class="radio-btn" onclick="velgRadio(this)">
+              <div class="radio-sirkel"></div>
+              Delvis godkjenning
+            </div>
+            <div class="radio-btn" onclick="velgRadio(this)">
+              <div class="radio-sirkel"></div>
+              Avslå
+            </div>
+          </div>
+
+          <div class="felt-gruppe">
+            <div class="felt-label">Dager godkjent</div>
+            <div class="felt-row">
+              <input class="felt-input" type="text" placeholder="0" style="max-width: 100px;">
+              <span class="felt-suffix">av 45 krevd</span>
+            </div>
+          </div>
+
+          <div class="svar-label" style="margin-top: var(--sp-5)">Innsigelser</div>
+          <div class="checkbox-gruppe">
+            <label class="checkbox-item" onclick="toggleCheckbox(this)">
+              <div class="checkbox-boks">✓</div>
+              Varslet for sent
+            </label>
+            <label class="checkbox-item" onclick="toggleCheckbox(this)">
+              <div class="checkbox-boks">✓</div>
+              Ikke tilstrekkelig dokumentert
+            </label>
+            <label class="checkbox-item" onclick="toggleCheckbox(this)">
+              <div class="checkbox-boks">✓</div>
+              Ikke årsakssammenheng mellom endring og forsinkelse
+            </label>
+            <label class="checkbox-item" onclick="toggleCheckbox(this)">
+              <div class="checkbox-boks">✓</div>
+              Krevd forlengelse er uforholdsmessig
+            </label>
+          </div>
+
+          <div class="send-seksjon">
+            <button class="send-btn">Send svar</button>
+            <span class="send-hint">Frist: 16.03.2026 (13 dager)</span>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT: Begrunnelse -->
+      <aside class="spor-begrunnelse">
+        <div class="begr-header">Begrunnelse</div>
+        <textarea class="begr-textarea" placeholder="Skriv begrunnelse for ditt standpunkt til fristkravet..."></textarea>
+        <div class="begr-hint">Begrunnelsen sendes til TE sammen med ditt svar.</div>
+
+        <div class="begr-referanser">
+          <div class="seksjon-label">Relevante bestemmelser</div>
+          <div class="ref-kort">
+            <div class="ref-paragraf">NS 8407 §33</div>
+            <div class="ref-tekst">Fristforlengelse ved endringer</div>
+          </div>
+          <div class="ref-kort">
+            <div class="ref-paragraf">NS 8407 §33.4</div>
+            <div class="ref-tekst">Varsling av fristkrav</div>
+          </div>
+          <div class="ref-kort">
+            <div class="ref-paragraf">NS 8407 §33.6</div>
+            <div class="ref-tekst">Spesifisering av fristkrav</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       VIEW: SPORDETALJ — ANSVARSGRUNNLAG
+       ================================================================ -->
+  <div id="view-grunnlag" class="view">
+    <div class="spordetalj">
+
+      <!-- LEFT: Spor-nav -->
+      <aside class="spor-nav">
+        <a class="tilbake-link" onclick="tilbakeTilOversikt()">
+          <span class="arrow">←</span> Forhandlingsbordet
+        </a>
+
+        <div class="seksjon-label">Neste handling</div>
+        <div class="neste-handling-kort kritisk-nh">
+          <div class="nh-rolle">BH — Kritisk</div>
+          <div class="nh-handling">Svar på ansvarsgrunnlag</div>
+        </div>
+
+        <div class="sak-separator"></div>
+
+        <div class="spor-nav-liste">
+          <div class="spor-nav-item aktiv">
+            <span class="sni-navn">Ansvarsgrunnlag</span>
+            <span class="sni-status">Ubesvart · 19d</span>
+          </div>
+          <div class="spor-nav-item" onclick="navigerTilSpor('vederlag')">
+            <span class="sni-navn">Vederlag</span>
+            <span class="sni-data">Rev. 1 · 2,4M</span>
+          </div>
+          <div class="spor-nav-item" onclick="navigerTilSpor('frist')">
+            <span class="sni-navn">Fristforlengelse</span>
+            <span class="sni-data">Rev. 2 · 45d krevd</span>
+          </div>
+        </div>
+
+        <div class="sak-separator"></div>
+
+        <div class="sak-seksjon">
+          <div class="seksjon-label">Frister</div>
+          <div class="nav-frister">
+            <div class="nav-frist-item nfi-kritisk">
+              <span class="nfi-navn">⚠ Grunnlag</span>
+              <span class="nfi-verdi">passivitet</span>
+            </div>
+            <div class="nav-frist-item">
+              <span class="nfi-navn">Frist</span>
+              <span class="nfi-verdi">13d</span>
+            </div>
+            <div class="nav-frist-item">
+              <span class="nfi-navn">Vederlag</span>
+              <span class="nfi-verdi">14d</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CENTER: Skjema -->
+      <main class="spor-skjema">
+        <div class="skjema-header">
+          <span class="spor-advarsel" style="font-size: 18px;">⚠</span>
+          <span class="sh-spor">ANSVARSGRUNNLAG</span>
+          <span class="status-badge ubesvart">Ubesvart</span>
+        </div>
+
+        <!-- Passivitet warning -->
+        <div class="passivitet-banner">
+          <span class="pb-ikon">⚠</span>
+          <div>
+            <div class="pb-tekst">19 dager uten svar — du kan miste retten til å protestere</div>
+            <div class="pb-tooltip">§32.3 passivitet — manglende svar innen rimelig tid medfører rettighetsforfall</div>
+          </div>
+        </div>
+
+        <!-- TE's claim (read-only) -->
+        <div class="krav-seksjon">
+          <div class="krav-header">
+            <span class="krav-label">Varsel fra TE — Veidekke</span>
+            <span class="krav-dato">Mottatt 12.02.2026</span>
+          </div>
+
+          <div class="detalj-felt">
+            <div class="detalj-label">Type endring</div>
+            <div class="detalj-verdi">Irregulær endring</div>
+          </div>
+
+          <div class="detalj-felt">
+            <div class="detalj-label">Underleverandør</div>
+            <div class="detalj-verdi">Stålmontasje AS</div>
+          </div>
+
+          <div class="detalj-felt">
+            <div class="detalj-label">Beskrivelse</div>
+            <div class="krav-beskrivelse">
+              Stålkonstruksjon levert med avvik fra spesifikasjon i prosjektert underlag.
+              Avvik oppdaget under montasje 10. januar. Omarbeiding nødvendig for å
+              tilfredsstille kontraktskrav til bæreevne og toleranser.
+            </div>
+          </div>
+
+          <div class="krav-tidslinje">
+            <div class="krav-tl-item">
+              <span class="krav-tl-dato">12.02</span>
+              <span class="krav-tl-tekst">TE varslet irregulær endring (§25.2)</span>
+            </div>
+            <div class="krav-tl-item">
+              <span class="krav-tl-dato">10.01</span>
+              <span class="krav-tl-tekst">Avvik oppdaget under montasje</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BH's response form -->
+        <div class="svar-seksjon">
+          <div class="svar-label">Ditt svar</div>
+
+          <div class="radio-gruppe">
+            <div class="radio-btn" onclick="velgRadio(this)">
+              <div class="radio-sirkel"></div>
+              Godkjenn som irregulær endring
+            </div>
+            <div class="radio-btn" onclick="velgRadio(this)">
+              <div class="radio-sirkel"></div>
+              Avslå — ikke en endring
+            </div>
+            <div class="radio-btn" onclick="velgRadio(this)">
+              <div class="radio-sirkel"></div>
+              Avslå — TEs risiko
+            </div>
+          </div>
+
+          <div class="svar-label" style="margin-top: var(--sp-5)">Grunnlag for avslag</div>
+          <div class="checkbox-gruppe">
+            <label class="checkbox-item" onclick="toggleCheckbox(this)">
+              <div class="checkbox-boks">✓</div>
+              Avviket skyldes TEs prosjektering
+            </label>
+            <label class="checkbox-item" onclick="toggleCheckbox(this)">
+              <div class="checkbox-boks">✓</div>
+              Underleverandør er TEs risiko
+            </label>
+            <label class="checkbox-item" onclick="toggleCheckbox(this)">
+              <div class="checkbox-boks">✓</div>
+              Ikke varslet i tide
+            </label>
+          </div>
+
+          <div class="send-seksjon">
+            <button class="send-btn kritisk-send">Svar nå</button>
+            <span class="send-hint" style="color: var(--score-low);">Passivitetsrisiko — svar snarest</span>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT: Begrunnelse -->
+      <aside class="spor-begrunnelse">
+        <div class="begr-header">Begrunnelse</div>
+        <textarea class="begr-textarea" placeholder="Skriv begrunnelse for ditt standpunkt til ansvarsgrunnlaget..."></textarea>
+        <div class="begr-hint">Begrunnelsen sendes til TE sammen med ditt svar.</div>
+
+        <div class="begr-referanser">
+          <div class="seksjon-label">Relevante bestemmelser</div>
+          <div class="ref-kort">
+            <div class="ref-paragraf">NS 8407 §25.2</div>
+            <div class="ref-tekst">Irregulære endringer og varslingsplikt</div>
+          </div>
+          <div class="ref-kort">
+            <div class="ref-paragraf">NS 8407 §32.3</div>
+            <div class="ref-tekst">Passivitet og rettighetsforfall</div>
+          </div>
+          <div class="ref-kort">
+            <div class="ref-paragraf">NS 8407 §25.1</div>
+            <div class="ref-tekst">Hva utgjør en endring</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       JAVASCRIPT
+       ================================================================ -->
+  <script>
+    // View navigation
+    function setActiveView(viewId) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      const target = document.getElementById(viewId);
+      if (target) {
+        target.classList.add('active');
+        window.scrollTo(0, 0);
+      }
+    }
+
+    function navigerTilSpor(spor) {
+      const viewMap = {
+        'vederlag': 'view-vederlag',
+        'frist': 'view-frist',
+        'grunnlag': 'view-grunnlag'
+      };
+      const card = document.querySelector('.sporkort[data-spor="' + spor + '"]');
+      if (card) {
+        card.classList.add('clicking');
+        setTimeout(() => {
+          card.classList.remove('clicking');
+          setActiveView(viewMap[spor]);
+        }, 100);
+      } else {
+        setActiveView(viewMap[spor]);
+      }
+    }
+
+    function tilbakeTilOversikt() {
+      setActiveView('view-oversikt');
+    }
+
+    // Hendelseslogg: expand/collapse event history
+    function toggleLogg(sporId) {
+      const kort = document.getElementById('kort-' + sporId);
+      if (!kort) return;
+
+      // Accordion: collapse others
+      document.querySelectorAll('.sporkort.expanded').forEach(k => {
+        if (k !== kort) k.classList.remove('expanded');
+      });
+
+      kort.classList.toggle('expanded');
+
+      // Show/hide forhåndsvisningspanel
+      const bord = document.querySelector('.forhandlingsbord');
+      if (kort.classList.contains('expanded')) {
+        bord.classList.add('har-panel');
+        // Focus first event
+        const events = kort.querySelectorAll('.hl-hendelse');
+        if (events.length > 0) fokuserHendelse(events[0]);
+      } else {
+        bord.classList.remove('har-panel');
+        clearFokus();
+      }
+    }
+
+    // Event detail data for the preview panel
+    const hendelsesData = {
+      'frist-0': {
+        ikon: '↻', ikonClass: 'revisjon',
+        handling: 'Spesifiserte krav',
+        meta: '02.03.2026 · TE',
+        endring: 'Spesifisert krav med 45 dagers forlengelse (Rev. 2). Detaljert fremdriftsplan vedlagt med dokumentasjon for kritisk sti-påvirkning.',
+        vedlegg: 'Spesifisert_fristkrav_rev2.pdf',
+        paragraf: 'NS 8407 §33.6',
+        bestemmelse: 'Spesifisering av fristkrav: Totalentreprenøren skal spesifisere sitt krav innen rimelig tid etter varsling.',
+        spor: 'frist'
+      },
+      'frist-1': {
+        ikon: '→', ikonClass: 'sendt',
+        handling: 'La til dokumentasjon',
+        meta: '25.02.2026 · TE',
+        endring: 'Underleverandør Stålmontasje AS bekreftet forsinkelse i leveranse av stålkonstruksjon. Dokumentasjon for materialmangler vedlagt.',
+        vedlegg: 'Forsinkelsesbekreftelse_stål.pdf',
+        paragraf: 'NS 8407 §33.4',
+        bestemmelse: 'Varsling av fristkrav: Totalentreprenøren skal varsle uten ugrunnet opphold dersom det oppstår forhold som kan gi grunnlag for fristforlengelse.',
+        spor: 'frist'
+      },
+      'frist-2': {
+        ikon: '↻', ikonClass: 'revisjon',
+        handling: 'Reviderte forespørsel',
+        meta: '15.02.2026 · TE',
+        endring: 'Krevd forlengelse økt fra 30 til 45 dager. Begrunnelse: ytterligere forsinkelse fra underleverandør bekreftet av Stålmontasje AS.',
+        vedlegg: 'Forsinkelsesbekreftelse_rev1.pdf',
+        paragraf: 'NS 8407 §33.6',
+        bestemmelse: 'Spesifisering av fristkrav: Krav skal spesifiseres innen rimelig tid etter varsling, med dokumentasjon for kravets omfang.',
+        spor: 'frist'
+      },
+      'frist-3': {
+        ikon: '→', ikonClass: 'sendt',
+        handling: 'Forespurte fristforlengelse',
+        meta: '20.01.2026 · TE',
+        endring: 'Foreløpig krav om 30 dagers fristforlengelse. Årsak: forsinket leveranse av stålkonstruksjon fra underleverandør.',
+        vedlegg: 'Forelopig_fristkrav.pdf',
+        paragraf: 'NS 8407 §33.1',
+        bestemmelse: 'Fristforlengelse: Totalentreprenøren har krav på fristforlengelse dersom fremdriften hindres av forhold byggherren har risikoen for.',
+        spor: 'frist'
+      },
+      'frist-4': {
+        ikon: '⚑', ikonClass: 'varslet',
+        handling: 'Varslet mulig fristforlengelse',
+        meta: '15.01.2026 · TE',
+        endring: 'Tidlig varsel om mulig forsinkelse grunnet materialmangler hos stålleverandør. Omfang uavklart.',
+        vedlegg: null,
+        paragraf: 'NS 8407 §33.4',
+        bestemmelse: 'Varsling av fristkrav: Totalentreprenøren skal varsle uten ugrunnet opphold.',
+        spor: 'frist'
+      }
+    };
+
+    let fokusertIndex = -1;
+    let fokusertSpor = null;
+
+    function fokuserHendelse(el) {
+      // Clear previous focus
+      document.querySelectorAll('.hl-hendelse.fokusert').forEach(h => h.classList.remove('fokusert'));
+      el.classList.add('fokusert');
+
+      // Find index
+      const events = el.closest('.hendelseslogg-events').querySelectorAll('.hl-hendelse');
+      fokusertSpor = el.closest('.sporkort').dataset.spor;
+      events.forEach((ev, i) => { if (ev === el) fokusertIndex = i; });
+
+      // Update panel
+      const key = fokusertSpor + '-' + fokusertIndex;
+      const data = hendelsesData[key];
+      if (data) visDetalj(data);
+    }
+
+    function visDetalj(data) {
+      document.getElementById('fv-tom').style.display = 'none';
+      const innhold = document.getElementById('fv-innhold');
+      innhold.style.display = 'block';
+
+      const ikon = document.getElementById('fv-h-ikon');
+      ikon.textContent = data.ikon;
+      ikon.className = 'fv-ikon ' + data.ikonClass;
+      document.getElementById('fv-h-handling').textContent = data.handling;
+      document.getElementById('fv-h-meta').textContent = data.meta;
+      document.getElementById('fv-endring').textContent = data.endring;
+      document.getElementById('fv-lenke').onclick = function() { navigerTilSpor(data.spor); };
+
+      // Update paragraf and bestemmelse
+      innhold.querySelector('.fv-paragraf').textContent = data.paragraf;
+      innhold.querySelector('.fv-bestemmelse-tekst').textContent = data.bestemmelse;
+
+      // Update vedlegg
+      const vedleggEl = innhold.querySelector('.fv-vedlegg');
+      if (data.vedlegg) {
+        vedleggEl.style.display = 'flex';
+        vedleggEl.lastChild.textContent = data.vedlegg;
+      } else {
+        vedleggEl.style.display = 'none';
+      }
+    }
+
+    function clearFokus() {
+      document.querySelectorAll('.hl-hendelse.fokusert').forEach(h => h.classList.remove('fokusert'));
+      fokusertIndex = -1;
+      fokusertSpor = null;
+      const tom = document.getElementById('fv-tom');
+      if (tom) tom.style.display = 'block';
+      const innhold = document.getElementById('fv-innhold');
+      if (innhold) innhold.style.display = 'none';
+    }
+
+    // Hover on events → show detail
+    document.addEventListener('mouseover', function(e) {
+      const hendelse = e.target.closest('.hl-hendelse');
+      if (hendelse && hendelse.closest('.hendelseslogg-events')) {
+        fokuserHendelse(hendelse);
+      }
+    });
+
+    // Radio buttons
+    function velgRadio(el) {
+      const gruppe = el.parentElement;
+      gruppe.querySelectorAll('.radio-btn').forEach(btn => btn.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    // Checkboxes
+    function toggleCheckbox(el) {
+      el.classList.toggle('checked');
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const expanded = document.querySelector('.sporkort.expanded');
+        if (expanded) {
+          expanded.classList.remove('expanded');
+          document.querySelector('.forhandlingsbord').classList.remove('har-panel');
+          clearFokus();
+          return;
+        }
+        const oversikt = document.getElementById('view-oversikt');
+        if (!oversikt.classList.contains('active')) {
+          tilbakeTilOversikt();
+        }
+      }
+
+      // Arrow keys: navigate events in open hendelseslogg
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        const expanded = document.querySelector('.sporkort.expanded');
+        if (!expanded) return;
+        const events = expanded.querySelectorAll('.hl-hendelse');
+        if (events.length === 0) return;
+
+        e.preventDefault();
+        let newIndex = fokusertIndex;
+        if (e.key === 'ArrowDown') newIndex = Math.min(fokusertIndex + 1, events.length - 1);
+        if (e.key === 'ArrowUp') newIndex = Math.max(fokusertIndex - 1, 0);
+        if (newIndex !== fokusertIndex) {
+          fokuserHendelse(events[newIndex]);
+        }
+      }
+
+      // Enter: navigate to spordetalj for focused event
+      if (e.key === 'Enter' && fokusertSpor) {
+        navigerTilSpor(fokusertSpor);
+      }
+    });
+  </script>
+</body>
+</html>
