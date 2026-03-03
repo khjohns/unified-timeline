@@ -1,7 +1,8 @@
 # Designdokument — Arbeidsflaten (midtpanel + høyrepanel)
 
 **Dato:** 2026-03-03
-**Scope:** Midtpanelet og høyrepanelet i tre-panel-layouten. Ikke venstepanel, ikke landingsvisning, ikke dashboard. Vi er inne i arbeidet — brukeren har valgt å jobbe med ansvarsgrunnlag, vederlagsjustering eller fristforlengelse.
+**Revisjon:** 2 — revidert etter interface-design::init-kritikk
+**Scope:** Midtpanelet og høyrepanelet i tre-panel-layouten (spordetaljvisningen). Ikke venstepanel, ikke Forhandlingsbordet, ikke dashboard.
 
 ---
 
@@ -9,23 +10,72 @@
 
 **Hvem er dette mennesket?**
 
-En kontraktsadministrator i et norsk byggeprosjekt. Ikke en utvikler, ikke en designer. En jurist eller ingeniør med NS 8407 på pulten og en Excel-liste med endringskrav åpen ved siden av. De sitter i et kontorlandskap — kanskje på Skøyen, kanskje i en brakke på Bjørvika. Skjermen er 24" eller 27". De har håndtert titalls slike krav. De kjenner paragrafene. De trenger ikke opplæring i kontrakten — de trenger et verktøy som holder tritt med deres ekspertise.
+En kontraktsadministrator i et norsk byggeprosjekt. Jurist eller ingeniør med NS 8407 på pulten og en Excel-liste med endringskrav åpen ved siden av. Skjermen er 24–27". De har håndtert titalls slike krav. De kjenner paragrafene. De trenger ikke opplæring i kontrakten — de trenger et verktøy som holder tritt med deres ekspertise.
 
-De har nettopp åpnet en bestemt sak og klikket seg inn i et av de tre kravene. De har et presist spørsmål: «Hva er posisjonen, og hva skal mitt neste trekk være?» Svaret krever at de leser kravet, evaluerer det mot kontrakten, tar strukturerte beslutninger, og skriver en begrunnelse som kan leses av motparten og eventuelt en rettsinststans.
+De har nettopp klikket seg inn i et spor fra Forhandlingsbordet. De har et presist spørsmål: «Hva er posisjonen, og hva skal mitt neste trekk være?»
 
 **Hva må de gjøre?**
 
 To ting, i rekkefølge:
-1. **Avgjøre** — ta juridisk bindende posisjoner. Godkjent/avslått. 30 av 45 dager. Innsigelse mot §33.6.1. Disse er diskrete, strukturerte valg.
-2. **Argumentere** — skrive fritekst som begrunner posisjonene. Referere til kontraktsbestemmelser, vedlegg, fremdriftsplaner. Denne teksten kan bli 10+ avsnitt.
+1. **Avgjøre** — ta juridisk bindende posisjoner. Godkjent/avslått. 30 av 45 dager. Innsigelse mot §33.6.1. Diskrete, strukturerte valg.
+2. **Argumentere** — skrive fritekst som begrunner posisjonene. Referere til kontraktsbestemmelser, vedlegg, fremdriftsplaner. 500–2000 ord.
 
-Disse er to fundamentalt forskjellige kognitive moduser. Den første er analytisk og kompakt — krysser av, taster tall, velger mellom alternativer. Den andre er narrativ og ekspansiv — konstruerer et argument, refererer til fakta, bygger en sak.
+To fundamentalt forskjellige kognitive moduser. Analytisk og kompakt vs. narrativ og ekspansiv. Tre-panel-arkitekturen separerer disse romlig: midtpanelet for beslutninger, høyrepanelet for argumentasjon.
 
 **Hvordan skal det føles?**
 
-Som et kontraktsdokument du kan redigere — ikke som en app du fyller ut. Kjølig, presist, autoritativt. Teksten skal føles som den tilhører en protokoll, ikke et skjema. Tallene skal stå like stødig som i en regnearkkolonne. §-referansene skal føles like naturlige som sidetall.
+Som et kontraktsdokument du kan redigere — ikke en app du fyller ut. Kjølig, presist, autoritativt. Teksten tilhører en protokoll, ikke et skjema. Tallene står like stødig som i en regnearkkolonne.
 
-Ikke varmt. Ikke vennlig. Ikke «onboarding-modus» eller «hjelpsom wizard.» Profesjonelt, som et verktøy laget av noen som forstår arbeidet.
+Ikke varmt. Ikke vennlig. Profesjonelt, som et verktøy laget av noen som forstår arbeidet.
+
+**§-referanselagdeling per sone:**
+
+| Sone | §-referanser | Begrunnelse |
+|------|-------------|-------------|
+| ① Kravhode | Sekundær (i metadata, ikke tittel) | Kontekst, ikke arbeid |
+| ② Posisjonskort | Ingen (bare tall) | Resultat, ikke juridikk |
+| ③ Beslutningsfelt | Primær (i overskrifter, checkboxer) | Juristen jobber her |
+| ④ Resultatboks | Sekundær (hover for §-kontekst) | Oppsummering |
+| Høyrepanel | I LockedValue-tokens | Begrunnelsen ER juridisk tekst |
+
+---
+
+## Domain Exploration
+
+**Domene:** Kontraktsforhandling i byggeprosjekter. Begreper:
+
+1. **Kontraktsprotokoll** — formelt dokument som loggfører posisjoner og begrunnelser
+2. **Preklusjon** — tap av rettighet ved oversittelse av frist
+3. **Subsidiært standpunkt** — alternativ posisjon dersom hovedposisjon faller
+4. **Forhandlingsgrad** — forholdet mellom krevd og godkjent (prosent)
+5. **Passivitet** — unnlatelse som skaper rettsvirkning (§32.3)
+6. **Varsling** — kontraktuell notifikasjon med rettsvirkning
+7. **Spesifisering** — kvantifisering av et krav etter initialt varsel
+8. **Revisjon** — formell oppdatering av et krav med versjonsnummer
+
+**Fargeområde:** Den fysiske verdenen til kontraktsadministrasjon:
+
+1. Oslo-indigo (#2a2859) — kommunens identitetsfarge
+2. Godkjenningsstempler — mørk grønn blekk
+3. Avvisningsmerker — rødt blekk, røde stempler
+4. Blått arkivblekk — formelle underskrifter
+5. Grå tabellinjer — regnearkstruktur
+6. Amber varseltrekanter — byggeplasskilt, OBS-merking
+7. Kontraktspapir — off-white, gulnet papir
+
+**Signatur:** §-referanser som strukturelt element. Paragrafhenvisninger er navigasjon og juridisk forankring — ikke pynt. De dukker opp i seksjonsoverskrifter, knappetekst, checkboxlabeler, inline-tokens og varsler. Fjern dem og grensesnittet kunne vært et generisk sakshåndteringssystem.
+
+**Avviste defaults:**
+
+| Default | Erstatning | Hvorfor |
+|---------|------------|---------|
+| VerdictCards (klikkbare kort med ikoner) | Vertikale radios med beskrivelse | Kompaktere, skanner raskere, tar 50% av plassen |
+| InlineYesNo for innsigelser | Eksplisitte checkboxer med §-referanse | Juridisk tydeligere — du hevder en posisjon |
+| Begrunnelse-textarea i skjema | Dedikert høyrepanel med TipTap | Begrunnelsen er et dokument, ikke et felt |
+| Skygger for dybde | Borders + surface shifts | Kontraktsdokumenter har linjer, ikke skygger |
+| Flat tab-strip i høyrepanelet | Tab-låsing under redigering | Forhindrer navigasjon vekk fra aktiv begrunnelse |
+| 380px høyrepanel | 340px | Midtpanelet trenger mer plass for per-kravlinje-evaluering |
+| Progress bar 1.5px | Progress bar 6px | Forhandlingsresultatet fortjener visuell signifikans |
 
 ---
 
@@ -34,172 +84,188 @@ Ikke varmt. Ikke vennlig. Ikke «onboarding-modus» eller «hjelpsom wizard.» P
 ```
 Intent:    Kontraktsadministrator som tar juridiske posisjoner og
            skriver begrunnelser. Presist, autoritativt, dokumentaktig.
-Palette:   Oslo-indigo (#2a2859) som primærtekst. Instrument-grå (#f0f0f2)
-           som arbeidsflate. Stempel-grønn (#034b45) for godkjenning.
-           Innsigelse-rødt (#c9302c) for avslag/preklusjon. Beige (#f8f0dd)
-           for kontraktsreferanser. WHY: disse fargene finnes i den fysiske
-           verdenen til kontraktsadministrasjon — Oslo kommunes identitet,
-           godkjenningsstempler, røde avvisningsmerker, kontraktspapir.
-Depth:     Borders-only. Ingen skygger. Tynne rgba-linjer (#2a2859/8) som
-           strukturerer uten å kreve oppmerksomhet. WHY: kontraktsdokumenter
-           har linjer, ikke skygger. Dense, teknisk, profesjonelt.
-Surfaces:  Tre nivåer: arbeidsflate (#ffffff), innsatt felt (bg-subtle #f0f0f2),
-           referansekort (bg-subtle/50 med border). WHY: dokumenter har
-           bakgrunn, innsatte felt, og innrammede referanser.
-Typography: Oslo Sans. Fire nivåer:
-           - Seksjonstitler: 11px, 500, UPPERCASE, tracking-wide — som
-             kapitteltitler i en kontrakt
-           - Feltlabeler: 13px, 400, normal — som radelabeler i et skjema
-           - Verdier: 14px, 500, monospace for tall — som data i en protokoll
-           - Brødtekst: 14px, 400, normal — som løpende tekst i et brev
-           WHY: Oslo Sans er kommunens font. Monospace for tall gir
-           tabellkvalitet. UPPERCASE-titler refererer til kontraktens
-           kapittelnummerering.
-Spacing:   8px base. 4px mikro (ikon-gap). 12px mellom felt. 20px mellom
-           seksjoner. 32px mellom hovedblokker.
+Depth:     Borders-only + surface shifts. Ingen skygger. Tynne rgba-linjer
+           som strukturerer uten å kreve oppmerksomhet. Løft via lysere
+           overflate (bg-default over bg-subtle), aldri via shadow.
+           WHY: kontraktsdokumenter har linjer, ikke skygger.
+Surfaces:  Tre nivåer:
+           - Arbeidsflate: bg-pkt-bg-card (#ffffff) — hovedinnhold
+           - Innsatt felt: bg-pkt-bg-subtle — inputs, referansekort
+           - Innfelt/dybde: bg-pkt-bg-default — hendelseslogg, innfelte områder
+           WHY: Dokumenter har bakgrunn, innsatte felt, og innrammede referanser.
+           Surface shift erstatter shadow for dybdekommunikasjon.
+Typography: Oslo Sans (pålagt av Punkt). To moduser:
+           - UI-tekst: Oslo Sans for labels, titler, brødtekst
+           - Data-tekst: font-mono (system monospace) med tabular-nums
+             for tall, datoer, beløp
+           WHY: Monospace for tall gir tabellkvalitet. Oslo Sans er
+           kommunens font — ikke valgfritt.
+Spacing:   4px base.
+           WHY: 4px gir finere kontroll enn 8px for dense kontrollgrensesnitt.
+           Sone ③ har tett vertikal stabling der 8px-steg er for grove.
 ```
 
 ---
 
-## Midtpanelet — Beslutningsflaten
+## Scales
 
-Midtpanelet er der brukeren tar posisjoner. Det er et redigerbart protokoll-ark — ikke et skjema med labels over inputs, men et strukturert dokument der verdier kan endres inline.
+### Spacing
 
-### Anatomien: fire soner
+| Token | Verdi | Bruk |
+|-------|-------|------|
+| sp-1 | 4px | Ikon-gap, checkbox til label |
+| sp-2 | 8px | Element-par, radio til beskrivelse |
+| sp-3 | 12px | Celle-padding, felt-mellomrom |
+| sp-4 | 16px | Kort-padding innenfor soner |
+| sp-5 | 20px | Seksjon-mellomrom (mellom §-seksjoner) |
+| sp-6 | 24px | Sone-mellomrom (mellom ①②③④) |
+| sp-8 | 32px | Hovedblokk-separasjon |
 
-```
-┌──────────────────────────────────────────────────┐
-│                                                  │
-│  ① KRAVHODE                                     │
-│     Hvem krevde hva, med hvilken hjemmel         │
-│                                                  │
-│──────────────────────────────────────────────────│
-│                                                  │
-│  ② POSISJONSKORT                                │
-│     KPI-tallene: krevd → godkjent → grad         │
-│     (bare når BH har svart)                      │
-│                                                  │
-│──────────────────────────────────────────────────│
-│                                                  │
-│  ③ BESLUTNINGSFELT                              │
-│     De strukturerte valgene brukeren tar          │
-│     — betinget synlighet basert på state          │
-│                                                  │
-│──────────────────────────────────────────────────│
-│                                                  │
-│  ④ RESULTATBOKS                                 │
-│     Beregnet utfall basert på valgene over        │
-│     (bare i redigeringsmodus)                    │
-│                                                  │
-└──────────────────────────────────────────────────┘
-```
+### Radius
 
-### Sone ① — Kravhodet
+Teknisk, ikke vennlig:
 
-Når BH svarer, ser de TEs krav som et kompakt, ikke-redigerbart referansekort øverst i panelet. Det forankrer svaret i det det svarer på.
+| Token | Verdi | Bruk |
+|-------|-------|------|
+| r-sm | 2px | Inputs, checkboxer, badges. Nesten skarpt — kontraktsdokument-karakter. |
+| r-md | 4px | Kort, seksjoner, segmented controls |
+| r-lg | 6px | Modaler, referansekort |
+| r-full | 9999px | Progress bar, status-pills. Kun for indikatorer, ikke kontroller. |
 
-**Designbeslutning:** Kortet bruker en subtil overflate — `bg-pkt-bg-subtle` med en tynn `border-pkt-border-subtle` — for å markere det som referanse, ikke innhold. Tekstfargen er dempet (`text-pkt-text-body-subtle`), ikke full styrke.
+### Typografi
 
-```
-BH svarer på fristkrav:
+| Nivå | Font | Størrelse | Weight | Tracking | Bruk |
+|------|------|-----------|--------|----------|------|
+| Seksjonsoverskrift | Oslo Sans | 11px | 500 | 0.06em | UPPERCASE. §-seksjoner i sone ③ |
+| Feltlabel | Oslo Sans | 13px | 400 | normal | Radelabels i key-value-rader |
+| Verdi | font-mono | 14px | 500 | tabular-nums | Tall, datoer, beløp |
+| Brødtekst | Oslo Sans | 14px | 400 | normal | Løpende tekst i begrunnelse |
+| Kontroll-tekst | Oslo Sans | 13px | 500 | normal | Radio-labels, checkbox-labels |
+| Knappetekst | Oslo Sans | 13px | 600 | normal | Footer-knapper |
+| Helper | Oslo Sans | 11px | 400 | normal | Differanse-tekst, dynamiske beregninger |
+| §-ref inline | font-mono | inherit | 500 | normal | §-referanser i tekst |
 
-╔══════════════════════════════════════════════════╗
-║  TEs krav                                 Rev. 1 ║
-║                                                  ║
-║  Spesifisert krav §33.6                          ║
-║  45 kalenderdager  ·  Ny sluttdato 15.08.2026    ║
-║  Varslet 15.01  ·  Spesifisert 28.01             ║
-╚══════════════════════════════════════════════════╝
-```
+### Ikonsystem
 
-**Når TE sender krav:** Kravhodet er tomt eller viser et kort kontekstkort med dato oppdaget, gjeldende versjon og eventuell BH-forespørsel. Ingen referansekort — TE er den som skaper innholdet.
+Lucide React. 16px standard, 14px i tett kontekst.
 
-**Designprinsipper for kravhodet:**
-- Flat. Ingen hover-state, ingen interaksjon. Det er et dokument, ikke en knapp.
-- `Rev. 1` vises som monospace-tag i øvre høyre hjørne for å signalisere versjon.
-- §-referanser i teksten er i Oslo-indigo (`#2a2859`) med medium weight — de er domeneord, ikke lenker.
-- Datoer er `font-mono tabular-nums` — de stiller seg opp som i et register.
+| Ikon | Bruk |
+|------|------|
+| `Info` | §-kontekst tooltip ved seksjonsoverskrifter |
+| `Upload` | Filopplasting |
+| `Paperclip` | Fil i vedleggsliste |
+| `Calendar` | Dato-input trigger (custom popover, ikke native) |
+| `AlertTriangle` | Advarsel (preklusjon, passivitet) |
+| `Ban` | Kritisk advarsel (>14d uten svar) |
+| `ChevronDown` | Ekspander/kollaps |
+| `RotateCcw` | Regenerer begrunnelse |
+| `X` | Slett vedlegg, lukk |
+| `Loader2` | Loading-spinner i submit-knapp |
 
-### Sone ② — Posisjonskort
+---
 
-En kompakt, horisontal stripe som viser forhandlingsposisjonen. Bare synlig når det finnes BH-respons.
+## Tilstandstabell
 
-**Tre kolonner: Krevd | Godkjent | Grad**
+### Sone-tilstander
 
-Hvert tall er en selvstendig verdi, ikke en del av en frase.
+| Tilstand | Bakgrunn | Venstre kant | Footer |
+|----------|----------|--------------|--------|
+| Lesemodus — BH | bg-pkt-bg-card | ingen | Svar på krav · Godta · Revider |
+| Lesemodus — TE | bg-pkt-bg-card | ingen | Send krav · Trekk tilbake |
+| Redigeringsmodus | bg-pkt-bg-card | ingen | Avbryt · Send svar/krav §XX |
+| Lukket — omforent | bg-pkt-bg-card | 2px solid green-1000 | Ingen |
+| Lukket — trukket | bg-pkt-bg-card | 2px dashed gray-400 | Ingen |
+| Deaktivert (Force Majeure) | bg-pkt-bg-subtle | ingen | Ingen |
 
-```
-Vederlag:
+### Kontroll-interaksjonstilstander
 
-┌──────────┬──────────┬──────────┐
-│ KREVD    │ GODKJENT │ GRAD     │
-│ kr 450k  │ kr 280k  │ 62%      │
-├──────────┴──────────┴──────────┤
-│ ████████████████░░░░░░░░░░░░░░ │
-└────────────────────────────────┘
+| Element | Default | Hover | Focus | Disabled |
+|---------|---------|-------|-------|----------|
+| Radio | border-subtle, transparent bg | bg-subtle/50 | ring-2 warm-blue/30 | opacity-50 |
+| Checkbox | border-default | bg-subtle/50 | ring-2 warm-blue/30 | opacity-50 |
+| Tall-input | bg-subtle, border-subtle | border-default | border-2 warm-blue, ring-1 | opacity-50 |
+| Ja/Nei uvalgt | bg-subtle | border-default | ring-2 warm-blue/30 | opacity-50 |
+| Segmented uvalgt | transparent | bg-subtle/50 | ring-2 warm-blue/30 | opacity-50 |
+| Segmented valgt | bg-default, border-b-2 warm-blue | — | — | — |
+| Submit | bg-dark-blue-1000, white | opacity-90 | ring-2 warm-blue/30 | opacity-50 |
 
-Frist:
+### Datatilstander
 
-┌──────────┬──────────┬──────────┐
-│ KREVD    │ GODKJENT │ GRAD     │
-│ 45d      │ 30d      │ 67%      │
-├──────────┴──────────┴──────────┤
-│ ██████████████████░░░░░░░░░░░░ │
-└────────────────────────────────┘
-```
+| Tilstand | Visuell behandling |
+|----------|-------------------|
+| Loading | Skeleton-rader i sone ①-③. Pulserende bg-subtle. |
+| Tom (ingen krav) | Sentrert: «Ingen krav mottatt for dette sporet.» + handlingsknapp |
+| Feil (lasting) | Rød alert med retry-knapp |
+| Tom begrunnelse | Kontekstbasert placeholder (se §Dynamisk begrunnelsestekst) |
+| Validering feilet | Input: border-red-1000. Helper: rød feilmelding. |
 
-**Designbeslutninger:**
-- Labels: 11px, UPPERCASE, `text-pkt-text-body-subtle`, tracking-wide. Som kolonnehoder i et regneark.
-- Verdier: 16px, monospace, `font-semibold`. Krevd i `text-bento-krevd` (amber-700). Godkjent i `text-pkt-brand-dark-green-1000`. Grad fargekodes: ≥70% grønn, 40–69% amber, <40% rød.
-- Progress bar: 6px høy (ikke 1.5px som i access-sidens `MiniProgress`). `rounded-full`. Visuelt signifikant — dette er resultatet av forhandlingen.
-- **Subsidiær-indikator:** Når vederlag/frist er subsidiert, vises en liten `Subs.`-tag i amber ved siden av GODKJENT-labelen. Subsidiært beløp/dager vises under hovedtallet i dempet tekst.
+### Valideringsfeil
 
-**Grunnlag har ikke KPI-tall** — det er godkjent/avslått/frafalt, ikke et tall. Her er posisjonskort enten:
-- En horisontal badge: `Godkjent` (grønn), `Avslått` (rød), `Frafalt` (grå)
-- Eller ingenting (brukeren ser resultatet i sone ③)
+| Felt | Regel | Melding |
+|------|-------|---------|
+| Godkjent dager | > krevd | «Kan ikke godkjenne mer enn krevd ({N}d)» |
+| Godkjent beløp | > krevd | «Kan ikke godkjenne mer enn krevd ({N} kr)» |
+| Godkjent ved "Delvis" | = 0 | «Delvis godkjenning krever verdi > 0» |
+| Begrunnelse | < 10 tegn | «Begrunnelse er påkrevd (min. 10 tegn)» |
+| Dato | ugyldig | «Ugyldig dato — bruk DD.MM.ÅÅÅÅ» |
 
-### Sone ③ — Beslutningsfelt
+---
 
-Her skjer arbeidet. Feltene varierer radikalt mellom de tre kravtypene og mellom TE- og BH-modus. Men de deler en felles visuell grammatikk.
+## Komponent-tokens
 
-#### Visuell grammatikk for felter
-
-**1. Seksjoner med §-referanse**
-
-Hvert logisk steg i evalueringen er en seksjon med kapitteloverskrift:
+### Seksjonsoverskrift med §-referanse
 
 ```
 VARSLING §33.4                                         ⓘ
 ────────────────────────────────────────────────────────
 ```
 
-- 11px, UPPERCASE, tracking-wide, `font-medium`
-- §-referanse i monospace
-- Tynn info-ikon (ⓘ) for tooltip med §-kontekst
-- Seksjonslinje: 1px `border-pkt-border-subtle`
+```
+container:
+  margin-top: sp-5 (20px)
+  padding-bottom: sp-2 (8px)
+  border-bottom: 1px solid border-pkt-border-subtle
 
-**2. Key-value-rader**
+tittel:
+  font: Oslo Sans, 11px, weight 500, UPPERCASE, tracking 0.06em
+  farge: text-pkt-text-body-subtle
 
-Data som allerede er satt vises som horisontale rader med prikket leader:
+§-ref:
+  font: font-mono, 11px, weight 500
+  farge: text-pkt-text-body-subtle
+
+info-ikon:
+  Lucide Info, 14px, text-pkt-text-body-subtle
+  posisjon: høyrestilt
+  hover: text-pkt-text-body-default
+  tooltip: bg-pkt-bg-card, border-subtle, r-md, max-width 280px
+```
+
+### Key-value-rad
 
 ```
 Oppdaget ···················· 10.01.2026
-Varslet ····················· 15.01.2026
-Spesifisert ················· 28.01.2026
 ```
 
-- Label: 13px, `text-pkt-text-body-subtle`, venstrestilt
-- Leader: prikket linje med `border-dotted border-pkt-grays-gray-200`
-- Verdi: 13px, `text-pkt-text-body-default`, høyrestilt, `font-mono tabular-nums` for datoer og tall
-- Rad-padding: 4px vertikal — tett, som i en kontraktsprotokoll
+```
+rad:
+  display: flex, justify-between, align-items baseline
+  padding: sp-1 (4px) 0
 
-**3. Beslutningskontroller**
+label:
+  Oslo Sans, 13px, weight 400, text-pkt-text-body-subtle
 
-Aktive felter der brukeren gjør valg. Tre typer:
+leader:
+  flex: 1
+  border-bottom: 1px dotted border-pkt-grays-gray-200
+  margin: 0 sp-2 (8px)
 
-**a) Resultat-valg (radio-gruppe)**
+verdi:
+  font-mono, 13px, weight 400, tabular-nums
+  text-pkt-text-body-default, white-space: nowrap
+```
 
-Brukes for: Grunnlag godkjent/avslått/frafalt. Vederlag godkjent/delvis/avslått. Frist godkjent/delvis/avslått.
+### Resultat-valg (radio-gruppe)
 
 ```
 DIN VURDERING
@@ -209,16 +275,30 @@ DIN VURDERING
   ○  Avslått           Hele kravet avslås
 ```
 
-- Radios er vertikale, ikke horisontale kort (VerdictCards). Vertikale radios tar mindre plass og leses raskere i et dokument-grensesnitt.
-- Valgt alternativ: `ring-2 ring-pkt-brand-warm-blue-1000/30` bakgrunn, `bg-pkt-bg-subtle` — subtil uthevning.
-- Hvert alternativ har: radioknapp + tittel (14px, `font-medium`) + beskrivelse (13px, `text-pkt-text-body-subtle`).
-- Hover: `bg-pkt-bg-subtle/50` overgang.
+```
+gruppe:
+  layout: vertikal stack, gap sp-2 (8px)
+  margin-top: sp-3 (12px)
 
-**Hvorfor ikke VerdictCards:** VerdictCards (tre/to klikkbare kort med ikoner) tar ~180px vertikalt og dominerer visuelt. I en beslutningsflate med 5–8 seksjoner må hvert element være kompakt. Vertikale radios tar ~80px for tre alternativer.
+alternativ:
+  display: flex, align-items start, gap sp-2 (8px)
+  padding: sp-2 (8px) sp-3 (12px)
+  radius: r-md (4px)
+  border: 1px solid transparent
+  transition: background 150ms ease
 
-**b) Tall-input**
+  radio-sirkel: 16px, border 2px solid border-pkt-border-default
+    valgt: fill warm-blue-1000, inset 3px
+  tittel: Oslo Sans, 14px, weight 500
+  beskrivelse: Oslo Sans, 13px, weight 400, text-subtle
 
-Brukes for: Godkjent dager, godkjent beløp.
+  hover: bg-pkt-bg-subtle/50
+  valgt: bg-pkt-bg-subtle, ring-2 warm-blue/20
+  focus-visible: ring-2 warm-blue/30
+  disabled: opacity-50, cursor-not-allowed
+```
+
+### Tall-input
 
 ```
 Godkjent fristforlengelse
@@ -228,33 +308,63 @@ Godkjent fristforlengelse
   Differanse: 15d (67% godkjent)
 ```
 
-- Input: `bg-pkt-bg-subtle` bakgrunn (innsatt), `border-pkt-border-subtle`, `font-mono tabular-nums`.
-- Suffiks: «kalenderdager» eller «kr» i dempet tekst innenfor input-feltet.
-- Helper under: 11px, `text-pkt-text-body-subtle`. Viser beregnet differanse og prosent. Dynamisk — oppdateres mens brukeren taster.
-- Fargekoding av helper: Prosenten farges etter grad (grønn/amber/rød).
+```
+label:
+  Oslo Sans, 13px, weight 400, text-subtle
+  margin-bottom: sp-1 (4px)
 
-**c) Innsigelse-checkboxer**
+input:
+  bg: bg-pkt-bg-subtle (innsatt — mørkere signaliserer "skriv her")
+  border: 1px solid border-pkt-border-subtle
+  radius: r-sm (2px)
+  padding: sp-2 (8px) sp-3 (12px)
+  font: font-mono, 14px, weight 500, tabular-nums
+  høyde: 36px
 
-Brukes for: §33.4 preklusjon, §33.6.1 preklusjon, §33.1 vilkår, §34.1.2 varsling.
+suffiks:
+  Oslo Sans, 13px, weight 400, text-subtle
+  innenfor input, høyrestilt
+  separator: 1px solid border-subtle
+
+helper:
+  Oslo Sans, 11px, weight 400, margin-top sp-1
+  differanse: text-subtle
+  prosent: fargekodes (grønn ≥70%, amber 40–69%, rød <40%)
+  oppdateres live (debounce 150ms)
+```
+
+### Innsigelse-checkbox
 
 ```
 INNSIGELSER
 
   □  Preklusjon §33.4 — varslet for sent
   ☑  Preklusjon §33.6.1 — spesifisert for sent
-  □  Vilkår §33.1 — fremdrift ikke hindret
 ```
 
-- Checkboxer, ikke toggles. Checkboxer er eksplisitte — du krysser av for en juridisk posisjon.
-- Hver checkbox har: checkbox + §-referanse (monospace) + lang-beskrivelse (13px, normal).
-- Avkrysset: label i `text-pkt-brand-red-1000` — innsigelse er en rødflagging.
-- Unchecked: label i `text-pkt-text-body-default`.
+```
+gruppe:
+  layout: vertikal stack, gap sp-2 (8px)
+  margin-top: sp-3 (12px)
 
-**Hvorfor ikke InlineYesNo:** InlineYesNo (Ja/Nei-knapper) er binære men visuelt tvetydige — «Varslet i tide?» krever at brukeren mentalt inverterer for å forstå konsekvensen. Eksplisitte checkboxer med §-referanse gjør juridisk posisjon tydelig: «Jeg hevder preklusjon etter §33.6.1.»
+checkbox-rad:
+  display: flex, align-items start, gap sp-2 (8px)
+  padding: sp-1 (4px) sp-2 (8px)
+  radius: r-sm (2px)
+  cursor: pointer
 
-**d) Segmented control**
+  checkbox: 16×16px, border 2px, radius r-sm
+    avkrysset: bg warm-blue-1000, ✓ hvit
+  §-ref: font-mono, 13px, weight 500
+  beskrivelse: Oslo Sans, 13px, weight 400
 
-Brukes for: Varseltype (varsel/krav/utsatt). Beregningsmetode (enhetspriser/regningsarbeid/fastpris).
+  unchecked: text-pkt-text-body-default
+  avkrysset: text-pkt-brand-red-1000 (innsigelse = rødflagging)
+  hover: bg-subtle/50
+  focus-visible: ring-2 warm-blue/30
+```
+
+### Segmented control
 
 ```
 BEREGNINGSMETODE §34
@@ -264,12 +374,32 @@ BEREGNINGSMETODE §34
   └─────────────┴──────────────────┴─────────────┘
 ```
 
-- 13px, `font-medium`. Valgt segment: `bg-pkt-bg-default` (hvit) med `shadow-sm` — løftet over. Uvalgt: transparent.
-- Forklaringstekst under kontrollen (13px, `text-pkt-text-body-subtle`) som endrer seg basert på valg — hva konsekvensen er av metodevalget.
+```
+container:
+  bg: bg-pkt-bg-subtle
+  border: 1px solid border-subtle
+  radius: r-md (4px)
+  padding: 2px
+  display: flex
 
-**e) Ja/Nei-valg**
+segment:
+  font: Oslo Sans, 13px, weight 500
+  padding: sp-1 (4px) sp-3 (12px)
+  radius: r-sm (2px)
+  transition: all 150ms ease
 
-Brukes for: «Har forholdet hindret fremdriften?», «Varslet før oppstart?», «Justerte enhetspriser?»
+  uvalgt: transparent, text-subtle
+    hover: bg-subtle/80
+  valgt: bg-pkt-bg-default (surface shift — lysere = løftet)
+    border-bottom: 2px solid warm-blue-1000 (erstatter shadow-sm)
+    text-default, weight 600
+
+forklaringstekst:
+  under kontroll, 13px, text-subtle
+  dynamisk basert på valg
+```
+
+### Ja/Nei-valg
 
 ```
 Har forholdet hindret fremdriften? §33.1
@@ -278,124 +408,199 @@ Har forholdet hindret fremdriften? §33.1
   └─────┘ └─────┘
 ```
 
-- To knapper. Valgt: `bg-pkt-brand-dark-green-1000 text-white` (Ja) eller `bg-pkt-brand-red-1000 text-white` (Nei). Uvalgt: `bg-pkt-bg-subtle text-pkt-text-body-default`.
-- Kompakt: 32px høyde, 48px bredde. Ikke store kort — korte knappepar.
-
-#### Betinget synlighet — hva som vises når
-
-Felter dukker opp og forsvinner basert på tilstand. Dette er kjernen i domenelogikken og det som skiller dette fra et generisk skjema.
-
-**Frist (BH svarer):**
-
 ```
-Alltid synlig:
-  - Kravhode (TEs krav)
-  - Resultat-valg (Godkjent/Delvis/Avslått)
+label:
+  Oslo Sans, 13px, weight 400
+  §-ref: font-mono, weight 500
+  margin-bottom: sp-2 (8px)
 
-Synlig hvis resultat ≠ Godkjent:
-  - Godkjent dager (tall-input)
+knapper:
+  display: flex, gap sp-2 (8px)
 
-Alltid synlig:
-  - Innsigelse-checkboxer (§33.4, §33.6.1, §33.1)
+  knapp:
+    høyde: 36px, min-width: 52px (matcher tall-input for visuell konsistens)
+    font: Oslo Sans, 13px, weight 500
+    radius: r-sm (2px)
+    border: 1px solid border-subtle
+    transition: all 150ms ease
 
-Synlig hvis minst én innsigelse:
-  - Subsidiært standpunkt (egen seksjon)
-
-Synlig hvis BH har sendt forespørsel:
-  - Forespørsel-seksjon med frist
+    uvalgt: bg-subtle, text-default
+      hover: border-default
+    valgt Ja: bg-dark-green-1000, text-white, border-transparent
+    valgt Nei: bg-red-1000, text-white, border-transparent
+    focus-visible: ring-2 warm-blue/30
 ```
 
-**Frist (TE sender):**
+### Konsekvens-callout
 
 ```
-Alltid synlig:
-  - Varseltype (segmented: Varsel / Krav / Utsatt)
+container:
+  padding: sp-3 (12px) sp-4 (16px)
+  radius: r-md (4px)
+  border-left: 3px solid (semantisk farge)
+  margin-top: sp-3 (12px)
 
-Synlig hvis Krav eller Utsatt:
-  - Krevd dager (tall-input)
-  - Ny sluttdato (dato-input, valgfritt)
+varianter:
+  godkjent: bg-alert-success-bg, border-left green-1000
+  avslått/advarsel: bg-alert-warning-bg, border-left amber
+  kritisk: bg-alert-danger-bg, border-left red-1000
+  info: bg-alert-info-bg, border-left blue
 
-Synlig hvis status har varsel men ikke krav:
-  - Spesifiserings-alert
-
-Synlig hvis BH-forespørsel ventende:
-  - Forespørsels-alert med frist
-
-Alltid synlig:
-  - Vedlegg (drag-drop)
+tekst: Oslo Sans, 13px, weight 400
+ikon: Lucide AlertTriangle/Info, 16px, semantisk farge
 ```
 
-**Vederlag (BH svarer):**
+### Betinget synlighet — overganger
 
 ```
-Alltid synlig:
-  - Kravhode (TEs krav)
-  - Metodevalg (MethodCards: Enhetspriser/Regningsarbeid/Fastpris)
+vis:  opacity 0→1 over 150ms ease-out + max-height 0→auto over 200ms ease-out
+skjul: opacity 1→0 over 100ms ease-in + max-height auto→0 over 150ms ease-in
 
-Synlig for hvert kravlinje (hovedkrav, rigg, produktivitet):
-  - Varsling-toggle (hvis ikke ENDRING)
-  - Godkjent beløp (tall-input)
-  - Resultat-badge (beregnet fra krevd vs godkjent)
-
-Synlig hvis grunnlag avslått:
-  - Subsidiær-kontekstalert
-
-Synlig hvis EP-justering:
-  - EP-justering toggle (§34.3.3)
-
-Synlig hvis tilbakeholdelse:
-  - Tilbakeholdelse-felt (§30.2)
+WHY: Raskere enn 300ms (ekspertbruker), men ikke instant (desorienterende
+i et langt scrollbart panel). Opacity først gir mykere opplevelse.
 ```
 
-**Vederlag (TE sender):**
+---
+
+## Midtpanelet — Beslutningsflaten
+
+Redigerbart protokoll-ark med fire soner.
+
+**Above the fold:** Sone ① + ② + første seksjon av ③ synlig uten scrolling på 1080p (~280px). Resten scroller.
 
 ```
-Alltid synlig:
-  - Metode-segmented (Enhetspriser/Regningsarbeid/Fastpris)
-
-Synlig hvis Enhetspriser:
-  - Beløp direkte (tall-input)
-  - Justerte EP toggle
-
-Synlig hvis Regningsarbeid:
-  - Kostnadsoverslag (tall-input)
-  - Varslet før oppstart toggle
-
-Synlig hvis Fastpris:
-  - Beløp direkte (tall-input)
-
-Alltid synlig:
-  - Særskilte krav §34.1.3
-    - Rigg/drift toggle + beløp + dato
-    - Produktivitet toggle + beløp + dato
-  - Vedlegg
+┌──────────────────────────────────────────────────┐
+│  ① KRAVHODE                                     │
+│──────────────────────────────────────────────────│
+│  ② POSISJONSKORT                                │
+│──────────────────────────────────────────────────│
+│  ③ BESLUTNINGSFELT                              │
+│──────────────────────────────────────────────────│
+│  ④ RESULTATBOKS (redigeringsmodus)              │
+│──────────────────────────────────────────────────│
+│  FOOTER (sticky bottom)                          │
+└──────────────────────────────────────────────────┘
 ```
 
-**Grunnlag (BH svarer):**
+```
+panel:
+  bg: bg-pkt-bg-card
+  padding: sp-5 (20px)
+  scrolling: overflow-y-auto (innhold scroller, footer sticky)
+  separator mot venstepanel: ingen (overflateforskjell)
+  separator mot høyrepanel:
+    lesemodus: 1px solid border-pkt-border-subtle
+    redigeringsmodus: 3px solid border-pkt-brand-warm-blue-1000
+```
+
+### Sone ① — Kravhodet
+
+Referansekort som forankrer svaret i det det svarer på.
+
+**BH svarer (TEs krav som referanse):**
 
 ```
-Synlig hvis ENDRING:
-  - Varslet i tide toggle (§32.2)
-
-Synlig hvis varslet_i_tide = false:
-  - Preklusjons-advarsel
-
-Alltid synlig:
-  - Resultat-valg (Godkjent/Avslått/Frafalt)
-
-Synlig etter valg:
-  - Konsekvens-callout (hva valget betyr for vederlag/frist)
-
-Synlig hvis oppdateringsmodus:
-  - Nåværende svar-banner
-
-Synlig hvis snuoperasjon (avslått → godkjent):
-  - Snuoperasjon-alert (subsidiære svar blir prinsipale)
+╔══════════════════════════════════════════════════╗
+║  Krav fra TE — Veidekke                   Rev. 1 ║
+║                                                  ║
+║  Spesifisert krav                                ║
+║  45 kalenderdager  ·  Ny sluttdato 15.08.2026    ║
+║  Varslet 15.01  ·  Spesifisert 28.01             ║
+╚══════════════════════════════════════════════════╝
 ```
+
+```
+container:
+  bg: bg-pkt-bg-subtle
+  border: 1px solid border-pkt-border-subtle
+  radius: r-md (4px)
+  padding: sp-3 (12px) sp-4 (16px)
+
+header:
+  "Krav fra TE — [Firma]": Oslo Sans, 13px, weight 500, text-subtle
+  "Rev. N": font-mono, 11px, weight 500, text-subtle, høyrestilt
+  §-ref i kategori: sekundær (text-subtle, ikke uthevet)
+
+data:
+  font-mono, 13px, weight 400, tabular-nums, text-subtle
+  prikk-separert (·), datoer DD.MM
+
+tilstander:
+  flat — ingen hover, ingen interaksjon
+  versjonsmismatch: amber border-l-[3px], ⚠-banner under header
+    "Du svarte på Rev. N — TE har oppdatert"
+    endrede verdier med gjennomstreking på gammel verdi
+```
+
+**TE sender:** Kontekstkort med dato oppdaget, gjeldende versjon, ev. BH-forespørsel. Samme spec, tynnere innhold.
+
+**Nulltilstand:** Sone ① tar 0px. Sone ② starter øverst.
+
+### Sone ② — Posisjonskort
+
+Kompakt horisontal stripe. Bare synlig når det finnes respons.
+
+**Vederlag/Frist:**
+
+```
+┌──────────┬──────────┬──────────┐
+│ KREVD    │ GODKJENT │ GRAD     │
+│ kr 450k  │ kr 280k  │ 62%      │
+├──────────┴──────────┴──────────┤
+│ ████████████████░░░░░░░░░░░░░░ │
+└────────────────────────────────┘
+```
+
+```
+container:
+  padding: sp-3 (12px) 0
+  margin-bottom: sp-5 (20px)
+
+kolonner (3, lik bredde):
+  label: 11px, weight 500, UPPERCASE, tracking 0.06em, text-subtle
+  verdi: 16px, font-mono, weight 600, tabular-nums
+    krevd: text-amber-700
+    godkjent: text-pkt-brand-dark-green-1000
+    grad: ≥70% grønn, 40–69% amber, <40% rød
+
+progress bar:
+  høyde: 6px (forhandlingsresultatet er hovedinformasjonen)
+  radius: r-full
+  bg: bg-pkt-bg-subtle
+  fill: fargekodes som grad
+  animasjon: transition-all 300ms ease-out
+
+subsidiær-indikator:
+  synlig når subsidiært finnes
+  "Subs."-tag: 9px, uppercase, weight 600, amber-700, bg-amber-50
+    padding 1px 4px, r-sm, ved GODKJENT-label
+  subsidiært tall: 11px, font-mono, text-subtle, under hovedtall
+```
+
+**Grunnlag (binær, ikke tall):**
+
+```
+badge:
+  godkjent: bg-green-1000/10, text-green-1000
+  avslått: bg-red-1000/10, text-red-1000
+  frafalt: bg-subtle, text-subtle
+  font: 11px, uppercase, weight 600, tracking 0.06em
+  padding: 2px 8px, r-full
+```
+
+**Nulltilstand:** Sone ② ikke synlig.
+
+### Sone ③ — Beslutningsfelt
+
+Feltene varierer mellom kravtyper og roller. De deler den visuelle grammatikken definert i §Komponent-tokens.
+
+**Betinget synlighet per kravtype:**
+
+Se §Per-kravtype detaljdesign for komplett mapping.
 
 ### Sone ④ — Resultatboks
 
-Vises nederst i midtpanelet under redigeringsmodus. Oppsummerer det beregnede resultatet av beslutningene tatt over.
+Nederst i midtpanelet, kun i redigeringsmodus.
 
 ```
 RESULTAT
@@ -404,109 +609,258 @@ RESULTAT
   Subsidiært     Delvis godkjent · 20 kalenderdager
 ```
 
-- Bakgrunn: `bg-pkt-bg-subtle` med `border-t border-pkt-border-subtle`.
-- Prinsipalt-linje: full styrke tekst. Badge-fargekoding (grønn/amber/rød).
-- Subsidiært-linje: dempet (`text-pkt-text-body-subtle`), med `Subs.`-tag.
-- Dynamisk: oppdateres live mens brukeren endrer verdier.
+```
+container:
+  bg: bg-pkt-bg-subtle
+  border-top: 1px solid border-subtle
+  padding: sp-3 (12px) sp-4 (16px)
+  margin-top: sp-5 (20px)
+
+tittel: seksjonsoverskrift-stil (11px uppercase)
+
+prinsipalt:
+  Oslo Sans, 13px, weight 500, text-default
+  badge: fargekodes (grønn/amber/rød)
+  verdi: font-mono, tabular-nums
+
+subsidiært:
+  Oslo Sans, 13px, weight 400, text-subtle
+  "Subs."-tag: 9px, uppercase, amber
+  synlig: kun ved subsidiært standpunkt
+
+oppdateres live (debounce 150ms)
+```
 
 ---
 
 ## Høyrepanelet — Argumentasjonsflaten
 
-Høyrepanelet er der brukeren skriver. Det er en dedikert skrivesone for begrunnelsen — den juridiske argumentasjonen som forklarer og forsvarer posisjonene tatt i midtpanelet.
+```
+panel:
+  bg: bg-pkt-bg-card
+  bredde: w-[340px]
+    WHY: 340px gir ~55 tegn/linje — komfortabel skrivebredde for
+    norsk kontraktstekst. Smalere enn 380px for å gi midtpanelet plass.
+  venstre-kant:
+    lesemodus: 1px solid border-subtle
+    redigeringsmodus: 3px solid warm-blue-1000
+  scrolling: overflow-y-auto
+```
 
-### Hvorfor begrunnelse trenger egen kolonne
+### Tab-strip
 
-I byggeprosjekter kan begrunnelser bli 500–2000 ord. De refererer til kontraktsbestemmelser, vedlegg, fremdriftsplaner, korrespondanse. De er juridiske dokumenter som kan bli brukt i voldgift. Å klemme denne teksten inn i en textarea midt i et skjema — slik bento-layouten gjør med `rows={10}` i en halv kortbredde — er å nedprioritere det viktigste brukeren produserer.
+```
+container:
+  border-bottom: 1px solid border-subtle
+  display: flex
 
-Høyrepanelet gir 340–360px dedikert bredde. Det er smalt nok til å ikke overta arbeidsflaten, men bredt nok for en komfortabel skriverutine.
+tab:
+  Oslo Sans, 13px, weight 500
+  padding: sp-2 (8px) sp-3 (12px)
+  border-bottom: 2px solid transparent
+  text-subtle
 
-### Modusskifte: referanse → editor
+  aktiv: text-warm-blue-1000, border-bottom warm-blue-1000
+  hover: text-default
+  dimmet (under redigering): opacity-40, pointer-events-none
+```
 
-Høyrepanelet har to moduser:
+Tre faner: **Begrunnelse**, **Historikk**, **Filer**.
 
-**Lesemodus** (ingen redigering aktiv i midtpanelet):
-- Begrunnelse-fanen viser eksisterende begrunnelser (TEs og BHs) som read-only tekst.
-- Historikk-fanen viser tidslinje.
-- Filer-fanen viser vedlegg.
+### Lesemodus — Begrunnelse-fane
 
-**Redigeringsmodus** (bruker jobber i midtpanelet):
-- Begrunnelse-fanen transformeres til aktiv editor.
-- Historikk- og Filer-fanene dimmes/låses — brukeren skal ikke navigere vekk fra begrunnelsen midt i arbeidet.
-- En visuell modus-indikator: venstre-kant av panelet får en 3px accent i warm-blue (`#1f42aa`), tilsvarende redigeringsmodus-indikatoren på bento-kort.
-
-### Dual-block-mønsteret
-
-Når BH svarer, inneholder høyrepanelet to blokker: TEs begrunnelse (referanse) over BHs begrunnelse (editor). En visuell separator mellom dem.
+Eksisterende begrunnelser som read-only blokker med rolle-badge.
 
 ```
 ┌──────────────────────────────────┐
-│  TEs krav                        │
-│  ┌──────────────────────────────┐│
-│  │ Forsinkelsen skyldes under-  ││
-│  │ leverandør Stålmontasje AS   ││
-│  │ sin sene leveranse av bære-  ││
-│  │ konstruksjoner, jf. varsel   ││
-│  │ av 15.01.2026.               ││
-│  │              ▾ Vis mer (3/8) ││
-│  └──────────────────────────────┘│
+│ TE  Krav fra Veidekke     Rev. 1 │
+│ ┌──────────────────────────────┐ │
+│ │ Forsinkelsen skyldes under-  │ │
+│ │ leverandør Stålmontasje AS   │ │
+│ │              ▾ Vis mer (3/8) │ │
+│ └──────────────────────────────┘ │
 │                                  │
-│  ··· TE → BH ···                │
-│                                  │
-│  BHs vurdering (deg)             │
-│  ┌──────────────────────────────┐│
-│  │                              ││
-│  │  Godkjenner {{dager:30:30    ││
-│  │  dager}} av {{dager:45:45    ││
-│  │  dager}}.                    ││
-│  │                              ││
-│  │  TE har ikke dokumentert     ││
-│  │  at forsinkelsen påvirker    ││
-│  │  kritisk linje utover        ││
-│  │  {{dager:30:30 dager}}.      ││
-│  │  Innsigelse mot              ││
-│  │  spesifisering               ││
-│  │  {{paragraf:§33.6:§33.6}}.   ││
-│  │                              ││
-│  │  ──────────────────          ││
-│  │  ¶  B  I                     ││
-│  └──────────────────────────────┘│
-│                                  │
-│  ┌ Vedlegg ────────────────────┐│
-│  │ ⇧ Dra filer hit             ││
-│  └──────────────────────────────┘│
+│ BH  Svar fra Oslobygg    Rev. 1 │
+│ ┌──────────────────────────────┐ │
+│ │ Byggherren anser varselet    │ │
+│ │ mottatt i tide...            │ │
+│ └──────────────────────────────┘ │
 └──────────────────────────────────┘
 ```
 
-**TE-blokken:**
-- Read-only. Bakgrunn: `bg-pkt-bg-subtle`. Border: `border-pkt-border-subtle`.
-- Teksten er komprimerbar — viser 3 linjer med «Vis mer» for å ekspandere. Brukeren trenger kontekst men ikke hele teksten hele tiden.
-- Rolle-badge: `TE` i grønn pill (`bg-role-te-pill-bg text-role-te-text`).
-- Tekst: 13px, `leading-relaxed`, `text-pkt-text-body-default`.
+```
+blokk-header:
+  display: flex, justify-between
+  margin-bottom: sp-2 (8px)
+
+  rolle-badge:
+    TE: bg-role-te-pill-bg, text-role-te-text
+    BH: bg-role-bh-pill-bg, text-role-bh-text
+    10px, uppercase, weight 600, padding 1px 6px, r-full
+  firmanavn: Oslo Sans, 13px, weight 500
+  revisjon: font-mono, 11px, text-subtle
+
+tekst-container:
+  bg: bg-pkt-bg-subtle
+  border: 1px solid border-subtle
+  radius: r-md (4px)
+  padding: sp-3 (12px)
+  font: Oslo Sans, 13px, weight 400, leading-relaxed
+
+  LockedValue-tokens (read-only badges):
+    dager: bg-blue-200, border-blue, text-dark-blue-1000
+    beløp: bg-light-green-400, border-green, text-dark-green-1000
+    prosent: bg-[#f3e8ff], border-purple-1000, text-dark-blue-1000
+    §-ref: bg-subtle, border-gray, text-dark
+    alle: font-mono, 12px, weight 500, padding 0 4px, r-sm, border 1px
+
+  trunkering: 3 linjer + "Vis mer (N/M avsnitt)"
+    "Vis mer": 11px, weight 500, text-warm-blue-1000
+    expand: max-height 200ms ease-out
+```
+
+### Lesemodus — Historikk-fane
+
+Gjenbruker hendelseslogg-mønsteret fra Forhandlingsbordet, tilpasset full bredde.
+
+```
+hendelseslinje:
+  [ikon 16px] [dato 42px mono] [tekst flex] [part 24px]
+  padding: sp-2 (8px) sp-3 (12px)
+  border-bottom: 1px solid border-subtle
+
+  ikon: Lucide, 14px
+    → Send/Clipboard: text-subtle
+    ⚑ Flag: text-subtle
+    ↻ RotateCcw: text-amber-700
+    ◇ CheckCircle: text-green-1000
+    ✕ X: text-red-1000
+  dato: font-mono, 11px, text-subtle, tabular-nums
+  tekst: Oslo Sans, 12px, text-default
+  part: font-mono, 11px, text-subtle
+
+nulltilstand: "Ingen hendelser ennå.", sentrert, text-subtle
+```
+
+### Lesemodus — Filer-fane
+
+```
+fil-rad:
+  display: flex, align-items center, gap sp-2 (8px)
+  padding: sp-2 (8px) sp-3 (12px)
+  border-bottom: 1px solid border-subtle
+  hover: bg-subtle/50
+
+  ikon: Lucide Paperclip, 14px, text-subtle
+  filnavn: Oslo Sans, 13px, weight 400 (klikk åpner)
+  størrelse: font-mono, 11px, text-subtle
+  opplaster: 11px, text-subtle (rolle-badge + dato)
+
+nulltilstand: "Ingen vedlegg.", sentrert
+```
+
+### Redigeringsmodus — Dual-block
+
+Begrunnelse-fane transformeres. Andre faner dimmes.
+
+**BH svarer:**
+
+```
+┌──────────────────────────────────┐
+│ TE  Krav fra Veidekke            │
+│ ┌──────────────────────────────┐ │
+│ │ Forsinkelsen skyldes...      │ │
+│ │              ▾ Vis mer (3/8) │ │
+│ └──────────────────────────────┘ │
+│                                  │
+│ ··· TE → BH ···                 │
+│                                  │
+│ Din vurdering                    │
+│ ┌──────────────────────────────┐ │
+│ │                              │ │
+│ │ [TipTap editor]             │ │
+│ │                              │ │
+│ │ ──────────────────           │ │
+│ │ ¶  B  I                     │ │
+│ └──────────────────────────────┘ │
+│                                  │
+│ VEDLEGG                          │
+│ ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐ │
+│   ⇧ Dra filer hit  · PDF, DOCX  │
+│ └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘ │
+└──────────────────────────────────┘
+```
+
+**TE-blokk:** Samme spec som lesemodus begrunnelsesblokk. Komprimerbar.
 
 **Separator:**
-- En sentrert linje med «TE → BH»-tekst i dempet farge. 11px, `text-pkt-grays-gray-400`.
-- Visuelt: tynt strek-prikk-mønster med tekst i midten.
 
-**BH-blokken:**
-- Aktiv editor. BegrunnelseEditor med TipTap og LockedValue-tokens.
-- Border: `border-2 border-pkt-border-focus` — den aktive skrivesonen har tykkere, blå border for å signalisere fokus.
-- LockedValue-tokens vises som inline-badges:
-  - `{{dager:30:30 dager}}` → cyan badge (`bg-pkt-brand-blue-200 border-pkt-border-blue text-pkt-brand-dark-blue-1000`)
-  - `{{belop:150000:kr 150 000,-}}` → grønn badge (`bg-pkt-brand-light-green-400 border-pkt-border-green text-pkt-brand-dark-green-1000`)
-  - `{{prosent:67:67%}}` → lilla badge (`bg-[#f3e8ff] border-pkt-brand-purple-1000 text-pkt-brand-dark-blue-1000`)
-  - `{{paragraf:§33.6:§33.6}}` → grå badge (`bg-pkt-bg-subtle border-pkt-border-gray text-pkt-text-body-dark`)
-- Tokens er ikke-redigerbare inline — de endres automatisk når tallene endres i midtpanelet. Brukeren kan flytte dem men ikke slette dem.
-- Toolbar i bunnen: minimal. ¶ (avsnittsformater), **B** (bold), *I* (italic). Ikke full rich text — kontraktsbegrunnelser trenger avsnitt og uthevninger, ikke tabeller og bilder.
+```
+separator:
+  "TE → BH" eller "BH → TE"
+  Oslo Sans, 11px, text-pkt-grays-gray-400
+  linje: border-top 1px dashed gray-200
+  tekst: bg-pkt-bg-card, padding 0 sp-2, sentrert over linjen
+  margin: sp-4 (16px) 0
+```
 
-**Når TE sender:**
-- Ingen TE-blokk øverst (TE skriver selv).
-- Editoren tar full høyde.
-- Rollen er «skriv begrunnelse for kravet.»
+**Editor-blokk:**
 
-### Auto-begrunnelse og regenerering
+```
+label:
+  "Din vurdering" (ikke "BHs vurdering (deg)")
+  Oslo Sans, 13px, weight 500
+  margin-bottom: sp-2 (8px)
 
-Bridge-hookene genererer allerede begrunnelse automatisk basert på de strukturerte valgene i midtpanelet. Denne teksten inneholder LockedValue-tokens.
+editor-container:
+  border: 2px solid border-focus (aktiv skrivesone)
+  radius: r-md (4px)
+  bg: bg-pkt-bg-card
+  min-height: 200px
+
+  innhold:
+    padding: sp-3 (12px)
+    Oslo Sans, 14px, weight 400, leading-relaxed
+
+  LockedValue-tokens: ikke-redigerbare inline-badges
+    kan flyttes, ikke slettes
+    oppdateres live fra midtpanel-verdier
+
+  toolbar (bunn):
+    border-top: 1px solid border-subtle
+    padding: sp-1 (4px) sp-3 (12px)
+    knapper: ¶ B I — 28×28px, text-subtle
+      hover: bg-subtle, text-default
+      aktiv: bg-subtle, text-warm-blue-1000
+
+regenerer:
+  under editor, "↻ Regenerer"
+  Lucide RotateCcw + Oslo Sans 11px, weight 500, text-warm-blue-1000
+  hover: underline
+```
+
+**Vedlegg under editor:**
+
+```
+drop-sone:
+  border: 1px dashed gray-300
+  radius: r-md (4px)
+  padding: sp-4 (16px)
+  tekst: 13px, text-subtle, sentrert
+  Lucide Upload, 20px, over tekst
+  drag-over: border-warm-blue-1000, bg-warm-blue/5
+
+fil-liste:
+  margin-top: sp-2 (8px)
+  rad: Lucide Paperclip + filnavn + størrelse (mono) + Lucide X (slett)
+    slett hover: text-red-1000
+```
+
+**TE sender:** Ingen dual-block. Editor tar full høyde. Label: «Begrunnelse for kravet».
+
+### Auto-begrunnelse
+
+Bridge-hooks genererer begrunnelse automatisk. Teksten inneholder LockedValue-tokens.
 
 ```
 Auto-generert eksempel (frist, BH delvis godkjent):
@@ -518,70 +872,73 @@ ble sendt etter fristen. Innsigelse om preklusjon etter
 {{paragraf:§33.6.1:§33.6.1}} fastholdes."
 ```
 
-**Regenerer-knapp:** En liten `↻ Regenerer`-lenke under editoren. Klikk: `generateResponseBegrunnelse()` kjøres, ny tekst erstatter innholdet. Brukeren varsles: «Regenerering erstatter din tekst.» `userHasEditedBegrunnelseRef` settes til false.
-
-**Første gang:** Når brukeren åpner edit-modus, auto-begrunnelse genereres og populerer editoren. Brukeren kan redigere fritt — tokens oppdateres live når midtpanelets verdier endres.
-
-### Vedlegg under editoren
-
-Vedlegg lever under editoren, ikke i midtpanelet.
-
-```
-VEDLEGG
-┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐
-  ⇧  Dra filer hit  ·  PDF, DOCX
-└ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘
-
-Etter opplasting:
-📎  Fremdriftsplan_rev3.pdf      1.2 MB   ✕
-📎  Korrespondanse_stål.pdf      340 KB   ✕
-```
-
-- Drop-sone: stiplet border (`border-dashed border-pkt-grays-gray-300`), dempet tekst.
-- Fil-liste: ikon + filnavn + størrelse + slett-knapp. 13px, monospace for størrelse.
-
-**Hvorfor under editoren:** Vedlegg understøtter begrunnelsen — «jf. vedlagt fremdriftsplan.» De hører fysisk ved siden av teksten de refereres i.
+Første gang i edit-modus: auto-begrunnelse populerer editor. Regenerer-knapp: erstatter innhold med ny generering.
 
 ---
 
-## Action Footer — Handlingssonen
+## Action Footer
 
-Footeren er en fast stripe i bunnen av midtpanelet. Den transformeres mellom to moduser.
+Fast stripe i bunnen av midtpanelet.
 
-### Lesemodus-footer
+```
+footer:
+  høyde: 52px (36px knapp + 2×8px padding — avledet fra spacing-skala)
+  bg: bg-pkt-bg-card
+  border-top: 1px solid border-subtle
+  padding: 0 sp-5 (20px)
+  display: flex, justify-between, align-items center
+  position: sticky, bottom 0
+```
+
+### Lesemodus
 
 ```
 ┌──────────────────────────────────────────────────┐
-│  Send krav  │  Revider  │  Godta svaret   Rev. 1 │
+│  Svar på krav  │  Revider  │  Godta svaret Rev. 1 │
 └──────────────────────────────────────────────────┘
 ```
 
-- Primær handling (Send krav / Svar på krav) er venstrestilt og visuelt prominent: `bg-pkt-brand-dark-blue-1000 text-white`.
-- Sekundære handlinger (Revider, Godta svaret, Trekk tilbake) er `ghost`-variant: transparent bakgrunn, `text-pkt-text-body-default`, border.
-- Revisionslabel (`Rev. 1`) er høyrestilt, monospace, dempet.
-- Handlingene bygges fra `useActionPermissions`-flaggene — bare de som er gyldige for gjeldende state og rolle vises.
+```
+primær (Svar på krav / Send krav):
+  bg-dark-blue-1000, text-white, 13px, weight 600
+  padding sp-2 sp-4, radius r-sm, høyde 36px
 
-### Redigeringsmodus-footer
+aksepter:
+  bg-dark-green-1000, text-white (ellers som primær)
+
+sekundær (Revider, Godta):
+  transparent, border 1px solid border-subtle, text-default
+  hover: bg-subtle
+
+destruktiv (Trekk tilbake):
+  transparent, text-red-1000
+  hover: bg-red-1000/5
+
+revisjonslabel:
+  font-mono, 11px, text-subtle, høyrestilt
+
+synlighet: styrt av useActionPermissions per state og rolle
+```
+
+### Redigeringsmodus
 
 ```
 ┌──────────────────────────────────────────────────┐
-│  Avbryt                      ▓▓ Send svar §33 ▓▓ │
+│  Avbryt                           Send svar §33   │
 └──────────────────────────────────────────────────┘
 ```
 
-- Avbryt: ghost-variant, venstrestilt. Trigger dirty-check dialog ved ulagrede endringer.
-- Primær: `bg-pkt-brand-dark-blue-1000 text-white`, høyrestilt. §-referanse i knappeteksten.
-- Loading: knappen viser spinner og «Sender...» når `isSubmitting`.
-- Disabled: `opacity-50 cursor-not-allowed` når `!canSubmit` (validering feiler).
+```
+avbryt: ghost-variant, venstrestilt, trigger dirty-check
 
-**§-referanse i knappeteksten:** «Send svar §33» — ikke bare «Send svar.» Det gir juridisk kontekst og trygghet. Brukeren vet nøyaktig hva de sender, under hvilken hjemmel.
+send:
+  primær-variant, høyrestilt
+  §-ref i tekst: "Send svar §33", "Send krav §34"
+  loading: Lucide Loader2 + "Sender..."
+  disabled: opacity-50 når !canSubmit
 
-### Footer-design
-
-- Høyde: 52px. Fast, sticky bottom.
-- Bakgrunn: `bg-pkt-bg-card` med `border-t border-pkt-border-subtle`.
-- Padding: `px-5 py-3`.
-- Overgang mellom lesemodus og redigeringsmodus: umiddelbar (ingen animasjon). Modusbytte skal føles som å bytte verktøy, ikke som en visuell effekt.
+overgang lese↔redigering: umiddelbar (ingen animasjon)
+```
 
 ---
 
@@ -589,35 +946,52 @@ Footeren er en fast stripe i bunnen av midtpanelet. Den transformeres mellom to 
 
 ### Modusovergang: lese → redigere
 
-1. Bruker klikker «Svar på krav» i lesemodus-footeren.
-2. Midtpanelet transformeres: kravhodet blir referansekort (grå bakgrunn), beslutningsfelt dukker opp under, footer transformeres.
-3. Høyrepanelet transformeres: Begrunnelse-fanen aktiverer editoren, andre faner dimmes, venstre-kant-accent vises.
-4. Auto-begrunnelse genereres og populerer editoren.
+1. Bruker klikker «Svar på krav» i footer.
+2. Midtpanelet: kravhode → referansekort, beslutningsfelt vises, footer transformeres.
+3. Høyrepanelet: editor aktiveres, faner dimmes, 3px accent-kant.
+4. Auto-begrunnelse populerer editor.
 
-**Ingen modal, ingen sidenavigasjon, ingen scroll-jump.** Tre-panel-strukturen er stabil — bare innholdet innenfor panelene endres.
+Ingen modal, ingen sidenavigasjon, ingen scroll-jump.
 
 ### Live-oppdatering mellom paneler
 
-Når brukeren endrer «Godkjent dager» fra 30 til 25 i midtpanelet:
-1. Grad-% i posisjonskort oppdateres umiddelbart (67% → 56%).
-2. Progress bar animeres med `transition-all duration-300`.
-3. LockedValue-token `{{dager:30:30 dager}}` i editoren oppdateres til `{{dager:25:25 dager}}`.
-4. Resultatboksen oppdateres.
-5. Venstepanelets spornavigasjon oppdaterer mini-progress (om synlig).
+Bruker endrer «Godkjent dager» fra 30 til 25:
+1. Grad i posisjonskort: 67% → 56% (umiddelbart)
+2. Progress bar: transition 300ms ease-out
+3. LockedValue-token i editor: {{dager:30}} → {{dager:25}} (umiddelbart)
+4. Resultatboks oppdateres (debounce 150ms)
+5. Venstepanel mini-progress oppdateres
 
 ### Dirty-check ved avbryt
 
-Avbryt-knappen i footer trigger:
-1. Sjekk om begrunnelse er endret eller noen felt er dirty.
-2. Hvis dirty: Radix Dialog med «Du har ulagrede endringer. Forkast endringer? / Fortsett redigering.»
-3. Hvis ikke dirty: umiddelbar retur til lesemodus.
+1. Sjekk begrunnelse endret ELLER felt dirty.
+2. Dirty → Radix Dialog: «Du har ulagrede endringer. Forkast? / Fortsett.»
+3. Ikke dirty → umiddelbar retur.
 
-### Tastaturnavigasjon
+### Tastatur
 
-- `Tab`: navigerer mellom feltgrupper (ikke mellom individuelle radioknapper).
-- `Space/Enter`: velger radioknapp eller checkbox.
-- `Ctrl+Enter` (fra editoren): submit — sender krav/svar.
-- `Esc`: trigger avbryt (med dirty-check).
+| Tast | Handling |
+|------|---------|
+| Tab | Mellom feltgrupper |
+| Space/Enter | Velg radio/checkbox |
+| Ctrl+Enter | Submit (fra editor) |
+| Esc | Avbryt (med dirty-check) |
+
+### Overgang: Forhandlingsbordet → Spordetalj
+
+```
+Forhandlingsbordet (2 kol)    Spordetalj (3 kol)
+┌───────┬──────────┐          ┌─────────┬──────────┬──────────┐
+│ Sak   │ Tidslinje│   →      │ Nav +   │Beslutning│Begrunnelse│
+│ info  │ [kort]   │          │ spor    │ (midten) │ (høyre)  │
+└───────┴──────────┘          └─────────┴──────────┴──────────┘
+```
+
+← Tilbake → returnerer til Forhandlingsbordet.
+
+**Grensesnitt mot venstepanel (kontrakten):**
+- Inn: aktivt spor, rolle, fristdata, sakskontekst
+- Ut: endret tilstand, ny handling, dirty-status
 
 ---
 
@@ -625,37 +999,34 @@ Avbryt-knappen i footer trigger:
 
 ### Ansvarsgrunnlag — BH svarer
 
-Midtpanelet er det enkleste — få felt, men med store konsekvenser.
-
 ```
 MIDTPANEL                                HØYREPANEL
 
 ┌───────────────────────────────┐        ┌──────────────────────────┐
-│                               │        │ TE  TEs varsling         │
-│  TEs krav                     │        │ ┌──────────────────────┐ │
+│                               │        │ TE  Krav fra Veidekke    │
+│  Krav fra TE — Veidekke       │        │ ┌──────────────────────┐ │
 │  ╔═══════════════════════════╗│        │ │ Endringen oppstod... │ │
-│  ║ Irregulær endring §32.1   ║│        │ │         ▾ Vis mer    │ │
-│  ║ Oppdaget 10.01 · Varsl   ║│        │ └──────────────────────┘ │
+│  ║ Irregulær endring         ║│        │ │         ▾ Vis mer    │ │
+│  ║ Oppdaget 10.01 · Varslet ║│        │ └──────────────────────┘ │
 │  ║ 15.01.2026                ║│        │                          │
 │  ╚═══════════════════════════╝│        │ ··· TE → BH ···         │
 │                               │        │                          │
-│  VARSLING §32.2           ⓘ  │        │ BHs vurdering (deg)      │
+│  VARSLING §32.2           ⓘ  │        │ Din vurdering            │
 │  ─────────────────────────── │        │ ┌──────────────────────┐ │
 │  Varslet i tide?              │        │ │                      │ │
 │  ┌─────┐ ┌─────┐             │        │ │ Byggherren anser     │ │
 │  │  Ja │ │ Nei │             │        │ │ varselet mottatt i   │ │
 │  └─────┘ └─────┘             │        │ │ tide, men avslår_    │ │
-│                               │        │ │                      │ │
-│  DIN VURDERING                │        │ │                ¶ B I │ │
-│  ─────────────────────────── │        │ └──────────────────────┘ │
-│  ○  Godkjent                  │        │                          │
-│  ○  Avslått                   │        │ VEDLEGG                  │
-│  ○  Frafalt                   │        │ ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐ │
-│                               │        │   ⇧ Dra filer hit       │
-│  ┌ KONSEKVENS ──────────────┐│        │ └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘ │
-│  │ ⚠ Avslått betyr at       ││        └──────────────────────────┘
-│  │ vederlag og frist         ││
-│  │ behandles subsidiært     ││
+│                               │        │ │                ¶ B I │ │
+│  DIN VURDERING                │        │ └──────────────────────┘ │
+│  ─────────────────────────── │        │                          │
+│  ○  Godkjent                  │        │ VEDLEGG                  │
+│  ○  Avslått                   │        │ ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐ │
+│  ○  Frafalt                   │        │   ⇧ Dra filer hit       │
+│                               │        │ └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘ │
+│  ┌ KONSEKVENS ──────────────┐│        └──────────────────────────┘
+│  │ ⚠ Avslått → vederlag og  ││
+│  │ frist behandles subsidiært││
 │  └──────────────────────────┘│
 │                               │
 ├───────────────────────────────┤
@@ -663,23 +1034,38 @@ MIDTPANEL                                HØYREPANEL
 └───────────────────────────────┘
 ```
 
-**Spesielt for grunnlag:**
-- Varsling §32.2 (Ja/Nei) vises bare for ENDRING-kategori.
-- Konsekvens-callout: dynamisk basert på valg. Godkjent → grønn alert. Avslått → oransje warning (subsidiær-konsekvens). Frafalt → grå info.
-- **Snuoperasjon-alert:** Hvis BH endrer fra avslått → godkjent, vises en grønn success-alert: «Subsidiære vederlag- og fristsvar blir prinsipale.»
-- **Passivitets-advarsel:** Hvis ENDRING og >10 dager uten svar, vises en rød danger-alert: «§32.3 — risiko for passiv godkjennelse.»
+**Betinget synlighet:**
+
+```
+Synlig hvis ENDRING:
+  - Varsling §32.2 (Ja/Nei)
+  - Preklusjonsadvarsel (hvis Nei)
+
+Alltid synlig:
+  - Resultat-valg (Godkjent/Avslått/Frafalt)
+  - Konsekvens-callout (dynamisk)
+
+Synlig hvis oppdateringsmodus:
+  - Nåværende svar-banner
+
+Synlig hvis snuoperasjon (avslått → godkjent):
+  - Snuoperasjon-alert
+```
+
+**Spesifikt:**
+- Konsekvens-callout: Godkjent → success. Avslått → warning (subsidiær). Frafalt → info.
+- Snuoperasjon-alert: success, «Subsidiære svar blir prinsipale.»
+- Passivitets-advarsel (ENDRING, >10d): 7-14d amber, >14d rød.
 
 ### Vederlagsjustering — BH svarer
-
-Det mest komplekse kravtype. Flere seksjoner, betingede felt, per-kravlinje-evaluering.
 
 ```
 MIDTPANEL
 
 ┌──────────────────────────────────────┐
-│  TEs krav                     Rev. 2 │
+│  Krav fra TE — Veidekke       Rev. 2 │
 │  ╔══════════════════════════════════╗│
-│  ║ Regningsarbeid §34.4             ║│
+│  ║ Regningsarbeid                   ║│
 │  ║ Hovedkrav: kr 1 800 000         ║│
 │  ║ Rigg/drift: kr 350 000          ║│
 │  ║ Produktivitet: kr 250 000       ║│
@@ -695,16 +1081,18 @@ MIDTPANEL
 │                                      │
 │  METODE §34.2                    ⓘ  │
 │  ────────────────────────────────── │
-│  ┌────────────┬──────────┬────────┐ │
-│  │Enhetspriser│Regningsarb│Fastpris│ │
-│  └────────────┴──────────┴────────┘ │
 │  TE valgte: Regningsarbeid          │
+│                                      │
+│  Aksepterer du TEs metodevalg?       │
+│  ┌─────┐ ┌─────┐                    │
+│  │  Ja │ │ Nei │                    │
+│  └─────┘ └─────┘                    │
 │                                      │
 │  HOVEDKRAV §34.1                 ⓘ  │
 │  ────────────────────────────────── │
 │  Varslet i tide?                     │
 │  ┌─────┐ ┌─────┐                    │
-│  │  Ja │ │ Nei │    ☑ PREKLUDERT    │
+│  │  Ja │ │ Nei │                    │
 │  └─────┘ └─────┘                    │
 │                                      │
 │  Krevd ·················· kr 1 800k  │
@@ -715,29 +1103,11 @@ MIDTPANEL
 │                                      │
 │  RIGG OG DRIFT §34.1.3          ⓘ  │
 │  ────────────────────────────────── │
-│  Varslet i tide?                     │
-│  ┌─────┐ ┌─────┐                    │
-│  │  Ja │ │ Nei │                    │
-│  └─────┘ └─────┘                    │
-│                                      │
-│  Krevd ···················· kr 350k  │
-│  ┌──────────────────────────────┐   │
-│  │ 280 000                │ kr │   │
-│  └──────────────────────────────┘   │
-│  Differanse: -70k (80% godkjent)    │
+│  [samme per-kravlinje-mønster]      │
 │                                      │
 │  PRODUKTIVITET §34.1.3           ⓘ  │
 │  ────────────────────────────────── │
-│  Varslet i tide?                     │
-│  ┌─────┐ ┌─────┐                    │
-│  │  Ja │ │ Nei │                    │
-│  └─────┘ └─────┘                    │
-│                                      │
-│  Krevd ···················· kr 250k  │
-│  ┌──────────────────────────────┐   │
-│  │ 120 000                │ kr │   │
-│  └──────────────────────────────┘   │
-│  Differanse: -130k (48% godkjent)   │
+│  [samme per-kravlinje-mønster]      │
 │                                      │
 │  RESULTAT                            │
 │  ────────────────────────────────── │
@@ -749,224 +1119,176 @@ MIDTPANEL
 └──────────────────────────────────────┘
 ```
 
-**Spesielt for vederlag:**
-- **Per-kravlinje-evaluering:** Hovedkrav, Rigg/drift, Produktivitet er tre separate seksjoner med egne varsling-toggles og beløp-inputs. Hver har sin egen preklusjonsstatus.
-- **§34.1.2 preklusjon:** Varsling-toggle vises IKKE for ENDRING-kategori (§34.1.1 har ingen preklusjonsregel). Kun for SVIKT/ANDRE.
-- **Metodevalg:** TE vs BH. Hvis BH velger annen metode enn TE, vises «TE valgte: X» under segmented control.
-- **EP-justering §34.3.3:** Ekstra toggle-seksjon, kun synlig ved ENHETSPRISER.
-- **Tilbakeholdelse §30.2:** Ekstra felt, kun synlig ved REGNINGSARBEID.
-- **Resultatboks:** Viser prinsipalt + subsidiært. Subsidiært vises bare når grunnlag er avslått.
+**Betinget synlighet:**
 
-### Fristforlengelse — detaljer er allerede dekket
+```
+Alltid synlig:
+  - Kravhode (TEs krav)
+  - Metode-evaluering:
+    · TEs valg som key-value-rad
+    · Ja/Nei: "Aksepterer du TEs metodevalg?"
+    · Synlig hvis Nei: segmented for BHs alternativ
 
-Se mockupene og den generelle beslutningsfelt-grammatikken over.
+Synlig for hvert kravlinje (hovedkrav, rigg, produktivitet):
+  - Varsling (Ja/Nei) — kun SVIKT/ANDRE, IKKE ENDRING
+  - Godkjent beløp (tall-input)
+  - Resultat-badge (beregnet)
+
+Synlig hvis grunnlag avslått:
+  - Subsidiær-kontekstalert
+
+Synlig hvis ENHETSPRISER + TE krever_justert_ep:
+  - EP-justering §34.3.3 (Ja/Nei + konsekvens-alert ved Nei)
+
+Synlig hvis REGNINGSARBEID uten kostnadsoverslag:
+  - Tilbakeholdelse §30.2 (checkbox + estimert grense)
+```
+
+**Spesifikt:**
+- **Metodevalg er vurdering.** BH ser TEs valg, evaluerer, foreslår alternativ bare ved uenighet.
+- **Per-kravlinje:** Tre separate seksjoner med egne varsling-toggles og beløp.
+- **Tilbakeholdelse §30.2:** Checkbox + beløp-input. Gir separat resultat «HOLDT TILBAKE» (amber).
+- **EP-justering §34.3.3:** Ja/Nei. Nei → warning: «Avvist → reduksjon i vederlag.»
+
+### Fristforlengelse — BH svarer
+
+```
+MIDTPANEL
+
+┌──────────────────────────────────────┐
+│  Krav fra TE — Veidekke       Rev. 1 │
+│  ╔══════════════════════════════════╗│
+│  ║ Spesifisert krav                 ║│
+│  ║ 45 kalenderdager · Ny dato       ║│
+│  ║ 15.08.2026                       ║│
+│  ║ Varslet 15.01 · Spesifisert 28.01║│
+│  ╚══════════════════════════════════╝│
+│                                      │
+│  ┌────────┬─────────┬──────────┐    │
+│  │ KREVD  │GODKJENT │ GRAD     │    │
+│  │ 45d    │ 30d     │ 67%      │    │
+│  ├────────┴─────────┴──────────┤    │
+│  │ ██████████████████░░░░░░░░░ │    │
+│  └─────────────────────────────┘    │
+│                                      │
+│  VARSLING §33.4                  ⓘ  │
+│  ────────────────────────────────── │
+│  Oppdaget ·················· 10.01  │
+│  Varslet ··················· 15.01  │
+│  Spesifisert ··············· 28.01  │
+│                                      │
+│  INNSIGELSER                         │
+│  ────────────────────────────────── │
+│  □  Preklusjon §33.4                 │
+│     Varslet for sent                 │
+│  ☑  Preklusjon §33.6.1              │
+│     Spesifisert for sent             │
+│  □  Vilkår §33.1                     │
+│     Fremdrift ikke hindret           │
+│                                      │
+│  DIN VURDERING                       │
+│  ────────────────────────────────── │
+│  ○  Godkjent                         │
+│  ●  Delvis godkjent                  │
+│  ○  Avslått                          │
+│                                      │
+│  Godkjent fristforlengelse           │
+│  ┌──────────────────────────────┐   │
+│  │ 30                │ kaldager │   │
+│  └──────────────────────────────┘   │
+│  Differanse: 15d (67% godkjent)     │
+│                                      │
+│  SUBSIDIÆRT STANDPUNKT               │
+│  ────────────────────────────────── │
+│  Subsidiært godkjent                 │
+│  ┌──────────────────────────────┐   │
+│  │ 20                │ kaldager │   │
+│  └──────────────────────────────┘   │
+│                                      │
+│  RESULTAT                            │
+│  ────────────────────────────────── │
+│  Prinsipalt   Delvis · 30 kaldager  │
+│  Subsidiært   Delvis · 20 kaldager  │
+│                                      │
+├──────────────────────────────────────┤
+│ Avbryt           ▓ Send svar §33 ▓  │
+└──────────────────────────────────────┘
+```
+
+**Betinget synlighet:**
+
+```
+Alltid synlig:
+  - Kravhode (TEs krav)
+  - Varsling §33.4 (key-value datoer)
+  - Innsigelse-checkboxer (§33.4, §33.6.1, §33.1)
+  - Resultat-valg (Godkjent/Delvis/Avslått)
+
+Synlig hvis resultat ≠ Godkjent:
+  - Godkjent dager (tall-input)
+
+Synlig hvis minst én innsigelse:
+  - Subsidiært standpunkt (egen seksjon med eget tall-input)
+
+Synlig hvis BH har sendt forespørsel:
+  - Kontekstalert: «Du etterlyste spesifisering innen [frist].»
+```
+
+**Spesifikt:**
+- **Tre porter:** Varsling (datoer), Innsigelser (checkboxer), Vurdering (radio + tall).
+- **Subsidiært:** Separat seksjon med eget tall-input. Bare synlig ved innsigelse.
+
+### TE sender — alle kravtyper
+
+**Frist:**
+
+```
+Alltid synlig:
+  - Varseltype (segmented)
+    · new: Varsel / Spesifisert
+    · spesifisering: Spesifisert (låst)
+    · foresporsel: Spesifisert / Begrunnelse utsatt
+    · edit: Beholder type (låst)
+
+Synlig i new-scenario:
+  - tidligereVarslet (Ja/Nei) + dato-input ved Ja
+
+Synlig hvis Spesifisert:
+  - Krevd dager + ny sluttdato (valgfritt)
+
+Scenario-kontekstalert:
+  · spesifisering: «Du spesifiserer dager for varselet sendt [dato].»
+  · foresporsel: «BH etterlyste spesifisering innen [frist].»
+
+Alltid synlig:
+  - Vedlegg
+```
+
+**Vederlag:**
+
+```
+Alltid synlig:
+  - Metode-segmented (Enhetspriser/Regningsarbeid/Fastpris)
+
+Synlig per metode:
+  · Enhetspriser: beløp + justerte EP toggle
+  · Regningsarbeid: kostnadsoverslag + varslet før oppstart toggle
+  · Fastpris: beløp
+
+Alltid synlig:
+  - Særskilte krav §34.1.3
+    · Rigg/drift toggle + beløp + dato
+    · Produktivitet toggle + beløp + dato
+  - Vedlegg
+```
+
+**Grunnlag:** TE varsler via Forhandlingsbordet. Spordetaljvisningen viser read-only varsel.
 
 ---
 
-## Overflate- og fargebeslutninger for panelene
-
-### Midtpanel
-
-- Bakgrunn: `bg-pkt-bg-card` (hvit). Ren arbeidsflate.
-- Padding: `p-5` (20px) rundt innhold.
-- Intern scrolling: `overflow-y-auto scrollbar-auto`. Innholdet scroller innenfor panelet — footeren er sticky.
-- Ingen kanter mot venstepanel/høyrepanel — overflatefargeforskjell gjør jobben (venstepanel er `bg-pkt-bg-subtle`).
-
-### Høyrepanel
-
-- Bakgrunn: `bg-pkt-bg-card` (hvit). Samme som midten — de er ett sammenhengende arbeidsrom.
-- Bredde: `w-[340px]`. Smalere enn access-sidens 380px — vi trenger mer plass for midtpanelet.
-- Venstre-kant: `border-l border-pkt-border-subtle` i lesemodus. `border-l-[3px] border-l-pkt-brand-warm-blue-1000` i redigeringsmodus.
-- Intern scrolling: `overflow-y-auto scrollbar-auto`.
-
-### Delt linje mellom midtpanel og høyrepanel
-
-I lesemodus: 1px vertikal border (`border-pkt-border-subtle`).
-I redigeringsmodus: 3px accent-linje i warm-blue — signaliserer at panelene jobber sammen.
-
----
-
-## Hva som er avvist
-
-| Default | Erstatning | Hvorfor |
-|---------|------------|---------|
-| VerdictCards (klikkbare kort med ikoner) | Vertikale radios med beskrivelse | Kompaktere, skanner raskere, tar 50% av plassen |
-| InlineYesNo for innsigelser | Eksplisitte checkboxer med §-referanse | Juridisk tydeligere — du hevder en posisjon, ikke svarer et spørsmål |
-| Begrunnelse-textarea i midtpanelet | Dedikert høyrepanel med TipTap | Begrunnelsen er et dokument, ikke et skjemafelt |
-| Flat tab-strip i høyrepanelet | Tab-låsing under redigering | Forhindrer navigasjon vekk fra aktiv begrunnelse |
-| 380px høyrepanel | 340px | Midtpanelet trenger mer plass for per-kravlinje-evaluering |
-| Progress bar 1.5px | Progress bar 6px | Forhandlingsresultatet fortjener visuell signifikans |
-| Skygger for separasjon | Kun borders | Kontraktsdokumenter har linjer, ikke skygger |
-| Monolittisk 1555-linjers fil | Komponentbasert arkitektur | Gjenbruk, vedlikehold, testbarhet |
-
----
-
-## Manglende felt og edge cases (fra BUSINESS_LOGIC.md)
-
-### Force Majeure — vederlag deaktivert
-
-Når TE velger hovedkategori FORCE_MAJEURE, deaktiveres vederlagssporet helt. Bare frist er relevant.
-
-**Konsekvens for arbeidsflaten:**
-- Hvis brukeren navigerer til vederlag (via venstepanelet), vises en tom seksjon med forklaring: «Vederlag er ikke relevant for Force Majeure-saker (§33.1 c). Kun fristforlengelse kan kreves.»
-- Tekst: 14px, `text-pkt-text-body-subtle`, sentrert vertikalt med §-ikon.
-- Ingen felter, ingen footer-actions.
-
-### BH: Metodevalg er vurdering, ikke valg
-
-BUSINESS_LOGIC.md spesifiserer at BH evaluerer TEs metodevalg (`akseptererMetode`), eventuelt foreslår alternativ (`oensketMetode`). Designet i vederlag-midtpanelet viser en segmented control der BH velger metode — men korrekt UX er:
-
-```
-METODE §34.2                                          ⓘ
-────────────────────────────────────────────────────────
-TE valgte: Regningsarbeid
-
-Aksepterer du TEs metodevalg?
-┌─────┐ ┌─────┐
-│  Ja │ │ Nei │
-└─────┘ └─────┘
-
-[Synlig hvis Nei:]
-Foreslått metode:
-┌─────────────┬──────────────────┬─────────────┐
-│ Enhetspriser│ Regningsarbeid   │ Fastpris    │
-└─────────────┴──────────────────┴─────────────┘
-```
-
-BH ser alltid hva TE valgte (som key-value-rad). Deretter Ja/Nei for aksept. Bare ved «Nei» vises metode-segmented for BHs alternativ. Dette matcher domenelogikken: BH vurderer TEs valg, velger ikke uavhengig.
-
-### Hold-tilbake (§30.2)
-
-Vederlag-resultater inkluderer `hold_tilbake` som egen resultattype. Når BH aktiverer `holdTilbake` i evaluering av regningsarbeid:
-
-```
-TILBAKEHOLDELSE §30.2                                  ⓘ
-────────────────────────────────────────────────────────
-TE sendte ikke kostnadsoverslag.
-
-☑  Hold tilbake betaling for arbeid utover estimat
-
-[Synlig hvis avkrysset:]
-Estimert grense ···················· kr 800 000
-```
-
-- Vises kun ved REGNINGSARBEID uten kostnadsoverslag.
-- Checkbox med §-referanse, som innsigelse-checkboxer.
-- Gir separat resultat-badge i posisjonskort: `HOLDT TILBAKE` i amber.
-
-### EP-justeringsvarsling (§34.3.3)
-
-```
-EP-JUSTERING §34.3.3                                   ⓘ
-────────────────────────────────────────────────────────
-TE krever justerte enhetspriser.
-
-Aksepterer du EP-justeringsvarselet?
-┌─────┐ ┌─────┐
-│  Ja │ │ Nei │
-└─────┘ └─────┘
-
-[Synlig hvis Nei:]
-⚠  Avvist EP-justeringsvarsel → reduksjon i vederlag
-```
-
-Kun synlig ved ENHETSPRISER og TE har flagget `krever_justert_ep`.
-
-### Frist TE: tidligereVarslet og scenario-håndtering
-
-TE-innsending for frist har forskjellige scenarier som påvirker tilgjengelige varseltyper:
-
-| Scenario | Kontekst | Tilgjengelige varseltyper |
-|----------|----------|--------------------------|
-| `new` | Nytt krav | Varsel eller Spesifisert |
-| `spesifisering` | Spesifiserer etter tidligere varsel | Spesifisert (låst) |
-| `foresporsel` | Svarer på BHs etterlysning | Spesifisert eller Begrunnelse utsatt |
-| `edit` | Oppdaterer eksisterende krav | Beholder opprinnelig type |
-
-**Designkonsekvenser:**
-- I `new`-scenario: Segmented control med Varsel / Spesifisert. Ikke «Begrunnelse utsatt» — det er kun et svar-alternativ.
-- I `spesifisering`: Varseltype-segmented er disabled/låst til «Spesifisert». Kontekstalert: «Du spesifiserer dager for varselet sendt [dato].»
-- I `foresporsel`: Segmented med Spesifisert / Begrunnelse utsatt. Kontekstalert: «BH etterlyste spesifisering innen [frist]. Du svarer nå.»
-- I `edit`: Varseltype-segmented er disabled/låst.
-
-**`tidligereVarslet`-felt** (kun i `new`-scenario):
-
-```
-Har du varslet tidligere?
-┌─────┐ ┌─────┐
-│  Ja │ │ Nei │
-└─────┘ └─────┘
-
-[Synlig hvis Ja:]
-Varseldato
-┌────────────────────────────────────────┐
-│ 15.01.2026                │ 📅       │
-└────────────────────────────────────────┘
-```
-
-### Preklusjonsadvarsel for TE (frist)
-
-Beregnes fra `dato_oppdaget`. Vises som alert i kravhodet:
-
-- 0–7 dager: ingen advarsel
-- 7–14 dager: `⚠ Det er [N] dager siden forholdet ble oppdaget. Vurder å sende varsel snart.` — amber warning
-- >14 dager: `⛔ Det er [N] dager siden forholdet ble oppdaget. Risiko for preklusjon.` — rød danger
-
-### Versjons-mismatch
-
-Når TE reviderer kravet etter at BH har svart, gjelder BHs eksisterende svar den gamle versjonen.
-
-**Kravhodet ved mismatch:**
-
-```
-╔══════════════════════════════════════════════════╗
-║  TEs krav                                 Rev. 2 ║
-║  ⚠  Du svarte på Rev. 1 — TE har oppdatert      ║
-║                                                  ║
-║  Spesifisert krav §33.6                          ║
-║  55 kalenderdager (var: 45d)  ·  Ny sluttdato    ║
-╚══════════════════════════════════════════════════╝
-```
-
-- Amber warning-banner under kravtittel.
-- Endrede verdier viser forskjell: `55 kalenderdager (var: 45d)`.
-- BH kan velge å oppdatere svaret basert på ny versjon eller beholde eksisterende.
-
----
-
-## Aksept og lukking
-
-Etter BH har svart, har TE tre valg. Disse vises som action footer-knapper i TEs lesemodus:
-
-```
-┌──────────────────────────────────────────────────┐
-│  Revider krav  │  Trekk tilbake  │  Aksepter svar │
-└──────────────────────────────────────────────────┘
-```
-
-**Aksepter svar:**
-- Primær knapp (grønn variant): `bg-pkt-brand-dark-green-1000 text-white`.
-- Klikk → bekreftelses-dialog: «Du aksepterer BHs svar. Sporet lukkes og enighet registreres. Aksepter / Avbryt.»
-- Etter aksept: midtpanelet viser fullført-tilstand med alle verdier som read-only og en grønn `OMFORENT`-badge.
-
-**Trekk tilbake:**
-- Destruktiv handling: ghost-variant med `text-pkt-brand-red-1000`.
-- Klikk → bekreftelses-dialog med advarsel: «Kravet trekkes tilbake og bortfaller. Handlingen kan ikke angres.»
-- Krever begrunnelse (min 10 tegn) i dialogen.
-
-**Revider krav:**
-- Ghost-variant. Åpner redigeringsmodus med eksisterende verdier pre-populert.
-- Revisjonsnummer øker ved innsending.
-
----
-
-## Forsering (§33.8) — spesialkravtype
-
-Forsering oppstår når BH avslår TEs fristkrav og TE akselererer arbeidet. Arbeidsflaten for forsering har en annen struktur enn standard tre-spor.
+## Forsering (§33.8)
 
 ### TE varsler forsering
-
-Midtpanelet:
 
 ```
 ┌──────────────────────────────────────┐
@@ -995,18 +1317,18 @@ Midtpanelet:
 │ Margin: kr 475 000 (21%)            │
 │                                      │
 │ Varslet forsering                    │
-│ ┌────────────────────────────────┐  │
-│ │ 01.03.2026              │ 📅 │  │
-│ └────────────────────────────────┘  │
+│ ┌──────────────────────────────┐    │
+│ │ 01.03.2026                   │    │
+│ └──────────────────────────────┘    │
 │                                      │
 ├──────────────────────────────────────┤
 │ Avbryt     ▓ Send forseringsvarsel ▓ │
 └──────────────────────────────────────┘
 ```
 
-### BH evaluerer forsering
+**Dato-input:** Custom calendar popover (Lucide Calendar trigger), ikke native `<input type="date">`.
 
-Midtpanelet viser TEs varsling som referansekort, deretter:
+### BH evaluerer forsering
 
 ```
 VURDERING PER SAK
@@ -1023,9 +1345,10 @@ Dager med forseringsrett ········ 20d
 
 30%-REGELEN
 ────────────────────────────────────────
-Overholdt? ┌─────┐ ┌─────┐
-           │  Ja │ │ Nei │
-           └─────┘ └─────┘
+Overholdt?
+┌─────┐ ┌─────┐
+│  Ja │ │ Nei │
+└─────┘ └─────┘
 
 DIN VURDERING
 ────────────────────────────────────────
@@ -1042,31 +1365,9 @@ Godkjent beløp
 
 ---
 
-## Dynamisk begrunnelsestekst
-
-Veiledningsteksten (placeholder) i BegrunnelseEditor endrer seg basert på kontekst. Dette gir BH/TE retning uten å predefinere innholdet.
-
-| Kontekst | Placeholder-tekst |
-|----------|-------------------|
-| Grunnlag godkjent | «Begrunn godkjenningen — referér til kontraktsbestemmelsen som gir TE rett.» |
-| Grunnlag avslått | «Begrunn avslaget — forklár hvorfor forholdet ikke gir TE rett etter kontrakten.» |
-| Grunnlag frafalt | «Begrunn frafallet — TE har krevet endring, BH trekker pålegget.» |
-| Vederlag delvis | «Begrunn godkjenningsgraden — forklár hva som dekkes og hva som avvises.» |
-| Vederlag med preklusjon | «Begrunn prinsipalt avslag og subsidiær evaluering.» |
-| Frist med innsigelse | «Begrunn godkjente dager og innsigelsene — referér til §-bestemmelsene.» |
-| TE sender krav | «Begrunn kravet — beskriv forholdet og henvis til kontrakten.» |
-
-Placeholder forsvinner når brukeren begynner å skrive. Auto-begrunnelse erstatter placeholder direkte.
-
----
-
-## Endringsordre (§31.3) — BH-initiert
-
-Endringsordre er en annen sakstype som samler en eller flere KOE-saker under én formell endringsordre. Arbeidsflaten for EO har en dokumentlignende karakter — mer protokoll enn evaluering.
+## Endringsordre (§31.3)
 
 ### BH oppretter EO
-
-Midtpanelet:
 
 ```
 ┌──────────────────────────────────────┐
@@ -1120,46 +1421,100 @@ DIN VURDERING
 
 ---
 
-## Mandate-sjekker (SKILL.md)
+## Aksept og lukking
+
+Etter BH har svart, har TE tre valg i lesemodus-footer:
+
+```
+┌──────────────────────────────────────────────────┐
+│  Revider krav  │  Trekk tilbake  │  Aksepter svar │
+└──────────────────────────────────────────────────┘
+```
+
+**Aksepter:** Grønn variant. Bekreftelses-dialog. Etter aksept: read-only verdier + OMFORENT-badge.
+
+**Trekk tilbake:** Destruktiv ghost. Bekreftelses-dialog med begrunnelseskrav (min 10 tegn).
+
+**Revider:** Ghost. Redigeringsmodus med pre-populerte verdier. Rev-nummer øker.
+
+---
+
+## Force Majeure — vederlag deaktivert
+
+```
+Vederlag-visning ved FORCE_MAJEURE:
+
+  Vederlag er ikke relevant for
+  Force Majeure-saker.
+
+  Kun fristforlengelse kan kreves (§33.1 c).
+
+tekst: 14px, text-subtle, sentrert
+ingen felter, ingen footer-actions
+```
+
+---
+
+## Preklusjonsadvarsel for TE (frist)
+
+Beregnet fra dato_oppdaget. Alert i kravhodet:
+
+| Dager | Nivå | Melding |
+|-------|------|---------|
+| 0–7 | Ingen | — |
+| 7–14 | Amber | «Det er {N} dager siden forholdet ble oppdaget. Vurder å sende varsel snart.» |
+| >14 | Rød | «Det er {N} dager siden forholdet ble oppdaget. Risiko for preklusjon.» |
+
+---
+
+## Dynamisk begrunnelsestekst
+
+Placeholder i editor endres basert på kontekst:
+
+| Kontekst | Placeholder |
+|----------|-------------|
+| Grunnlag godkjent | «Begrunn godkjenningen — referér til kontraktsbestemmelsen.» |
+| Grunnlag avslått | «Begrunn avslaget — forklár hvorfor forholdet ikke gir TE rett.» |
+| Grunnlag frafalt | «Begrunn frafallet — TE har krevet endring, BH trekker pålegget.» |
+| Vederlag delvis | «Begrunn godkjenningsgraden — forklár hva som dekkes og avvises.» |
+| Vederlag med preklusjon | «Begrunn prinsipalt avslag og subsidiær evaluering.» |
+| Frist med innsigelse | «Begrunn godkjente dager og innsigelsene.» |
+| TE sender krav | «Begrunn kravet — beskriv forholdet og henvis til kontrakten.» |
+
+---
+
+## Dark mode
+
+Arbeidsflaten respekterer `.dark`-klassen. Workspace-spesifikke tilpasninger:
+
+- **Kravhode:** bg-subtle → dark-ekvivalent (mørkere enn canvas)
+- **Editor-border:** Økt opacity for focus-border i dark mode
+- **LockedValue-tokens:** Lett desaturering (semantiske farger trenger det)
+- **Progress bar:** 80% opacity i dark mode
+- **Separatorer:** Allerede borders-only — fungerer bedre i dark enn skygger
+
+Detaljerte dark mode-tokens defineres i samarbeid med Anskaffelsesdesignets tema-tabell.
+
+---
+
+## Mandate-sjekker
 
 ### Swap-test
 
-> «Hvis du byttet typeface til din vanlige, ville noen merke det?»
+**Innhold:** Monospace-tall, UPPERCASE-seksjonsoverskrifter, §-referanser, LockedValue-tokens — fjern noen av disse og karakteren forsvinner. **Bestått.**
 
-Oslo Sans er pålagt av Punkt-designsystemet — det er ikke et valg vi kan swappe. Men: monospace for tall og tabular-nums for datoer er bevisste valg. Bytt monospace-tallene til proportional default-font → tabellkvaliteten i key-value-rader forsvinner. Bytt UPPERCASE-seksjonshodene til sentence-case → kontrakts-referanse-følelsen forsvinner. Bytt §-ikoner til generiske labels → juridisk tyngde forsvinner.
-
-Disse valgene er ikke swappbare uten at det føles annerledes. **Bestått.**
+**Struktur:** Fire-sone-stackingen er et kjent mønster. Det som redder det: tre-panel-arkitekturen (beslutning | argumentasjon som romlig separasjon av kognitive moduser) er genuint domene-drevet. **Delvis bestått.**
 
 ### Squint-test
 
-> «Blur øynene. Kan du fortsatt se hierarki?»
+Fire soner med alternerende overflater: grå referanse → tall → hvite kontroller → grå resultat. Hierarki synlig uten å lese.
 
-Midtpanelet har fire tydelige soner: kravhode (grå bakgrunn, compact), posisjonskort (horisontal stripe med tall), beslutningsfelt (vertikale seksjoner med seksjonslinje + innrykk), resultatboks (grå bakgrunn, border-top). Selv uten å lese teksten: referanse → tall → kontroller → resultat. Høyrepanelet: to blokker (grå referanse → hvit editor) med separator. Footer: to knapper, én prominent.
-
-Ingenting skriker. Seksjonslinjene er `border-pkt-border-subtle`. Posisjonskortets 6px progress bar er den sterkeste fargen — korrekt prioritert (forhandlingsresultatet er viktigst). **Bestått.**
+**Svakhet:** Vederlag BH har ~10 seksjoner med identisk visuell vekt. Vurder visuell differensiering mellom kravlinjeseksjoner. **Delvis bestått.**
 
 ### Signatur-test
 
-> «Kan du peke på fem spesifikke elementer der signaturen din dukker opp?»
-
-Signaturen for dette produktet er **§-referanser som strukturelt element** — paragrafhenvisninger er ikke pynt, de er navigasjon og juridisk forankring.
-
-1. **Seksjonshoder**: `VARSLING §33.4` — §-ref i kapitteloverskriften, monospace.
-2. **Knappetekst**: `Send svar §33` — juridisk kontekst i handlingsknappen.
-3. **Innsigelse-checkboxer**: `☑ Preklusjon §33.6.1 — spesifisert for sent` — §-ref i selve checkbox-labelen.
-4. **LockedValue-tokens**: `{{paragraf:§33.6:§33.6}}` — §-referanser som inline-badges i begrunnelsetekst.
-5. **Konsekvens-callout**: `§32.3 — risiko for passiv godkjennelse` — §-ref i warning-alerts.
-
-Fjern §-referansene, og grensesnittet kunne vært et generisk sakshåndteringssystem. Med dem er det umiskjennelig kontraktsadministrasjon. **Bestått.**
+§-referanser i: seksjonsoverskrifter, knappetekst, checkbox-labels, LockedValue-tokens, konsekvens-alerts. **Bestått.**
 
 ### Token-test
 
-> «Les CSS-variablene dine høyt. Høres de ut som de tilhører dette produktets verden?»
-
-Brukte tokens: `bg-pkt-bg-subtle`, `text-pkt-text-body-subtle`, `border-pkt-border-subtle`, `bg-pkt-brand-dark-green-1000`, `text-bento-krevd`, `bg-role-te-pill-bg`, `border-pkt-border-focus`.
-
-`pkt` = Punkt (Oslo kommunes designsystem) — domenespesifikt.
-`bento-krevd` = bento-layoutens krevd-farge — prosjektspesifikt.
-`role-te-pill-bg` = totalentreprenør-rollefarge — kontraktsspesifikt.
-
-Disse kunne ikke tilhøre et annet prosjekt. De er forankret i Punkt-identiteten og kontraktsdomenet. **Bestått.**
+`pkt-*` tokens er prosjektspesifikke men evoserer designsystem, ikke domene. Domene-navnene i Domain Exploration (instrument-grå, stempel-grønn) er mer evokative men ikke brukt som tokens. **Delvis bestått.**
