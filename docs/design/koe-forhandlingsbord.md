@@ -253,7 +253,7 @@ Klikk toggle-bar → hendelseslisten åpnes under baren i samme innfelte area:
 ```
 ┌─ FRISTFORLENGELSE ─ Spesifisert krav ─ ⚠ Varslet sent ────── → Svar ──┐
 │ 45d krevd · Rev. 2 · Ny dato 15.08.26 · Frist 13d                       │
-│ i går spesifisert · 15.02 revidert · 15.01 varslet                      │
+│ i dag spesifisert · 15.02 revidert · 15.01 varslet                      │
 │ ┌──── 5 hendelser                                                  ▾ ┐  │
 │ │ ─────────────────────────────────────────────────────────────────── │  │
 │ │  ↻  02.03  Spesifiserte krav (45d) Rev. 2                     TE  │  │
