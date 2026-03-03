@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TE Grunnlag — Nytt varsel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* === RESET === */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* === TOKENS — Analysebordet + Arbeidsflate-avvik === */
+    :root {
+      --canvas: #0c0e14;
+      --felt: #12151e;
+      --felt-raised: #181c28;
+      --felt-hover: #1e2233;
+      --felt-active: #242840;
+
+      --ink: #e2e5ef;
+      --ink-secondary: #8890a4;
+      --ink-muted: #7b829b;
+      --ink-ghost: #5a6178;
+
+      --wire: rgba(255, 255, 255, 0.06);
+      --wire-strong: rgba(255, 255, 255, 0.10);
+      --wire-focus: rgba(232, 168, 56, 0.35);
+
+      --vekt: #e8a838;
+      --vekt-dim: #c49030;
+      --vekt-bg: rgba(232, 168, 56, 0.08);
+      --vekt-bg-strong: rgba(232, 168, 56, 0.14);
+
+      --score-high: #3d9a6e;
+      --score-high-bg: rgba(61, 154, 110, 0.10);
+      --score-mid: #8890a4;
+      --score-low: #c45858;
+      --score-low-bg: rgba(196, 88, 88, 0.10);
+
+      /* Role badges */
+      --role-te-bg: rgba(96, 165, 250, 0.12);
+      --role-te-text: #60a5fa;
+      --role-bh-bg: rgba(232, 168, 56, 0.12);
+      --role-bh-text: #e8a838;
+
+      --font-data: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', monospace;
+      --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+      --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+      --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+
+      /* Arbeidsflaten: skarpere radier */
+      --r-sm: 2px; --r-md: 4px; --r-lg: 6px; --r-full: 9999px;
+    }
+
+    /* === BASE === */
+    html { height: 100%; }
+    body {
+      font-family: var(--font-ui);
+      background: var(--canvas);
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      height: 100%;
+    }
+
+    .mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+
+    /* === VIEW SWITCHER === */
+    .view-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: var(--felt);
+      border-bottom: 1px solid var(--wire-strong);
+      display: flex; align-items: center; gap: var(--sp-2);
+      padding: var(--sp-2) var(--sp-4);
+    }
+    .view-nav .brand {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--ink-muted);
+      margin-right: var(--sp-4);
+    }
+    .view-btn {
+      font-family: var(--font-ui); font-size: 12px; font-weight: 500;
+      padding: var(--sp-1) var(--sp-3);
+      border-radius: var(--r-sm); border: 1px solid transparent;
+      background: transparent; color: var(--ink-secondary);
+      cursor: pointer; transition: all 120ms;
+    }
+    .view-btn:hover { color: var(--ink); background: var(--felt-hover); }
+    .view-btn.active {
+      background: var(--vekt-bg-strong); color: var(--vekt);
+      border-color: rgba(232,168,56,0.20); font-weight: 600;
+    }
+
+    /* === LAYOUT === */
+    .page { padding-top: 40px; height: 100%; }
+    .view { display: none; height: 100%; }
+    .view.active { display: flex; }
+
+    .three-panel {
+      display: grid;
+      grid-template-columns: 220px 1fr 340px;
+      height: 100%;
+    }
+
+    /* Single-column for catalog */
+    .catalog-layout {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: var(--sp-6);
+    }
+
+    /* === LEFT NAV === */
+    .nav-panel {
+      background: var(--canvas);
+      border-right: 1px solid var(--wire);
+      padding: var(--sp-4) 0;
+      overflow-y: auto;
+    }
+    .nav-header {
+      padding: 0 var(--sp-4) var(--sp-4);
+      border-bottom: 1px solid var(--wire);
+      margin-bottom: var(--sp-3);
+    }
+    .nav-header h2 {
+      font-size: 13px; font-weight: 600; color: var(--ink);
+    }
+    .nav-header .case-id {
+      font-family: var(--font-data); font-size: 11px; color: var(--ink-muted);
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: var(--sp-2);
+      padding: var(--sp-2) var(--sp-4);
+      font-size: 13px; font-weight: 500; color: var(--ink-secondary);
+      cursor: pointer; transition: all 120ms;
+      border-left: 2px solid transparent;
+    }
+    .nav-item:hover { background: var(--felt-hover); color: var(--ink); }
+    .nav-item.active {
+      background: var(--vekt-bg);
+      color: var(--vekt); border-left-color: var(--vekt);
+    }
+    .nav-item .status-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+    }
+    .nav-item .status-dot.green { background: var(--score-high); }
+    .nav-item .status-dot.amber { background: var(--vekt); }
+    .nav-item .status-dot.red { background: var(--score-low); }
+    .nav-item .status-dot.ghost { background: var(--ink-ghost); }
+    .nav-back {
+      display: flex; align-items: center; gap: var(--sp-1);
+      padding: var(--sp-2) var(--sp-4);
+      font-size: 11px; color: var(--ink-ghost); cursor: pointer;
+      margin-bottom: var(--sp-2);
+    }
+    .nav-back:hover { color: var(--vekt); }
+
+    /* === MID PANEL === */
+    .mid-panel {
+      background: var(--felt);
+      overflow-y: auto;
+      display: flex; flex-direction: column;
+    }
+    .mid-scroll {
+      flex: 1; overflow-y: auto;
+      padding: var(--sp-5);
+    }
+    .mid-footer {
+      height: 52px; min-height: 52px;
+      background: var(--felt);
+      border-top: 1px solid var(--wire);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 var(--sp-5);
+    }
+
+    /* === RIGHT PANEL === */
+    .right-panel {
+      background: var(--felt);
+      border-left: 3px solid var(--vekt);
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+
+    /* === COMPONENTS === */
+
+    /* Section title */
+    .section-title {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: var(--sp-5); padding-bottom: var(--sp-2);
+      border-bottom: 1px solid var(--wire);
+    }
+    .section-title:first-child { margin-top: 0; }
+    .section-title h3 {
+      font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--ink-muted);
+    }
+    .section-title .ref {
+      font-family: var(--font-data); font-size: 11px; font-weight: 500;
+      color: var(--ink-muted);
+    }
+    .section-title .info-icon {
+      width: 14px; height: 14px; color: var(--ink-ghost);
+      cursor: help;
+    }
+
+    /* Verdict buttons — used for kategori selection */
+    .verdict-group {
+      display: flex; gap: var(--sp-2); margin-top: var(--sp-3);
+    }
+    .verdict-btn {
+      flex: 1; height: 36px;
+      font-family: var(--font-ui); font-size: 13px; font-weight: 500;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--wire);
+      background: var(--canvas);
+      color: var(--ink); cursor: pointer;
+      transition: all 150ms;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: var(--sp-1) var(--sp-2);
+    }
+    .verdict-btn:hover { border-color: var(--wire-strong); }
+    .verdict-btn.selected-amber {
+      background: var(--vekt); color: #fff; border-color: transparent;
+    }
+    .verdict-btn.selected-green {
+      background: var(--score-high); color: #fff; border-color: transparent;
+    }
+    .verdict-btn.selected-red {
+      background: var(--score-low); color: #fff; border-color: transparent;
+    }
+    .verdict-btn .btn-ref {
+      font-family: var(--font-data); font-size: 9px; font-weight: 400;
+      opacity: 0.7; margin-top: 1px;
+    }
+    .verdict-btn.selected-amber .btn-ref { color: rgba(255,255,255,0.7); }
+
+    /* Tall kategori-knapper (taller for two-line content) */
+    .kategori-group {
+      display: flex; gap: var(--sp-2); margin-top: var(--sp-3);
+    }
+    .kategori-btn {
+      flex: 1; min-height: 48px;
+      font-family: var(--font-ui); font-size: 12px; font-weight: 500;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--wire);
+      background: var(--canvas);
+      color: var(--ink); cursor: pointer;
+      transition: all 150ms;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: var(--sp-2) var(--sp-2);
+      gap: 2px;
+    }
+    .kategori-btn:hover { border-color: var(--wire-strong); }
+    .kategori-btn.selected {
+      background: var(--vekt); color: #fff; border-color: transparent;
+    }
+    .kategori-btn .kat-label { font-weight: 600; font-size: 13px; }
+    .kategori-btn .kat-ref {
+      font-family: var(--font-data); font-size: 10px; font-weight: 400;
+      opacity: 0.6;
+    }
+    .kategori-btn.selected .kat-ref { color: rgba(255,255,255,0.7); }
+
+    /* Kontraktsregel inline panel */
+    .kontraktsregel-inline {
+      background: var(--canvas);
+      border: 1px solid var(--wire);
+      border-left: 3px solid var(--vekt-dim);
+      border-radius: 0 var(--r-sm) var(--r-sm) 0;
+      padding: var(--sp-2) var(--sp-3);
+      margin-top: var(--sp-2);
+      font-size: 12px; line-height: 1.5;
+    }
+    .kontraktsregel-inline .kr-hjemmel {
+      font-family: var(--font-data); font-size: 11px; font-weight: 600;
+      color: var(--vekt); margin-bottom: 2px;
+    }
+    .kontraktsregel-inline .kr-text {
+      color: var(--ink-secondary);
+    }
+
+    /* Text input */
+    .text-field { margin-top: var(--sp-3); }
+    .text-field label {
+      display: block; font-size: 13px; font-weight: 400;
+      color: var(--ink-secondary); margin-bottom: var(--sp-1);
+    }
+    .text-input {
+      width: 100%; height: 36px;
+      background: var(--canvas);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-sm);
+      font-family: var(--font-ui); font-size: 13px;
+      color: var(--ink); padding: 0 var(--sp-3);
+      outline: none; transition: border-color 120ms;
+    }
+    .text-input:focus { border-color: var(--vekt-dim); }
+    .text-input::placeholder { color: var(--ink-ghost); }
+
+    /* Textarea */
+    .textarea-input {
+      width: 100%; min-height: 72px;
+      background: var(--canvas);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-sm);
+      font-family: var(--font-ui); font-size: 13px;
+      color: var(--ink); padding: var(--sp-2) var(--sp-3);
+      outline: none; resize: vertical;
+      transition: border-color 120ms;
+      line-height: 1.5;
+    }
+    .textarea-input:focus { border-color: var(--vekt-dim); }
+    .textarea-input::placeholder { color: var(--ink-ghost); }
+
+    /* Select / dropdown */
+    .select-field { margin-top: var(--sp-3); }
+    .select-field label {
+      display: block; font-size: 13px; font-weight: 400;
+      color: var(--ink-secondary); margin-bottom: var(--sp-1);
+    }
+    .select-input {
+      width: 100%; height: 36px;
+      background: var(--canvas);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-sm);
+      font-family: var(--font-ui); font-size: 13px;
+      color: var(--ink); padding: 0 var(--sp-3);
+      outline: none; cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%237b829b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+    .select-input:focus { border-color: var(--vekt-dim); }
+    .select-input option { background: var(--felt); color: var(--ink); }
+    .select-input optgroup { font-weight: 600; color: var(--ink-muted); font-style: normal; }
+
+    /* Date picker mock */
+    .date-field { margin-top: var(--sp-3); }
+    .date-field label {
+      display: block; font-size: 13px; font-weight: 400;
+      color: var(--ink-secondary); margin-bottom: var(--sp-1);
+    }
+    .date-input-wrap {
+      display: flex; align-items: center;
+      background: var(--canvas);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-sm);
+      height: 36px; overflow: hidden;
+    }
+    .date-input-wrap input {
+      flex: 1; height: 100%;
+      background: transparent; border: none; outline: none;
+      font-family: var(--font-data); font-size: 13px; font-weight: 500;
+      color: var(--ink); padding: 0 var(--sp-3);
+    }
+    .date-input-wrap .cal-icon {
+      padding: 0 var(--sp-3);
+      color: var(--ink-ghost); cursor: pointer;
+      display: flex; align-items: center;
+    }
+    .date-helper {
+      font-size: 11px; margin-top: var(--sp-1);
+      display: flex; align-items: center; gap: var(--sp-1);
+    }
+    .date-helper .elapsed {
+      font-family: var(--font-data); font-weight: 500;
+    }
+    .date-helper .elapsed.amber { color: var(--vekt); }
+    .date-helper .elapsed.red { color: var(--score-low); }
+    .date-helper .elapsed.normal { color: var(--ink-muted); }
+
+    /* Checkbox */
+    .checkbox-item {
+      display: flex; align-items: flex-start; gap: var(--sp-2);
+      padding: var(--sp-2) 0;
+      cursor: pointer;
+    }
+    .checkbox {
+      width: 16px; height: 16px; min-width: 16px;
+      border: 2px solid var(--wire-strong);
+      border-radius: var(--r-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: transparent;
+      transition: all 120ms;
+      margin-top: 1px;
+    }
+    .checkbox.checked {
+      background: var(--vekt); border-color: var(--vekt);
+      color: #fff;
+    }
+    .checkbox-label {
+      font-size: 13px; font-weight: 500; color: var(--ink);
+    }
+    .checkbox-hint {
+      font-size: 12px; color: var(--ink-muted);
+      margin-top: 2px;
+    }
+
+    /* Multi-checkbox inline (varsel metode) */
+    .method-checkboxes {
+      display: flex; flex-wrap: wrap; gap: var(--sp-3);
+      margin-top: var(--sp-2);
+    }
+    .method-checkbox {
+      display: flex; align-items: center; gap: var(--sp-1);
+      cursor: pointer;
+    }
+    .method-checkbox .cb {
+      width: 14px; height: 14px; min-width: 14px;
+      border: 2px solid var(--wire-strong);
+      border-radius: var(--r-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; color: transparent;
+      transition: all 120ms;
+    }
+    .method-checkbox .cb.checked {
+      background: var(--vekt); border-color: var(--vekt);
+      color: #fff;
+    }
+    .method-checkbox .cb-text {
+      font-size: 12px; color: var(--ink-secondary);
+    }
+
+    /* Callout */
+    .callout {
+      padding: var(--sp-3) var(--sp-4);
+      border-radius: var(--r-md);
+      border-left: 3px solid;
+      margin-top: var(--sp-3);
+      font-size: 13px; line-height: 1.5;
+    }
+    .callout.success {
+      background: var(--score-high-bg);
+      border-left-color: var(--score-high);
+      color: var(--score-high);
+    }
+    .callout.warning {
+      background: var(--vekt-bg);
+      border-left-color: var(--vekt);
+      color: var(--vekt);
+    }
+    .callout.danger {
+      background: var(--score-low-bg);
+      border-left-color: var(--score-low);
+      color: var(--score-low);
+    }
+    .callout.info {
+      background: rgba(96, 165, 250, 0.06);
+      border-left-color: var(--ink-muted);
+      color: var(--ink-secondary);
+    }
+    .callout strong { font-weight: 600; }
+    .callout .callout-icon { margin-right: var(--sp-1); }
+    .callout .callout-ref {
+      font-family: var(--font-data); font-size: 12px; font-weight: 500;
+    }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 1px dashed var(--wire-strong);
+      border-radius: var(--r-md); padding: var(--sp-4);
+      text-align: center; color: var(--ink-secondary);
+      font-size: 13px; margin-top: var(--sp-4);
+      transition: all 150ms;
+    }
+    .upload-zone:hover {
+      border-color: var(--vekt-dim);
+      background: var(--vekt-bg);
+    }
+
+    /* Buttons */
+    .btn {
+      font-family: var(--font-ui); font-size: 13px; font-weight: 600;
+      padding: 0 var(--sp-4); height: 36px;
+      border-radius: var(--r-sm); border: none;
+      cursor: pointer; transition: all 120ms;
+      display: inline-flex; align-items: center; gap: var(--sp-2);
+    }
+    .btn-primary {
+      background: var(--vekt); color: #fff;
+    }
+    .btn-primary:hover { background: var(--vekt-dim); }
+    .btn-ghost {
+      background: transparent; color: var(--ink-secondary);
+      border: 1px solid var(--wire);
+    }
+    .btn-ghost:hover { background: var(--felt-hover); color: var(--ink); }
+    .btn-primary .btn-inner-ref {
+      font-family: var(--font-data); font-size: 10px; font-weight: 400;
+      opacity: 0.7;
+    }
+
+    /* Right panel components */
+    .right-tabs {
+      display: flex; border-bottom: 1px solid var(--wire);
+    }
+    .right-tab {
+      padding: var(--sp-2) var(--sp-3);
+      font-size: 13px; font-weight: 500;
+      color: var(--ink-secondary);
+      border-bottom: 2px solid transparent;
+      cursor: pointer; transition: all 120ms;
+    }
+    .right-tab.active {
+      color: var(--vekt); border-bottom-color: var(--vekt);
+    }
+    .right-tab.dimmed {
+      opacity: 0.4; pointer-events: none;
+    }
+    .right-content { padding: var(--sp-4); flex: 1; overflow-y: auto; }
+
+    .editor-wrap {
+      border: 2px solid var(--vekt-dim);
+      border-radius: var(--r-md);
+      background: var(--felt);
+      min-height: 200px;
+      display: flex; flex-direction: column;
+    }
+    .editor-content {
+      flex: 1; padding: var(--sp-3);
+      font-size: 14px; line-height: 1.6;
+      color: var(--ink); outline: none;
+    }
+    .editor-content .placeholder {
+      color: var(--ink-ghost);
+    }
+    .editor-toolbar {
+      border-top: 1px solid var(--wire);
+      padding: var(--sp-1) var(--sp-3);
+      display: flex; gap: var(--sp-1);
+    }
+    .editor-toolbar button {
+      width: 28px; height: 28px;
+      background: transparent; border: none; border-radius: var(--r-sm);
+      color: var(--ink-secondary); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 120ms;
+    }
+    .editor-toolbar button:hover { background: var(--felt-hover); color: var(--ink); }
+
+    .role-badge {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 1px 6px; border-radius: var(--r-full);
+      display: inline-block;
+    }
+    .role-badge.te { background: var(--role-te-bg); color: var(--role-te-text); }
+    .role-badge.bh { background: var(--role-bh-bg); color: var(--role-bh-text); }
+
+    /* Variant label */
+    .variant-divider {
+      display: flex; align-items: center; gap: var(--sp-2);
+      margin: var(--sp-5) 0 var(--sp-3); color: var(--ink-ghost); font-size: 11px;
+      font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .variant-divider::before, .variant-divider::after {
+      content: ''; flex: 1; border-top: 1px dashed var(--wire);
+    }
+
+    /* Conditional reveal */
+    .conditional-reveal {
+      border-left: 2px solid var(--wire-strong);
+      padding-left: var(--sp-4);
+      margin-top: var(--sp-3);
+      margin-left: var(--sp-1);
+    }
+
+    /* === CATALOG VIEW SPECIFIC === */
+    .catalog-section {
+      margin-bottom: var(--sp-8);
+    }
+    .catalog-section h2 {
+      font-size: 14px; font-weight: 600; color: var(--ink);
+      margin-bottom: var(--sp-1);
+    }
+    .catalog-section .section-desc {
+      font-size: 12px; color: var(--ink-muted);
+      margin-bottom: var(--sp-4);
+    }
+    .catalog-item {
+      margin-bottom: var(--sp-4);
+    }
+    .catalog-trigger {
+      font-size: 11px; color: var(--ink-ghost);
+      font-family: var(--font-data);
+      margin-bottom: var(--sp-1);
+      display: flex; align-items: center; gap: var(--sp-2);
+    }
+    .catalog-trigger .severity {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 1px 5px; border-radius: var(--r-full);
+    }
+    .catalog-trigger .severity.s-success { background: var(--score-high-bg); color: var(--score-high); }
+    .catalog-trigger .severity.s-warning { background: var(--vekt-bg-strong); color: var(--vekt); }
+    .catalog-trigger .severity.s-danger { background: var(--score-low-bg); color: var(--score-low); }
+    .catalog-trigger .severity.s-info { background: rgba(96,165,250,0.10); color: #60a5fa; }
+
+    .page-title {
+      font-size: 18px; font-weight: 700; color: var(--ink);
+      margin-bottom: var(--sp-1);
+    }
+    .page-subtitle {
+      font-size: 13px; color: var(--ink-muted);
+      margin-bottom: var(--sp-6);
+    }
+
+    /* Utility */
+    .mt-3 { margin-top: var(--sp-3); }
+    .mt-5 { margin-top: var(--sp-5); }
+    .mb-3 { margin-bottom: var(--sp-3); }
+    .text-muted { color: var(--ink-muted); }
+    .text-ghost { color: var(--ink-ghost); }
+    .text-high { color: var(--score-high); }
+    .text-low { color: var(--score-low); }
+    .text-vekt { color: var(--vekt); }
+  </style>
+</head>
+<body>
+
+<!-- VIEW SWITCHER -->
+<nav class="view-nav">
+  <span class="brand">TE Grunnlag</span>
+  <button class="view-btn active" onclick="showView('form')">Varselskjema</button>
+  <button class="view-btn" onclick="showView('alerts')">Alerts-katalog</button>
+</nav>
+
+<div class="page">
+
+<!-- =====================================================
+     VIEW 1: TE GRUNNLAG FORM — NYTT VARSEL
+     ===================================================== -->
+<div class="view active" id="view-form">
+  <div class="three-panel">
+
+    <!-- LEFT NAV -->
+    <div class="nav-panel">
+      <div class="nav-back">← Tilbake til Forhandlingsbordet</div>
+      <div class="nav-header">
+        <h2>Nytt varsel</h2>
+        <div class="case-id">Ny KOE-sak</div>
+      </div>
+      <div class="nav-item active">
+        <span class="status-dot amber"></span> Grunnlag
+      </div>
+      <div class="nav-item" style="opacity: 0.4; pointer-events: none">
+        <span class="status-dot ghost"></span> Vederlag
+      </div>
+      <div class="nav-item" style="opacity: 0.4; pointer-events: none">
+        <span class="status-dot ghost"></span> Frist
+      </div>
+    </div>
+
+    <!-- MID PANEL -->
+    <div class="mid-panel">
+      <div class="mid-scroll">
+
+        <!-- Sone ① is empty — TE creates, no kravhode to display -->
+
+        <!-- Sone ③ — KATEGORI §33.1 -->
+        <div class="section-title" style="margin-top: 0">
+          <h3>KATEGORI <span class="ref">§33.1</span></h3>
+          <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+
+        <div class="kategori-group">
+          <button class="kategori-btn selected">
+            <span class="kat-label">Endringer</span>
+            <span class="kat-ref">§33.1 a)</span>
+          </button>
+          <button class="kategori-btn">
+            <span class="kat-label">Svikt</span>
+            <span class="kat-ref">§33.1 b)</span>
+          </button>
+          <button class="kategori-btn">
+            <span class="kat-label">Andre</span>
+            <span class="kat-ref">§33.1 c)</span>
+          </button>
+          <button class="kategori-btn">
+            <span class="kat-label">Force Majeure</span>
+            <span class="kat-ref">§33.3</span>
+          </button>
+        </div>
+
+        <!-- Kontraktsregel for valgt kategori -->
+        <div class="kontraktsregel-inline">
+          <div class="kr-hjemmel">§33.1 a) — Endringer</div>
+          <div class="kr-text">Avvik fra det opprinnelig avtalte, enten ved formell ordre, endrede rammebetingelser eller pålegg. Gir rett til fristforlengelse og vederlagsjustering.</div>
+        </div>
+
+        <!-- HJEMMEL — Grouped dropdown -->
+        <div class="section-title">
+          <h3>HJEMMEL</h3>
+          <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+
+        <div class="select-field">
+          <select class="select-input">
+            <optgroup label="Endringsordrer">
+              <option>Formell endringsordre — §31.3</option>
+              <option selected>Irregulær endring (Pålegg) — §32.1</option>
+              <option>Begrensning av valgrett — §14.6</option>
+              <option>Endring via svar på varsel — §24.2.2</option>
+            </optgroup>
+            <optgroup label="Lov og forskrift">
+              <option>Endring i lover/vedtak (Gjenstand) — §14.4</option>
+              <option>Endring i lover/vedtak (Prosess) — §15.2</option>
+              <option>Endring i gebyrer/avgifter — §26.3</option>
+            </optgroup>
+            <optgroup label="Koordinering">
+              <option>Samordning/Omlegging — §21.4</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- Kontraktsregel for valgt underkategori -->
+        <div class="kontraktsregel-inline">
+          <div class="kr-hjemmel">§32.1 — Irregulær endring (Pålegg)</div>
+          <div class="kr-text">Pålegg/anvisning som entreprenøren mener er endring, men som ikke er gitt som endringsordre. Krav om varsling iht. §32.2.</div>
+        </div>
+
+        <!-- TITTEL -->
+        <div class="text-field">
+          <label>Tittel</label>
+          <input type="text" class="text-input" value="Forsinket stålmontasje - endret monteringsrekkefølge">
+        </div>
+
+        <!-- BESKRIVELSE -->
+        <div class="text-field">
+          <label>Beskrivelse</label>
+          <textarea class="textarea-input">Byggherren har gitt muntlig instruks om endret monteringsrekkefølge for stålkonstruksjonen i akse C-E. Pålegget ble gitt under byggmøte 08.01.2026 og medfører omprosjektering av midlertidige avstivninger samt endret løfteplan. Det vises til referat fra byggmøte nr. 14.</textarea>
+        </div>
+
+        <!-- DATO OPPDAGET -->
+        <div class="date-field">
+          <label>Dato oppdaget</label>
+          <div class="date-input-wrap">
+            <input type="text" value="10.01.2026" readonly>
+            <span class="cal-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
+          </div>
+          <div class="date-helper">
+            <span class="elapsed amber mono">54 dager siden</span>
+          </div>
+        </div>
+
+        <!-- VARSLING §32.2 -->
+        <div class="section-title">
+          <h3>VARSLING <span class="ref">§32.2</span></h3>
+          <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+
+        <!-- State A: Varsel sendes nå (checked) -->
+        <div class="checkbox-item" style="margin-top: var(--sp-3)">
+          <span class="checkbox checked">✓</span>
+          <div>
+            <div class="checkbox-label">Varsel sendes nå</div>
+            <div class="checkbox-hint">Sendes i dag sammen med dette skjemaet.</div>
+          </div>
+        </div>
+
+        <!-- Variant divider: Show unchecked state -->
+        <div class="variant-divider">Alternativ — varsel allerede sendt</div>
+
+        <!-- State B: Varsel allerede sendt (unchecked) -->
+        <div class="checkbox-item">
+          <span class="checkbox"></span>
+          <div>
+            <div class="checkbox-label">Varsel sendes nå</div>
+          </div>
+        </div>
+
+        <!-- Conditional fields when unchecked -->
+        <div class="conditional-reveal">
+
+          <!-- Preklusjonsadvarsel — 5 dager (amber) -->
+          <div class="callout warning">
+            <strong><span class="callout-icon">⚠</span> Husk varslingsfrist <span class="callout-ref">(§32.2)</span></strong> — Det er 5 dager mellom oppdagelse og varsling.
+          </div>
+
+          <div class="date-field">
+            <label>Dato varsel ble sendt</label>
+            <div class="date-input-wrap">
+              <input type="text" value="15.01.2026" readonly>
+              <span class="cal-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </span>
+            </div>
+            <div class="date-helper">
+              <span class="mono" style="color: var(--ink-muted)">5 dager etter oppdagelse</span>
+            </div>
+          </div>
+
+          <div class="select-field">
+            <label>Varselmetode</label>
+          </div>
+          <div class="method-checkboxes">
+            <label class="method-checkbox">
+              <span class="cb checked">✓</span>
+              <span class="cb-text">E-post</span>
+            </label>
+            <label class="method-checkbox">
+              <span class="cb"></span>
+              <span class="cb-text">Brev</span>
+            </label>
+            <label class="method-checkbox">
+              <span class="cb checked">✓</span>
+              <span class="cb-text">Byggemøtereferat</span>
+            </label>
+            <label class="method-checkbox">
+              <span class="cb"></span>
+              <span class="cb-text">Prosjekthotell</span>
+            </label>
+          </div>
+
+          <!-- Variant: Preklusjonsadvarsel — 18 dager (danger) -->
+          <div class="variant-divider">Variant — >14 dagers mellomrom</div>
+
+          <div class="callout danger">
+            <strong><span class="callout-icon">⚠</span> Preklusjonsfare <span class="callout-ref">(§32.2)</span></strong> — 18 dager siden oppdagelse. Risiko for å miste kravsgrunnlaget.
+          </div>
+        </div>
+
+        <!-- VEDLEGG -->
+        <div class="section-title">
+          <h3>VEDLEGG</h3>
+        </div>
+        <div class="upload-zone">
+          ⇧ Dra filer hit · PDF, DOCX
+        </div>
+
+        <!-- Force Majeure callout — shown when FM is selected -->
+        <div class="variant-divider">Vist når Force Majeure er valgt</div>
+        <div class="callout info">
+          <strong>Force Majeure <span class="callout-ref">(§33.3)</span></strong> — Gir kun rett til fristforlengelse, ikke vederlag. Hjemmelfeltet skjules.
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="mid-footer">
+        <button class="btn btn-ghost">Avbryt</button>
+        <button class="btn btn-primary">
+          Send varsel
+          <span class="btn-inner-ref">§32.2</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="right-tabs">
+        <div class="right-tab active">Begrunnelse</div>
+        <div class="right-tab dimmed">Historikk</div>
+        <div class="right-tab dimmed">Filer</div>
+      </div>
+      <div class="right-content">
+        <!-- Label -->
+        <div style="margin-bottom: var(--sp-3)">
+          <span class="role-badge te">TE</span>
+          <span style="font-size: 13px; font-weight: 500; margin-left: var(--sp-2)">Begrunnelse for kravet</span>
+        </div>
+
+        <!-- Editor -->
+        <div class="editor-wrap">
+          <div class="editor-content" contenteditable="true">
+            <span class="placeholder">Beskriv bakgrunnen for kravet og henvis til relevant kontraktsbestemmelse. Legg ved dokumentasjon som underbygger kravet.</span>
+          </div>
+          <div class="editor-toolbar">
+            <button>¶</button>
+            <button><b>B</b></button>
+            <button><i>I</i></button>
+          </div>
+        </div>
+
+        <div style="font-size: 11px; color: var(--ink-ghost); margin-top: var(--sp-2)">
+          Tips: Referer til kontraktsbestemmelser med §-tegn. Vedlegg lastes opp under vedlegg-seksjonen.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- =====================================================
+     VIEW 2: ALERTS-KATALOG
+     ===================================================== -->
+<div class="view" id="view-alerts">
+  <div class="catalog-layout">
+
+    <div class="page-title">Felt-spesifikke varsler — komplett katalog</div>
+    <div class="page-subtitle">Alle kontekstuelle varsler som mangler fra designdokumentene, gruppert etter skjemakontekst. Hver vises med utløserbetingelse, alvorlighet og nøyaktig tekst.</div>
+
+    <!-- ========== GRUNNLAG BH ========== -->
+    <div class="catalog-section">
+      <h2>Grunnlag — BH svarer</h2>
+      <div class="section-desc">Varsler som vises i grunnlagspanelet når BH behandler TE sitt krav.</div>
+
+      <!-- B1: FM Godkjent -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-success">success</span>
+          kategori = FORCE_MAJEURE &amp;&amp; resultat = godkjent
+        </div>
+        <div class="callout success">
+          <strong>Force Majeure anerkjent</strong> — kun fristforlengelse <span class="callout-ref">(§33.3)</span>. Vederlagssporet deaktiveres.
+        </div>
+      </div>
+
+      <!-- B1: FM Avslått -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-danger">danger</span>
+          kategori = FORCE_MAJEURE &amp;&amp; resultat = avslått
+        </div>
+        <div class="callout danger">
+          <strong>Force Majeure ikke anerkjent</strong> — TE har bevisbyrden for ekstraordinært forhold.
+        </div>
+      </div>
+
+      <!-- B2: Varslet i tide positive -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-info">info</span>
+          kategori = ENDRING &amp;&amp; varslet_i_tide = Ja
+        </div>
+        <div class="callout info">
+          <strong>Varslet i tide</strong> — <span class="callout-ref">§34.1.1</span> gjelder for vederlagsjustering.
+        </div>
+      </div>
+
+      <!-- B3: Preklusjon påberopt -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-danger">danger</span>
+          varslet_i_tide = Nei
+        </div>
+        <div class="callout danger">
+          <strong>Preklusjon påberopt <span class="callout-ref">(§32.2)</span></strong> — TE varslet ikke i rimelig tid.
+        </div>
+      </div>
+
+      <!-- B3: Subsidiær vurdering -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-warning">warning</span>
+          varslet_i_tide = Nei (tillegg til preklusjon)
+        </div>
+        <div class="callout warning">
+          Videre vurdering av vederlag og frist gjelder <strong>subsidiært</strong>.
+        </div>
+      </div>
+
+      <!-- B4: Snuoperasjon med subsidiære -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-success">success</span>
+          avslått → godkjent &amp;&amp; harSubsidiaereSvar = true
+        </div>
+        <div class="callout success">
+          <strong>Subsidiære svar</strong> (vederlag og frist) blir prinsipale.
+        </div>
+      </div>
+
+      <!-- B4: Snuoperasjon uten subsidiære -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-info">info</span>
+          avslått → godkjent &amp;&amp; harSubsidiaereSvar = false
+        </div>
+        <div class="callout info">
+          Ingen subsidiære svar å promotere.
+        </div>
+      </div>
+
+      <!-- Passivitet amber -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-warning">warning</span>
+          dager_siden_varsel ≥ 7 &amp;&amp; dager_siden_varsel &lt; 14
+        </div>
+        <div class="callout warning">
+          <strong><span class="callout-icon">⚠</span> 8 dager uten svar</strong> — svarfrist nærmer seg.
+        </div>
+      </div>
+
+      <!-- Passivitet rød -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-danger">danger</span>
+          dager_siden_varsel ≥ 14
+        </div>
+        <div class="callout danger">
+          <strong><span class="callout-icon">⚠</span> 19 dager uten svar</strong> — du kan miste retten til å protestere.
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== VEDERLAG BH ========== -->
+    <div class="catalog-section">
+      <h2>Vederlag — BH svarer</h2>
+      <div class="section-desc">Varsler som vises i vederlagspanelet når BH behandler krav om vederlagsjustering.</div>
+
+      <!-- B5: Svarplikt -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-danger">danger</span>
+          dager_siden_krav_mottatt &gt; 5
+        </div>
+        <div class="callout danger">
+          <strong>Svarplikt</strong> — 12 dager siden krav mottatt. Risiko for passiv aksept <span class="callout-ref">(§30.3.2)</span>.
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== VEDERLAG TE ========== -->
+    <div class="catalog-section">
+      <h2>Vederlag — TE sender krav</h2>
+      <div class="section-desc">Varsler som vises i vederlagsskjemaet når TE velger beregningsmetode.</div>
+
+      <!-- B6: REGNINGSARBEID fradrag -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-info">info</span>
+          beregningsmetode = REGNINGSARBEID
+        </div>
+        <div class="callout info">
+          <strong>Regningsarbeid <span class="callout-ref">(§34.4)</span></strong> — Ved fradrag reduseres vederlaget med besparelsen, inkl. reduksjon av fortjenesten.
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== FRIST BH ========== -->
+    <div class="catalog-section">
+      <h2>Frist — BH svarer</h2>
+      <div class="section-desc">Varsler som vises i fristpanelet når BH behandler krav om fristforlengelse.</div>
+
+      <!-- B7: §33.8 forsering -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-warning">warning</span>
+          resultat = avslått || resultat = delvis
+        </div>
+        <div class="callout warning">
+          <strong>Forseringsrett <span class="callout-ref">(§33.8)</span></strong> — Avslag/delvis godkjenning kan utløse forseringsrett for TE. Forseringskostnad begrenset til dagmulkt × avslåtte dager × 1,3.
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== TE GRUNNLAG (Preklusjonsadvarsler) ========== -->
+    <div class="catalog-section">
+      <h2>Grunnlag — TE sender varsel</h2>
+      <div class="section-desc">Inline-varsler i varselskjemaet som hjelper TE overholde preklusjonsfrister.</div>
+
+      <!-- Preklusjon amber -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-warning">warning</span>
+          dager_mellom_oppdaget_og_varsel ≥ 3 &amp;&amp; dager &lt; 14
+        </div>
+        <div class="callout warning">
+          <strong><span class="callout-icon">⚠</span> Husk varslingsfrist <span class="callout-ref">(§32.2)</span></strong> — Det er 5 dager mellom oppdagelse og varsling.
+        </div>
+      </div>
+
+      <!-- Preklusjon danger -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-danger">danger</span>
+          dager_mellom_oppdaget_og_varsel ≥ 14
+        </div>
+        <div class="callout danger">
+          <strong><span class="callout-icon">⚠</span> Preklusjonsfare <span class="callout-ref">(§32.2)</span></strong> — 18 dager siden oppdagelse. Risiko for å miste kravsgrunnlaget.
+        </div>
+      </div>
+
+      <!-- Force Majeure info -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-info">info</span>
+          kategori = FORCE_MAJEURE
+        </div>
+        <div class="callout info">
+          <strong>Force Majeure <span class="callout-ref">(§33.3)</span></strong> — Gir kun rett til fristforlengelse, ikke vederlag. Hjemmelfeltet skjules.
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== DYNAMIC BEGRUNNELSE PLACEHOLDERS ========== -->
+    <div class="catalog-section">
+      <h2>Dynamiske begrunnelse-placeholders</h2>
+      <div class="section-desc">Kontekstavhengige placeholder-tekster for begrunnelse-editoren i høyrepanelet.</div>
+
+      <!-- B8: Preklusjon + subsidiær -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-info">info</span>
+          varslet_i_tide = Nei &amp;&amp; resultat = avslått (BH begrunnelse)
+        </div>
+        <div class="callout info" style="font-style: italic;">
+          Begrunn prinsipalt avslag <span class="callout-ref">(§32.2 preklusjon)</span> og den subsidiære vurderingen av kravet.
+        </div>
+      </div>
+
+      <!-- Standard TE placeholder -->
+      <div class="catalog-item">
+        <div class="catalog-trigger">
+          <span class="severity s-info">info</span>
+          TE sender varsel — standard placeholder
+        </div>
+        <div class="callout info" style="font-style: italic;">
+          Beskriv bakgrunnen for kravet og henvis til relevant kontraktsbestemmelse. Legg ved dokumentasjon som underbygger kravet.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+
+<script>
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>
