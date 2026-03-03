@@ -115,14 +115,14 @@ export function CaseMasterCard({
       {/* ===== Identity section ===== */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-bento-caption font-mono text-pkt-text-body-subtle tracking-wide">
+          <h2 className="text-lg font-semibold text-pkt-text-body-dark leading-tight">
+            {state.sakstittel}
+          </h2>
+          <p className="text-bento-caption font-mono text-pkt-text-body-subtle tracking-wide mt-0.5">
             {state.sak_id}
             <span className="text-pkt-grays-gray-300 mx-1.5">&middot;</span>
             <span className="font-sans">{sakstypeStyle.label}</span>
           </p>
-          <h2 className="text-lg font-semibold text-pkt-text-body-dark leading-tight mt-0.5">
-            {state.sakstittel}
-          </h2>
           {(state.byggherre || state.entreprenor) && (
             <p className="text-bento-body text-pkt-text-body-subtle mt-1">
               {state.byggherre && (
@@ -200,13 +200,6 @@ export function CaseMasterCard({
                 Fristforlengelse etter {categoryInfo.entitles.frist}
               </p>
             </div>
-          )}
-
-          {/* Beskrivelse */}
-          {g.beskrivelse && (
-            <p className="text-bento-body text-pkt-text-body-default italic mb-2 line-clamp-4">
-              {g.beskrivelse}
-            </p>
           )}
 
           {/* Key-value rows: dates */}
