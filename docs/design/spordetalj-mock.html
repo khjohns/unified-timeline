@@ -1,0 +1,1748 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spordetalj — KOE #12 Stålmontasje</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* === RESET === */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* === TOKENS — Analysebordet + Arbeidsflate-avvik === */
+    :root {
+      --canvas: #0c0e14;
+      --felt: #12151e;
+      --felt-raised: #181c28;
+      --felt-hover: #1e2233;
+      --felt-active: #242840;
+
+      --ink: #e2e5ef;
+      --ink-secondary: #8890a4;
+      --ink-muted: #7b829b;
+      --ink-ghost: #5a6178;
+
+      --wire: rgba(255, 255, 255, 0.06);
+      --wire-strong: rgba(255, 255, 255, 0.10);
+      --wire-focus: rgba(232, 168, 56, 0.35);
+
+      --vekt: #e8a838;
+      --vekt-dim: #c49030;
+      --vekt-bg: rgba(232, 168, 56, 0.08);
+      --vekt-bg-strong: rgba(232, 168, 56, 0.14);
+
+      --score-high: #3d9a6e;
+      --score-high-bg: rgba(61, 154, 110, 0.10);
+      --score-mid: #8890a4;
+      --score-low: #c45858;
+      --score-low-bg: rgba(196, 88, 88, 0.10);
+
+      /* Role badges */
+      --role-te-bg: rgba(96, 165, 250, 0.12);
+      --role-te-text: #60a5fa;
+      --role-bh-bg: rgba(232, 168, 56, 0.12);
+      --role-bh-text: #e8a838;
+
+      /* LockedValue domain colors */
+      --lv-dager-bg: rgba(96, 165, 250, 0.15);
+      --lv-dager-border: rgba(96, 165, 250, 0.30);
+      --lv-dager-text: #93bbfc;
+      --lv-belop-bg: rgba(61, 154, 110, 0.15);
+      --lv-belop-border: rgba(61, 154, 110, 0.30);
+      --lv-belop-text: #6dbf96;
+      --lv-paragraf-bg: var(--canvas);
+      --lv-paragraf-border: var(--wire-strong);
+      --lv-paragraf-text: var(--ink);
+
+      --font-data: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', monospace;
+      --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+      --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+      --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+
+      /* Arbeidsflaten: skarpere radier */
+      --r-sm: 2px; --r-md: 4px; --r-lg: 6px; --r-full: 9999px;
+    }
+
+    /* === BASE === */
+    html { height: 100%; }
+    body {
+      font-family: var(--font-ui);
+      background: var(--canvas);
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      height: 100%;
+    }
+
+    .mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+
+    /* === VIEW SWITCHER === */
+    .view-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: var(--felt);
+      border-bottom: 1px solid var(--wire-strong);
+      display: flex; align-items: center; gap: var(--sp-2);
+      padding: var(--sp-2) var(--sp-4);
+    }
+    .view-nav .brand {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--ink-muted);
+      margin-right: var(--sp-4);
+    }
+    .view-btn {
+      font-family: var(--font-ui); font-size: 12px; font-weight: 500;
+      padding: var(--sp-1) var(--sp-3);
+      border-radius: var(--r-sm); border: 1px solid transparent;
+      background: transparent; color: var(--ink-secondary);
+      cursor: pointer; transition: all 120ms;
+    }
+    .view-btn:hover { color: var(--ink); background: var(--felt-hover); }
+    .view-btn.active {
+      background: var(--vekt-bg-strong); color: var(--vekt);
+      border-color: rgba(232,168,56,0.20); font-weight: 600;
+    }
+
+    /* === LAYOUT === */
+    .page { padding-top: 40px; height: 100%; }
+    .view { display: none; height: 100%; }
+    .view.active { display: flex; }
+
+    .three-panel {
+      display: grid;
+      grid-template-columns: 220px 1fr 340px;
+      height: 100%;
+    }
+
+    /* === LEFT NAV === */
+    .nav-panel {
+      background: var(--canvas);
+      border-right: 1px solid var(--wire);
+      padding: var(--sp-4) 0;
+      overflow-y: auto;
+    }
+    .nav-header {
+      padding: 0 var(--sp-4) var(--sp-4);
+      border-bottom: 1px solid var(--wire);
+      margin-bottom: var(--sp-3);
+    }
+    .nav-header h2 {
+      font-size: 13px; font-weight: 600; color: var(--ink);
+    }
+    .nav-header .case-id {
+      font-family: var(--font-data); font-size: 11px; color: var(--ink-muted);
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: var(--sp-2);
+      padding: var(--sp-2) var(--sp-4);
+      font-size: 13px; font-weight: 500; color: var(--ink-secondary);
+      cursor: pointer; transition: all 120ms;
+      border-left: 2px solid transparent;
+    }
+    .nav-item:hover { background: var(--felt-hover); color: var(--ink); }
+    .nav-item.active {
+      background: var(--vekt-bg);
+      color: var(--vekt); border-left-color: var(--vekt);
+    }
+    .nav-item .status-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+    }
+    .nav-item .status-dot.green { background: var(--score-high); }
+    .nav-item .status-dot.amber { background: var(--vekt); }
+    .nav-item .status-dot.red { background: var(--score-low); }
+    .nav-item .status-dot.ghost { background: var(--ink-ghost); }
+    .nav-back {
+      display: flex; align-items: center; gap: var(--sp-1);
+      padding: var(--sp-2) var(--sp-4);
+      font-size: 11px; color: var(--ink-ghost); cursor: pointer;
+      margin-bottom: var(--sp-2);
+    }
+    .nav-back:hover { color: var(--vekt); }
+
+    /* === MID PANEL === */
+    .mid-panel {
+      background: var(--felt);
+      overflow-y: auto;
+      display: flex; flex-direction: column;
+    }
+    .mid-scroll {
+      flex: 1; overflow-y: auto;
+      padding: var(--sp-5);
+    }
+    .mid-footer {
+      height: 52px; min-height: 52px;
+      background: var(--felt);
+      border-top: 1px solid var(--wire);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 var(--sp-5);
+    }
+
+    /* === RIGHT PANEL === */
+    .right-panel {
+      background: var(--felt);
+      border-left: 3px solid var(--vekt);
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+
+    /* === COMPONENTS === */
+
+    /* Sone 1: Kravhode */
+    .kravhode {
+      background: var(--canvas);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-md);
+      padding: var(--sp-3) var(--sp-4);
+      margin-bottom: var(--sp-5);
+    }
+    .kravhode-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: var(--sp-2);
+    }
+    .kravhode-header .label {
+      font-size: 13px; font-weight: 500; color: var(--ink-secondary);
+    }
+    .kravhode-header .rev {
+      font-family: var(--font-data); font-size: 11px; color: var(--ink-muted);
+    }
+    .kravhode-title {
+      font-size: 14px; font-weight: 500; color: var(--ink);
+      margin-bottom: var(--sp-1);
+    }
+    .kravhode-meta {
+      font-family: var(--font-data); font-size: 12px; color: var(--ink-muted);
+    }
+    .kravhode-meta .sep { color: var(--ink-ghost); margin: 0 6px; }
+
+    /* Sone 2: Posisjonskort */
+    .posisjonskort {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 0; margin-bottom: var(--sp-5);
+    }
+    .pos-col {
+      padding: var(--sp-3) 0;
+      text-align: center;
+    }
+    .pos-col:not(:last-child) {
+      border-right: 1px solid var(--wire);
+    }
+    .pos-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--ink-muted);
+      margin-bottom: var(--sp-1);
+    }
+    .pos-value {
+      font-family: var(--font-data); font-size: 16px; font-weight: 600;
+    }
+    .pos-value.krevd { color: var(--vekt); }
+    .pos-value.godkjent { color: var(--score-high); }
+    .pos-value.grad { font-weight: 700; }
+    .progress-bar {
+      grid-column: 1 / -1;
+      height: 6px; border-radius: var(--r-full);
+      background: var(--canvas);
+      overflow: hidden; margin-top: var(--sp-2);
+    }
+    .progress-fill {
+      height: 100%; border-radius: var(--r-full);
+      transition: width 300ms ease-out;
+    }
+    .progress-fill.high { background: var(--score-high); }
+    .progress-fill.mid { background: var(--vekt); }
+    .progress-fill.low { background: var(--score-low); }
+
+    /* Seksjonstittel */
+    .section-title {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: var(--sp-5); padding-bottom: var(--sp-2);
+      border-bottom: 1px solid var(--wire);
+    }
+    .section-title h3 {
+      font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--ink-muted);
+    }
+    .section-title .ref {
+      font-family: var(--font-data); font-size: 11px; font-weight: 500;
+      color: var(--ink-muted);
+    }
+    .section-title .info-icon {
+      width: 14px; height: 14px; color: var(--ink-ghost);
+      cursor: help;
+    }
+
+    /* Key-value-rad */
+    .kv-row {
+      display: flex; align-items: baseline;
+      padding: var(--sp-1) 0;
+    }
+    .kv-label {
+      font-size: 13px; font-weight: 400; color: var(--ink-secondary);
+      white-space: nowrap;
+    }
+    .kv-leader {
+      flex: 1; border-bottom: 1px dotted var(--wire);
+      margin: 0 var(--sp-2); align-self: center;
+      min-width: 20px;
+    }
+    .kv-value {
+      font-family: var(--font-data); font-size: 13px; font-weight: 500;
+      white-space: nowrap;
+    }
+
+    /* Verdict-knapper */
+    .verdict-group {
+      display: flex; gap: var(--sp-2); margin-top: var(--sp-3);
+    }
+    .verdict-btn {
+      flex: 1; height: 36px;
+      font-family: var(--font-ui); font-size: 13px; font-weight: 500;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--wire);
+      background: var(--canvas);
+      color: var(--ink); cursor: pointer;
+      transition: all 150ms;
+    }
+    .verdict-btn:hover { border-color: var(--wire-strong); }
+    .verdict-btn.selected-green {
+      background: var(--score-high); color: #fff; border-color: transparent;
+    }
+    .verdict-btn.selected-amber {
+      background: var(--vekt); color: #fff; border-color: transparent;
+    }
+    .verdict-btn.selected-red {
+      background: var(--score-low); color: #fff; border-color: transparent;
+    }
+
+    /* Ja/Nei-knapper */
+    .yesno-group {
+      display: flex; gap: var(--sp-2); margin-top: var(--sp-2);
+    }
+    .yesno-btn {
+      height: 36px; min-width: 52px; padding: 0 var(--sp-3);
+      font-family: var(--font-ui); font-size: 13px; font-weight: 500;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--wire);
+      background: var(--canvas);
+      color: var(--ink); cursor: pointer;
+      transition: all 150ms;
+    }
+    .yesno-btn:hover { border-color: var(--wire-strong); }
+    .yesno-btn.yes-selected {
+      background: var(--score-high); color: #fff; border-color: transparent;
+    }
+    .yesno-btn.no-selected {
+      background: var(--score-low); color: #fff; border-color: transparent;
+    }
+
+    /* Innsigelse-checkbox */
+    .innsigelse-group { margin-top: var(--sp-3); }
+    .innsigelse-item {
+      display: flex; flex-direction: column; gap: var(--sp-1);
+      padding: var(--sp-2) var(--sp-3);
+      border-radius: var(--r-sm);
+      cursor: pointer; transition: background 120ms;
+    }
+    .innsigelse-item:hover { background: var(--felt-hover); }
+    .innsigelse-primary {
+      display: flex; align-items: center; gap: var(--sp-2);
+    }
+    .checkbox {
+      width: 16px; height: 16px; min-width: 16px;
+      border: 2px solid var(--wire-strong);
+      border-radius: var(--r-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: transparent;
+      transition: all 120ms;
+    }
+    .checkbox.checked {
+      background: var(--vekt); border-color: var(--vekt);
+      color: #fff;
+    }
+    .innsigelse-text {
+      font-size: 13px; font-weight: 500; color: var(--ink);
+    }
+    .innsigelse-item.checked .innsigelse-text {
+      color: var(--score-low);
+    }
+    .innsigelse-secondary {
+      padding-left: 24px;
+      font-size: 12px; color: var(--ink-muted);
+    }
+    .innsigelse-secondary .ref {
+      font-family: var(--font-data); font-weight: 500;
+    }
+
+    /* Tall-input */
+    .number-field { margin-top: var(--sp-3); }
+    .number-field label {
+      display: block; font-size: 13px; font-weight: 400;
+      color: var(--ink-secondary); margin-bottom: var(--sp-1);
+    }
+    .number-input-wrap {
+      display: flex; align-items: center;
+      background: var(--canvas);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-sm);
+      height: 36px; overflow: hidden;
+    }
+    .number-input-wrap input {
+      flex: 1; height: 100%;
+      background: transparent; border: none; outline: none;
+      font-family: var(--font-data); font-size: 14px; font-weight: 500;
+      color: var(--ink); padding: 0 var(--sp-3);
+      font-variant-numeric: tabular-nums;
+    }
+    .number-input-wrap .suffix {
+      padding: 0 var(--sp-3);
+      border-left: 1px solid var(--wire);
+      font-size: 13px; color: var(--ink-secondary);
+      white-space: nowrap; height: 100%;
+      display: flex; align-items: center;
+    }
+    .number-helper {
+      font-size: 11px; color: var(--ink-muted);
+      margin-top: var(--sp-1);
+    }
+    .number-helper .pct { font-family: var(--font-data); }
+    .number-helper .pct.high { color: var(--score-high); }
+    .number-helper .pct.mid { color: var(--vekt); }
+
+    /* Callout */
+    .callout {
+      padding: var(--sp-3) var(--sp-4);
+      border-radius: var(--r-md);
+      border-left: 3px solid;
+      margin-top: var(--sp-3);
+      font-size: 13px; line-height: 1.5;
+    }
+    .callout.success {
+      background: var(--score-high-bg);
+      border-left-color: var(--score-high);
+      color: var(--score-high);
+    }
+    .callout.warning {
+      background: var(--vekt-bg);
+      border-left-color: var(--vekt);
+      color: var(--vekt);
+    }
+    .callout.danger {
+      background: var(--score-low-bg);
+      border-left-color: var(--score-low);
+      color: var(--score-low);
+    }
+    .callout.info {
+      background: rgba(96, 165, 250, 0.06);
+      border-left-color: var(--ink-muted);
+      color: var(--ink-secondary);
+    }
+    .callout strong { font-weight: 600; }
+
+    /* Resultatboks */
+    .resultat-box {
+      background: var(--canvas);
+      border-top: 1px solid var(--wire);
+      padding: var(--sp-3) var(--sp-4);
+      margin-top: var(--sp-5);
+      border-radius: 0 0 var(--r-md) var(--r-md);
+    }
+    .resultat-row {
+      display: flex; align-items: center; gap: var(--sp-3);
+      padding: var(--sp-1) 0;
+    }
+    .resultat-label {
+      font-size: 13px; font-weight: 500; color: var(--ink);
+      min-width: 90px;
+    }
+    .resultat-label.sub {
+      font-weight: 400; color: var(--ink-secondary);
+    }
+    .badge {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 1px 6px; border-radius: var(--r-full);
+    }
+    .badge.green { background: var(--score-high-bg); color: var(--score-high); }
+    .badge.amber { background: var(--vekt-bg-strong); color: var(--vekt); }
+    .badge.red { background: var(--score-low-bg); color: var(--score-low); }
+    .badge.ghost { background: var(--felt-hover); color: var(--ink-muted); }
+    .resultat-value {
+      font-family: var(--font-data); font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Buttons */
+    .btn {
+      font-family: var(--font-ui); font-size: 13px; font-weight: 600;
+      padding: 0 var(--sp-4); height: 36px;
+      border-radius: var(--r-sm); border: none;
+      cursor: pointer; transition: all 120ms;
+      display: inline-flex; align-items: center; gap: var(--sp-2);
+    }
+    .btn-primary {
+      background: var(--vekt); color: #fff;
+    }
+    .btn-primary:hover { background: var(--vekt-dim); }
+    .btn-ghost {
+      background: transparent; color: var(--ink-secondary);
+      border: 1px solid var(--wire);
+    }
+    .btn-ghost:hover { background: var(--felt-hover); color: var(--ink); }
+    .btn-accept {
+      background: var(--score-high); color: #fff;
+    }
+    .btn-accept:hover { background: #349160; }
+    .btn-danger-ghost {
+      background: transparent; color: var(--score-low);
+    }
+    .btn-danger-ghost:hover { background: var(--score-low-bg); }
+
+    /* === RIGHT PANEL COMPONENTS === */
+    .right-tabs {
+      display: flex; border-bottom: 1px solid var(--wire);
+    }
+    .right-tab {
+      padding: var(--sp-2) var(--sp-3);
+      font-size: 13px; font-weight: 500;
+      color: var(--ink-secondary);
+      border-bottom: 2px solid transparent;
+      cursor: pointer; transition: all 120ms;
+    }
+    .right-tab.active {
+      color: var(--vekt); border-bottom-color: var(--vekt);
+    }
+    .right-tab.dimmed {
+      opacity: 0.4; pointer-events: none;
+    }
+    .right-content { padding: var(--sp-4); flex: 1; overflow-y: auto; }
+
+    .role-badge {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 1px 6px; border-radius: var(--r-full);
+      display: inline-block;
+    }
+    .role-badge.te { background: var(--role-te-bg); color: var(--role-te-text); }
+    .role-badge.bh { background: var(--role-bh-bg); color: var(--role-bh-text); }
+
+    .text-block {
+      background: var(--canvas); border: 1px solid var(--wire);
+      border-radius: var(--r-md); padding: var(--sp-3);
+      font-size: 13px; line-height: 1.6; color: var(--ink-secondary);
+      margin-top: var(--sp-2);
+    }
+    .text-block .lv {
+      font-family: var(--font-data); font-size: 12px; font-weight: 500;
+      padding: 0 4px; border-radius: var(--r-sm); border: 1px solid;
+      display: inline;
+    }
+    .lv-dager { background: var(--lv-dager-bg); border-color: var(--lv-dager-border); color: var(--lv-dager-text); }
+    .lv-belop { background: var(--lv-belop-bg); border-color: var(--lv-belop-border); color: var(--lv-belop-text); }
+    .lv-paragraf { background: var(--lv-paragraf-bg); border-color: var(--lv-paragraf-border); color: var(--lv-paragraf-text); }
+
+    .separator-line {
+      display: flex; align-items: center; gap: var(--sp-2);
+      margin: var(--sp-4) 0; color: var(--ink-ghost); font-size: 11px;
+    }
+    .separator-line::before, .separator-line::after {
+      content: ''; flex: 1; border-top: 1px dashed var(--wire);
+    }
+
+    .editor-wrap {
+      border: 2px solid var(--vekt-dim);
+      border-radius: var(--r-md);
+      background: var(--felt);
+      min-height: 160px;
+      display: flex; flex-direction: column;
+    }
+    .editor-content {
+      flex: 1; padding: var(--sp-3);
+      font-size: 14px; line-height: 1.6;
+      color: var(--ink); outline: none;
+    }
+    .editor-toolbar {
+      border-top: 1px solid var(--wire);
+      padding: var(--sp-1) var(--sp-3);
+      display: flex; gap: var(--sp-1);
+    }
+    .editor-toolbar button {
+      width: 28px; height: 28px;
+      background: transparent; border: none; border-radius: var(--r-sm);
+      color: var(--ink-secondary); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 120ms;
+    }
+    .editor-toolbar button:hover { background: var(--felt-hover); color: var(--ink); }
+    .regenerate-link {
+      display: inline-flex; align-items: center; gap: var(--sp-1);
+      font-size: 11px; font-weight: 500; color: var(--vekt);
+      cursor: pointer; margin-top: var(--sp-2);
+    }
+    .regenerate-link:hover { text-decoration: underline; }
+
+    .upload-zone {
+      border: 1px dashed var(--wire-strong);
+      border-radius: var(--r-md); padding: var(--sp-4);
+      text-align: center; color: var(--ink-secondary);
+      font-size: 13px; margin-top: var(--sp-4);
+      transition: all 150ms;
+    }
+
+    /* Passivitets-advarsel */
+    .passivity-bar {
+      display: flex; align-items: center; gap: var(--sp-2);
+      padding: var(--sp-2) var(--sp-3);
+      border-radius: var(--r-sm);
+      font-size: 12px; font-weight: 500;
+      margin-bottom: var(--sp-3);
+    }
+    .passivity-bar.amber {
+      background: var(--vekt-bg); color: var(--vekt);
+      border: 1px solid rgba(232,168,56,0.15);
+    }
+    .passivity-bar.red {
+      background: var(--score-low-bg); color: var(--score-low);
+      border: 1px solid rgba(196,88,88,0.15);
+    }
+
+    /* Svarplikt-advarsel */
+    .svarplikt-bar {
+      display: flex; align-items: center; gap: var(--sp-2);
+      padding: var(--sp-2) var(--sp-3);
+      border-radius: var(--r-sm);
+      background: var(--score-low-bg); color: var(--score-low);
+      border: 1px solid rgba(196,88,88,0.15);
+      font-size: 12px; font-weight: 500;
+      margin-bottom: var(--sp-3);
+    }
+
+    /* Dialog overlay */
+    .dialog-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.60);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200;
+    }
+    .dialog {
+      background: var(--felt-raised);
+      border: 1px solid var(--wire-strong);
+      border-radius: var(--r-lg);
+      width: 400px; max-width: 90vw;
+      padding: var(--sp-5);
+    }
+    .dialog h3 {
+      font-size: 15px; font-weight: 600; margin-bottom: var(--sp-3);
+    }
+    .dialog .dialog-body {
+      font-size: 13px; color: var(--ink-secondary); line-height: 1.6;
+      margin-bottom: var(--sp-4);
+    }
+    .dialog textarea {
+      width: 100%; min-height: 60px;
+      background: var(--canvas); border: 1px solid var(--wire);
+      border-radius: var(--r-sm); padding: var(--sp-2) var(--sp-3);
+      font-family: var(--font-ui); font-size: 13px; color: var(--ink);
+      resize: vertical; outline: none; margin-bottom: var(--sp-3);
+    }
+    .dialog textarea:focus { border-color: var(--vekt-dim); }
+    .dialog-actions {
+      display: flex; justify-content: flex-end; gap: var(--sp-2);
+    }
+
+    /* Kravlinje-container */
+    .kravlinje-container {
+      background: var(--canvas);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-md);
+      padding: var(--sp-4);
+      margin-top: var(--sp-3);
+      position: relative;
+    }
+    .kravlinje-label {
+      position: absolute; top: -8px; left: var(--sp-3);
+      background: var(--felt);
+      padding: 0 var(--sp-2);
+      font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--ink-ghost);
+    }
+    .kravlinje {
+      padding: var(--sp-2) 0;
+    }
+    .kravlinje + .kravlinje {
+      border-top: 1px dashed var(--wire);
+      margin-top: var(--sp-2); padding-top: var(--sp-3);
+    }
+    .kravlinje-name {
+      font-size: 12px; font-weight: 600; color: var(--ink);
+      margin-bottom: var(--sp-2);
+    }
+    .kravlinje-fields {
+      display: flex; gap: var(--sp-4); align-items: flex-end;
+    }
+    .kravlinje-field {
+      flex: 1;
+    }
+    .kravlinje-field label {
+      display: block; font-size: 11px; color: var(--ink-muted);
+      margin-bottom: var(--sp-1);
+    }
+
+    /* 30%-regel read-only */
+    .regel-box {
+      background: var(--canvas);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-md);
+      padding: var(--sp-3) var(--sp-4);
+      margin-top: var(--sp-3);
+    }
+    .regel-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: var(--sp-2);
+    }
+    .regel-title {
+      font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--ink-muted);
+    }
+    .regel-auto {
+      font-size: 10px; font-weight: 500; color: var(--ink-ghost);
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+
+    /* Cascade table */
+    .cascade-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 12px; margin-top: var(--sp-3);
+    }
+    .cascade-table th {
+      text-align: left; font-weight: 500; color: var(--ink-muted);
+      padding: var(--sp-1) var(--sp-2);
+      border-bottom: 1px solid var(--wire-strong);
+      font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .cascade-table td {
+      padding: var(--sp-2);
+      border-bottom: 1px solid var(--wire);
+      color: var(--ink-secondary);
+    }
+
+    /* Aksept card */
+    .aksept-position {
+      background: var(--canvas);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-md);
+      padding: var(--sp-3) var(--sp-4);
+      margin-bottom: var(--sp-3);
+    }
+    .aksept-position .label {
+      font-size: 11px; color: var(--ink-muted); letter-spacing: 0.04em;
+      text-transform: uppercase; margin-bottom: var(--sp-1);
+    }
+    .aksept-position .value {
+      font-size: 14px; font-weight: 600;
+    }
+
+    /* Forespørsel section */
+    .foresporsel-section {
+      margin-top: var(--sp-3);
+      padding: var(--sp-3) var(--sp-4);
+      background: var(--canvas);
+      border: 1px solid var(--wire);
+      border-radius: var(--r-md);
+    }
+    .foresporsel-label {
+      font-size: 13px; font-weight: 400; color: var(--ink-secondary);
+      margin-bottom: var(--sp-2);
+    }
+    .foresporsel-label .ref {
+      font-family: var(--font-data); font-weight: 500;
+    }
+
+    /* Utility */
+    .mt-3 { margin-top: var(--sp-3); }
+    .mt-5 { margin-top: var(--sp-5); }
+    .mb-3 { margin-bottom: var(--sp-3); }
+    .flex-between {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .text-muted { color: var(--ink-muted); }
+    .text-ghost { color: var(--ink-ghost); }
+    .text-high { color: var(--score-high); }
+    .text-low { color: var(--score-low); }
+    .text-vekt { color: var(--vekt); }
+  </style>
+</head>
+<body>
+
+<!-- VIEW SWITCHER -->
+<nav class="view-nav">
+  <span class="brand">Spordetalj</span>
+  <button class="view-btn active" onclick="showView('grunnlag')">Grunnlag</button>
+  <button class="view-btn" onclick="showView('frist')">Frist</button>
+  <button class="view-btn" onclick="showView('vederlag')">Vederlag</button>
+  <button class="view-btn" onclick="showView('forsering')">Forsering</button>
+  <button class="view-btn" onclick="showView('aksept')">Aksept</button>
+  <button class="view-btn" onclick="showView('trekk')">Trekk</button>
+</nav>
+
+<div class="page">
+
+<!-- =====================================================
+     VIEW 1: ANSVARSGRUNNLAG — BH SVARER
+     ===================================================== -->
+<div class="view active" id="view-grunnlag">
+  <div class="three-panel">
+
+    <!-- LEFT NAV -->
+    <div class="nav-panel">
+      <div class="nav-back">← Tilbake til Forhandlingsbordet</div>
+      <div class="nav-header">
+        <h2>#12 Stålmontasje</h2>
+        <div class="case-id">KOE-2024-047</div>
+      </div>
+      <div class="nav-item active">
+        <span class="status-dot amber"></span> Grunnlag
+      </div>
+      <div class="nav-item">
+        <span class="status-dot ghost"></span> Vederlag
+      </div>
+      <div class="nav-item">
+        <span class="status-dot ghost"></span> Frist
+      </div>
+    </div>
+
+    <!-- MID PANEL -->
+    <div class="mid-panel">
+      <div class="mid-scroll">
+
+        <!-- Passivitets-advarsel -->
+        <div class="passivity-bar amber">
+          ⚠ 8 dager siden varsel mottatt. Vurder å ta stilling snart.
+        </div>
+
+        <!-- Sone 1: Kravhode -->
+        <div class="kravhode">
+          <div class="kravhode-header">
+            <span class="label">Krav fra TE — Veidekke</span>
+            <span class="rev">Rev. 1</span>
+          </div>
+          <div class="kravhode-title">Irregulær endring</div>
+          <div class="kravhode-meta">
+            Oppdaget <span class="mono">10.01.2026</span>
+            <span class="sep">·</span>
+            Varslet <span class="mono">15.01.2026</span>
+          </div>
+        </div>
+
+        <!-- Sone 3: Beslutningsfelt -->
+        <div class="section-title">
+          <h3>VARSLING <span class="ref">§32.2</span></h3>
+          <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+        <div style="margin-top: var(--sp-3)">
+          <div style="font-size: 13px; color: var(--ink-secondary)">Varslet i tide?</div>
+          <div class="yesno-group">
+            <button class="yesno-btn yes-selected">Ja</button>
+            <button class="yesno-btn">Nei</button>
+          </div>
+        </div>
+
+        <div class="section-title">
+          <h3>DIN VURDERING</h3>
+        </div>
+        <div class="verdict-group">
+          <button class="verdict-btn">Godkjent</button>
+          <button class="verdict-btn selected-red">Avslått</button>
+          <button class="verdict-btn" title="Kun for IRREG/VALGRETT">Frafalt</button>
+        </div>
+        <div style="font-size: 10px; color: var(--ink-ghost); margin-top: var(--sp-1)">
+          Frafalt kun synlig for IRREG/VALGRETT
+        </div>
+
+        <!-- Konsekvens-callout -->
+        <div class="callout warning">
+          <strong>⚠ Avslått</strong> — vederlag og frist behandles subsidiært.
+        </div>
+
+        <!-- Resultatboks -->
+        <div class="resultat-box">
+          <div class="section-title" style="margin-top: 0">
+            <h3>RESULTAT</h3>
+          </div>
+          <div class="resultat-row">
+            <span class="resultat-label">Prinsipalt</span>
+            <span class="badge red">Avslått</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="mid-footer">
+        <button class="btn btn-ghost">Avbryt</button>
+        <button class="btn btn-primary">Send svar</button>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="right-tabs">
+        <div class="right-tab active">Begrunnelse</div>
+        <div class="right-tab dimmed">Historikk</div>
+        <div class="right-tab dimmed">Filer</div>
+      </div>
+      <div class="right-content">
+        <!-- TE-blokk -->
+        <div style="margin-bottom: var(--sp-3)">
+          <div class="flex-between" style="margin-bottom: var(--sp-2)">
+            <span><span class="role-badge te">TE</span> Krav fra Veidekke</span>
+            <span class="mono" style="font-size: 11px; color: var(--ink-muted)">Rev. 1</span>
+          </div>
+          <div class="text-block">
+            Endringen oppstod som følge av uforutsette grunnforhold ved fundamentering av stålkonstruksjon. TE varslet umiddelbart etter befaring...
+            <div style="margin-top: var(--sp-2); font-size: 11px; color: var(--vekt); font-weight: 500; cursor: pointer">▾ Vis mer (3/8 avsnitt)</div>
+          </div>
+        </div>
+
+        <div class="separator-line">TE → BH</div>
+
+        <!-- Editor -->
+        <div style="font-size: 13px; font-weight: 500; margin-bottom: var(--sp-2)">Din vurdering</div>
+        <div class="editor-wrap">
+          <div class="editor-content" contenteditable="true">
+            Byggherren anser varselet mottatt i tide, men avslår ansvarsgrunnlaget. Forholdet gjelder ikke en irregulær endring iht. <span class="lv lv-paragraf">§25.2</span>. Grunnforholdene er dekket av TEs undersøkelsesplikt.
+          </div>
+          <div class="editor-toolbar">
+            <button>¶</button>
+            <button><b>B</b></button>
+            <button><i>I</i></button>
+          </div>
+        </div>
+        <div class="regenerate-link">↻ Regenerer</div>
+
+        <!-- Vedlegg -->
+        <div class="upload-zone">
+          ⇧ Dra filer hit · PDF, DOCX
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- =====================================================
+     VIEW 2: FRISTFORLENGELSE — BH SVARER
+     ===================================================== -->
+<div class="view" id="view-frist">
+  <div class="three-panel">
+    <div class="nav-panel">
+      <div class="nav-back">← Tilbake til Forhandlingsbordet</div>
+      <div class="nav-header">
+        <h2>#12 Stålmontasje</h2>
+        <div class="case-id">KOE-2024-047</div>
+      </div>
+      <div class="nav-item">
+        <span class="status-dot red"></span> Grunnlag
+      </div>
+      <div class="nav-item">
+        <span class="status-dot ghost"></span> Vederlag
+      </div>
+      <div class="nav-item active">
+        <span class="status-dot amber"></span> Frist
+      </div>
+    </div>
+
+    <div class="mid-panel">
+      <div class="mid-scroll">
+
+        <!-- Sone 1: Kravhode -->
+        <div class="kravhode">
+          <div class="kravhode-header">
+            <span class="label">Krav fra TE — Veidekke</span>
+            <span class="rev">Rev. 1</span>
+          </div>
+          <div class="kravhode-title">Spesifisert krav</div>
+          <div class="kravhode-meta">
+            <span class="mono">45</span> kalenderdager
+            <span class="sep">·</span>
+            Ny dato <span class="mono">15.08.2026</span>
+          </div>
+          <div class="kravhode-meta" style="margin-top: 2px">
+            Varslet <span class="mono">15.01</span>
+            <span class="sep">·</span>
+            Spesifisert <span class="mono">28.01</span>
+          </div>
+        </div>
+
+        <!-- Sone 2: Posisjonskort -->
+        <div class="posisjonskort">
+          <div class="pos-col">
+            <div class="pos-label">Krevd</div>
+            <div class="pos-value krevd mono">45d</div>
+          </div>
+          <div class="pos-col">
+            <div class="pos-label">Godkjent</div>
+            <div class="pos-value godkjent mono">30d</div>
+          </div>
+          <div class="pos-col">
+            <div class="pos-label">Grad</div>
+            <div class="pos-value grad mid mono">67%</div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill mid" style="width: 67%"></div>
+          </div>
+        </div>
+
+        <!-- Sone 3: Varsling -->
+        <div class="section-title">
+          <h3>VARSLING <span class="ref">§33.4</span></h3>
+          <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+        <div class="kv-row"><span class="kv-label">Oppdaget</span><span class="kv-leader"></span><span class="kv-value">10.01</span></div>
+        <div class="kv-row"><span class="kv-label">Varslet</span><span class="kv-leader"></span><span class="kv-value">15.01</span></div>
+        <div class="kv-row"><span class="kv-label">Spesifisert</span><span class="kv-leader"></span><span class="kv-value">28.01</span></div>
+
+        <!-- Innsigelser med konsekvensasymmetri -->
+        <div class="section-title">
+          <h3>INNSIGELSER</h3>
+        </div>
+        <div class="innsigelse-group">
+          <div class="innsigelse-item">
+            <div class="innsigelse-primary">
+              <div class="checkbox"></div>
+              <span class="innsigelse-text">Varslet for sent</span>
+            </div>
+            <div class="innsigelse-secondary">
+              <span class="ref">§33.4</span> — kravet tapes (full preklusion)
+            </div>
+          </div>
+          <div class="innsigelse-item checked">
+            <div class="innsigelse-primary">
+              <div class="checkbox checked">✓</div>
+              <span class="innsigelse-text">Spesifisert for sent</span>
+            </div>
+            <div class="innsigelse-secondary">
+              <span class="ref">§33.6.1</span> — reduseres til det BH måtte forstå (ikke preklusion)
+            </div>
+          </div>
+        </div>
+
+        <!-- Årsakssammenheng §33.1 (separert fra innsigelser) -->
+        <div class="section-title">
+          <h3>ÅRSAKSSAMMENHENG <span class="ref">§33.1</span></h3>
+          <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+        <div style="margin-top: var(--sp-3)">
+          <div style="font-size: 13px; color: var(--ink-secondary)">Har forholdet hindret fremdriften?</div>
+          <div class="yesno-group">
+            <button class="yesno-btn yes-selected">Ja</button>
+            <button class="yesno-btn">Nei</button>
+          </div>
+        </div>
+
+        <!-- Verdict -->
+        <div class="section-title">
+          <h3>DIN VURDERING</h3>
+        </div>
+        <div class="verdict-group">
+          <button class="verdict-btn">Godkjent</button>
+          <button class="verdict-btn selected-amber">Delvis godkjent</button>
+          <button class="verdict-btn">Avslått</button>
+        </div>
+
+        <!-- Godkjent dager -->
+        <div class="number-field">
+          <label>Godkjent fristforlengelse</label>
+          <div class="number-input-wrap">
+            <input type="text" value="30">
+            <span class="suffix">kalenderdager</span>
+          </div>
+          <div class="number-helper">Differanse: 15d (<span class="pct mid mono">67% godkjent</span>)</div>
+        </div>
+
+        <!-- Subsidiært standpunkt -->
+        <div class="section-title">
+          <h3>SUBSIDIÆRT STANDPUNKT</h3>
+        </div>
+        <div class="callout info">
+          Subsidiært fordi innsigelse er påberopt (§33.6.1). Vurder også subsidiært ved grunnlag vurdert subsidiært (§32.2).
+        </div>
+        <div class="number-field">
+          <label>Subsidiært godkjent</label>
+          <div class="number-input-wrap">
+            <input type="text" value="20">
+            <span class="suffix">kalenderdager</span>
+          </div>
+        </div>
+
+        <!-- §33.8 forsering-advarsel -->
+        <div class="callout warning" style="margin-top: var(--sp-5)">
+          <strong>⚠ Forsering (§33.8)</strong> — Delvis godkjenning kan gi TE rett til å forsere. Forseringskostnad begrenset til dagmulkt × 1,3.
+        </div>
+
+        <!-- Resultatboks -->
+        <div class="resultat-box">
+          <div class="section-title" style="margin-top: 0">
+            <h3>RESULTAT</h3>
+          </div>
+          <div class="resultat-row">
+            <span class="resultat-label">Prinsipalt</span>
+            <span class="badge amber">Delvis</span>
+            <span class="resultat-value mono">30 kalenderdager</span>
+          </div>
+          <div class="resultat-row">
+            <span class="resultat-label sub">Subsidiært</span>
+            <span class="badge ghost">Subs.</span>
+            <span class="resultat-value mono" style="color: var(--ink-muted)">20 kalenderdager</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mid-footer">
+        <button class="btn btn-ghost">Avbryt</button>
+        <button class="btn btn-primary">Send svar §33</button>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="right-tabs">
+        <div class="right-tab active">Begrunnelse</div>
+        <div class="right-tab dimmed">Historikk</div>
+        <div class="right-tab dimmed">Filer</div>
+      </div>
+      <div class="right-content">
+        <div style="margin-bottom: var(--sp-3)">
+          <div class="flex-between" style="margin-bottom: var(--sp-2)">
+            <span><span class="role-badge te">TE</span> Krav fra Veidekke</span>
+            <span class="mono" style="font-size: 11px; color: var(--ink-muted)">Rev. 1</span>
+          </div>
+          <div class="text-block">
+            Forsinkelsen skyldes underleverandør Stålmontasje AS som ikke leverte innen avtalt tid...
+          </div>
+        </div>
+
+        <div class="separator-line">TE → BH</div>
+
+        <div style="font-size: 13px; font-weight: 500; margin-bottom: var(--sp-2)">Din vurdering</div>
+        <div class="editor-wrap">
+          <div class="editor-content" contenteditable="true">
+            Godkjenner <span class="lv lv-dager">30 dager</span> av <span class="lv lv-dager">45 dager</span> (<span class="lv lv-dager">67%</span>). TE har varslet etter <span class="lv lv-paragraf">§33.4</span> den <span class="lv lv-dager">15.01.2026</span>, men spesifisert krav etter <span class="lv lv-paragraf">§33.6.1</span> ble sendt etter fristen. Innsigelse om preklusjon etter <span class="lv lv-paragraf">§33.6.1</span> fastholdes.
+          </div>
+          <div class="editor-toolbar">
+            <button>¶</button>
+            <button><b>B</b></button>
+            <button><i>I</i></button>
+          </div>
+        </div>
+        <div class="regenerate-link">↻ Regenerer</div>
+
+        <div class="upload-zone">
+          ⇧ Dra filer hit · PDF, DOCX
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- =====================================================
+     VIEW 3: VEDERLAGSJUSTERING — BH SVARER
+     ===================================================== -->
+<div class="view" id="view-vederlag">
+  <div class="three-panel">
+    <div class="nav-panel">
+      <div class="nav-back">← Tilbake til Forhandlingsbordet</div>
+      <div class="nav-header">
+        <h2>#12 Stålmontasje</h2>
+        <div class="case-id">KOE-2024-047</div>
+      </div>
+      <div class="nav-item">
+        <span class="status-dot red"></span> Grunnlag
+      </div>
+      <div class="nav-item active">
+        <span class="status-dot amber"></span> Vederlag
+      </div>
+      <div class="nav-item">
+        <span class="status-dot amber"></span> Frist
+      </div>
+    </div>
+
+    <div class="mid-panel">
+      <div class="mid-scroll">
+
+        <!-- Svarplikt-advarsel -->
+        <div class="svarplikt-bar">
+          ⚠ <strong>Svarplikt</strong> — 8 dager siden krav mottatt. Risiko for passiv aksept (§30.3.2).
+        </div>
+
+        <!-- Sone 1 -->
+        <div class="kravhode">
+          <div class="kravhode-header">
+            <span class="label">Krav fra TE — Veidekke</span>
+            <span class="rev">Rev. 2</span>
+          </div>
+          <div class="kravhode-title">Regningsarbeid</div>
+          <div class="kravhode-meta">
+            Hovedkrav: <span class="mono">kr 1 800 000</span>
+            <span class="sep">·</span>
+            Rigg/drift: <span class="mono">kr 350 000</span>
+          </div>
+          <div class="kravhode-meta" style="margin-top: 2px">
+            Produktivitet: <span class="mono">kr 250 000</span>
+            <span class="sep">·</span>
+            Totalt krevd: <span class="mono">kr 2 400 000</span>
+          </div>
+        </div>
+
+        <!-- Sone 2 -->
+        <div class="posisjonskort">
+          <div class="pos-col">
+            <div class="pos-label">Krevd</div>
+            <div class="pos-value krevd mono">2,4M</div>
+          </div>
+          <div class="pos-col">
+            <div class="pos-label">Godkjent</div>
+            <div class="pos-value godkjent mono">1,6M</div>
+          </div>
+          <div class="pos-col">
+            <div class="pos-label">Grad</div>
+            <div class="pos-value grad mid mono">67%</div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill mid" style="width: 67%"></div>
+          </div>
+        </div>
+
+        <!-- Metode -->
+        <div class="section-title">
+          <h3>BEREGNINGSMETODE <span class="ref">§34</span></h3>
+        </div>
+        <div class="kv-row" style="margin-top: var(--sp-2)">
+          <span class="kv-label">TEs valg</span>
+          <span class="kv-leader"></span>
+          <span class="kv-value">Regningsarbeid</span>
+        </div>
+        <div style="margin-top: var(--sp-3); font-size: 13px; color: var(--ink-secondary)">
+          Aksepterer du TEs metodevalg?
+        </div>
+        <div class="yesno-group">
+          <button class="yesno-btn yes-selected">Ja</button>
+          <button class="yesno-btn">Nei</button>
+        </div>
+
+        <!-- Kravlinjer -->
+        <div class="kravlinje-container" style="margin-top: var(--sp-5)">
+          <span class="kravlinje-label">Kravlinjer</span>
+
+          <div class="kravlinje">
+            <div class="kravlinje-name">HOVEDKRAV</div>
+            <div class="kravlinje-fields">
+              <div class="kravlinje-field">
+                <label>Krevd</label>
+                <div class="mono" style="font-size: 14px">kr 1 800 000</div>
+              </div>
+              <div class="kravlinje-field">
+                <label>Godkjent beløp</label>
+                <div class="number-input-wrap">
+                  <input type="text" value="1 200 000" style="font-size: 13px">
+                  <span class="suffix">kr</span>
+                </div>
+              </div>
+              <div class="kravlinje-field" style="flex: 0 0 auto">
+                <span class="badge amber" style="margin-top: 18px; display: inline-block">Delvis</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="kravlinje">
+            <div class="kravlinje-name">RIGG OG DRIFT <span style="font-size: 11px; color: var(--ink-muted); font-weight: 400">§34.1.3</span></div>
+            <div class="kravlinje-fields">
+              <div class="kravlinje-field">
+                <label>Krevd</label>
+                <div class="mono" style="font-size: 14px">kr 350 000</div>
+              </div>
+              <div class="kravlinje-field">
+                <label>Godkjent beløp</label>
+                <div class="number-input-wrap">
+                  <input type="text" value="280 000" style="font-size: 13px">
+                  <span class="suffix">kr</span>
+                </div>
+              </div>
+              <div class="kravlinje-field" style="flex: 0 0 auto">
+                <span class="badge amber" style="margin-top: 18px; display: inline-block">Delvis</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="kravlinje">
+            <div class="kravlinje-name">PRODUKTIVITET <span style="font-size: 11px; color: var(--ink-muted); font-weight: 400">§34.1.3</span></div>
+            <div class="kravlinje-fields">
+              <div class="kravlinje-field">
+                <label>Krevd</label>
+                <div class="mono" style="font-size: 14px">kr 250 000</div>
+              </div>
+              <div class="kravlinje-field">
+                <label>Godkjent beløp</label>
+                <div class="number-input-wrap">
+                  <input type="text" value="120 000" style="font-size: 13px">
+                  <span class="suffix">kr</span>
+                </div>
+              </div>
+              <div class="kravlinje-field" style="flex: 0 0 auto">
+                <span class="badge amber" style="margin-top: 18px; display: inline-block">Delvis</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resultat -->
+        <div class="resultat-box">
+          <div class="section-title" style="margin-top: 0">
+            <h3>RESULTAT</h3>
+          </div>
+          <div class="resultat-row">
+            <span class="resultat-label">Totalt godkjent</span>
+            <span class="badge amber">Delvis</span>
+            <span class="resultat-value mono">kr 1 600 000</span>
+          </div>
+          <div class="resultat-row" style="margin-top: var(--sp-1)">
+            <span class="resultat-label sub">Differanse</span>
+            <span class="resultat-value mono" style="color: var(--ink-muted)">kr 800 000 (67%)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mid-footer">
+        <button class="btn btn-ghost">Avbryt</button>
+        <button class="btn btn-primary">Send svar §34</button>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="right-tabs">
+        <div class="right-tab active">Begrunnelse</div>
+        <div class="right-tab dimmed">Historikk</div>
+        <div class="right-tab dimmed">Filer</div>
+      </div>
+      <div class="right-content">
+        <div style="font-size: 13px; font-weight: 500; margin-bottom: var(--sp-2)">Din vurdering</div>
+        <div class="editor-wrap">
+          <div class="editor-content" contenteditable="true">
+            Godkjenner <span class="lv lv-belop">kr 1 600 000</span> av <span class="lv lv-belop">kr 2 400 000</span>. Rigg/drift redusert grunnet dokumentasjon som ikke underbygger fullt krav...
+          </div>
+          <div class="editor-toolbar">
+            <button>¶</button>
+            <button><b>B</b></button>
+            <button><i>I</i></button>
+          </div>
+        </div>
+        <div class="regenerate-link">↻ Regenerer</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     VIEW 4: FORSERING — BH EVALUERER
+     ===================================================== -->
+<div class="view" id="view-forsering">
+  <div class="three-panel">
+    <div class="nav-panel">
+      <div class="nav-back">← Tilbake til Forhandlingsbordet</div>
+      <div class="nav-header">
+        <h2>Forsering §33.8</h2>
+        <div class="case-id">KOE-2024-047</div>
+      </div>
+      <div class="nav-item active">
+        <span class="status-dot amber"></span> Forsering
+      </div>
+    </div>
+
+    <div class="mid-panel">
+      <div class="mid-scroll">
+
+        <!-- Per-sak vurdering -->
+        <div class="section-title" style="margin-top: 0">
+          <h3>VURDERING PER SAK</h3>
+        </div>
+
+        <div style="margin-top: var(--sp-3); padding: var(--sp-3); background: var(--canvas); border: 1px solid var(--wire); border-radius: var(--r-md)">
+          <div style="font-size: 13px; font-weight: 500; margin-bottom: var(--sp-2)">
+            Sak #12: Stålmontasje <span class="mono" style="color: var(--ink-muted)">· 15d</span>
+          </div>
+          <div class="verdict-group" style="margin-top: 0">
+            <button class="verdict-btn selected-green">Anerkjenner</button>
+            <button class="verdict-btn">Bestrider</button>
+          </div>
+        </div>
+
+        <div style="margin-top: var(--sp-2); padding: var(--sp-3); background: var(--canvas); border: 1px solid var(--wire); border-radius: var(--r-md)">
+          <div style="font-size: 13px; font-weight: 500; margin-bottom: var(--sp-2)">
+            Sak #15: Grunnarbeid <span class="mono" style="color: var(--ink-muted)">· 20d</span>
+          </div>
+          <div class="verdict-group" style="margin-top: 0">
+            <button class="verdict-btn">Anerkjenner</button>
+            <button class="verdict-btn selected-red">Bestrider</button>
+          </div>
+        </div>
+
+        <div class="kv-row" style="margin-top: var(--sp-3)">
+          <span class="kv-label">Dager med forseringsrett</span>
+          <span class="kv-leader"></span>
+          <span class="kv-value" style="color: var(--score-high)">20d</span>
+        </div>
+
+        <!-- 30%-regelen (read-only, auto-beregnet) -->
+        <div class="regel-box" style="margin-top: var(--sp-5)">
+          <div class="regel-header">
+            <span class="regel-title">30%-REGELEN</span>
+            <span class="regel-auto">Auto-beregnet</span>
+          </div>
+          <div class="kv-row"><span class="kv-label">Maks kostnad</span><span class="kv-leader"></span><span class="kv-value">kr 2 275 000</span></div>
+          <div class="kv-row"><span class="kv-label">Estimert kostnad</span><span class="kv-leader"></span><span class="kv-value">kr 1 800 000</span></div>
+          <div class="kv-row">
+            <span class="kv-label">Overholdt</span><span class="kv-leader"></span>
+            <span class="kv-value" style="color: var(--score-high)">✓ Ja</span>
+          </div>
+        </div>
+
+        <!-- Særskilte krav (rigg/drift + produktivitet) -->
+        <div class="section-title">
+          <h3>SÆRSKILTE KRAV <span class="ref">(per kravlinje)</span></h3>
+        </div>
+
+        <div style="margin-top: var(--sp-3); padding: var(--sp-3); background: var(--canvas); border: 1px solid var(--wire); border-radius: var(--r-md)">
+          <div style="font-size: 12px; font-weight: 600; margin-bottom: var(--sp-2)">Rigg/drift §34.1.3</div>
+          <div style="font-size: 13px; color: var(--ink-secondary)">Varslet i tide?</div>
+          <div class="yesno-group">
+            <button class="yesno-btn yes-selected">Ja</button>
+            <button class="yesno-btn">Nei</button>
+          </div>
+          <div class="verdict-group">
+            <button class="verdict-btn selected-amber">Delvis godkjent</button>
+            <button class="verdict-btn">Avslått</button>
+          </div>
+          <div class="number-field">
+            <label>Godkjent beløp</label>
+            <div class="number-input-wrap">
+              <input type="text" value="280 000">
+              <span class="suffix">kr</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: var(--sp-2); padding: var(--sp-3); background: var(--canvas); border: 1px solid var(--wire); border-radius: var(--r-md)">
+          <div style="font-size: 12px; font-weight: 600; margin-bottom: var(--sp-2)">Produktivitetstap §34.1.3</div>
+          <div style="font-size: 13px; color: var(--ink-secondary)">Varslet i tide?</div>
+          <div class="yesno-group">
+            <button class="yesno-btn">Ja</button>
+            <button class="yesno-btn no-selected">Nei</button>
+          </div>
+          <div class="callout info" style="margin-bottom: var(--sp-2)">
+            Evalueres subsidiært — TE varslet ikke i tide (§34.1.3).
+          </div>
+          <div class="verdict-group">
+            <button class="verdict-btn">Godkjent</button>
+            <button class="verdict-btn">Delvis godkjent</button>
+            <button class="verdict-btn selected-red">Avslått</button>
+          </div>
+        </div>
+
+        <!-- Beløpsvurdering (hovedkrav) -->
+        <div class="section-title">
+          <h3>BELØPSVURDERING <span class="ref">(hovedkrav)</span></h3>
+        </div>
+        <div class="callout info" style="font-size: 12px">
+          Gjelder forseringskostnadens godkjenning. Forseringsretten bruker Anerkjenner/Bestrider per sak (over).
+        </div>
+        <div class="verdict-group">
+          <button class="verdict-btn selected-amber">Delvis godkjent</button>
+          <button class="verdict-btn">Avslått</button>
+        </div>
+        <div class="number-field">
+          <label>Godkjent beløp</label>
+          <div class="number-input-wrap">
+            <input type="text" value="1 200 000">
+            <span class="suffix">kr</span>
+          </div>
+        </div>
+
+        <!-- Tilleggskommentar -->
+        <div class="section-title">
+          <h3>TILLEGGSKOMMENTAR <span class="ref">(valgfri)</span></h3>
+        </div>
+        <div style="font-size: 11px; color: var(--ink-muted); margin-top: var(--sp-2)">
+          Legges til den auto-genererte begrunnelsen i høyrepanelet.
+        </div>
+      </div>
+
+      <div class="mid-footer">
+        <button class="btn btn-ghost">Avbryt</button>
+        <button class="btn btn-primary">Send svar</button>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="right-tabs">
+        <div class="right-tab active">Begrunnelse</div>
+        <div class="right-tab dimmed">Historikk</div>
+        <div class="right-tab dimmed">Filer</div>
+      </div>
+      <div class="right-content">
+        <div style="font-size: 13px; font-weight: 500; margin-bottom: var(--sp-2)">Din vurdering</div>
+        <div class="editor-wrap">
+          <div class="editor-content" contenteditable="true">
+            Forseringsrett anerkjent for Sak #12 (Stålmontasje, <span class="lv lv-dager">15d</span>). Sak #15 (Grunnarbeid) bestrides — avslaget var berettiget. Beløpsvurdering: godkjenner <span class="lv lv-belop">kr 1 200 000</span> av estimerte <span class="lv lv-belop">kr 1 800 000</span>.
+          </div>
+          <div class="editor-toolbar">
+            <button>¶</button>
+            <button><b>B</b></button>
+            <button><i>I</i></button>
+          </div>
+        </div>
+        <div class="regenerate-link">↻ Regenerer</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     VIEW 5: AKSEPT DIALOG (PER SPOR)
+     ===================================================== -->
+<div class="view" id="view-aksept">
+  <div class="three-panel">
+    <div class="nav-panel">
+      <div class="nav-back">← Tilbake til Forhandlingsbordet</div>
+      <div class="nav-header">
+        <h2>#12 Stålmontasje</h2>
+        <div class="case-id">KOE-2024-047</div>
+      </div>
+      <div class="nav-item">
+        <span class="status-dot green"></span> Grunnlag
+        <span class="badge green" style="margin-left: auto; font-size: 9px">Omforent</span>
+      </div>
+      <div class="nav-item active">
+        <span class="status-dot amber"></span> Vederlag
+      </div>
+      <div class="nav-item">
+        <span class="status-dot amber"></span> Frist
+      </div>
+    </div>
+
+    <div class="mid-panel">
+      <div class="mid-scroll">
+        <!-- Lesemodus: BH har svart, TE ser resultatet -->
+        <div class="kravhode">
+          <div class="kravhode-header">
+            <span class="label">BH sitt svar — Oslobygg</span>
+            <span class="rev">Rev. 1</span>
+          </div>
+          <div class="kravhode-title">Vederlag: Delvis godkjent</div>
+          <div class="kravhode-meta">
+            Godkjent: <span class="mono">kr 1 200 000</span>
+            <span class="sep">·</span>
+            Krevd: <span class="mono">kr 1 800 000</span>
+          </div>
+        </div>
+
+        <div class="posisjonskort">
+          <div class="pos-col">
+            <div class="pos-label">Krevd</div>
+            <div class="pos-value krevd mono">1,8M</div>
+          </div>
+          <div class="pos-col">
+            <div class="pos-label">Godkjent</div>
+            <div class="pos-value godkjent mono">1,2M</div>
+          </div>
+          <div class="pos-col">
+            <div class="pos-label">Grad</div>
+            <div class="pos-value grad mid mono">67%</div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill mid" style="width: 67%"></div>
+          </div>
+        </div>
+
+        <div style="text-align: center; padding: var(--sp-8) 0; color: var(--ink-muted); font-size: 14px">
+          Du ser på BHs svar i lesemodus.<br>
+          Bruk knappene i footer for å akseptere, trekke eller revidere.
+        </div>
+      </div>
+
+      <!-- Lesemodus footer -->
+      <div class="mid-footer">
+        <button class="btn btn-ghost">Revider krav</button>
+        <div style="display: flex; gap: var(--sp-2)">
+          <button class="btn btn-danger-ghost" onclick="document.getElementById('trekk-dialog').style.display='flex'">Trekk tilbake</button>
+          <button class="btn btn-accept" onclick="document.getElementById('aksept-dialog').style.display='flex'">Aksepter svar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="right-tabs">
+        <div class="right-tab active">Begrunnelse</div>
+        <div class="right-tab">Historikk</div>
+        <div class="right-tab">Filer</div>
+      </div>
+      <div class="right-content">
+        <div style="margin-bottom: var(--sp-3)">
+          <div class="flex-between" style="margin-bottom: var(--sp-2)">
+            <span><span class="role-badge bh">BH</span> Svar fra Oslobygg</span>
+            <span class="mono" style="font-size: 11px; color: var(--ink-muted)">Rev. 1</span>
+          </div>
+          <div class="text-block">
+            Godkjenner kr 1 200 000 av kr 1 800 000. Rigg/drift redusert grunnet dokumentasjon som ikke underbygger fullt krav. Produktivitet delvis avslått.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AKSEPT DIALOG -->
+  <div class="dialog-overlay" id="aksept-dialog" style="display: none" onclick="if(event.target===this)this.style.display='none'">
+    <div class="dialog">
+      <h3>Aksepter svar — Vederlag</h3>
+      <div class="aksept-position">
+        <div class="label">BH sin posisjon</div>
+        <div class="value" style="color: var(--vekt)">Delvis godkjent — <span class="mono">kr 1 200 000</span></div>
+      </div>
+      <div class="dialog-body">
+        <textarea placeholder="Kommentar (valgfri)"></textarea>
+        <div class="callout warning" style="margin-top: 0">
+          ⚠ Denne handlingen kan ikke angres.
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn btn-ghost" onclick="document.getElementById('aksept-dialog').style.display='none'">Avbryt</button>
+        <button class="btn btn-accept">Aksepter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     VIEW 6: TREKK DIALOG (MED KASKADERING)
+     ===================================================== -->
+<div class="view" id="view-trekk">
+  <div class="three-panel">
+    <div class="nav-panel">
+      <div class="nav-back">← Tilbake til Forhandlingsbordet</div>
+      <div class="nav-header">
+        <h2>#12 Stålmontasje</h2>
+        <div class="case-id">KOE-2024-047</div>
+      </div>
+      <div class="nav-item active">
+        <span class="status-dot red"></span> Grunnlag
+      </div>
+      <div class="nav-item">
+        <span class="status-dot amber"></span> Vederlag
+      </div>
+      <div class="nav-item">
+        <span class="status-dot amber"></span> Frist
+      </div>
+    </div>
+
+    <div class="mid-panel">
+      <div class="mid-scroll">
+        <h3 style="font-size: 15px; font-weight: 600; margin-bottom: var(--sp-4)">Kaskaderegler ved tilbaketrekking</h3>
+
+        <p style="font-size: 13px; color: var(--ink-secondary); line-height: 1.6; margin-bottom: var(--sp-5)">
+          Trekk gjelder ett spor av gangen, men kan kaskadere til andre spor.
+          Under vises alle kaskade-scenarioer.
+        </p>
+
+        <!-- Scenario 1: Trekk grunnlag -->
+        <div style="margin-bottom: var(--sp-5)">
+          <div style="font-size: 13px; font-weight: 600; margin-bottom: var(--sp-2)">
+            Trekk grunnlag (vederlag/frist aktiv)
+          </div>
+          <div class="callout danger">
+            <strong>Dette vil trekke hele saken</strong><br>
+            Ved å trekke tilbake ansvarsgrunnlaget vil også <strong>vederlagskravet</strong> og <strong>fristkravet</strong> bli trukket tilbake automatisk. Denne handlingen kan ikke angres.
+          </div>
+        </div>
+
+        <!-- Scenario 2: Trekk vederlag (frist inaktiv) -->
+        <div style="margin-bottom: var(--sp-5)">
+          <div style="font-size: 13px; font-weight: 600; margin-bottom: var(--sp-2)">
+            Trekk vederlag (frist inaktiv)
+          </div>
+          <div class="callout danger">
+            <strong>Dette vil også trekke ansvarsgrunnlaget</strong><br>
+            Dette er det siste aktive kravet. Ved å trekke vederlagskravet vil også <strong>ansvarsgrunnlaget</strong> bli trukket tilbake automatisk, siden det ikke lenger finnes aktive krav. Denne handlingen kan ikke angres.
+          </div>
+        </div>
+
+        <!-- Scenario 3: Trekk vederlag (frist fortsatt aktiv) -->
+        <div style="margin-bottom: var(--sp-5)">
+          <div style="font-size: 13px; font-weight: 600; margin-bottom: var(--sp-2)">
+            Trekk vederlag (frist fortsatt aktiv)
+          </div>
+          <div class="callout warning">
+            <strong>Er du sikker?</strong><br>
+            Du er i ferd med å trekke tilbake vederlagskravet. Denne handlingen kan ikke angres.
+          </div>
+        </div>
+
+        <!-- Trekk-dialog med valgfri begrunnelse -->
+        <div style="margin-top: var(--sp-6); border-top: 1px solid var(--wire); padding-top: var(--sp-5)">
+          <div style="font-size: 13px; font-weight: 600; margin-bottom: var(--sp-3)">
+            Trekk-dialog (alle varianter)
+          </div>
+          <div class="dialog" style="position: static; width: 100%">
+            <h3>Trekk tilbake — Grunnlag</h3>
+            <div class="callout danger" style="margin-bottom: var(--sp-4)">
+              <strong>Dette vil trekke hele saken</strong><br>
+              Ved å trekke tilbake ansvarsgrunnlaget vil også vederlagskravet og fristkravet bli trukket tilbake automatisk.
+            </div>
+            <div class="dialog-body" style="margin-bottom: 0">
+              <label style="display: block; font-size: 12px; color: var(--ink-secondary); margin-bottom: var(--sp-1)">Begrunnelse (valgfri)</label>
+              <textarea placeholder="Valgfri begrunnelse for tilbaketrekking..."></textarea>
+            </div>
+            <div class="dialog-actions">
+              <button class="btn btn-ghost">Avbryt</button>
+              <button class="btn" style="background: var(--score-low); color: #fff">Trekk tilbake</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mid-footer">
+        <button class="btn btn-ghost">Revider krav</button>
+        <div style="display: flex; gap: var(--sp-2)">
+          <button class="btn btn-danger-ghost">Trekk tilbake</button>
+          <button class="btn btn-accept">Aksepter svar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="right-tabs">
+        <div class="right-tab active">Begrunnelse</div>
+        <div class="right-tab">Historikk</div>
+        <div class="right-tab">Filer</div>
+      </div>
+      <div class="right-content">
+        <div style="text-align: center; padding: var(--sp-8) 0; color: var(--ink-muted); font-size: 13px">
+          Kaskade-scenario demonstrasjon.<br>
+          Trekk-dialogen har valgfri begrunnelse.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /page -->
+
+<script>
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>
