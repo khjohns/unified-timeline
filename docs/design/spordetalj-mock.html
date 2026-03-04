@@ -960,7 +960,7 @@
             <span class="label">Krav fra TE — Veidekke</span>
             <span class="rev">Rev. 1</span>
           </div>
-          <div class="kravhode-title">Spesifisert krav</div>
+          <div class="kravhode-title">Fremsatt krav</div>
           <div class="kravhode-meta">
             <span class="mono">45</span> kalenderdager
             <span class="sep">·</span>
@@ -969,7 +969,7 @@
           <div class="kravhode-meta" style="margin-top: 2px">
             Varslet <span class="mono">15.01</span>
             <span class="sep">·</span>
-            Spesifisert <span class="mono">28.01</span>
+            Krav <span class="mono">28.01</span>
           </div>
         </div>
 
@@ -999,7 +999,13 @@
         </div>
         <div class="kv-row"><span class="kv-label">Oppdaget</span><span class="kv-leader"></span><span class="kv-value">10.01</span></div>
         <div class="kv-row"><span class="kv-label">Varslet</span><span class="kv-leader"></span><span class="kv-value">15.01</span></div>
-        <div class="kv-row"><span class="kv-label">Spesifisert</span><span class="kv-leader"></span><span class="kv-value">28.01</span></div>
+
+        <!-- Fremsatt krav §33.6.1 -->
+        <div class="section-title">
+          <h3>FREMSATT KRAV <span class="ref">§33.6.1</span></h3>
+          <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+        <div class="kv-row"><span class="kv-label">Fremsatt</span><span class="kv-leader"></span><span class="kv-value">28.01</span></div>
 
         <!-- Innsigelser med konsekvensasymmetri -->
         <div class="section-title">
@@ -1018,7 +1024,7 @@
           <div class="innsigelse-item checked">
             <div class="innsigelse-primary">
               <div class="checkbox checked">✓</div>
-              <span class="innsigelse-text">Spesifisert for sent</span>
+              <span class="innsigelse-text">Krav fremsatt for sent</span>
             </div>
             <div class="innsigelse-secondary">
               <span class="ref">§33.6.1</span> — reduseres til det BH måtte forstå (ikke preklusion)
@@ -1028,7 +1034,7 @@
 
         <!-- Årsakssammenheng §33.1 (separert fra innsigelser) -->
         <div class="section-title">
-          <h3>ÅRSAKSSAMMENHENG <span class="ref">§33.1</span></h3>
+          <h3>VILKÅR FOR FRISTFORLENGELSE <span class="ref">§33.1</span></h3>
           <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
         </div>
         <div style="margin-top: var(--sp-3)">
@@ -1039,17 +1045,14 @@
           </div>
         </div>
 
-        <!-- Verdict -->
+        <!-- Beregning §33.5 — direkte etter vilkår, ingen manuell DIN VURDERING -->
         <div class="section-title">
-          <h3>DIN VURDERING</h3>
+          <h3>BEREGNING <span class="ref">§33.5</span></h3>
+          <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
         </div>
-        <div class="verdict-group">
-          <button class="verdict-btn">Godkjent</button>
-          <button class="verdict-btn selected-amber">Delvis godkjent</button>
-          <button class="verdict-btn">Avslått</button>
+        <div style="margin-top: var(--sp-3); background: rgba(232,168,56,0.06); border: 1px solid rgba(232,168,56,0.20); border-radius: var(--r-sm); padding: var(--sp-2) var(--sp-3); font-size: 12px; color: var(--vekt)">
+          Begrenset godkjenning (§33.6.1) — kun det BH måtte forstå
         </div>
-
-        <!-- Godkjent dager -->
         <div class="number-field">
           <label>Godkjent fristforlengelse</label>
           <div class="number-input-wrap">
@@ -1059,18 +1062,17 @@
           <div class="number-helper">Differanse: 15d (<span class="pct mid mono">67% godkjent</span>)</div>
         </div>
 
-        <!-- Subsidiært standpunkt -->
-        <div class="section-title">
-          <h3>SUBSIDIÆRT STANDPUNKT</h3>
-        </div>
-        <div class="callout info">
-          Subsidiært fordi innsigelse er påberopt (§33.6.1). Vurder også subsidiært ved grunnlag vurdert subsidiært (§32.2).
-        </div>
-        <div class="number-field">
-          <label>Subsidiært godkjent</label>
-          <div class="number-input-wrap">
-            <input type="text" value="20">
-            <span class="suffix">kalenderdager</span>
+        <!-- Auto-beregnet resultat (utledet fra §33.4 + §33.6.1 + §33.1 + §33.5) -->
+        <div style="margin-top: var(--sp-3); background: var(--canvas); border: 1px solid var(--wire); border-radius: var(--r-sm); padding: var(--sp-2) var(--sp-3); font-size: 12px; line-height: 1.6;">
+          <div>
+            <span style="font-weight: 600; color: var(--ink-secondary);">Resultat:</span>
+            <span style="color: var(--vekt); font-weight: 600;"> Delvis godkjent</span>
+            <span style="color: var(--ink-secondary);"> — 30 av 45 dager (67%)</span>
+          </div>
+          <div>
+            <span style="color: var(--ink-muted);">↳ Subsidiært: </span>
+            <span style="font-weight: 500; color: var(--ink);">Delvis godkjent</span>
+            <span style="font-family: var(--font-data); font-size: 11px; color: var(--ink-muted);"> (30 av 45 dager)</span>
           </div>
         </div>
 
@@ -1079,7 +1081,7 @@
           <strong>⚠ Forsering (§33.8)</strong> — Delvis godkjenning kan gi TE rett til å forsere. Forseringskostnad begrenset til dagmulkt × 1,3.
         </div>
 
-        <!-- Resultatboks -->
+        <!-- Resultatboks (auto-beregnet, ingen manuell subsidiær-inndata) -->
         <div class="resultat-box">
           <div class="section-title" style="margin-top: 0">
             <h3>RESULTAT</h3>
@@ -1090,9 +1092,9 @@
             <span class="resultat-value mono">30 kalenderdager</span>
           </div>
           <div class="resultat-row">
-            <span class="resultat-label sub">Subsidiært</span>
+            <span class="resultat-label sub">↳ Subsidiært</span>
             <span class="badge ghost">Subs.</span>
-            <span class="resultat-value mono" style="color: var(--ink-muted)">20 kalenderdager</span>
+            <span class="resultat-value mono" style="color: var(--ink-muted)">30 kalenderdager</span>
           </div>
         </div>
       </div>
@@ -1126,7 +1128,7 @@
         <div style="font-size: 13px; font-weight: 500; margin-bottom: var(--sp-2)">Din vurdering</div>
         <div class="editor-wrap">
           <div class="editor-content" contenteditable="true">
-            Godkjenner <span class="lv lv-dager">30 dager</span> av <span class="lv lv-dager">45 dager</span> (<span class="lv lv-dager">67%</span>). TE har varslet etter <span class="lv lv-paragraf">§33.4</span> den <span class="lv lv-dager">15.01.2026</span>, men spesifisert krav etter <span class="lv lv-paragraf">§33.6.1</span> ble sendt etter fristen. Innsigelse om preklusjon etter <span class="lv lv-paragraf">§33.6.1</span> fastholdes.
+            Godkjenner <span class="lv lv-dager">30 dager</span> av <span class="lv lv-dager">45 dager</span> (<span class="lv lv-dager">67%</span>). TE har varslet etter <span class="lv lv-paragraf">§33.4</span> den <span class="lv lv-dager">15.01.2026</span>, men fremsatt krav etter <span class="lv lv-paragraf">§33.6.1</span> ble sendt etter fristen. Innsigelse om preklusjon etter <span class="lv lv-paragraf">§33.6.1</span> fastholdes.
           </div>
           <div class="editor-toolbar">
             <button>¶</button>
