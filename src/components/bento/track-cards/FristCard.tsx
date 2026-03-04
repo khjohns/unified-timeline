@@ -470,7 +470,7 @@ export function FristCard({
                   {/* Specification info (upgrading from varsel to krav) */}
                   {teEditState.revisionContext?.isSpecification && !teEditState.revisionContext.isForesporsel && (
                     <div className="bg-alert-info-bg text-alert-info-text rounded-sm px-2 py-1.5 text-bento-caption">
-                      Du oppgraderer fra n&oslash;ytralt varsel til spesifisert krav (&sect;33.6.1).
+                      Du oppgraderer fra n&oslash;ytralt varsel til fremsatt krav (&sect;33.6.1).
                       Kravet skal fremsettes &laquo;uten ugrunnet opphold&raquo; n&aring;r du har grunnlag for beregning.
                     </div>
                   )}
