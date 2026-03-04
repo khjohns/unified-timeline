@@ -73,7 +73,7 @@ Ikke varmt. Ikke vennlig. Profesjonelt, som et verktøy laget av noen som forst�
 |---------|------------|---------|
 | VerdictCards (klikkbare kort med ikoner) | Horisontale verdict-knapper med semantisk farge | Knapper føles som posisjoner, ikke skjemavalg. Semantisk farge gjør konsekvens synlig |
 | Vertikale radios for hovedvurdering | Verdict-knapper (horisontal gruppe) | Radioer sier "velg" — knapper sier "ta posisjon." Konsistent med Ja/Nei-mønsteret |
-| InlineYesNo for innsigelser | Checkboxer med menneskelig primærtekst | Menneskelig tekst først ("Spesifisert for sent"), §-referanse som sekundær |
+| InlineYesNo for innsigelser | Checkboxer med menneskelig primærtekst | Menneskelig tekst først ("Krav fremsatt for sent"), §-referanse som sekundær |
 | Begrunnelse-textarea i skjema | Dedikert høyrepanel med TipTap | Begrunnelsen er et dokument, ikke et felt |
 | Skygger for dybde | Borders + surface shifts | Kontraktsdokumenter har linjer, ikke skygger |
 | Flat tab-strip i høyrepanelet | Tab-låsing under redigering | Forhindrer navigasjon vekk fra aktiv begrunnelse |
@@ -164,7 +164,7 @@ Forhandlingsbordet bruker konsekvent menneskelig språk ("du kan miste retten ti
 
 | Riktig | Feil |
 |--------|------|
-| ☑ Spesifisert for sent · §33.6.1 | ☑ Preklusjon §33.6.1 — spesifisert for sent |
+| ☑ Krav fremsatt for sent · §33.6.1 | ☑ Preklusjon §33.6.1 — spesifisert for sent |
 | ⚠ Du kan miste retten til å protestere | ⚠ Passivitet §32.3 medfører rettighetsforfall |
 | [Godkjent] [Delvis] [Avslått] | ○ Godkjent ○ Delvis ○ Avslått |
 
@@ -454,8 +454,8 @@ INNSIGELSER
 
   □  Varslet for sent
      §33.4 — frist for varsling oversittet
-  ☑  Spesifisert for sent
-     §33.6.1 — frist for spesifisering oversittet
+  ☑  Krav fremsatt for sent
+     §33.6.1 — krav fremsatt etter fristen
 ```
 
 Menneskelig tekst først. §-referanse som sekundær støtte. Arver Forhandlingsbordets "prosjektleder-først"-prinsipp — men i sone ③ der juristen jobber, er §-referansen synlig (ikke skjult bak hover).
@@ -629,9 +629,9 @@ Referansekort som forankrer svaret i det det svarer på.
 ╔══════════════════════════════════════════════════╗
 ║  Krav fra TE — Veidekke                   Rev. 1 ║
 ║                                                  ║
-║  Spesifisert krav                                ║
+║  Fremsatt krav                                   ║
 ║  45 kalenderdager  ·  Ny sluttdato 15.08.2026    ║
-║  Varslet 15.01  ·  Spesifisert 28.01             ║
+║  Varslet 15.01  ·  Krav 28.01                    ║
 ╚══════════════════════════════════════════════════╝
 ```
 
@@ -995,7 +995,7 @@ Auto-generert eksempel (frist, BH delvis godkjent):
 
 "Godkjenner {{dager:30:30 dager}} av {{dager:45:45 dager}}
 ({{prosent:67:67%}}). TE har varslet etter §33.4 den
-{{dato:2026-01-15:15.01.2026}}, men spesifisert krav etter §33.6.1
+{{dato:2026-01-15:15.01.2026}}, men fremsatt krav etter §33.6.1
 ble sendt etter fristen. Innsigelse om preklusjon etter
 {{paragraf:§33.6.1:§33.6.1}} fastholdes."
 ```
@@ -1331,10 +1331,10 @@ MIDTPANEL
 ┌──────────────────────────────────────┐
 │  Krav fra TE — Veidekke       Rev. 1 │
 │  ╔══════════════════════════════════╗│
-│  ║ Spesifisert krav                 ║│
+│  ║ Fremsatt krav                    ║│
 │  ║ 45 kalenderdager · Ny dato       ║│
 │  ║ 15.08.2026                       ║│
-│  ║ Varslet 15.01 · Spesifisert 28.01║│
+│  ║ Varslet 15.01 · Krav 28.01       ║│
 │  ╚══════════════════════════════════╝│
 │                                      │
 │  ┌────────┬─────────┬──────────┐    │
@@ -1348,47 +1348,48 @@ MIDTPANEL
 │  ────────────────────────────────── │
 │  Oppdaget ·················· 10.01  │
 │  Varslet ··················· 15.01  │
-│  Spesifisert ··············· 28.01  │
+│                                      │
+│  FREMSATT KRAV §33.6.1           ⓘ  │
+│  ────────────────────────────────── │
+│  Fremsatt ·················· 28.01  │
 │                                      │
 │  INNSIGELSER                         │
 │  ────────────────────────────────── │
 │  □  Varslet for sent                 │
 │     §33.4 — kravet tapes             │
 │     (full preklusion)                │
-│  ☑  Spesifisert for sent            │
+│  ☑  Krav fremsatt for sent          │
 │     §33.6.1 — reduseres til det BH  │
 │     måtte forstå (ikke preklusion)   │
 │                                      │
-│  ÅRSAKSSAMMENHENG §33.1          ⓘ  │
+│  VILKÅR FOR FRISTFORLENGELSE §33.1 ⓘ│
 │  ────────────────────────────────── │
 │  Har forholdet hindret fremdriften?  │
 │  ┌─────┐ ┌─────┐                    │
 │  │  Ja │ │ Nei │                    │
 │  └─────┘ └─────┘                    │
 │                                      │
-│  DIN VURDERING                       │
+│  BEREGNING §33.5                 ⓘ  │
 │  ────────────────────────────────── │
-│  ┌─────────┐┌────────────────┐┌────────┐│
-│  │Godkjent ││Delvis godkjent ││ Avslått││
-│  └─────────┘└────────────────┘└────────┘│
-│                                      │
-│  Godkjent fristforlengelse           │
+│  ╌ Begrenset godkjenning (§33.6.1)  │
+│    kun det BH måtte forstå          │
+│  Godkjent fristforlengelse          │
 │  ┌──────────────────────────────┐   │
 │  │ 30                │ kaldager │   │
 │  └──────────────────────────────┘   │
 │  Differanse: 15d (67% godkjent)     │
 │                                      │
-│  SUBSIDIÆRT STANDPUNKT               │
-│  ────────────────────────────────── │
-│  Subsidiært godkjent                 │
-│  ┌──────────────────────────────┐   │
-│  │ 20                │ kaldager │   │
-│  └──────────────────────────────┘   │
+│  ┌── Auto-beregnet ───────────────┐ │
+│  │ Resultat: Delvis godkjent      │ │
+│  │   — 30 av 45 dager (67%)      │ │
+│  │ ↳ Subsidiært: Delvis godkjent │ │
+│  │   (30 av 45 dager)            │ │
+│  └───────────────────────────────┘ │
 │                                      │
 │  RESULTAT                            │
 │  ────────────────────────────────── │
 │  Prinsipalt   Delvis · 30 kaldager  │
-│  Subsidiært   Delvis · 20 kaldager  │
+│  ↳ Subsidiært Subs. · 30 kaldager  │
 │                                      │
 ├──────────────────────────────────────┤
 │ Avbryt           ▓ Send svar §33 ▓  │
@@ -1400,16 +1401,28 @@ MIDTPANEL
 ```
 Alltid synlig:
   - Kravhode (TEs krav)
-  - Varsling §33.4 (key-value datoer)
+  - Varsling §33.4 (key-value datoer: Oppdaget, Varslet)
   - Innsigelse-checkboxer (§33.4, §33.6.1 — menneskelig tekst, §-ref sekundær)
-  - Årsakssammenheng §33.1 (Ja/Nei — separat fra innsigelsene)
-  - Verdict-knapper (Godkjent/Delvis/Avslått)
+  - Vilkår for fristforlengelse §33.1 (Ja/Nei — substansiell vurdering, ikke preklusion)
 
-Synlig hvis resultat ≠ Godkjent:
-  - Godkjent dager (tall-input)
+Synlig når spesifisert_varsel finnes (TE har fremsatt krav):
+  - Fremsatt krav §33.6.1 (dato-rad)
 
-Synlig hvis minst én innsigelse ELLER grunnlag vurdert subsidiært (§32.2):
-  - Subsidiært standpunkt (egen seksjon med eget tall-input)
+Synlig når §33.6.1-innsigelse er haket av:
+  - Begrensningsnotat i BEREGNING §33.5:
+    «Begrenset godkjenning (§33.6.1) — kun det BH måtte forstå»
+
+Synlig når vilkår §33.1 er vurdert (Ja eller Nei):
+  - BEREGNING §33.5 (tall-input + auto-beregnet resultat)
+
+Auto-beregnet resultat (ingen manuell DIN VURDERING):
+  - Prinsipalt: godkjent/delvis/avslått — avledet fra §33.1 + godkjentDager
+  - Subsidiært: vises når minst én av følgende er oppfylt:
+      · §33.4 innsigelse er haket av (varslet for sent)
+      · §33.6.1 innsigelse er haket av (krav fremsatt for sent)
+      · §33.1 = Nei (vilkår ikke oppfylt)
+      · Grunnlag vurdert subsidiært (§32.2)
+    Samme godkjentDager, systemmerket «Subs.»
 
 Synlig hvis BH har sendt forespørsel:
   - Kontekstalert: «Du etterlyste spesifisering innen [frist].»
@@ -1417,7 +1430,7 @@ Synlig hvis BH har sendt forespørsel:
 Synlig hvis varsel_type = 'varsel' AND frist_varsel_ok = Ja:
   - «Send forespørsel om spesifisering?» (Ja/Nei) — §33.6.2
   - [Synlig hvis Ja:] Frist for svar (dato-input)
-  - Resultat settes automatisk til «Avventer spesifisert krav»
+  - Resultat settes automatisk til «Avventer fremsatt krav»
 
 Synlig hvis TE svarte på forespørsel (er_svar_pa_foresporsel):
   - «Kom svaret i tide?» (Ja/Nei) — §33.6.2
@@ -1436,9 +1449,10 @@ Synlig hvis resultat = Avslått ELLER Delvis godkjent:
 ```
 
 **Spesifikt:**
-- **Fire seksjoner:** Varsling (datoer), Innsigelser (§33.4/§33.6.1 checkboxer), Årsakssammenheng §33.1 (Ja/Nei — substansiell vurdering, ikke preklusion), Vurdering (verdict-knapper + tall).
-- **Subsidiært:** Separat seksjon med eget tall-input. Synlig ved innsigelse ELLER grunnlag vurdert subsidiært (§32.2).
-- **Forespørsel §33.6.2:** BH kan sende forespørsel når TE kun har sendt nøytralt varsel og det er sendt i tide. TE svarer med spesifisert krav eller begrunnelse_utsatt. Ved begrunnelse_utsatt vises forenklet mottak-skjerm (ingen wizard).
+- **Fem seksjoner:** Varsling §33.4 (datoer), Fremsatt krav §33.6.1 (dato), Innsigelser (§33.4/§33.6.1 checkboxer), Vilkår §33.1 (Ja/Nei), Beregning §33.5 (tall-input).
+- **Auto-beregnet:** Resultat avledes fra innsigelsestilstand + vilkår + godkjentDager. Ingen manuell «DIN VURDERING»-seksjon med verdict-knapper.
+- **Subsidiært:** Auto-vist (ingen separat tallinput) når minst én innsigelse er haket av, §33.1 = Nei, eller grunnlag subsidiært. Samme godkjentDager, systemmerket «Subs.»
+- **Forespørsel §33.6.2:** BH kan sende forespørsel når TE kun har sendt nøytralt varsel og det er sendt i tide. TE svarer med fremsatt krav eller begrunnelse_utsatt. Ved begrunnelse_utsatt vises forenklet mottak-skjerm (ingen wizard).
 
 ### TE sender — alle kravtyper
 
