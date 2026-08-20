@@ -50,6 +50,77 @@ class CatendaInteractiveMenu:
         )
         self.logger = logging.getLogger(__name__)
 
+    def _pick_project(self, projects: list[dict], default_id: str | None = None) -> dict | None:
+        """Interaktiv prosjektvelger med søk/filter for store lister."""
+        if not projects:
+            return None
+
+        # Sorter alfabetisk på navn
+        projects = sorted(projects, key=lambda p: p.get("name", "").lower())
+
+        # Sjekk om .env-prosjektet finnes i listen
+        if default_id:
+            match = next((p for p in projects if p["id"] == default_id), None)
+            if match:
+                print(f"\n  Fant .env-prosjekt: {match.get('name')} ({default_id})")
+                use_default = input("  Bruke dette? [J/n]: ").strip().lower()
+                if use_default not in ("n", "nei", "no"):
+                    return match
+            else:
+                print(f"\n  ⚠️  Project ID fra .env ({default_id}) ikke funnet for denne appen.")
+
+        filtered = projects
+        while True:
+            print(f"\n  {len(filtered)} prosjekt(er) tilgjengelig")
+            if len(projects) > 10:
+                print("  (Trykk Enter uten søk for å vise alle)")
+                query = input("  Filtrer på navn (eller Enter for å vise): ").strip().lower()
+                if query:
+                    filtered = [p for p in projects if query in p.get("name", "").lower()]
+                    if not filtered:
+                        print(f"  Ingen treff på '{query}', prøv igjen.")
+                        filtered = projects
+                        continue
+                else:
+                    filtered = projects
+
+            # Vis listen med paginering
+            page_size = 20
+            page = 0
+            while True:
+                start = page * page_size
+                end = min(start + page_size, len(filtered))
+                print()
+                for i, p in enumerate(filtered[start:end], start + 1):
+                    print(f"  {i:3}. {p.get('name', '?')}  ({p['id']})")
+
+                nav_parts = []
+                if end < len(filtered):
+                    nav_parts.append("n = neste side")
+                if page > 0:
+                    nav_parts.append("t = tilbake")
+                if len(projects) > 10:
+                    nav_parts.append("s = nytt søk")
+                nav_parts.append("nummer = velg")
+
+                print(f"\n  [{' | '.join(nav_parts)}]")
+                choice = input("  Valg: ").strip().lower()
+
+                if choice == "n" and end < len(filtered):
+                    page += 1
+                elif choice == "t" and page > 0:
+                    page -= 1
+                elif choice == "s" and len(projects) > 10:
+                    break  # Gå til søk igjen
+                elif choice.isdigit():
+                    idx = int(choice) - 1
+                    if 0 <= idx < len(filtered):
+                        return filtered[idx]
+                    else:
+                        print(f"  ❌ Ugyldig nummer (1–{len(filtered)})")
+                else:
+                    print("  ❌ Ugyldig valg")
+
     def clear_screen(self):
         """Tøm skjermen"""
         os.system("clear" if os.name == "posix" else "cls")
@@ -105,17 +176,21 @@ class CatendaInteractiveMenu:
 
             print("✅ Autentisering vellykket!")
 
-            # Hent project og library ID fra .env, eller be brukeren
-            self.project_id = settings.catenda_project_id
-            if not self.project_id:
-                print("\nOppgi informasjon om Catenda-prosjektet:")
-                self.project_id = input("Catenda Project ID: ").strip()
-            else:
-                print(f"\nBruker Project ID fra .env: {self.project_id}")
+            # Hent prosjekter fra API og la bruker velge
+            print("\nHenter tilgjengelige prosjekter...")
+            all_projects = self.tester.list_projects()
 
-            if not self.project_id:
-                print("❌ Project ID er påkrevd")
+            if not all_projects:
+                print("❌ Ingen prosjekter funnet for denne appen")
                 return False
+
+            chosen_project = self._pick_project(all_projects, settings.catenda_project_id)
+            if not chosen_project:
+                print("❌ Ingen prosjekt valgt")
+                return False
+
+            self.project_id = chosen_project["id"]
+            print(f"✅ Valgte prosjekt: {chosen_project.get('name', self.project_id)}")
 
             self.library_id = settings.catenda_library_id
             if self.library_id:
