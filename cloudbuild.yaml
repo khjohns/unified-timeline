@@ -1,0 +1,118 @@
+steps:
+  # ==========================================
+  # 1. Bygg Backend Docker Image
+  # ==========================================
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'europe-north1-docker.pkg.dev/$PROJECT_ID/app-images/backend:$BUILD_ID'
+      - '-t'
+      - 'europe-north1-docker.pkg.dev/$PROJECT_ID/app-images/backend:latest'
+      - '-f'
+      - 'backend/Dockerfile'
+      - 'backend'
+    id: 'build-backend'
+
+  # ==========================================
+  # 2. Push Backend Image
+  # ==========================================
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'europe-north1-docker.pkg.dev/$PROJECT_ID/app-images/backend'
+    id: 'push-backend'
+
+  # ==========================================
+  # 3. Deploy Backend til Cloud Run
+  # ==========================================
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'unified-timeline-api'
+      - '--image'
+      - 'europe-north1-docker.pkg.dev/$PROJECT_ID/app-images/backend:$BUILD_ID'
+      - '--region'
+      - 'europe-north1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--timeout'
+      - '120s'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '5'
+    id: 'deploy-backend'
+
+  # ==========================================
+  # 4. Bygg Frontend Docker Image
+  # ==========================================
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'europe-north1-docker.pkg.dev/$PROJECT_ID/app-images/frontend:$BUILD_ID'
+      - '-t'
+      - 'europe-north1-docker.pkg.dev/$PROJECT_ID/app-images/frontend:latest'
+      - '--build-arg'
+      - 'VITE_API_BASE_URL=$_VITE_API_BASE_URL'
+      - '--build-arg'
+      - 'VITE_SUPABASE_URL=$_VITE_SUPABASE_URL'
+      - '--build-arg'
+      - 'VITE_SUPABASE_ANON_KEY=$_VITE_SUPABASE_ANON_KEY'
+      - '-f'
+      - 'Dockerfile'
+      - '.'
+    id: 'build-frontend'
+
+  # ==========================================
+  # 5. Push Frontend Image
+  # ==========================================
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'europe-north1-docker.pkg.dev/$PROJECT_ID/app-images/frontend'
+    id: 'push-frontend'
+
+  # ==========================================
+  # 6. Deploy Frontend til Cloud Run
+  # ==========================================
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'unified-timeline-web'
+      - '--image'
+      - 'europe-north1-docker.pkg.dev/$PROJECT_ID/app-images/frontend:$BUILD_ID'
+      - '--region'
+      - 'europe-north1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '256Mi'
+      - '--cpu'
+      - '1'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '5'
+    id: 'deploy-frontend'
+
+substitutions:
+  _VITE_API_BASE_URL: ''
+  _VITE_SUPABASE_URL: ''
+  _VITE_SUPABASE_ANON_KEY: ''
+
+options:
+  logging: CLOUD_LOGGING_ONLY

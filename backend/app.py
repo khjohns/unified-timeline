@@ -179,9 +179,6 @@ init_project_context(app)
 from kofa.web import (
     create_mcp_blueprint as create_kofa_mcp_blueprint,  # MCP server for KOFA
 )
-from paragraf.web import (
-    create_mcp_blueprint,  # MCP server for Lovdata (external package)
-)
 
 from routes.analytics_routes import analytics_bp
 from routes.bim_link_routes import bim_bp
@@ -212,7 +209,6 @@ app.register_blueprint(analytics_bp)
 app.register_blueprint(sync_bp)
 app.register_blueprint(fravik_bp)
 app.register_blueprint(letter_bp)
-app.register_blueprint(create_mcp_blueprint(), url_prefix="/mcp/paragraf")
 app.register_blueprint(create_kofa_mcp_blueprint(), url_prefix="/mcp/kofa")
 app.register_blueprint(oauth_consent_bp)
 app.register_blueprint(oauth_auto_consent_bp)
